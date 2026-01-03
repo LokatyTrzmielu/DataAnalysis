@@ -249,10 +249,21 @@ class CapacityAnalyzer:
                     "fit_status": fit_result.fit_status.value,
                     "units_per_carrier": fit_result.units_per_carrier,
                     "limiting_factor": fit_result.limiting_factor.value,
-                    "margin_mm": fit_result.margin_mm,
+                    "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
                 })
 
-        result_df = pl.DataFrame(results)
+        # Tworzymy DataFrame z jawnym schematem dla kolumn z None
+        result_df = pl.DataFrame(
+            results,
+            schema={
+                "sku": pl.Utf8,
+                "carrier_id": pl.Utf8,
+                "fit_status": pl.Utf8,
+                "units_per_carrier": pl.Int64,
+                "limiting_factor": pl.Utf8,
+                "margin_mm": pl.Float64,
+            }
+        )
 
         # Statystyki
         fit_count = result_df.filter(pl.col("fit_status") == "FIT").height

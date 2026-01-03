@@ -194,21 +194,21 @@
   - [x] Preview każdego raportu (podgląd)
   - [-] Download individual CSV - pominięte
   - [x] Download ZIP button
-- [ ] Testy manualne UI
+- [x] Testy manualne UI
 
 ---
 
-## FAZA 9: Integracja i Testy
+## FAZA 9: Integracja i Testy ✅
 
-- [ ] Test integracyjny: full pipeline (Masterdata only)
-- [ ] Test integracyjny: full pipeline (Masterdata + Orders)
-- [ ] Test struktury katalogów runs/
-- [ ] Test spójności danych między raportami
-- [ ] Test wydajnościowy: 200k SKU
-- [ ] Test wydajnościowy: 2M linii Orders
+- [x] Test integracyjny: full pipeline (Masterdata only)
+- [x] Test integracyjny: full pipeline (Masterdata + Orders)
+- [x] Test struktury katalogów runs/
+- [x] Test spójności danych między raportami
+- [-] Test wydajnościowy: 200k SKU - pominięte (brak danych)
+- [-] Test wydajnościowy: 2M linii Orders - pominięte (brak danych)
 - [x] Dokumentacja README.md
-- [ ] Code review i refactoring
-- [ ] Finalne testy
+- [x] Code review i refactoring
+- [x] Finalne testy
 
 ---
 
