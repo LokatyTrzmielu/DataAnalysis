@@ -1,0 +1,28 @@
+app/
+  core/
+    config.py
+    formatting.py        # Twoje standardy liczb: m3(6), kg(3), rate(3), % (2 + dual)
+    paths.py
+  ingest/
+    readers.py           # xlsx/csv/txt -> raw df/stream
+    mapping.py           # auto-suggest + manual confirm model
+    units.py             # detect + convert (mm/cm/m, kg/g), threshold=90
+    sku_normalize.py     # rules + collision detection
+  quality/
+    dq_metrics.py        # summary counts + % + dual percent columns
+    dq_lists.py          # full lists CSV (missing/outliers/borderline/collisions/duplicates/conflicts)
+    impute.py            # global median, 0=missing
+  model/
+    masterdata.py        # consolidate duplicates, split stock logic
+    orders.py            # canonical orders, qty_ea
+  analytics/
+    duckdb_runner.py     # attach parquet, run SQL, produce gold tables
+    capacity.py
+    performance.py
+  reporting/
+    main_report.py       # Report_Main.csv Key-Value
+    readme.py
+    manifest.py          # sha256, list files
+    zip_export.py        # always zip, AES optional, password generator
+  ui/
+    streamlit_app.py     # optional later

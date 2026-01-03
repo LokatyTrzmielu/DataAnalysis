@@ -1,0 +1,36 @@
+carriers:
+- carrier_id: TRAY_S
+  inner_height_mm: 100
+  inner_length_mm: 600
+  inner_width_mm: 400
+  is_active: true
+  max_weight_kg: 50
+  name: Tray Small
+- carrier_id: TRAY_M
+  inner_height_mm: 200
+  inner_length_mm: 600
+  inner_width_mm: 400
+  is_active: true
+  max_weight_kg: 80
+  name: Tray Medium
+- carrier_id: TRAY_L
+  inner_height_mm: 350
+  inner_length_mm: 600
+  inner_width_mm: 400
+  is_active: true
+  max_weight_kg: 120
+  name: Tray Large
+- carrier_id: TRAY_XL
+  inner_height_mm: 450
+  inner_length_mm: 800
+  inner_width_mm: 600
+  is_active: true
+  max_weight_kg: 180
+  name: Tray Extra Large
+- carrier_id: BOX_STD
+  inner_height_mm: 200
+  inner_length_mm: 400
+  inner_width_mm: 300
+  is_active: true
+  max_weight_kg: 35
+  name: MiB Standard Box

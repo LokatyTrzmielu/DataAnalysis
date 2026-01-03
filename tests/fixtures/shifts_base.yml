@@ -1,0 +1,79 @@
+exceptions:
+- add_shifts_by_weekday:
+    Mon:
+    - end: 03:00
+      name: OT_N
+      shift_type: overlay
+      start: '23:00'
+    Sat:
+    - end: '14:00'
+      name: SAT1
+      shift_type: overlay
+      start: 08:00
+    Thu:
+    - end: 03:00
+      name: OT_N
+      shift_type: overlay
+      start: '23:00'
+    Tue:
+    - end: 03:00
+      name: OT_N
+      shift_type: overlay
+      start: '23:00'
+    Wed:
+    - end: 03:00
+      name: OT_N
+      shift_type: overlay
+      start: '23:00'
+  from: '2024-11-15'
+  id: peak_2024Q4
+  reason: Peak season
+  to: '2024-12-20'
+  type: range_overlay
+productive_hours:
+  default_per_shift: 7.0
+timezone: Europe/Warsaw
+weekly_schedule:
+  Fri:
+  - end: '15:00'
+    name: S1
+    shift_type: base
+    start: 07:00
+  Mon:
+  - end: '15:00'
+    name: S1
+    shift_type: base
+    start: 07:00
+  - end: '23:00'
+    name: S2
+    shift_type: base
+    start: '15:00'
+  Sat: []
+  Sun: []
+  Thu:
+  - end: '15:00'
+    name: S1
+    shift_type: base
+    start: 07:00
+  - end: '23:00'
+    name: S2
+    shift_type: base
+    start: '15:00'
+  Tue:
+  - end: '15:00'
+    name: S1
+    shift_type: base
+    start: 07:00
+  - end: '23:00'
+    name: S2
+    shift_type: base
+    start: '15:00'
+  Wed:
+  - end: '15:00'
+    name: S1
+    shift_type: base
+    start: 07:00
+  - end: '23:00'
+    name: S2
+    shift_type: base
+    start: '15:00'

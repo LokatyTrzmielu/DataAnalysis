@@ -1,0 +1,51 @@
+timezone: Europe/Warsaw
+
+productive_hours:
+  default_per_shift: 7.0   # domyślne założenie efektywnej pracy na zmianę
+  # (opcjonalnie później: per shift_type lub per shift_name)
+
+weekly_schedule:
+  Mon:
+    - { name: "S1", start: "07:00", end: "15:00", shift_type: "base" }
+    - { name: "S2", start: "15:00", end: "23:00", shift_type: "base" }
+  Tue:
+    - { name: "S1", start: "07:00", end: "15:00", shift_type: "base" }
+    - { name: "S2", start: "15:00", end: "23:00", shift_type: "base" }
+  Wed:
+    - { name: "S1", start: "07:00", end: "15:00", shift_type: "base" }
+    - { name: "S2", start: "15:00", end: "23:00", shift_type: "base" }
+  Thu:
+    - { name: "S1", start: "07:00", end: "15:00", shift_type: "base" }
+    - { name: "S2", start: "15:00", end: "23:00", shift_type: "base" }
+  Fri:
+    - { name: "S1", start: "07:00", end: "15:00", shift_type: "base" }
+  Sat: []
+  Sun: []
+
+exceptions:
+  - id: "promo_day"
+    type: date_overlay
+    date: "2025-03-14"
+    reason: "Promocja - dodatkowa zmiana"
+    add_shifts:
+      - { name: "OT1", start: "23:00", end: "02:00", shift_type: "overlay" }
+
+  - id: "peak_2025Q4"
+    type: range_overlay
+    from: "2025-11-15"
+    to: "2025-12-20"
+    reason: "Peak season"
+    add_shifts_by_weekday:
+      Mon:
+        - { name: "OT_N", start: "23:00", end: "03:00", shift_type: "overlay" }
+      Tue:
+        - { name: "OT_N", start: "23:00", end: "03:00", shift_type: "overlay" }
+      Wed:
+        - { name: "OT_N", start: "23:00", end: "03:00", shift_type: "overlay" }
+      Thu:
+        - { name: "OT_N", start: "23:00", end: "03:00", shift_type: "overlay" }
+      Fri:
+        - { name: "OT_N", start: "23:00", end: "03:00", shift_type: "overlay" }
+      Sat:
+        - { name: "SAT1", start: "08:00", end: "14:00", shift_type: "overlay" }
+      Sun: []

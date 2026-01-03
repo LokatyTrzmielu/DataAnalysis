@@ -1,0 +1,34 @@
+project_root/
+  runs/
+    <client>/
+      <YYYY-MM-DD_HHMMSS>/                 # RUN_ID
+        inputs/                            # kopia wejść do runu (w ZIP też)
+          Masterdata_original.<ext>
+          Orders_original.<ext> (opcjonalnie)
+        config/
+          Config_used.yaml                 # snapshot ustawień runu
+          Mapping_profile.yaml             # (opcjonalnie) zapis mapowania
+        data/
+          silver/
+            masterdata_silver.parquet
+            orders_silver.parquet (opcjonalnie)
+          gold/
+            capacity_summary.parquet
+            performance_summary.parquet (jeśli Orders)
+            ... (inne małe tabele)
+        db/
+          run.duckdb                       # baza DuckDB „per run”
+        reports/
+          Report_Main.csv                  # Key-Value
+          DQ_Summary.csv
+          DQ_MissingCritical.csv
+          DQ_SuspectOutliers.csv
+          DQ_HighRiskBorderline.csv
+          DQ_Masterdata_Duplicates.csv
+          DQ_Masterdata_Conflicts.csv
+          DQ_SKU_Collisions.csv
+          (jeśli Orders) DQ_OrdersImpact.csv
+          README.txt
+          Manifest.json
+        export/
+          <client>_Report_<RUN_ID>.zip     # zawsze generowany
