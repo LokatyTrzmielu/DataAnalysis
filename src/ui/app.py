@@ -30,6 +30,16 @@ def init_session_state() -> None:
         "performance_result": None,
         "current_step": 0,
         "analysis_complete": False,
+        # Masterdata mapping state
+        "masterdata_file_columns": None,
+        "masterdata_mapping_result": None,
+        "masterdata_temp_path": None,
+        "masterdata_mapping_step": "upload",
+        # Orders mapping state
+        "orders_file_columns": None,
+        "orders_mapping_result": None,
+        "orders_temp_path": None,
+        "orders_mapping_step": "upload",
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -118,14 +128,193 @@ def render_tabs() -> None:
         render_reports_tab()
 
 
-def render_import_tab() -> None:
-    """Zakladka Import."""
-    st.header("Import danych")
+def build_mapping_result_from_selections(
+    user_mappings: dict[str, str],
+    file_columns: list[str],
+    schema: dict,
+) -> "MappingResult":
+    """Buduj MappingResult z wyborow uzytkownika.
 
-    col1, col2 = st.columns(2)
+    Args:
+        user_mappings: Slownik target_field -> source_column
+        file_columns: Wszystkie kolumny z pliku
+        schema: MASTERDATA_SCHEMA lub ORDERS_SCHEMA
 
-    with col1:
-        st.subheader("Masterdata")
+    Returns:
+        MappingResult
+    """
+    from src.ingest import MappingResult, ColumnMapping
+
+    mappings = {}
+    used_columns = set()
+
+    for field_name, source_col in user_mappings.items():
+        mappings[field_name] = ColumnMapping(
+            target_field=field_name,
+            source_column=source_col,
+            confidence=1.0,
+            is_auto=False,
+        )
+        used_columns.add(source_col)
+
+    # Wyznacz brakujace wymagane pola
+    missing_required = []
+    for field_name, field_cfg in schema.items():
+        if field_cfg["required"] and field_name not in user_mappings:
+            missing_required.append(field_name)
+
+    # Niezmapowane kolumny
+    unmapped_columns = [c for c in file_columns if c not in used_columns]
+
+    return MappingResult(
+        mappings=mappings,
+        unmapped_columns=unmapped_columns,
+        missing_required=missing_required,
+    )
+
+
+def render_mapping_ui(
+    file_columns: list[str],
+    mapping_result: "MappingResult",
+    schema: dict,
+    key_prefix: str = "md",
+) -> "MappingResult":
+    """Renderuj UI mapowania kolumn.
+
+    Args:
+        file_columns: Kolumny z wczytanego pliku
+        mapping_result: Wynik auto-mapowania
+        schema: MASTERDATA_SCHEMA lub ORDERS_SCHEMA
+        key_prefix: Prefiks dla kluczy widgetow
+
+    Returns:
+        Zaktualizowany MappingResult z wyborami uzytkownika
+    """
+    st.subheader("Mapowanie kolumn")
+
+    # Podziel na wymagane i opcjonalne
+    required_fields = [f for f, cfg in schema.items() if cfg["required"]]
+    optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
+
+    # Opcje dropdown: brak + kolumny z pliku
+    dropdown_options = ["-- Nie mapuj --"] + list(file_columns)
+
+    user_mappings = {}
+
+    # Sekcja wymaganych pol
+    st.markdown("**Wymagane pola:**")
+
+    # Uzyj 5 kolumn dla wymaganych pol
+    cols = st.columns(len(required_fields))
+    for i, field_name in enumerate(required_fields):
+        with cols[i]:
+            field_cfg = schema[field_name]
+
+            # Pobierz aktualne mapowanie
+            current_mapping = mapping_result.mappings.get(field_name)
+            current_value = current_mapping.source_column if current_mapping else None
+
+            # Znajdz indeks dla domyslnego wyboru
+            if current_value and current_value in file_columns:
+                default_idx = file_columns.index(current_value) + 1
+            else:
+                default_idx = 0
+
+            # Wskaznik confidence
+            confidence_indicator = ""
+            if current_mapping:
+                if current_mapping.confidence >= 0.9:
+                    confidence_indicator = " (auto)"
+                elif current_mapping.confidence >= 0.5:
+                    confidence_indicator = " (~)"
+
+            # Dropdown
+            selected = st.selectbox(
+                f"{field_name}{confidence_indicator}",
+                options=dropdown_options,
+                index=default_idx,
+                key=f"{key_prefix}_map_{field_name}",
+                help=field_cfg["description"],
+            )
+
+            if selected != "-- Nie mapuj --":
+                user_mappings[field_name] = selected
+
+    # Sekcja opcjonalnych pol
+    if optional_fields:
+        st.markdown("**Opcjonalne pola:**")
+
+        opt_cols = st.columns(len(optional_fields))
+        for i, field_name in enumerate(optional_fields):
+            with opt_cols[i]:
+                field_cfg = schema[field_name]
+                current_mapping = mapping_result.mappings.get(field_name)
+                current_value = current_mapping.source_column if current_mapping else None
+
+                if current_value and current_value in file_columns:
+                    default_idx = file_columns.index(current_value) + 1
+                else:
+                    default_idx = 0
+
+                selected = st.selectbox(
+                    f"{field_name}",
+                    options=dropdown_options,
+                    index=default_idx,
+                    key=f"{key_prefix}_map_{field_name}",
+                    help=field_cfg["description"],
+                )
+
+                if selected != "-- Nie mapuj --":
+                    user_mappings[field_name] = selected
+
+    # Zbuduj zaktualizowany MappingResult
+    return build_mapping_result_from_selections(user_mappings, file_columns, schema)
+
+
+def render_mapping_status(mapping_result: "MappingResult", schema: dict) -> None:
+    """Wyswietl status mapowania i komunikaty walidacji.
+
+    Args:
+        mapping_result: Aktualny wynik mapowania
+        schema: MASTERDATA_SCHEMA lub ORDERS_SCHEMA
+    """
+    if mapping_result.is_complete:
+        st.success("Wszystkie wymagane pola zmapowane")
+    else:
+        missing = ", ".join(mapping_result.missing_required)
+        st.error(f"Brakuje wymaganych pol: {missing}")
+
+    # Podsumowanie mapowania
+    with st.expander("Podsumowanie mapowania", expanded=False):
+        for field_name, col_mapping in mapping_result.mappings.items():
+            source = col_mapping.source_column
+            auto_label = "auto" if col_mapping.is_auto else "manual"
+            st.write(f"- **{field_name}** <- `{source}` ({auto_label})")
+
+        if mapping_result.unmapped_columns:
+            st.write("**Niezmapowane kolumny:**")
+            unmapped_display = mapping_result.unmapped_columns[:10]
+            st.write(", ".join(unmapped_display))
+            if len(mapping_result.unmapped_columns) > 10:
+                st.write(f"... i {len(mapping_result.unmapped_columns) - 10} wiecej")
+
+
+def render_masterdata_import() -> None:
+    """Import Masterdata z krokiem mapowania."""
+    import tempfile
+    from src.ingest import (
+        FileReader,
+        MASTERDATA_SCHEMA,
+        create_masterdata_wizard,
+        MasterdataIngestPipeline,
+    )
+
+    st.subheader("Masterdata")
+
+    step = st.session_state.get("masterdata_mapping_step", "upload")
+
+    # Krok 1: Upload pliku
+    if step == "upload":
         masterdata_file = st.file_uploader(
             "Wybierz plik Masterdata",
             type=["xlsx", "csv", "txt"],
@@ -133,20 +322,86 @@ def render_import_tab() -> None:
         )
 
         if masterdata_file is not None:
-            if st.button("Importuj Masterdata", key="import_md"):
-                with st.spinner("Importowanie..."):
+            if st.button("Dalej - Mapowanie kolumn", key="md_to_mapping"):
+                with st.spinner("Analizowanie pliku..."):
                     try:
-                        import tempfile
-                        from src.ingest import ingest_masterdata
-
                         # Zapisz do pliku tymczasowego
                         suffix = Path(masterdata_file.name).suffix
                         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                             tmp.write(masterdata_file.read())
                             tmp_path = tmp.name
 
-                        result = ingest_masterdata(tmp_path)
+                        # Wczytaj kolumny i uruchom auto-mapowanie
+                        reader = FileReader(tmp_path)
+                        columns = reader.get_columns()
+
+                        wizard = create_masterdata_wizard()
+                        auto_mapping = wizard.auto_map(columns)
+
+                        # Zapisz w session state
+                        st.session_state.masterdata_temp_path = tmp_path
+                        st.session_state.masterdata_file_columns = columns
+                        st.session_state.masterdata_mapping_result = auto_mapping
+                        st.session_state.masterdata_mapping_step = "mapping"
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"Blad analizy pliku: {e}")
+
+    # Krok 2: Mapowanie kolumn
+    elif step == "mapping":
+        columns = st.session_state.masterdata_file_columns
+        mapping = st.session_state.masterdata_mapping_result
+
+        # Podglad danych
+        with st.expander("Podglad danych", expanded=False):
+            from src.ingest import FileReader
+            reader = FileReader(st.session_state.masterdata_temp_path)
+            preview_df = reader.get_preview(n_rows=5)
+            st.dataframe(preview_df.to_pandas(), use_container_width=True)
+
+        # UI mapowania
+        updated_mapping = render_mapping_ui(
+            file_columns=columns,
+            mapping_result=mapping,
+            schema=MASTERDATA_SCHEMA,
+            key_prefix="md",
+        )
+
+        # Zapisz zaktualizowane mapowanie
+        st.session_state.masterdata_mapping_result = updated_mapping
+
+        # Status
+        render_mapping_status(updated_mapping, MASTERDATA_SCHEMA)
+
+        # Przyciski akcji
+        btn_col1, btn_col2 = st.columns(2)
+
+        with btn_col1:
+            if st.button("Wstecz", key="md_back_to_upload"):
+                st.session_state.masterdata_mapping_step = "upload"
+                st.session_state.masterdata_file_columns = None
+                st.session_state.masterdata_mapping_result = None
+                st.rerun()
+
+        with btn_col2:
+            import_disabled = not updated_mapping.is_complete
+            if st.button(
+                "Importuj Masterdata",
+                key="md_do_import",
+                disabled=import_disabled,
+                type="primary",
+            ):
+                with st.spinner("Importowanie..."):
+                    try:
+                        pipeline = MasterdataIngestPipeline()
+                        result = pipeline.run(
+                            st.session_state.masterdata_temp_path,
+                            mapping=updated_mapping,
+                        )
+
                         st.session_state.masterdata_df = result.df
+                        st.session_state.masterdata_mapping_step = "complete"
 
                         st.success(f"Zaimportowano {result.rows_imported} wierszy")
 
@@ -154,11 +409,39 @@ def render_import_tab() -> None:
                             for warning in result.warnings:
                                 st.warning(warning)
 
-                        # Podglad
-                        st.dataframe(result.df.head(10).to_pandas(), use_container_width=True)
+                        st.rerun()
 
                     except Exception as e:
                         st.error(f"Blad importu: {e}")
+
+    # Krok 3: Zakonczony import
+    elif step == "complete":
+        if st.session_state.masterdata_df is not None:
+            st.success(f"Masterdata: {len(st.session_state.masterdata_df)} SKU")
+
+            with st.expander("Podglad danych", expanded=False):
+                st.dataframe(
+                    st.session_state.masterdata_df.head(20).to_pandas(),
+                    use_container_width=True
+                )
+
+        if st.button("Importuj nowy plik", key="md_new_import"):
+            st.session_state.masterdata_mapping_step = "upload"
+            st.session_state.masterdata_file_columns = None
+            st.session_state.masterdata_mapping_result = None
+            st.session_state.masterdata_temp_path = None
+            st.session_state.masterdata_df = None
+            st.rerun()
+
+
+def render_import_tab() -> None:
+    """Zakladka Import."""
+    st.header("Import danych")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        render_masterdata_import()
 
     with col2:
         st.subheader("Orders")
