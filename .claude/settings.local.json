@@ -3,7 +3,9 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(where:*)",
+      "Bash(C:Python314python.exe -m pip install fastexcel)"
     ]
   }
 }
