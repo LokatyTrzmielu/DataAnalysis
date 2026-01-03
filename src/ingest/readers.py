@@ -87,7 +87,8 @@ class FileReader:
         self,
         file_type: FileType = "auto",
         separator: str | None = None,
-        sheet_name: str | int = 0,
+        sheet_id: int | None = None,
+        sheet_name: str | None = None,
         skip_rows: int = 0,
         n_rows: int | None = None,
     ) -> pl.DataFrame:
@@ -96,7 +97,8 @@ class FileReader:
         Args:
             file_type: Typ pliku ("xlsx", "csv", "txt", "auto")
             separator: Separator dla CSV/TXT (auto-detect jesli None)
-            sheet_name: Nazwa lub indeks arkusza dla XLSX
+            sheet_id: Numer arkusza dla XLSX (1-based, domyslnie 1)
+            sheet_name: Nazwa arkusza dla XLSX (alternatywa dla sheet_id)
             skip_rows: Ile wierszy pominac na poczatku
             n_rows: Ile wierszy wczytac (None = wszystkie)
 
@@ -107,21 +109,33 @@ class FileReader:
             file_type = self.detect_file_type()
 
         if file_type == "xlsx":
-            return self._read_xlsx(sheet_name, skip_rows, n_rows)
+            return self._read_xlsx(sheet_id, sheet_name, skip_rows, n_rows)
         else:
             return self._read_csv(separator, skip_rows, n_rows)
 
     def _read_xlsx(
         self,
-        sheet_name: str | int = 0,
+        sheet_id: int | None = None,
+        sheet_name: str | None = None,
         skip_rows: int = 0,
         n_rows: int | None = None,
     ) -> pl.DataFrame:
         """Wczytaj plik XLSX."""
+        # Domyslnie pierwszy arkusz
+        if sheet_id is None and sheet_name is None:
+            sheet_id = 1
+
+        read_opts = {}
+        if skip_rows:
+            read_opts["skip_rows"] = skip_rows
+        if n_rows:
+            read_opts["n_rows"] = n_rows
+
         df = pl.read_excel(
             self.file_path,
+            sheet_id=sheet_id,
             sheet_name=sheet_name,
-            read_options={"skip_rows": skip_rows, "n_rows": n_rows},
+            read_options=read_opts if read_opts else None,
         )
         return self._normalize_columns(df)
 
