@@ -40,6 +40,8 @@ def init_session_state() -> None:
         "orders_mapping_result": None,
         "orders_temp_path": None,
         "orders_mapping_step": "upload",
+        # Custom carriers for capacity analysis
+        "custom_carriers": [],
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -566,48 +568,120 @@ def render_validation_tab() -> None:
                 st.success(f"{name}: 0")
 
 
-def get_default_carriers() -> list:
-    """Pobierz domyslna liste nosnikow."""
+def render_carrier_form() -> None:
+    """Formularz dodawania nowego nosnika."""
     from src.core.types import CarrierConfig
 
-    return [
-        CarrierConfig(
-            carrier_id="TRAY_S",
-            name="Tray Small",
-            inner_length_mm=600,
-            inner_width_mm=400,
-            inner_height_mm=100,
-            max_weight_kg=50,
-        ),
-        CarrierConfig(
-            carrier_id="TRAY_M",
-            name="Tray Medium",
-            inner_length_mm=600,
-            inner_width_mm=400,
-            inner_height_mm=200,
-            max_weight_kg=80,
-        ),
-        CarrierConfig(
-            carrier_id="TRAY_L",
-            name="Tray Large",
-            inner_length_mm=600,
-            inner_width_mm=400,
-            inner_height_mm=350,
-            max_weight_kg=120,
-        ),
-        CarrierConfig(
-            carrier_id="TRAY_XL",
-            name="Tray Extra Large",
-            inner_length_mm=800,
-            inner_width_mm=600,
-            inner_height_mm=400,
-            max_weight_kg=150,
-        ),
-    ]
+    st.markdown("**Dodaj nowy nosnik:**")
+
+    with st.form("add_carrier_form", clear_on_submit=True):
+        col_id, col_name = st.columns(2)
+        with col_id:
+            carrier_id = st.text_input(
+                "ID nosnika",
+                placeholder="np. TRAY_1",
+                help="Unikalny identyfikator nosnika",
+            )
+        with col_name:
+            carrier_name = st.text_input(
+                "Nazwa",
+                placeholder="np. Tray Standard",
+                help="Nazwa opisowa nosnika",
+            )
+
+        st.markdown("**Wymiary wewnetrzne (mm):**")
+        col_l, col_w, col_h = st.columns(3)
+        with col_l:
+            length_mm = st.number_input("Dlugosc (L)", min_value=1.0, value=600.0, step=10.0)
+        with col_w:
+            width_mm = st.number_input("Szerokosc (W)", min_value=1.0, value=400.0, step=10.0)
+        with col_h:
+            height_mm = st.number_input("Wysokosc (H)", min_value=1.0, value=200.0, step=10.0)
+
+        max_weight = st.number_input(
+            "Max waga (kg)",
+            min_value=1.0,
+            value=100.0,
+            step=5.0,
+            help="Maksymalna dopuszczalna waga ladunku",
+        )
+
+        submitted = st.form_submit_button("Dodaj nosnik", type="primary")
+
+        if submitted:
+            if not carrier_id or not carrier_name:
+                st.error("Podaj ID i nazwe nosnika")
+            else:
+                # Sprawdz czy ID juz istnieje
+                existing_ids = [c["carrier_id"] for c in st.session_state.custom_carriers]
+                if carrier_id in existing_ids:
+                    st.error(f"Nosnik o ID '{carrier_id}' juz istnieje")
+                else:
+                    new_carrier = {
+                        "carrier_id": carrier_id,
+                        "name": carrier_name,
+                        "inner_length_mm": length_mm,
+                        "inner_width_mm": width_mm,
+                        "inner_height_mm": height_mm,
+                        "max_weight_kg": max_weight,
+                    }
+                    st.session_state.custom_carriers.append(new_carrier)
+                    st.success(f"Dodano nosnik: {carrier_name}")
+                    st.rerun()
+
+
+def render_carriers_table() -> None:
+    """Wyswietl tabele zdefiniowanych nosnikow z mozliwoscia usuwania."""
+    carriers = st.session_state.custom_carriers
+
+    if not carriers:
+        st.info("Brak zdefiniowanych nosnikow. Dodaj nosniki ponizej.")
+        return
+
+    st.markdown("**Zdefiniowane nosniki:**")
+
+    # Naglowek tabeli
+    header_cols = st.columns([1.5, 2, 1.5, 1.5, 1.5, 1.2, 0.8])
+    with header_cols[0]:
+        st.markdown("**ID**")
+    with header_cols[1]:
+        st.markdown("**Nazwa**")
+    with header_cols[2]:
+        st.markdown("**L (mm)**")
+    with header_cols[3]:
+        st.markdown("**W (mm)**")
+    with header_cols[4]:
+        st.markdown("**H (mm)**")
+    with header_cols[5]:
+        st.markdown("**Max kg**")
+    with header_cols[6]:
+        st.markdown("**Usun**")
+
+    # Wiersze
+    for i, carrier in enumerate(carriers):
+        cols = st.columns([1.5, 2, 1.5, 1.5, 1.5, 1.2, 0.8])
+        with cols[0]:
+            st.text(carrier["carrier_id"])
+        with cols[1]:
+            st.text(carrier["name"])
+        with cols[2]:
+            st.text(str(carrier["inner_length_mm"]))
+        with cols[3]:
+            st.text(str(carrier["inner_width_mm"]))
+        with cols[4]:
+            st.text(str(carrier["inner_height_mm"]))
+        with cols[5]:
+            st.text(str(carrier["max_weight_kg"]))
+        with cols[6]:
+            if st.button("X", key=f"del_carrier_{i}", help="Usun nosnik"):
+                st.session_state.custom_carriers.pop(i)
+                st.rerun()
 
 
 def render_analysis_tab() -> None:
     """Zakladka Analiza."""
+    from src.core.types import CarrierConfig
+
     st.header("Analiza pojemnosciowa i wydajnosciowa")
 
     col1, col2 = st.columns(2)
@@ -618,42 +692,37 @@ def render_analysis_tab() -> None:
         if st.session_state.masterdata_df is None:
             st.info("Zaimportuj Masterdata")
         else:
-            # Wybor nosnikow (multiselect)
-            all_carriers = get_default_carriers()
-            carrier_options = {c.carrier_id: f"{c.name} ({c.inner_length_mm}x{c.inner_width_mm}x{c.inner_height_mm}mm)" for c in all_carriers}
+            # Wyswietl tabele nosnikow
+            render_carriers_table()
 
-            selected_carrier_ids = st.multiselect(
-                "Wybierz nosniki do analizy",
-                options=list(carrier_options.keys()),
-                default=["TRAY_M", "TRAY_L"],
-                format_func=lambda x: carrier_options[x],
-                help="Wybierz nosniki, do ktorych ma byc dopasowane SKU",
-            )
+            st.markdown("---")
 
-            if not selected_carrier_ids:
-                st.warning("Wybierz co najmniej jeden nosnik")
+            # Formularz dodawania nosnikow
+            with st.expander("Dodaj nosnik", expanded=len(st.session_state.custom_carriers) == 0):
+                render_carrier_form()
 
-            # Szczegoly wybranych nosnikow
-            with st.expander("Szczegoly nosnikow", expanded=False):
-                for carrier in all_carriers:
-                    if carrier.carrier_id in selected_carrier_ids:
-                        st.write(f"**{carrier.name}** ({carrier.carrier_id})")
-                        st.write(f"  - Wymiary: {carrier.inner_length_mm} x {carrier.inner_width_mm} x {carrier.inner_height_mm} mm")
-                        st.write(f"  - Max waga: {carrier.max_weight_kg} kg")
+            # Przycisk analizy
+            carriers_defined = len(st.session_state.custom_carriers) > 0
 
-            if st.button("Uruchom analize pojemnosciowa", disabled=not selected_carrier_ids):
+            if not carriers_defined:
+                st.warning("Dodaj co najmniej jeden nosnik do analizy")
+
+            if st.button("Uruchom analize pojemnosciowa", disabled=not carriers_defined):
                 with st.spinner("Analiza w toku..."):
                     try:
                         from src.analytics import CapacityAnalyzer
 
-                        # Filtruj wybrane nosniki
-                        selected_carriers = [c for c in all_carriers if c.carrier_id in selected_carrier_ids]
+                        # Konwertuj slowniki na CarrierConfig
+                        carriers = [
+                            CarrierConfig(**c)
+                            for c in st.session_state.custom_carriers
+                        ]
 
                         # Uzyj borderline threshold z session state
                         borderline_threshold = st.session_state.get("borderline_threshold", 2.0)
 
                         analyzer = CapacityAnalyzer(
-                            carriers=selected_carriers,
+                            carriers=carriers,
                             borderline_threshold_mm=borderline_threshold,
                         )
                         result = analyzer.analyze_dataframe(st.session_state.masterdata_df)
