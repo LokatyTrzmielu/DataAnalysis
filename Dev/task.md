@@ -1,196 +1,199 @@
 # DataAnalysis - Lista Zadań
 
-## FAZA 0: Przygotowanie Projektu
+## FAZA 0: Przygotowanie Projektu ✅
 
-- [ ] Utworzenie struktury katalogów (`src/`, `tests/`, `runs/`)
-- [ ] Utworzenie `pyproject.toml` z zależnościami
-- [ ] Implementacja `src/core/__init__.py`
-- [ ] Implementacja `src/core/config.py` - stałe konfiguracyjne
-- [ ] Implementacja `src/core/formatting.py` - formatowanie liczb
-- [ ] Implementacja `src/core/paths.py` - zarządzanie ścieżkami
-- [ ] Implementacja `src/core/types.py` - modele Pydantic
-
----
-
-## FAZA 1: Dane Testowe
-
-- [ ] Utworzenie `tests/fixtures/` struktury
-- [ ] Implementacja `tests/fixtures/generate_fixtures.py`
-- [ ] Wygenerowanie `masterdata_clean.xlsx` (1000 SKU)
-- [ ] Wygenerowanie `masterdata_dirty.xlsx` (z błędami)
-- [ ] Wygenerowanie `orders_clean.csv` (10000 linii)
-- [ ] Wygenerowanie `orders_dirty.csv` (z błędami)
-- [ ] Utworzenie `carriers.yml` - konfiguracja nośników
-- [ ] Utworzenie `shifts_base.yml` - harmonogram zmian
+- [x] Utworzenie struktury katalogów (`src/`, `tests/`, `runs/`)
+- [x] Utworzenie `pyproject.toml` z zależnościami
+- [x] Implementacja `src/core/__init__.py`
+- [x] Implementacja `src/core/config.py` - stałe konfiguracyjne
+- [x] Implementacja `src/core/formatting.py` - formatowanie liczb
+- [x] Implementacja `src/core/paths.py` - zarządzanie ścieżkami
+- [x] Implementacja `src/core/types.py` - modele Pydantic
 
 ---
 
-## FAZA 2: Import Danych (Ingest)
+## FAZA 1: Dane Testowe ✅
 
-- [ ] Implementacja `src/ingest/__init__.py`
-- [ ] Implementacja `src/ingest/readers.py` - odczyt XLSX/CSV/TXT
-- [ ] Implementacja `src/ingest/mapping.py` - Mapping Wizard
-  - [ ] Auto-sugestie na podstawie nazw kolumn
-  - [ ] Fuzzy matching
-  - [ ] Manualne potwierdzenie mapowania
-- [ ] Implementacja `src/ingest/units.py` - detekcja jednostek
-  - [ ] Detekcja mm/cm/m
-  - [ ] Detekcja kg/g
-  - [ ] Konwersja do standardu (mm, kg)
-- [ ] Implementacja `src/ingest/sku_normalize.py`
-  - [ ] Normalizacja SKU (upper, strip, special chars)
-  - [ ] Wykrywanie kolizji
-- [ ] Implementacja `src/ingest/pipeline.py` - integracja
-- [ ] Testy jednostkowe dla modułu ingest
+- [x] Utworzenie `tests/fixtures/` struktury
+- [x] Implementacja `tests/fixtures/generate_fixtures.py`
+- [x] Wygenerowanie `masterdata_clean.csv` (dane testowe)
+- [x] Wygenerowanie `masterdata_dirty.csv` (z błędami)
+- [x] Wygenerowanie `orders_clean.csv` (dane testowe)
+- [-] Wygenerowanie `orders_dirty.csv` - pominięte
+- [x] Utworzenie `carriers.yml` - konfiguracja nośników
+- [x] Utworzenie `shifts_base.yml` - harmonogram zmian
+- [x] Dodano `MD_Kardex_gotowy.xlsx` - rzeczywiste dane testowe
 
 ---
 
-## FAZA 3: Walidacja i Jakość Danych
+## FAZA 2: Import Danych (Ingest) ✅
 
-- [ ] Implementacja `src/quality/__init__.py`
-- [ ] Implementacja `src/quality/validators.py`
-  - [ ] Reguła: NULL = missing
-  - [ ] Reguła: 0 = missing (dla wymiarów, wagi, qty)
-  - [ ] Reguła: negative = missing
-- [ ] Implementacja `src/quality/dq_metrics.py`
-  - [ ] Obliczanie coverage % (wymiary, waga, stock)
-  - [ ] Zliczanie problemów
-  - [ ] Data Quality Scorecard
-- [ ] Implementacja `src/quality/dq_lists.py`
-  - [ ] Lista MissingCritical
-  - [ ] Lista SuspectOutliers (IQR)
-  - [ ] Lista HighRiskBorderline
-  - [ ] Lista Duplicates
-  - [ ] Lista Conflicts
-  - [ ] Lista SKU_Collisions
-- [ ] Implementacja `src/quality/impute.py`
-  - [ ] Imputacja medianą (global)
-  - [ ] Flagowanie RAW vs ESTIMATED
-- [ ] Implementacja `src/quality/pipeline.py` - integracja
-- [ ] Testy jednostkowe dla modułu quality
+- [x] Implementacja `src/ingest/__init__.py`
+- [x] Implementacja `src/ingest/readers.py` - odczyt XLSX/CSV/TXT
+- [x] Implementacja `src/ingest/mapping.py` - Mapping Wizard
+  - [x] Auto-sugestie na podstawie nazw kolumn
+  - [x] Fuzzy matching
+  - [x] Manualne potwierdzenie mapowania
+- [x] Implementacja `src/ingest/units.py` - detekcja jednostek
+  - [x] Detekcja mm/cm/m
+  - [x] Detekcja kg/g
+  - [x] Konwersja do standardu (mm, kg)
+- [x] Implementacja `src/ingest/sku_normalize.py`
+  - [x] Normalizacja SKU (upper, strip, special chars)
+  - [x] Wykrywanie kolizji
+- [x] Implementacja `src/ingest/pipeline.py` - integracja
+- [-] Testy jednostkowe dla modułu ingest - pominięte
 
 ---
 
-## FAZA 4: Model Danych
+## FAZA 3: Walidacja i Jakość Danych ✅
 
-- [ ] Implementacja `src/model/__init__.py`
-- [ ] Implementacja `src/model/masterdata.py`
-  - [ ] Konsolidacja duplikatów SKU
-  - [ ] Obliczanie kubatury
-  - [ ] Przygotowanie silver table
-- [ ] Implementacja `src/model/orders.py`
-  - [ ] Parsowanie timestamp
-  - [ ] Konwersja qty do EA
-  - [ ] Join z masterdata
-  - [ ] Przygotowanie silver table
-- [ ] Testy jednostkowe dla modułu model
-
----
-
-## FAZA 5: Analityka Pojemnościowa
-
-- [ ] Implementacja `src/analytics/__init__.py`
-- [ ] Implementacja `src/analytics/duckdb_runner.py`
-  - [ ] Połączenie z DuckDB
-  - [ ] Rejestracja tabel Parquet
-  - [ ] Wykonywanie queries
-- [ ] Implementacja `src/analytics/capacity.py`
-  - [ ] Generowanie 6 orientacji (permutacje)
-  - [ ] Obsługa constraints (ANY, UPRIGHT_ONLY, FLAT_ONLY)
-  - [ ] Sprawdzanie dopasowania do nośnika
-  - [ ] Detekcja BORDERLINE (threshold 2mm)
-  - [ ] Sprawdzanie limitu wagowego
-  - [ ] Obliczanie N per carrier
-  - [ ] Sizing maszyn z utilization
-- [ ] Testy jednostkowe dla capacity
+- [x] Implementacja `src/quality/__init__.py`
+- [x] Implementacja `src/quality/validators.py`
+  - [x] Reguła: NULL = missing
+  - [x] Reguła: 0 = missing (dla wymiarów, wagi, qty)
+  - [x] Reguła: negative = missing
+- [x] Implementacja `src/quality/dq_metrics.py`
+  - [x] Obliczanie coverage % (wymiary, waga, stock)
+  - [x] Zliczanie problemów
+  - [x] Data Quality Scorecard
+- [x] Implementacja `src/quality/dq_lists.py`
+  - [x] Lista MissingCritical
+  - [x] Lista SuspectOutliers (IQR)
+  - [x] Lista HighRiskBorderline
+  - [x] Lista Duplicates
+  - [x] Lista Conflicts
+  - [x] Lista SKU_Collisions
+- [x] Implementacja `src/quality/impute.py`
+  - [x] Imputacja medianą (global)
+  - [x] Flagowanie RAW vs ESTIMATED
+- [x] Implementacja `src/quality/pipeline.py` - integracja
+- [-] Testy jednostkowe dla modułu quality - pominięte
 
 ---
 
-## FAZA 6: Analityka Wydajnościowa
+## FAZA 4: Model Danych ✅
 
-- [ ] Implementacja `src/analytics/shifts.py`
-  - [ ] Parsowanie YAML harmonogramu
-  - [ ] Obsługa base schedule
-  - [ ] Obsługa exceptions (date_overlay, range_overlay)
-  - [ ] Przypisanie shift do timestamp
-- [ ] Implementacja `src/analytics/performance.py`
-  - [ ] KPI: lines/hour
-  - [ ] KPI: orders/hour
-  - [ ] KPI: units/hour
-  - [ ] KPI: unique SKU/hour
-  - [ ] KPI per zmiana z productive hours
-  - [ ] Peak analysis (max, P90, P95)
-  - [ ] Udział overlay w pracy
-- [ ] Testy jednostkowe dla performance
+- [x] Implementacja `src/model/__init__.py`
+- [x] Implementacja `src/model/masterdata.py`
+  - [x] Konsolidacja duplikatów SKU
+  - [x] Obliczanie kubatury
+  - [x] Przygotowanie silver table
+- [x] Implementacja `src/model/orders.py`
+  - [x] Parsowanie timestamp
+  - [x] Konwersja qty do EA
+  - [x] Join z masterdata
+  - [x] Przygotowanie silver table
+- [-] Testy jednostkowe dla modułu model - pominięte
 
 ---
 
-## FAZA 7: Raportowanie
+## FAZA 5: Analityka Pojemnościowa ✅
 
-- [ ] Implementacja `src/reporting/__init__.py`
-- [ ] Implementacja `src/reporting/csv_writer.py`
-  - [ ] Separator ';'
-  - [ ] Encoding UTF-8 BOM
-  - [ ] Formatowanie liczb wg standardu
-- [ ] Implementacja `src/reporting/main_report.py`
-  - [ ] Format Key-Value (Section | Metric | Value)
-  - [ ] Sekcje: RUN_INFO, DATA_QUALITY, CAPACITY, PERFORMANCE
-- [ ] Implementacja `src/reporting/dq_reports.py`
-  - [ ] DQ_Summary.csv
-  - [ ] DQ_MissingCritical.csv
-  - [ ] DQ_SuspectOutliers.csv
-  - [ ] DQ_HighRiskBorderline.csv
-  - [ ] DQ_Masterdata_Duplicates.csv
-  - [ ] DQ_Masterdata_Conflicts.csv
-  - [ ] DQ_SKU_Collisions.csv
-- [ ] Implementacja `src/reporting/readme.py` - README.txt
-- [ ] Implementacja `src/reporting/manifest.py` - Manifest.json z SHA256
-- [ ] Implementacja `src/reporting/zip_export.py` - paczka ZIP
-- [ ] Testy jednostkowe dla reporting
+- [x] Implementacja `src/analytics/__init__.py`
+- [x] Implementacja `src/analytics/duckdb_runner.py`
+  - [x] Połączenie z DuckDB
+  - [x] Rejestracja tabel Parquet
+  - [x] Wykonywanie queries
+- [x] Implementacja `src/analytics/capacity.py`
+  - [x] Generowanie 6 orientacji (permutacje)
+  - [x] Obsługa constraints (ANY, UPRIGHT_ONLY, FLAT_ONLY)
+  - [x] Sprawdzanie dopasowania do nośnika
+  - [x] Detekcja BORDERLINE (threshold 2mm)
+  - [x] Sprawdzanie limitu wagowego
+  - [x] Obliczanie N per carrier
+  - [x] Sizing maszyn z utilization
+- [-] Testy jednostkowe dla capacity - pominięte
 
 ---
 
-## FAZA 8: UI Streamlit
+## FAZA 6: Analityka Wydajnościowa ✅
 
-- [ ] Implementacja `src/ui/__init__.py`
-- [ ] Implementacja `src/ui/app.py` - główna aplikacja
-  - [ ] Konfiguracja page (title, layout)
-  - [ ] Session state management
-  - [ ] Nawigacja między zakładkami
-- [ ] Implementacja `src/ui/components/sidebar.py`
-  - [ ] Client name input
-  - [ ] Utilization sliders (VLM, MiB)
-  - [ ] Productive hours input
-  - [ ] Borderline threshold input
-  - [ ] Imputation toggle
-- [ ] Implementacja `src/ui/components/mapping_wizard.py`
-  - [ ] Tabela kolumn źródłowych
-  - [ ] Auto-suggested mappings
-  - [ ] Dropdown do ręcznego wyboru
-  - [ ] Confidence indicator
-  - [ ] Apply / Reset buttons
-- [ ] Implementacja `src/ui/pages/import_page.py`
-  - [ ] File upload (XLSX, CSV, TXT)
-  - [ ] File type selection
-  - [ ] Preview first N rows
-  - [ ] Trigger mapping wizard
-- [ ] Implementacja `src/ui/pages/validation_page.py`
-  - [ ] Data Quality Scorecard (cards)
-  - [ ] Coverage % bars
-  - [ ] Listy problemów (expandable)
-  - [ ] Imputacja button
-  - [ ] Before/After comparison
-- [ ] Implementacja `src/ui/pages/analysis_page.py`
-  - [ ] Wybór nośników (multiselect)
-  - [ ] Konfiguracja zmian
-  - [ ] Run Analysis button
-  - [ ] Progress bar
-  - [ ] Results summary
-- [ ] Implementacja `src/ui/pages/reports_page.py`
-  - [ ] Lista raportów
-  - [ ] Preview każdego raportu
-  - [ ] Download individual CSV
-  - [ ] Download ZIP button
+- [x] Implementacja `src/analytics/shifts.py`
+  - [x] Parsowanie YAML harmonogramu
+  - [x] Obsługa base schedule
+  - [x] Obsługa exceptions (date_overlay, range_overlay)
+  - [x] Przypisanie shift do timestamp
+- [x] Implementacja `src/analytics/performance.py`
+  - [x] KPI: lines/hour
+  - [x] KPI: orders/hour
+  - [x] KPI: units/hour
+  - [x] KPI: unique SKU/hour
+  - [x] KPI per zmiana z productive hours
+  - [x] Peak analysis (max, P90, P95)
+  - [x] Udział overlay w pracy
+- [-] Testy jednostkowe dla performance - pominięte
+
+---
+
+## FAZA 7: Raportowanie ✅
+
+- [x] Implementacja `src/reporting/__init__.py`
+- [x] Implementacja `src/reporting/csv_writer.py`
+  - [x] Separator ';'
+  - [x] Encoding UTF-8 BOM
+  - [x] Formatowanie liczb wg standardu
+- [x] Implementacja `src/reporting/main_report.py`
+  - [x] Format Key-Value (Section | Metric | Value)
+  - [x] Sekcje: RUN_INFO, DATA_QUALITY, CAPACITY, PERFORMANCE
+- [x] Implementacja `src/reporting/dq_reports.py`
+  - [x] DQ_Summary.csv
+  - [x] DQ_MissingCritical.csv
+  - [x] DQ_SuspectOutliers.csv
+  - [x] DQ_HighRiskBorderline.csv
+  - [x] DQ_Masterdata_Duplicates.csv
+  - [x] DQ_Masterdata_Conflicts.csv
+  - [x] DQ_SKU_Collisions.csv
+- [x] Implementacja `src/reporting/readme.py` - README.txt
+- [x] Implementacja `src/reporting/manifest.py` - Manifest.json z SHA256
+- [x] Implementacja `src/reporting/zip_export.py` - paczka ZIP
+- [-] Testy jednostkowe dla reporting - pominięte
+
+---
+
+## FAZA 8: UI Streamlit ✅
+
+> **Uwaga:** UI zaimplementowane w monolitycznym pliku `app.py` zamiast osobnych komponentów.
+
+- [x] Implementacja `src/ui/__init__.py`
+- [x] Implementacja `src/ui/app.py` - główna aplikacja (monolityczna)
+  - [x] Konfiguracja page (title, layout)
+  - [x] Session state management
+  - [x] Nawigacja między zakładkami (tabs)
+- [x] Sidebar (w app.py: `render_sidebar()`)
+  - [x] Client name input
+  - [x] Utilization sliders (VLM, MiB)
+  - [x] Productive hours input
+  - [-] Borderline threshold input - pominięte
+  - [x] Imputation toggle
+- [x] Mapping Wizard (w app.py: `render_mapping_ui()`)
+  - [x] Tabela kolumn źródłowych
+  - [x] Auto-suggested mappings
+  - [x] Dropdown do ręcznego wyboru
+  - [x] Confidence indicator
+  - [x] Apply / Reset buttons (Back/Import)
+- [x] Import Page (w app.py: `render_import_tab()`)
+  - [x] File upload (XLSX, CSV, TXT)
+  - [-] File type selection - auto-detected
+  - [x] Preview first N rows
+  - [x] Trigger mapping wizard
+- [x] Validation Page (w app.py: `render_validation_tab()`)
+  - [x] Data Quality Scorecard (metrics)
+  - [x] Coverage % bars (progress)
+  - [x] Listy problemów (warnings)
+  - [x] Imputacja button
+  - [x] Before/After comparison
+- [x] Analysis Page (w app.py: `render_analysis_tab()`)
+  - [-] Wybór nośników (multiselect) - domyślne nośniki
+  - [-] Konfiguracja zmian - nie zaimplementowane
+  - [x] Run Analysis button
+  - [x] Progress bar (spinner)
+  - [x] Results summary (metrics)
+- [x] Reports Page (w app.py: `render_reports_tab()`)
+  - [-] Lista raportów - uproszczone
+  - [x] Preview każdego raportu (podgląd)
+  - [-] Download individual CSV - pominięte
+  - [x] Download ZIP button
 - [ ] Testy manualne UI
 
 ---
@@ -203,7 +206,7 @@
 - [ ] Test spójności danych między raportami
 - [ ] Test wydajnościowy: 200k SKU
 - [ ] Test wydajnościowy: 2M linii Orders
-- [ ] Dokumentacja README.md
+- [x] Dokumentacja README.md
 - [ ] Code review i refactoring
 - [ ] Finalne testy
 

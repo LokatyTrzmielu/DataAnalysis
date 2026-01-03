@@ -68,9 +68,26 @@ D:\VS\DataAnalysis\
 
 ## Aktualny Stan Projektu
 
-**Faza:** PRZED IMPLEMENTACJĄ
-**Ostatnia ukończona faza:** Planowanie
-**Następna faza:** FAZA 0 - Przygotowanie projektu
+**Faza:** MVP ZAIMPLEMENTOWANE
+**Ostatnia ukończona faza:** FAZA 8 - UI Streamlit
+**Następna faza:** FAZA 9 - Testy integracyjne
+
+**Postęp:** ~95% MVP ukończone
+
+---
+
+## Zaimplementowane Moduły
+
+| Moduł | Status | Uwagi |
+|-------|--------|-------|
+| `src/core/` | ✅ Kompletny | config, formatting, paths, types |
+| `src/ingest/` | ✅ Kompletny | readers, mapping, units, pipeline |
+| `src/quality/` | ✅ Kompletny | validators, metrics, lists, impute |
+| `src/model/` | ✅ Kompletny | masterdata, orders |
+| `src/analytics/` | ✅ Kompletny | capacity, shifts, performance, duckdb |
+| `src/reporting/` | ✅ Kompletny | csv_writer, reports, manifest, zip |
+| `src/ui/` | ✅ Kompletny | monolityczny app.py |
+| `tests/fixtures/` | ✅ Kompletny | generate_fixtures, dane testowe |
 
 ---
 
@@ -81,7 +98,9 @@ D:\VS\DataAnalysis\
 | Lokalizacja kodu | Nowy katalog `src/` | Czysta architektura |
 | Kolejność implementacji | Backend-first | Logika przed UI |
 | Zakres MVP | Pełne MVP z PRD | Wszystkie funkcje |
-| Dane testowe | Syntetyczne | Brak realnych danych |
+| Dane testowe | Syntetyczne + rzeczywiste | MD_Kardex_gotowy.xlsx |
+| Architektura UI | Monolityczny app.py | Szybszy development |
+| Testy jednostkowe | Pominięte | Priorytet na MVP |
 
 ---
 
@@ -109,11 +128,20 @@ D:\VS\DataAnalysis\
 
 ## Notatki z Sesji
 
-### Sesja 2026-01-03
+### Sesja 2026-01-03 (inicjalna)
 - Przeanalizowano PRD i dokumentację
 - Utworzono plan implementacji (9 faz)
 - Użytkownik wybrał: backend-first, nowy katalog src/, pełne MVP
 - Utworzono folder Dev z plikami: plan.md, task.md, kontekst.md
+
+### Sesja 2026-01-03 (implementacja)
+- Zaimplementowano FAZY 0-8 (cały backend + UI)
+- Wszystkie moduły core, ingest, quality, model, analytics, reporting
+- UI Streamlit jako monolityczny app.py (nie oddzielne pliki)
+- Dodano dane testowe: syntetyczne CSV + rzeczywisty plik MD_Kardex_gotowy.xlsx
+- Pominięto testy jednostkowe (priorytet MVP)
+- Zaimplementowano Mapping Wizard z auto-sugestiami i manualnym wyborem kolumn
+- Aplikacja gotowa do testów manualnych
 
 ---
 
@@ -124,10 +152,24 @@ D:\VS\DataAnalysis\
 3. Przeczytaj szczegóły fazy w `Dev/plan.md`
 4. Kontynuuj od następnego nieukończonego zadania
 
+**Uruchomienie aplikacji:**
+```bash
+streamlit run src/ui/app.py
+```
+
+---
+
+## Pozostałe Zadania (FAZA 9)
+
+- [ ] Testy manualne UI
+- [ ] Test integracyjny full pipeline
+- [ ] Testy wydajnościowe (opcjonalnie)
+- [ ] Code review i refactoring (opcjonalnie)
+
 ---
 
 ## Ostatnia Aktualizacja
 
 **Data:** 2026-01-03
 **Przez:** Claude Code
-**Zmiany:** Inicjalne utworzenie plików Dev/
+**Zmiany:** Aktualizacja statusu po implementacji FAZ 0-8

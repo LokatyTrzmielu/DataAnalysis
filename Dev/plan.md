@@ -33,7 +33,7 @@ D:\VS\DataAnalysis\
 
 ## Fazy Implementacji
 
-### FAZA 0: Przygotowanie Projektu
+### FAZA 0: Przygotowanie Projektu ✅
 **Pliki:**
 - `src/core/config.py` - stałe konfiguracyjne (thresholds, utilization)
 - `src/core/formatting.py` - formatowanie liczb (m³→6, kg→3, %→2)
@@ -41,7 +41,7 @@ D:\VS\DataAnalysis\
 - `src/core/types.py` - modele Pydantic (MasterdataRow, OrderRow, CarrierConfig, ShiftConfig)
 - `pyproject.toml` - konfiguracja projektu
 
-### FAZA 1: Dane Testowe
+### FAZA 1: Dane Testowe ✅
 **Pliki:**
 - `tests/fixtures/generate_fixtures.py` - generator syntetycznych danych
 - `tests/fixtures/masterdata_clean.xlsx` - 1000 SKU poprawnych
@@ -50,7 +50,7 @@ D:\VS\DataAnalysis\
 - `tests/fixtures/carriers.yml` - konfiguracja nośników Kardex
 - `tests/fixtures/shifts_base.yml` - harmonogram zmian
 
-### FAZA 2: Import Danych (Ingest)
+### FAZA 2: Import Danych (Ingest) ✅
 **Pliki:**
 - `src/ingest/readers.py` - odczyt XLSX/CSV/TXT (Polars)
 - `src/ingest/mapping.py` - Mapping Wizard z auto-sugestiami
@@ -70,7 +70,7 @@ MASTERDATA_SCHEMA = {
 }
 ```
 
-### FAZA 3: Walidacja i Jakość Danych
+### FAZA 3: Walidacja i Jakość Danych ✅
 **Pliki:**
 - `src/quality/validators.py` - reguły walidacji (0=missing, negative=missing)
 - `src/quality/dq_metrics.py` - Data Quality Scorecard (coverage %)
@@ -84,12 +84,12 @@ MASTERDATA_SCHEMA = {
 - Imputacja globalna medianą
 - Każdy SKU dostaje flagę: RAW lub ESTIMATED
 
-### FAZA 4: Model Danych
+### FAZA 4: Model Danych ✅
 **Pliki:**
 - `src/model/masterdata.py` - konsolidacja duplikatów, kubatura
 - `src/model/orders.py` - normalizacja, join z masterdata
 
-### FAZA 5: Analityka Pojemnościowa
+### FAZA 5: Analityka Pojemnościowa ✅
 **Pliki:**
 - `src/analytics/duckdb_runner.py` - warstwa DuckDB
 - `src/analytics/capacity.py` - główna logika
@@ -104,7 +104,7 @@ MASTERDATA_SCHEMA = {
 # Machine sizing z utilization (VLM 0.75, MiB 0.68)
 ```
 
-### FAZA 6: Analityka Wydajnościowa
+### FAZA 6: Analityka Wydajnościowa ✅
 **Pliki:**
 - `src/analytics/shifts.py` - parsowanie YAML harmonogramu (base + overlay)
 - `src/analytics/performance.py` - KPI, peaks
@@ -117,7 +117,7 @@ MASTERDATA_SCHEMA = {
 # Udział overlay w pracy (%)
 ```
 
-### FAZA 7: Raportowanie
+### FAZA 7: Raportowanie ✅
 **Pliki:**
 - `src/reporting/csv_writer.py` - writer CSV (separator ';', UTF-8 BOM)
 - `src/reporting/main_report.py` - Report_Main.csv (Key-Value)
@@ -141,20 +141,19 @@ reports/
 └── Manifest.json
 ```
 
-### FAZA 8: UI Streamlit
-**Pliki:**
-- `src/ui/app.py` - główna aplikacja
-- `src/ui/components/sidebar.py` - parametry analizy
-- `src/ui/components/mapping_wizard.py` - interaktywny wizard
-- `src/ui/pages/import_page.py` - upload plików
-- `src/ui/pages/validation_page.py` - DQ scorecard, imputacja
-- `src/ui/pages/analysis_page.py` - capacity + performance
-- `src/ui/pages/reports_page.py` - podgląd + download ZIP
+### FAZA 8: UI Streamlit ✅ ZAIMPLEMENTOWANE
+**Zaimplementowane pliki:**
+- `src/ui/app.py` - monolityczna aplikacja (wszystkie komponenty w jednym pliku)
+
+> **Zmiana architektoniczna:** Zamiast osobnych plików dla sidebar, pages i components,
+> całość UI została zaimplementowana w jednym pliku `app.py` dla szybszego developmentu.
+> Funkcje: `render_sidebar()`, `render_import_tab()`, `render_validation_tab()`,
+> `render_analysis_tab()`, `render_reports_tab()`, `render_mapping_ui()`
 
 **Layout:**
 - 4 zakładki: Import → Walidacja → Analiza → Raporty
-- Sidebar: client name, utilization, productive hours, thresholds
-- Progress bar podczas analizy
+- Sidebar: client name, utilization, productive hours, imputation toggle
+- Spinner podczas analizy
 
 ### FAZA 9: Integracja i Testy
 - Testy integracyjne full pipeline
