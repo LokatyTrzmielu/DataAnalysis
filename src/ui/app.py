@@ -1,7 +1,14 @@
 """Glowna aplikacja Streamlit DataAnalysis."""
 
-import streamlit as st
+import sys
 from pathlib import Path
+
+# Dodaj katalog glowny projektu do PYTHONPATH
+_project_root = Path(__file__).resolve().parent.parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+import streamlit as st
 
 # Konfiguracja strony
 st.set_page_config(
