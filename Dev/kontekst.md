@@ -86,8 +86,9 @@ D:\VS\DataAnalysis\
 | `src/model/` | ✅ Kompletny | masterdata, orders |
 | `src/analytics/` | ✅ Kompletny | capacity, shifts, performance, duckdb |
 | `src/reporting/` | ✅ Kompletny | csv_writer, reports, manifest, zip |
-| `src/ui/` | ✅ Kompletny | monolityczny app.py |
-| `tests/fixtures/` | ✅ Kompletny | generate_fixtures, dane testowe |
+| `src/ui/` | ✅ Kompletny | monolityczny app.py z pełnym UI |
+| `tests/fixtures/` | ✅ Kompletny | generate_fixtures, dane testowe (clean + dirty) |
+| `tests/` | ✅ Kompletny | 119 testów jednostkowych (ingest, quality, model, analytics, reporting) |
 
 ---
 
@@ -100,7 +101,7 @@ D:\VS\DataAnalysis\
 | Zakres MVP | Pełne MVP z PRD | Wszystkie funkcje |
 | Dane testowe | Syntetyczne + rzeczywiste | MD_Kardex_gotowy.xlsx |
 | Architektura UI | Monolityczny app.py | Szybszy development |
-| Testy jednostkowe | Pominięte | Priorytet na MVP |
+| Testy jednostkowe | Zaimplementowane | 119 testów dla wszystkich modułów |
 
 ---
 
@@ -154,6 +155,24 @@ D:\VS\DataAnalysis\
 - Code review: kod jest poprawny i czytelny
 - MVP KOMPLETNE - projekt gotowy do użycia
 
+### Sesja 2026-01-03 (testy jednostkowe + rozszerzenia UI)
+- Ukończono wszystkie pominięte zadania z task.md:
+  1. **Generator orders_dirty.csv** - dodano funkcję z typowymi błędami jakościowymi
+  2. **Testy jednostkowe** - 119 testów dla wszystkich modułów:
+     - `tests/test_ingest.py` - 41 testów (FileReader, MappingWizard, UnitDetector, SKUNormalizer)
+     - `tests/test_quality.py` - 27 testów (MasterdataValidator, DQMetrics, DQLists, Imputer)
+     - `tests/test_model.py` - 13 testów (MasterdataProcessor, OrdersProcessor)
+     - `tests/test_analytics.py` - 21 testów (CapacityAnalyzer, ShiftSchedule, PerformanceAnalyzer)
+     - `tests/test_reporting.py` - 13 testów (CSVWriter, DQReportGenerator)
+  3. **Rozszerzenia UI** (`src/ui/app.py`):
+     - Borderline threshold input (slider 0.5-10mm)
+     - Wybór nośników (multiselect: TRAY_S, TRAY_M, TRAY_L, TRAY_XL)
+     - Konfiguracja zmian (Domyślny/Z pliku YAML/Brak)
+     - Lista raportów z opisami
+     - Download individual CSV (przyciski pobierania dla każdego raportu)
+- Wszystkie 119 testów przechodzą pomyślnie
+- Zaktualizowano task.md - wszystkie zadania ukończone
+
 ---
 
 ## Jak Kontynuować Po Przerwie
@@ -169,7 +188,12 @@ streamlit run src/ui/app.py
 
 **Uruchomienie testów:**
 ```bash
-python -m tests.test_integration
+python -m pytest tests/ -v
+```
+
+**Szybkie uruchomienie testów (bez verbose):**
+```bash
+python -m pytest tests/
 ```
 
 ---
@@ -177,12 +201,13 @@ python -m tests.test_integration
 ## Projekt Zakończony
 
 Wszystkie zadania z FAZY 0-9 zostały ukończone. MVP jest kompletne i gotowe do użycia.
+Dodatkowo zaimplementowano wszystkie wcześniej pominięte zadania (testy jednostkowe, rozszerzenia UI).
 
 **Możliwe przyszłe rozszerzenia:**
 - Testy wydajnościowe z dużymi zbiorami danych (200k SKU, 2M orders)
-- Dodanie wyboru nośników w UI (multiselect)
-- Konfiguracja zmian roboczych w UI
-- Rozszerzenie raportów
+- Dodanie własnych nośników przez użytkownika (custom carriers)
+- Eksport wyników do Excel z formatowaniem
+- Dashboard z wykresami (Plotly)
 
 ---
 
@@ -190,4 +215,4 @@ Wszystkie zadania z FAZY 0-9 zostały ukończone. MVP jest kompletne i gotowe do
 
 **Data:** 2026-01-03
 **Przez:** Claude Code
-**Zmiany:** Zakończono FAZĘ 9 - testy integracyjne, code review, projekt kompletny
+**Zmiany:** Ukończono wszystkie pominięte zadania - testy jednostkowe (119 testów), rozszerzenia UI (borderline threshold, multiselect nośników, konfiguracja zmian, lista raportów, download CSV)

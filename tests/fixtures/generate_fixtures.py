@@ -192,6 +192,67 @@ def generate_orders_clean(
     return pl.DataFrame(data)
 
 
+def generate_orders_dirty(
+    n_lines: int = 10000,
+    n_sku: int = 1000,
+    days: int = 90,
+    start_date: datetime | None = None,
+) -> pl.DataFrame:
+    """Generuj dane zamowien z typowymi problemami jakosciowymi."""
+    clean_df = generate_orders_clean(n_lines, n_sku, days, start_date)
+    data = clean_df.to_dicts()
+
+    n_rows = len(data)
+
+    # 3% - brakujace SKU (NULL lub pusty string)
+    missing_sku_count = int(n_rows * 0.03)
+    for i in random.sample(range(n_rows), missing_sku_count):
+        data[i]["sku"] = None if random.random() > 0.5 else ""
+
+    # 2% - nieprawidlowe SKU (nieistniejace w masterdata)
+    invalid_sku_count = int(n_rows * 0.02)
+    for i in random.sample(range(n_rows), invalid_sku_count):
+        data[i]["sku"] = f"INVALID-{random.randint(1, 9999):04d}"
+
+    # 2% - ujemna ilosc
+    negative_qty_count = int(n_rows * 0.02)
+    for i in random.sample(range(n_rows), negative_qty_count):
+        data[i]["quantity"] = -abs(data[i]["quantity"])
+
+    # 2% - zerowa ilosc
+    zero_qty_count = int(n_rows * 0.02)
+    for i in random.sample(range(n_rows), zero_qty_count):
+        data[i]["quantity"] = 0
+
+    # 1% - bardzo duze ilosci (outliery)
+    outlier_qty_count = int(n_rows * 0.01)
+    for i in random.sample(range(n_rows), outlier_qty_count):
+        data[i]["quantity"] = random.randint(1000, 10000)
+
+    # 2% - nieprawidlowy format timestamp
+    invalid_ts_count = int(n_rows * 0.02)
+    invalid_formats = [
+        "2024/10/15 12:30:00",  # slash zamiast dash
+        "15-10-2024 12:30:00",  # DD-MM-YYYY
+        "Oct 15, 2024 12:30 PM",  # text format
+        "",  # pusty
+        None,  # null
+    ]
+    for i in random.sample(range(n_rows), invalid_ts_count):
+        data[i]["timestamp"] = random.choice(invalid_formats)
+
+    # 1% - duplikaty linii (identyczne line_id)
+    duplicate_count = int(n_rows * 0.01)
+    for _ in range(duplicate_count):
+        orig_idx = random.randint(0, n_rows - 1)
+        duplicate = data[orig_idx].copy()
+        # Zmien nieco ilosc ale zachowaj line_id
+        duplicate["quantity"] = max(1, duplicate["quantity"] + random.randint(-2, 2)) if duplicate["quantity"] else 1
+        data.append(duplicate)
+
+    return pl.DataFrame(data)
+
+
 # ============================================================================
 # Generator Konfiguracji
 # ============================================================================
@@ -327,15 +388,21 @@ def main() -> None:
     orders.write_csv(FIXTURES_DIR / "orders_clean.csv")
     print(f"   -> {len(orders)} wierszy")
 
+    # Orders dirty
+    print("\n4. Orders Dirty (z bledami)...")
+    orders_dirty = generate_orders_dirty(10000)
+    orders_dirty.write_csv(FIXTURES_DIR / "orders_dirty.csv")
+    print(f"   -> {len(orders_dirty)} wierszy")
+
     # Carriers config
-    print("\n4. Carriers config...")
+    print("\n5. Carriers config...")
     carriers = generate_carriers_config()
     with open(FIXTURES_DIR / "carriers.yml", "w", encoding="utf-8") as f:
         yaml.dump(carriers, f, default_flow_style=False, allow_unicode=True)
     print(f"   -> {len(carriers['carriers'])} nosnikow")
 
     # Shifts config
-    print("\n5. Shifts config...")
+    print("\n6. Shifts config...")
     shifts = generate_shifts_config()
     with open(FIXTURES_DIR / "shifts_base.yml", "w", encoding="utf-8") as f:
         yaml.dump(shifts, f, default_flow_style=False, allow_unicode=True)

@@ -91,6 +91,16 @@ def render_sidebar() -> None:
             help="Efektywny czas pracy na zmiane",
         )
 
+        # Borderline threshold
+        st.session_state.borderline_threshold = st.slider(
+            "Borderline threshold (mm)",
+            min_value=0.5,
+            max_value=10.0,
+            value=2.0,
+            step=0.5,
+            help="Prog dla oznaczenia SKU jako BORDERLINE (blisko limitu nosnika)",
+        )
+
         st.markdown("---")
         st.subheader("Imputacja")
 
@@ -556,6 +566,46 @@ def render_validation_tab() -> None:
                 st.success(f"{name}: 0")
 
 
+def get_default_carriers() -> list:
+    """Pobierz domyslna liste nosnikow."""
+    from src.core.types import CarrierConfig
+
+    return [
+        CarrierConfig(
+            carrier_id="TRAY_S",
+            name="Tray Small",
+            inner_length_mm=600,
+            inner_width_mm=400,
+            inner_height_mm=100,
+            max_weight_kg=50,
+        ),
+        CarrierConfig(
+            carrier_id="TRAY_M",
+            name="Tray Medium",
+            inner_length_mm=600,
+            inner_width_mm=400,
+            inner_height_mm=200,
+            max_weight_kg=80,
+        ),
+        CarrierConfig(
+            carrier_id="TRAY_L",
+            name="Tray Large",
+            inner_length_mm=600,
+            inner_width_mm=400,
+            inner_height_mm=350,
+            max_weight_kg=120,
+        ),
+        CarrierConfig(
+            carrier_id="TRAY_XL",
+            name="Tray Extra Large",
+            inner_length_mm=800,
+            inner_width_mm=600,
+            inner_height_mm=400,
+            max_weight_kg=150,
+        ),
+    ]
+
+
 def render_analysis_tab() -> None:
     """Zakladka Analiza."""
     st.header("Analiza pojemnosciowa i wydajnosciowa")
@@ -567,79 +617,333 @@ def render_analysis_tab() -> None:
 
         if st.session_state.masterdata_df is None:
             st.info("Zaimportuj Masterdata")
-        elif st.button("Uruchom analize pojemnosciowa"):
-            with st.spinner("Analiza w toku..."):
-                try:
-                    from src.analytics import analyze_capacity
-                    from src.core.types import CarrierConfig
+        else:
+            # Wybor nosnikow (multiselect)
+            all_carriers = get_default_carriers()
+            carrier_options = {c.carrier_id: f"{c.name} ({c.inner_length_mm}x{c.inner_width_mm}x{c.inner_height_mm}mm)" for c in all_carriers}
 
-                    # Domyslne nosniki
-                    carriers = [
-                        CarrierConfig(
-                            carrier_id="TRAY_M",
-                            name="Tray Medium",
-                            inner_length_mm=600,
-                            inner_width_mm=400,
-                            inner_height_mm=200,
-                            max_weight_kg=80,
-                        ),
-                        CarrierConfig(
-                            carrier_id="TRAY_L",
-                            name="Tray Large",
-                            inner_length_mm=600,
-                            inner_width_mm=400,
-                            inner_height_mm=350,
-                            max_weight_kg=120,
-                        ),
-                    ]
+            selected_carrier_ids = st.multiselect(
+                "Wybierz nosniki do analizy",
+                options=list(carrier_options.keys()),
+                default=["TRAY_M", "TRAY_L"],
+                format_func=lambda x: carrier_options[x],
+                help="Wybierz nosniki, do ktorych ma byc dopasowane SKU",
+            )
 
-                    result = analyze_capacity(st.session_state.masterdata_df, carriers)
-                    st.session_state.capacity_result = result
+            if not selected_carrier_ids:
+                st.warning("Wybierz co najmniej jeden nosnik")
 
-                    st.success("Analiza pojemnosciowa zakonczona")
+            # Szczegoly wybranych nosnikow
+            with st.expander("Szczegoly nosnikow", expanded=False):
+                for carrier in all_carriers:
+                    if carrier.carrier_id in selected_carrier_ids:
+                        st.write(f"**{carrier.name}** ({carrier.carrier_id})")
+                        st.write(f"  - Wymiary: {carrier.inner_length_mm} x {carrier.inner_width_mm} x {carrier.inner_height_mm} mm")
+                        st.write(f"  - Max waga: {carrier.max_weight_kg} kg")
 
-                    # Wyniki
-                    st.metric("FIT", result.fit_count)
-                    st.metric("BORDERLINE", result.borderline_count)
-                    st.metric("NOT FIT", result.not_fit_count)
-                    st.metric("Fit %", f"{result.fit_percentage:.1f}%")
+            if st.button("Uruchom analize pojemnosciowa", disabled=not selected_carrier_ids):
+                with st.spinner("Analiza w toku..."):
+                    try:
+                        from src.analytics import CapacityAnalyzer
 
-                except Exception as e:
-                    st.error(f"Blad: {e}")
+                        # Filtruj wybrane nosniki
+                        selected_carriers = [c for c in all_carriers if c.carrier_id in selected_carrier_ids]
+
+                        # Uzyj borderline threshold z session state
+                        borderline_threshold = st.session_state.get("borderline_threshold", 2.0)
+
+                        analyzer = CapacityAnalyzer(
+                            carriers=selected_carriers,
+                            borderline_threshold_mm=borderline_threshold,
+                        )
+                        result = analyzer.analyze_dataframe(st.session_state.masterdata_df)
+                        st.session_state.capacity_result = result
+
+                        st.success("Analiza pojemnosciowa zakonczona")
+
+                        # Wyniki
+                        col_a, col_b = st.columns(2)
+                        with col_a:
+                            st.metric("FIT", result.fit_count)
+                            st.metric("BORDERLINE", result.borderline_count)
+                        with col_b:
+                            st.metric("NOT FIT", result.not_fit_count)
+                            st.metric("Fit %", f"{result.fit_percentage:.1f}%")
+
+                    except Exception as e:
+                        st.error(f"Blad: {e}")
 
     with col2:
         st.subheader("Analiza wydajnosciowa")
 
         if st.session_state.orders_df is None:
             st.info("Zaimportuj Orders")
-        elif st.button("Uruchom analize wydajnosciowa"):
-            with st.spinner("Analiza w toku..."):
-                try:
-                    from src.analytics import analyze_performance
+        else:
+            # Konfiguracja zmian
+            st.markdown("**Konfiguracja zmian:**")
+            shift_config = st.selectbox(
+                "Harmonogram zmian",
+                options=["Domyslny (2 zmiany, Pn-Pt)", "Z pliku YAML", "Brak"],
+                index=0,
+                help="Wybierz harmonogram zmian do analizy wydajnosciowej",
+            )
 
-                    result = analyze_performance(st.session_state.orders_df)
-                    st.session_state.performance_result = result
-                    st.session_state.analysis_complete = True
+            shift_schedule = None
+            if shift_config == "Z pliku YAML":
+                shifts_file = st.file_uploader(
+                    "Plik harmonogramu (YAML)",
+                    type=["yml", "yaml"],
+                    key="shifts_upload",
+                )
+                if shifts_file is not None:
+                    import tempfile
+                    from src.analytics import load_shifts
 
-                    st.success("Analiza wydajnosciowa zakonczona")
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".yml") as tmp:
+                        tmp.write(shifts_file.read())
+                        tmp_path = tmp.name
 
-                    kpi = result.kpi
-                    st.metric("Linii/h (avg)", f"{kpi.avg_lines_per_hour:.1f}")
-                    st.metric("Zamowien/h (avg)", f"{kpi.avg_orders_per_hour:.1f}")
-                    st.metric("Peak linii/h", kpi.peak_lines_per_hour)
-                    st.metric("P95 linii/h", f"{kpi.p95_lines_per_hour:.1f}")
+                    try:
+                        shift_schedule = load_shifts(tmp_path)
+                        st.success("Harmonogram wczytany")
+                    except Exception as e:
+                        st.error(f"Blad wczytywania harmonogramu: {e}")
 
-                except Exception as e:
-                    st.error(f"Blad: {e}")
+            if st.button("Uruchom analize wydajnosciowa"):
+                with st.spinner("Analiza w toku..."):
+                    try:
+                        from src.analytics import PerformanceAnalyzer
+                        from src.analytics.shifts import ShiftSchedule, ShiftScheduleLoader
+                        from src.core.types import ShiftConfig, WeeklySchedule
+
+                        # Pobierz productive hours z session state
+                        productive_hours = st.session_state.get("productive_hours", 7.0)
+
+                        # Utworz harmonogram zmian
+                        if shift_config == "Domyslny (2 zmiany, Pn-Pt)":
+                            weekly = WeeklySchedule(
+                                productive_hours_per_shift=productive_hours,
+                                mon=[
+                                    ShiftConfig(name="S1", start="07:00", end="15:00"),
+                                    ShiftConfig(name="S2", start="15:00", end="23:00"),
+                                ],
+                                tue=[
+                                    ShiftConfig(name="S1", start="07:00", end="15:00"),
+                                    ShiftConfig(name="S2", start="15:00", end="23:00"),
+                                ],
+                                wed=[
+                                    ShiftConfig(name="S1", start="07:00", end="15:00"),
+                                    ShiftConfig(name="S2", start="15:00", end="23:00"),
+                                ],
+                                thu=[
+                                    ShiftConfig(name="S1", start="07:00", end="15:00"),
+                                    ShiftConfig(name="S2", start="15:00", end="23:00"),
+                                ],
+                                fri=[
+                                    ShiftConfig(name="S1", start="07:00", end="15:00"),
+                                    ShiftConfig(name="S2", start="15:00", end="23:00"),
+                                ],
+                                sat=[],
+                                sun=[],
+                            )
+                            shift_schedule = ShiftSchedule(weekly_schedule=weekly)
+
+                        analyzer = PerformanceAnalyzer(
+                            shift_schedule=shift_schedule,
+                            productive_hours_per_shift=productive_hours,
+                        )
+                        result = analyzer.analyze(st.session_state.orders_df)
+                        st.session_state.performance_result = result
+                        st.session_state.analysis_complete = True
+
+                        st.success("Analiza wydajnosciowa zakonczona")
+
+                        kpi = result.kpi
+                        col_a, col_b = st.columns(2)
+                        with col_a:
+                            st.metric("Linii/h (avg)", f"{kpi.avg_lines_per_hour:.1f}")
+                            st.metric("Zamowien/h (avg)", f"{kpi.avg_orders_per_hour:.1f}")
+                        with col_b:
+                            st.metric("Peak linii/h", kpi.peak_lines_per_hour)
+                            st.metric("P95 linii/h", f"{kpi.p95_lines_per_hour:.1f}")
+
+                    except Exception as e:
+                        st.error(f"Blad: {e}")
+
+
+def generate_individual_report(report_type: str) -> tuple[str, bytes]:
+    """Generuj pojedynczy raport i zwroc (nazwa, dane).
+
+    Args:
+        report_type: Typ raportu do wygenerowania
+
+    Returns:
+        Tuple (nazwa_pliku, dane_csv)
+    """
+    import tempfile
+    import polars as pl
+    from src.reporting.csv_writer import CSVWriter
+    from src.reporting.main_report import MainReportGenerator
+    from src.reporting.dq_reports import DQReportGenerator
+
+    writer = CSVWriter()
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_dir = Path(tmp_dir)
+
+        if report_type == "Report_Main":
+            generator = MainReportGenerator()
+            file_path = generator.generate(
+                output_dir / "Report_Main.csv",
+                quality_result=st.session_state.quality_result,
+                capacity_result=st.session_state.capacity_result,
+                performance_result=st.session_state.performance_result,
+                client_name=st.session_state.client_name or "Client",
+            )
+
+        elif report_type == "DQ_Summary":
+            generator = DQReportGenerator()
+            file_path = generator.generate_summary(
+                output_dir / "DQ_Summary.csv",
+                st.session_state.quality_result.metrics_after,
+            )
+
+        elif report_type == "DQ_MissingCritical":
+            generator = DQReportGenerator()
+            file_path = generator.generate_missing_critical(
+                output_dir / "DQ_MissingCritical.csv",
+                st.session_state.quality_result.dq_lists,
+            )
+
+        elif report_type == "DQ_SuspectOutliers":
+            generator = DQReportGenerator()
+            file_path = generator.generate_suspect_outliers(
+                output_dir / "DQ_SuspectOutliers.csv",
+                st.session_state.quality_result.dq_lists,
+            )
+
+        elif report_type == "DQ_HighRiskBorderline":
+            generator = DQReportGenerator()
+            file_path = generator.generate_high_risk_borderline(
+                output_dir / "DQ_HighRiskBorderline.csv",
+                st.session_state.quality_result.dq_lists,
+            )
+
+        elif report_type == "DQ_Duplicates":
+            generator = DQReportGenerator()
+            file_path = generator.generate_duplicates(
+                output_dir / "DQ_Masterdata_Duplicates.csv",
+                st.session_state.quality_result.dq_lists,
+            )
+
+        elif report_type == "DQ_Conflicts":
+            generator = DQReportGenerator()
+            file_path = generator.generate_conflicts(
+                output_dir / "DQ_Masterdata_Conflicts.csv",
+                st.session_state.quality_result.dq_lists,
+            )
+
+        elif report_type == "Capacity_Results":
+            if st.session_state.capacity_result:
+                file_path = output_dir / "Capacity_Results.csv"
+                writer.write(st.session_state.capacity_result.df, file_path)
+            else:
+                return None, None
+
+        else:
+            return None, None
+
+        with open(file_path, "rb") as f:
+            data = f.read()
+
+        return file_path.name, data
 
 
 def render_reports_tab() -> None:
     """Zakladka Raporty."""
     st.header("Generowanie raportow")
 
-    if not st.session_state.get("analysis_complete"):
-        st.info("Najpierw przeprowadz analize w zakladce Analiza")
+    # Sprawdz dostepne dane
+    has_quality = st.session_state.quality_result is not None
+    has_capacity = st.session_state.capacity_result is not None
+    has_performance = st.session_state.performance_result is not None
+
+    if not (has_quality or has_capacity or has_performance):
+        st.info("Najpierw przeprowadz walidacje lub analize w odpowiednich zakladkach")
         return
+
+    # Lista raportow
+    st.subheader("Dostepne raporty")
+
+    reports = []
+
+    # Raport glowny - zawsze dostepny jesli sa jakies dane
+    reports.append({
+        "name": "Report_Main",
+        "description": "Glowny raport podsumowujacy",
+        "available": True,
+        "category": "Podsumowanie",
+    })
+
+    # Raporty DQ - dostepne jesli jest quality_result
+    if has_quality:
+        dq_reports = [
+            ("DQ_Summary", "Podsumowanie jakosci danych"),
+            ("DQ_MissingCritical", "Lista SKU z brakujacymi krytycznymi danymi"),
+            ("DQ_SuspectOutliers", "Lista SKU z podejrzanymi wartosciami (outliery)"),
+            ("DQ_HighRiskBorderline", "Lista SKU z wymiarami blisko limitow"),
+            ("DQ_Duplicates", "Lista zduplikowanych SKU"),
+            ("DQ_Conflicts", "Lista SKU z konfliktami wartosci"),
+        ]
+        for name, desc in dq_reports:
+            reports.append({
+                "name": name,
+                "description": desc,
+                "available": True,
+                "category": "Data Quality",
+            })
+
+    # Raport Capacity - dostepny jesli jest capacity_result
+    if has_capacity:
+        reports.append({
+            "name": "Capacity_Results",
+            "description": "Wyniki analizy pojemnosciowej (dopasowanie SKU do nosnikow)",
+            "available": True,
+            "category": "Capacity",
+        })
+
+    # Wyswietl liste raportow z przyciskami pobierania
+    for category in ["Podsumowanie", "Data Quality", "Capacity"]:
+        category_reports = [r for r in reports if r["category"] == category]
+        if category_reports:
+            st.markdown(f"**{category}:**")
+
+            for report in category_reports:
+                col1, col2 = st.columns([3, 1])
+
+                with col1:
+                    st.write(f"- **{report['name']}**: {report['description']}")
+
+                with col2:
+                    if report["available"]:
+                        if st.button(f"Pobierz", key=f"download_{report['name']}"):
+                            try:
+                                filename, data = generate_individual_report(report["name"])
+                                if data:
+                                    st.download_button(
+                                        label=f"Zapisz {filename}",
+                                        data=data,
+                                        file_name=filename,
+                                        mime="text/csv",
+                                        key=f"save_{report['name']}",
+                                    )
+                            except Exception as e:
+                                st.error(f"Blad: {e}")
+
+    st.markdown("---")
+
+    # Przycisk do pobrania wszystkich raportow jako ZIP
+    st.subheader("Pobierz wszystkie raporty")
 
     if st.button("Generuj raporty ZIP", type="primary"):
         with st.spinner("Generowanie raportow..."):
@@ -675,24 +979,41 @@ def render_reports_tab() -> None:
                 st.error(f"Blad generowania: {e}")
 
     # Podglad raportu glownego
-    if st.session_state.quality_result or st.session_state.performance_result:
-        st.markdown("---")
-        st.subheader("Podglad raportu")
+    st.markdown("---")
+    st.subheader("Podglad danych")
 
-        if st.session_state.quality_result:
+    if has_quality:
+        with st.expander("Data Quality", expanded=False):
             qr = st.session_state.quality_result
-            st.write("**Data Quality:**")
-            st.write(f"- Quality Score: {qr.quality_score:.1f}%")
-            st.write(f"- Rekordow: {qr.total_records}")
-            st.write(f"- Imputowanych: {qr.imputed_records}")
+            st.write(f"- **Quality Score:** {qr.quality_score:.1f}%")
+            st.write(f"- **Rekordow:** {qr.total_records}")
+            st.write(f"- **Poprawnych:** {qr.valid_records}")
+            st.write(f"- **Imputowanych:** {qr.imputed_records}")
 
-        if st.session_state.performance_result:
+            st.markdown("**Pokrycie danych po imputacji:**")
+            st.write(f"- Wymiary: {qr.metrics_after.dimensions_coverage_pct:.1f}%")
+            st.write(f"- Waga: {qr.metrics_after.weight_coverage_pct:.1f}%")
+
+    if has_capacity:
+        with st.expander("Capacity Analysis", expanded=False):
+            cr = st.session_state.capacity_result
+            st.write(f"- **Total SKU:** {cr.total_sku}")
+            st.write(f"- **FIT:** {cr.fit_count}")
+            st.write(f"- **BORDERLINE:** {cr.borderline_count}")
+            st.write(f"- **NOT_FIT:** {cr.not_fit_count}")
+            st.write(f"- **Fit %:** {cr.fit_percentage:.1f}%")
+            st.write(f"- **Nosniki:** {', '.join(cr.carriers_analyzed)}")
+
+    if has_performance:
+        with st.expander("Performance Analysis", expanded=False):
             pr = st.session_state.performance_result
             kpi = pr.kpi
-            st.write("**Performance:**")
-            st.write(f"- Linii: {kpi.total_lines}")
-            st.write(f"- Zamowien: {kpi.total_orders}")
-            st.write(f"- Avg lines/h: {kpi.avg_lines_per_hour:.1f}")
+            st.write(f"- **Linii:** {kpi.total_lines}")
+            st.write(f"- **Zamowien:** {kpi.total_orders}")
+            st.write(f"- **Units:** {kpi.total_units}")
+            st.write(f"- **Avg lines/h:** {kpi.avg_lines_per_hour:.1f}")
+            st.write(f"- **Peak lines/h:** {kpi.peak_lines_per_hour}")
+            st.write(f"- **P95 lines/h:** {kpi.p95_lines_per_hour:.1f}")
 
 
 def main() -> None:

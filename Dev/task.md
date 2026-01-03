@@ -19,7 +19,7 @@
 - [x] Wygenerowanie `masterdata_clean.csv` (dane testowe)
 - [x] Wygenerowanie `masterdata_dirty.csv` (z błędami)
 - [x] Wygenerowanie `orders_clean.csv` (dane testowe)
-- [-] Wygenerowanie `orders_dirty.csv` - pominięte
+- [x] Wygenerowanie `orders_dirty.csv` (z błędami jakościowymi)
 - [x] Utworzenie `carriers.yml` - konfiguracja nośników
 - [x] Utworzenie `shifts_base.yml` - harmonogram zmian
 - [x] Dodano `MD_Kardex_gotowy.xlsx` - rzeczywiste dane testowe
@@ -42,7 +42,7 @@
   - [x] Normalizacja SKU (upper, strip, special chars)
   - [x] Wykrywanie kolizji
 - [x] Implementacja `src/ingest/pipeline.py` - integracja
-- [-] Testy jednostkowe dla modułu ingest - pominięte
+- [x] Testy jednostkowe dla modułu ingest (tests/test_ingest.py)
 
 ---
 
@@ -68,7 +68,7 @@
   - [x] Imputacja medianą (global)
   - [x] Flagowanie RAW vs ESTIMATED
 - [x] Implementacja `src/quality/pipeline.py` - integracja
-- [-] Testy jednostkowe dla modułu quality - pominięte
+- [x] Testy jednostkowe dla modułu quality (tests/test_quality.py)
 
 ---
 
@@ -84,7 +84,7 @@
   - [x] Konwersja qty do EA
   - [x] Join z masterdata
   - [x] Przygotowanie silver table
-- [-] Testy jednostkowe dla modułu model - pominięte
+- [x] Testy jednostkowe dla modułu model (tests/test_model.py)
 
 ---
 
@@ -103,7 +103,7 @@
   - [x] Sprawdzanie limitu wagowego
   - [x] Obliczanie N per carrier
   - [x] Sizing maszyn z utilization
-- [-] Testy jednostkowe dla capacity - pominięte
+- [x] Testy jednostkowe dla capacity (tests/test_analytics.py)
 
 ---
 
@@ -122,7 +122,7 @@
   - [x] KPI per zmiana z productive hours
   - [x] Peak analysis (max, P90, P95)
   - [x] Udział overlay w pracy
-- [-] Testy jednostkowe dla performance - pominięte
+- [x] Testy jednostkowe dla performance (tests/test_analytics.py)
 
 ---
 
@@ -147,7 +147,7 @@
 - [x] Implementacja `src/reporting/readme.py` - README.txt
 - [x] Implementacja `src/reporting/manifest.py` - Manifest.json z SHA256
 - [x] Implementacja `src/reporting/zip_export.py` - paczka ZIP
-- [-] Testy jednostkowe dla reporting - pominięte
+- [x] Testy jednostkowe dla reporting (tests/test_reporting.py)
 
 ---
 
@@ -164,7 +164,7 @@
   - [x] Client name input
   - [x] Utilization sliders (VLM, MiB)
   - [x] Productive hours input
-  - [-] Borderline threshold input - pominięte
+  - [x] Borderline threshold input
   - [x] Imputation toggle
 - [x] Mapping Wizard (w app.py: `render_mapping_ui()`)
   - [x] Tabela kolumn źródłowych
@@ -184,15 +184,15 @@
   - [x] Imputacja button
   - [x] Before/After comparison
 - [x] Analysis Page (w app.py: `render_analysis_tab()`)
-  - [-] Wybór nośników (multiselect) - domyślne nośniki
-  - [-] Konfiguracja zmian - nie zaimplementowane
+  - [x] Wybór nośników (multiselect)
+  - [x] Konfiguracja zmian (wybór harmonogramu)
   - [x] Run Analysis button
   - [x] Progress bar (spinner)
   - [x] Results summary (metrics)
 - [x] Reports Page (w app.py: `render_reports_tab()`)
-  - [-] Lista raportów - uproszczone
+  - [x] Lista raportów z opisami
   - [x] Preview każdego raportu (podgląd)
-  - [-] Download individual CSV - pominięte
+  - [x] Download individual CSV (przyciski pobierania)
   - [x] Download ZIP button
 - [x] Testy manualne UI
 
