@@ -185,7 +185,10 @@
   - [x] Before/After comparison
 - [x] Analysis Page (w app.py: `render_analysis_tab()`)
   - [x] Wybór nośników (multiselect)
+  - [x] Ręczne wprowadzenie wymiarów nośnika (W/L/H w mm, waga w kg)
+  - [x] Opcjonalne ID i nazwa nośnika (auto-generowane)
   - [x] Konfiguracja zmian (wybór harmonogramu)
+  - [x] Własny harmonogram zmian (dni/godziny/zmiany)
   - [x] Run Analysis button
   - [x] Progress bar (spinner)
   - [x] Results summary (metrics)

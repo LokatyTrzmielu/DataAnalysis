@@ -148,12 +148,23 @@ reports/
 > **Zmiana architektoniczna:** Zamiast osobnych plików dla sidebar, pages i components,
 > całość UI została zaimplementowana w jednym pliku `app.py` dla szybszego developmentu.
 > Funkcje: `render_sidebar()`, `render_import_tab()`, `render_validation_tab()`,
-> `render_analysis_tab()`, `render_reports_tab()`, `render_mapping_ui()`
+> `render_analysis_tab()`, `render_reports_tab()`, `render_mapping_ui()`, `render_carrier_form()`
 
 **Layout:**
 - 4 zakładki: Import → Walidacja → Analiza → Raporty
-- Sidebar: client name, utilization, productive hours, imputation toggle
+- Sidebar: client name, utilization, productive hours, borderline threshold, imputation toggle
 - Spinner podczas analizy
+
+**Analiza pojemnościowa - formularz nośnika:**
+- Ręczne wprowadzenie wymiarów: szerokość, długość, wysokość (mm, liczby całkowite)
+- Waga maksymalna w kg
+- ID i nazwa opcjonalne (auto-generowane: `CARRIER_WxLxH`, `Nosnik WxLxHmm`)
+- Tabela zdefiniowanych nośników z możliwością usuwania
+
+**Analiza wydajnościowa - harmonogram zmian:**
+- Opcje: Domyślny (2 zmiany, Pn-Pt), Własny harmonogram, Z pliku YAML, Brak
+- Własny harmonogram: dni w tygodniu (1-7), godziny dziennie (1-24), zmiany dziennie (1-4)
+- Automatyczne wyliczenie godzin na zmianę i łącznej liczby zmian/tydzień
 
 ### FAZA 9: Integracja i Testy
 - Testy integracyjne full pipeline

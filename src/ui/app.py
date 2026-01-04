@@ -1,7 +1,13 @@
 """Glowna aplikacja Streamlit DataAnalysis."""
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.ingest import MappingResult
 
 # Dodaj katalog glowny projektu do PYTHONPATH
 _project_root = Path(__file__).resolve().parent.parent.parent
@@ -283,12 +289,11 @@ def render_mapping_ui(
     return build_mapping_result_from_selections(user_mappings, file_columns, schema)
 
 
-def render_mapping_status(mapping_result: "MappingResult", schema: dict) -> None:
+def render_mapping_status(mapping_result: MappingResult) -> None:
     """Wyswietl status mapowania i komunikaty walidacji.
 
     Args:
         mapping_result: Aktualny wynik mapowania
-        schema: MASTERDATA_SCHEMA lub ORDERS_SCHEMA
     """
     if mapping_result.is_complete:
         st.success("Wszystkie wymagane pola zmapowane")
@@ -384,7 +389,7 @@ def render_masterdata_import() -> None:
         st.session_state.masterdata_mapping_result = updated_mapping
 
         # Status
-        render_mapping_status(updated_mapping, MASTERDATA_SCHEMA)
+        render_mapping_status(updated_mapping)
 
         # Przyciski akcji
         btn_col1, btn_col2 = st.columns(2)
@@ -446,6 +451,141 @@ def render_masterdata_import() -> None:
             st.rerun()
 
 
+def render_orders_import() -> None:
+    """Import Orders z krokiem mapowania."""
+    import tempfile
+    from src.ingest import (
+        FileReader,
+        ORDERS_SCHEMA,
+        create_orders_wizard,
+        OrdersIngestPipeline,
+    )
+
+    st.subheader("Orders")
+
+    step = st.session_state.get("orders_mapping_step", "upload")
+
+    # Krok 1: Upload pliku
+    if step == "upload":
+        orders_file = st.file_uploader(
+            "Wybierz plik Orders",
+            type=["xlsx", "csv", "txt"],
+            key="orders_upload",
+        )
+
+        if orders_file is not None:
+            if st.button("Dalej - Mapowanie kolumn", key="orders_to_mapping"):
+                with st.spinner("Analizowanie pliku..."):
+                    try:
+                        # Zapisz do pliku tymczasowego
+                        suffix = Path(orders_file.name).suffix
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                            tmp.write(orders_file.read())
+                            tmp_path = tmp.name
+
+                        # Wczytaj kolumny i uruchom auto-mapowanie
+                        reader = FileReader(tmp_path)
+                        columns = reader.get_columns()
+
+                        wizard = create_orders_wizard()
+                        auto_mapping = wizard.auto_map(columns)
+
+                        # Zapisz w session state
+                        st.session_state.orders_temp_path = tmp_path
+                        st.session_state.orders_file_columns = columns
+                        st.session_state.orders_mapping_result = auto_mapping
+                        st.session_state.orders_mapping_step = "mapping"
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"Blad analizy pliku: {e}")
+
+    # Krok 2: Mapowanie kolumn
+    elif step == "mapping":
+        columns = st.session_state.orders_file_columns
+        mapping = st.session_state.orders_mapping_result
+
+        # Podglad danych
+        with st.expander("Podglad danych", expanded=False):
+            from src.ingest import FileReader
+            reader = FileReader(st.session_state.orders_temp_path)
+            preview_df = reader.get_preview(n_rows=5)
+            st.dataframe(preview_df.to_pandas(), use_container_width=True)
+
+        # UI mapowania
+        updated_mapping = render_mapping_ui(
+            file_columns=columns,
+            mapping_result=mapping,
+            schema=ORDERS_SCHEMA,
+            key_prefix="orders",
+        )
+
+        # Zapisz zaktualizowane mapowanie
+        st.session_state.orders_mapping_result = updated_mapping
+
+        # Status
+        render_mapping_status(updated_mapping)
+
+        # Przyciski akcji
+        btn_col1, btn_col2 = st.columns(2)
+
+        with btn_col1:
+            if st.button("Wstecz", key="orders_back_to_upload"):
+                st.session_state.orders_mapping_step = "upload"
+                st.session_state.orders_file_columns = None
+                st.session_state.orders_mapping_result = None
+                st.rerun()
+
+        with btn_col2:
+            import_disabled = not updated_mapping.is_complete
+            if st.button(
+                "Importuj Orders",
+                key="orders_do_import",
+                disabled=import_disabled,
+                type="primary",
+            ):
+                with st.spinner("Importowanie..."):
+                    try:
+                        pipeline = OrdersIngestPipeline()
+                        result = pipeline.run(
+                            st.session_state.orders_temp_path,
+                            mapping=updated_mapping,
+                        )
+
+                        st.session_state.orders_df = result.df
+                        st.session_state.orders_mapping_step = "complete"
+
+                        st.success(f"Zaimportowano {result.rows_imported} wierszy")
+
+                        if result.warnings:
+                            for warning in result.warnings:
+                                st.warning(warning)
+
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"Blad importu: {e}")
+
+    # Krok 3: Zakonczony import
+    elif step == "complete":
+        if st.session_state.orders_df is not None:
+            st.success(f"Orders: {len(st.session_state.orders_df)} linii")
+
+            with st.expander("Podglad danych", expanded=False):
+                st.dataframe(
+                    st.session_state.orders_df.head(20).to_pandas(),
+                    use_container_width=True
+                )
+
+        if st.button("Importuj nowy plik", key="orders_new_import"):
+            st.session_state.orders_mapping_step = "upload"
+            st.session_state.orders_file_columns = None
+            st.session_state.orders_mapping_result = None
+            st.session_state.orders_temp_path = None
+            st.session_state.orders_df = None
+            st.rerun()
+
+
 def render_import_tab() -> None:
     """Zakladka Import."""
     st.header("Import danych")
@@ -456,38 +596,7 @@ def render_import_tab() -> None:
         render_masterdata_import()
 
     with col2:
-        st.subheader("Orders")
-        orders_file = st.file_uploader(
-            "Wybierz plik Orders",
-            type=["xlsx", "csv", "txt"],
-            key="orders_upload",
-        )
-
-        if orders_file is not None:
-            if st.button("Importuj Orders", key="import_orders"):
-                with st.spinner("Importowanie..."):
-                    try:
-                        import tempfile
-                        from src.ingest import ingest_orders
-
-                        suffix = Path(orders_file.name).suffix
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                            tmp.write(orders_file.read())
-                            tmp_path = tmp.name
-
-                        result = ingest_orders(tmp_path)
-                        st.session_state.orders_df = result.df
-
-                        st.success(f"Zaimportowano {result.rows_imported} wierszy")
-
-                        if result.warnings:
-                            for warning in result.warnings:
-                                st.warning(warning)
-
-                        st.dataframe(result.df.head(10).to_pandas(), use_container_width=True)
-
-                    except Exception as e:
-                        st.error(f"Blad importu: {e}")
+        render_orders_import()
 
 
 def render_validation_tab() -> None:
@@ -570,64 +679,93 @@ def render_validation_tab() -> None:
 
 def render_carrier_form() -> None:
     """Formularz dodawania nowego nosnika."""
-    from src.core.types import CarrierConfig
-
     st.markdown("**Dodaj nowy nosnik:**")
 
     with st.form("add_carrier_form", clear_on_submit=True):
-        col_id, col_name = st.columns(2)
-        with col_id:
-            carrier_id = st.text_input(
-                "ID nosnika",
-                placeholder="np. TRAY_1",
-                help="Unikalny identyfikator nosnika",
-            )
-        with col_name:
-            carrier_name = st.text_input(
-                "Nazwa",
-                placeholder="np. Tray Standard",
-                help="Nazwa opisowa nosnika",
-            )
-
         st.markdown("**Wymiary wewnetrzne (mm):**")
-        col_l, col_w, col_h = st.columns(3)
-        with col_l:
-            length_mm = st.number_input("Dlugosc (L)", min_value=1.0, value=600.0, step=10.0)
+        col_w, col_l, col_h = st.columns(3)
         with col_w:
-            width_mm = st.number_input("Szerokosc (W)", min_value=1.0, value=400.0, step=10.0)
+            width_mm = st.number_input(
+                "Szerokosc (W)",
+                min_value=1,
+                value=400,
+                step=10,
+                help="Szerokosc wewnetrzna w mm (bez przecinka)",
+            )
+        with col_l:
+            length_mm = st.number_input(
+                "Dlugosc (L)",
+                min_value=1,
+                value=600,
+                step=10,
+                help="Dlugosc wewnetrzna w mm (bez przecinka)",
+            )
         with col_h:
-            height_mm = st.number_input("Wysokosc (H)", min_value=1.0, value=200.0, step=10.0)
+            height_mm = st.number_input(
+                "Wysokosc (H)",
+                min_value=1,
+                value=200,
+                step=10,
+                help="Wysokosc wewnetrzna w mm (bez przecinka)",
+            )
 
         max_weight = st.number_input(
             "Max waga (kg)",
-            min_value=1.0,
-            value=100.0,
-            step=5.0,
-            help="Maksymalna dopuszczalna waga ladunku",
+            min_value=1,
+            value=100,
+            step=5,
+            help="Maksymalna dopuszczalna waga ladunku w kg",
         )
+
+        # Opcjonalne pola ID i nazwy
+        with st.expander("Opcjonalnie: ID i nazwa", expanded=False):
+            col_id, col_name = st.columns(2)
+            with col_id:
+                carrier_id = st.text_input(
+                    "ID nosnika",
+                    placeholder="(auto)",
+                    help="Unikalny identyfikator - zostaw puste dla auto-generowania",
+                )
+            with col_name:
+                carrier_name = st.text_input(
+                    "Nazwa",
+                    placeholder="(auto)",
+                    help="Nazwa opisowa - zostaw puste dla auto-generowania",
+                )
 
         submitted = st.form_submit_button("Dodaj nosnik", type="primary")
 
         if submitted:
-            if not carrier_id or not carrier_name:
-                st.error("Podaj ID i nazwe nosnika")
+            # Auto-generuj ID i nazwe jesli puste
+            existing_ids = [c["carrier_id"] for c in st.session_state.custom_carriers]
+
+            if not carrier_id:
+                # Generuj unikalne ID na podstawie wymiarow
+                base_id = f"CARRIER_{width_mm}x{length_mm}x{height_mm}"
+                carrier_id = base_id
+                counter = 1
+                while carrier_id in existing_ids:
+                    carrier_id = f"{base_id}_{counter}"
+                    counter += 1
+
+            if not carrier_name:
+                carrier_name = f"Nosnik {width_mm}x{length_mm}x{height_mm}mm"
+
+            # Sprawdz czy ID juz istnieje (jesli podane recznie)
+            if carrier_id in existing_ids:
+                st.error(f"Nosnik o ID '{carrier_id}' juz istnieje")
             else:
-                # Sprawdz czy ID juz istnieje
-                existing_ids = [c["carrier_id"] for c in st.session_state.custom_carriers]
-                if carrier_id in existing_ids:
-                    st.error(f"Nosnik o ID '{carrier_id}' juz istnieje")
-                else:
-                    new_carrier = {
-                        "carrier_id": carrier_id,
-                        "name": carrier_name,
-                        "inner_length_mm": length_mm,
-                        "inner_width_mm": width_mm,
-                        "inner_height_mm": height_mm,
-                        "max_weight_kg": max_weight,
-                    }
-                    st.session_state.custom_carriers.append(new_carrier)
-                    st.success(f"Dodano nosnik: {carrier_name}")
-                    st.rerun()
+                new_carrier = {
+                    "carrier_id": carrier_id,
+                    "name": carrier_name,
+                    "inner_length_mm": float(length_mm),
+                    "inner_width_mm": float(width_mm),
+                    "inner_height_mm": float(height_mm),
+                    "max_weight_kg": float(max_weight),
+                }
+                st.session_state.custom_carriers.append(new_carrier)
+                st.success(f"Dodano nosnik: {carrier_name}")
+                st.rerun()
 
 
 def render_carriers_table() -> None:
@@ -752,12 +890,49 @@ def render_analysis_tab() -> None:
             st.markdown("**Konfiguracja zmian:**")
             shift_config = st.selectbox(
                 "Harmonogram zmian",
-                options=["Domyslny (2 zmiany, Pn-Pt)", "Z pliku YAML", "Brak"],
+                options=["Domyslny (2 zmiany, Pn-Pt)", "Wlasny harmonogram", "Z pliku YAML", "Brak"],
                 index=0,
                 help="Wybierz harmonogram zmian do analizy wydajnosciowej",
             )
 
             shift_schedule = None
+
+            # Opcja wlasnego harmonogramu
+            if shift_config == "Wlasny harmonogram":
+                st.markdown("**Wprowadz parametry harmonogramu:**")
+                col_days, col_hours, col_shifts = st.columns(3)
+                with col_days:
+                    custom_days = st.number_input(
+                        "Dni w tygodniu",
+                        min_value=1,
+                        max_value=7,
+                        value=5,
+                        step=1,
+                        help="Ile dni w tygodniu pracuje magazyn",
+                    )
+                with col_hours:
+                    custom_hours = st.number_input(
+                        "Godzin dziennie",
+                        min_value=1,
+                        max_value=24,
+                        value=8,
+                        step=1,
+                        help="Ile godzin dziennie trwa praca",
+                    )
+                with col_shifts:
+                    custom_shifts = st.number_input(
+                        "Zmian dziennie",
+                        min_value=1,
+                        max_value=4,
+                        value=2,
+                        step=1,
+                        help="Ile zmian dziennie",
+                    )
+
+                # Wylicz godziny na zmiane
+                hours_per_shift = custom_hours / custom_shifts
+                st.info(f"Godzin na zmiane: {hours_per_shift:.1f}h | Lacznie zmian/tydzien: {custom_days * custom_shifts}")
+
             if shift_config == "Z pliku YAML":
                 shifts_file = st.file_uploader(
                     "Plik harmonogramu (YAML)",
@@ -782,14 +957,45 @@ def render_analysis_tab() -> None:
                 with st.spinner("Analiza w toku..."):
                     try:
                         from src.analytics import PerformanceAnalyzer
-                        from src.analytics.shifts import ShiftSchedule, ShiftScheduleLoader
+                        from src.analytics.shifts import ShiftSchedule
                         from src.core.types import ShiftConfig, WeeklySchedule
 
                         # Pobierz productive hours z session state
                         productive_hours = st.session_state.get("productive_hours", 7.0)
 
                         # Utworz harmonogram zmian
-                        if shift_config == "Domyslny (2 zmiany, Pn-Pt)":
+                        if shift_config == "Wlasny harmonogram":
+                            # Generuj zmiany na podstawie wprowadzonych parametrow
+                            hours_per_shift = custom_hours / custom_shifts
+                            productive_hours = min(hours_per_shift - 1, productive_hours)
+
+                            # Generuj konfiguracje zmian
+                            shift_configs = []
+                            start_hour = 6  # Zacznij o 6:00
+                            for s in range(custom_shifts):
+                                end_hour = start_hour + int(hours_per_shift)
+                                shift_configs.append(
+                                    ShiftConfig(
+                                        name=f"S{s+1}",
+                                        start=f"{start_hour:02d}:00",
+                                        end=f"{end_hour:02d}:00",
+                                    )
+                                )
+                                start_hour = end_hour
+
+                            # Przypisz zmiany do dni tygodnia
+                            days_map = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+                            weekly_kwargs = {"productive_hours_per_shift": productive_hours}
+                            for i, day in enumerate(days_map):
+                                if i < custom_days:
+                                    weekly_kwargs[day] = shift_configs
+                                else:
+                                    weekly_kwargs[day] = []
+
+                            weekly = WeeklySchedule(**weekly_kwargs)
+                            shift_schedule = ShiftSchedule(weekly_schedule=weekly)
+
+                        elif shift_config == "Domyslny (2 zmiany, Pn-Pt)":
                             weekly = WeeklySchedule(
                                 productive_hours_per_shift=productive_hours,
                                 mon=[
@@ -850,7 +1056,6 @@ def generate_individual_report(report_type: str) -> tuple[str, bytes]:
         Tuple (nazwa_pliku, dane_csv)
     """
     import tempfile
-    import polars as pl
     from src.reporting.csv_writer import CSVWriter
     from src.reporting.main_report import MainReportGenerator
     from src.reporting.dq_reports import DQReportGenerator

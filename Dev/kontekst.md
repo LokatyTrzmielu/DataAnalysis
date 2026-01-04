@@ -173,6 +173,21 @@ D:\VS\DataAnalysis\
 - Wszystkie 119 testów przechodzą pomyślnie
 - Zaktualizowano task.md - wszystkie zadania ukończone
 
+### Sesja 2026-01-04 (ulepszenia UX - ręczne wprowadzanie danych)
+- **Analiza pojemnościowa - uproszczony formularz nośnika:**
+  - Wymiary (szerokość, długość, wysokość) na pierwszym planie
+  - Wartości w mm jako liczby całkowite (bez przecinka)
+  - Waga w kg widoczna od razu
+  - ID i nazwa nośnika są opcjonalne (auto-generowane jeśli puste)
+  - Auto-generacja ID: `CARRIER_WxLxH` (np. `CARRIER_400x600x200`)
+  - Auto-generacja nazwy: `Nosnik WxLxHmm` (np. `Nosnik 400x600x200mm`)
+- **Analiza wydajnościowa - własny harmonogram zmian:**
+  - Nowa opcja "Własny harmonogram" w dropdown
+  - Ręczne wprowadzenie: dni w tygodniu (1-7), godziny dziennie (1-24), zmiany dziennie (1-4)
+  - Automatyczne wyliczenie godzin na zmianę
+  - Podsumowanie: "Godzin na zmiane: Xh | Lacznie zmian/tydzien: Y"
+  - Harmonogram generowany automatycznie (start od 6:00, przypisanie do dni Pn-Nd)
+
 ---
 
 ## Jak Kontynuować Po Przerwie
@@ -205,7 +220,8 @@ Dodatkowo zaimplementowano wszystkie wcześniej pominięte zadania (testy jednos
 
 **Możliwe przyszłe rozszerzenia:**
 - Testy wydajnościowe z dużymi zbiorami danych (200k SKU, 2M orders)
-- Dodanie własnych nośników przez użytkownika (custom carriers)
+- ~~Dodanie własnych nośników przez użytkownika (custom carriers)~~ ✅ ZAIMPLEMENTOWANE
+- ~~Własny harmonogram zmian~~ ✅ ZAIMPLEMENTOWANE
 - Eksport wyników do Excel z formatowaniem
 - Dashboard z wykresami (Plotly)
 
@@ -213,6 +229,6 @@ Dodatkowo zaimplementowano wszystkie wcześniej pominięte zadania (testy jednos
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-01-03
+**Data:** 2026-01-04
 **Przez:** Claude Code
-**Zmiany:** Ukończono wszystkie pominięte zadania - testy jednostkowe (119 testów), rozszerzenia UI (borderline threshold, multiselect nośników, konfiguracja zmian, lista raportów, download CSV)
+**Zmiany:** Ulepszenia UX - uproszczony formularz nośnika (wymiary na pierwszym planie, opcjonalne ID/nazwa), własny harmonogram zmian (ręczne wprowadzenie dni/godzin/zmian)
