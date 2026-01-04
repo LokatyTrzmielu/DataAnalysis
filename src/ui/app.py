@@ -868,17 +868,30 @@ def render_analysis_tab() -> None:
 
                         st.success("Analiza pojemnosciowa zakonczona")
 
-                        # Wyniki
-                        col_a, col_b = st.columns(2)
-                        with col_a:
-                            st.metric("FIT", result.fit_count)
-                            st.metric("BORDERLINE", result.borderline_count)
-                        with col_b:
-                            st.metric("NOT FIT", result.not_fit_count)
-                            st.metric("Fit %", f"{result.fit_percentage:.1f}%")
-
                     except Exception as e:
                         st.error(f"Blad: {e}")
+
+            # Wyswietlanie wynikow analizy pojemnosciowej
+            if st.session_state.capacity_result is not None:
+                result = st.session_state.capacity_result
+
+                st.markdown("---")
+                st.markdown("**Wyniki analizy per nosnik:**")
+
+                # Wyswietl wyniki dla kazdego nosnika osobno
+                for carrier_id in result.carriers_analyzed:
+                    stats = result.carrier_stats.get(carrier_id)
+                    if stats:
+                        with st.expander(f"{stats.carrier_name} ({carrier_id})", expanded=True):
+                            col_a, col_b, col_c = st.columns(3)
+                            with col_a:
+                                st.metric("FIT", stats.fit_count)
+                                st.metric("BORDERLINE", stats.borderline_count)
+                            with col_b:
+                                st.metric("NOT FIT", stats.not_fit_count)
+                                st.metric("Fit %", f"{stats.fit_percentage:.1f}%")
+                            with col_c:
+                                st.metric("Volume (m³)", f"{stats.total_volume_m3:.2f}")
 
     with col2:
         st.subheader("Analiza wydajnosciowa")
@@ -1272,11 +1285,15 @@ def render_reports_tab() -> None:
         with st.expander("Capacity Analysis", expanded=False):
             cr = st.session_state.capacity_result
             st.write(f"- **Total SKU:** {cr.total_sku}")
-            st.write(f"- **FIT:** {cr.fit_count}")
-            st.write(f"- **BORDERLINE:** {cr.borderline_count}")
-            st.write(f"- **NOT_FIT:** {cr.not_fit_count}")
-            st.write(f"- **Fit %:** {cr.fit_percentage:.1f}%")
             st.write(f"- **Nosniki:** {', '.join(cr.carriers_analyzed)}")
+
+            st.markdown("**Wyniki per nosnik:**")
+            for carrier_id in cr.carriers_analyzed:
+                stats = cr.carrier_stats.get(carrier_id)
+                if stats:
+                    st.markdown(f"**{stats.carrier_name}:**")
+                    st.write(f"  - FIT: {stats.fit_count} | BORDERLINE: {stats.borderline_count} | NOT_FIT: {stats.not_fit_count}")
+                    st.write(f"  - Fit %: {stats.fit_percentage:.1f}% | Volume: {stats.total_volume_m3:.2f} m³")
 
     if has_performance:
         with st.expander("Performance Analysis", expanded=False):

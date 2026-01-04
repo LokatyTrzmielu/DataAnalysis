@@ -17,6 +17,18 @@ from src.core.config import BORDERLINE_THRESHOLD_MM
 
 
 @dataclass
+class CarrierStats:
+    """Statystyki dopasowania dla pojedynczego nosnika."""
+    carrier_id: str
+    carrier_name: str
+    fit_count: int
+    borderline_count: int
+    not_fit_count: int
+    fit_percentage: float
+    total_volume_m3: float  # Suma pojemnosci SKU ktore sie miescza (fit + borderline)
+
+
+@dataclass
 class CapacityAnalysisResult:
     """Wynik analizy pojemnosciowej."""
     df: pl.DataFrame  # DataFrame z wynikami dopasowania
@@ -26,6 +38,7 @@ class CapacityAnalysisResult:
     not_fit_count: int
     fit_percentage: float
     carriers_analyzed: list[str]
+    carrier_stats: dict[str, CarrierStats] = field(default_factory=dict)  # Statystyki per nosnik
 
 
 class CapacityAnalyzer:
@@ -223,6 +236,9 @@ class CapacityAnalyzer:
         if carrier_id:
             carriers_to_analyze = [c for c in self.carriers if c.carrier_id == carrier_id]
 
+        # Mapowanie carrier_id -> CarrierConfig (do nazw)
+        carrier_map = {c.carrier_id: c for c in carriers_to_analyze}
+
         results = []
 
         for row in df.iter_rows(named=True):
@@ -231,6 +247,9 @@ class CapacityAnalyzer:
             width = row.get("width_mm", 0) or 0
             height = row.get("height_mm", 0) or 0
             weight = row.get("weight_kg", 0) or 0
+
+            # Oblicz volume_m3 dla pojedynczej sztuki SKU
+            sku_volume_m3 = (length * width * height) / 1_000_000_000
 
             constraint = OrientationConstraint.ANY
             if "orientation_constraint" in row:
@@ -243,11 +262,15 @@ class CapacityAnalyzer:
                 fit_result = self._check_fit(
                     sku, length, width, height, weight, carrier, constraint
                 )
+                # Oblicz volume_m3 dla wszystkich sztuk mieszczacych sie na nosniku
+                total_volume_m3 = sku_volume_m3 * fit_result.units_per_carrier if fit_result.units_per_carrier else 0.0
+
                 results.append({
                     "sku": sku,
                     "carrier_id": carrier.carrier_id,
                     "fit_status": fit_result.fit_status.value,
                     "units_per_carrier": fit_result.units_per_carrier,
+                    "volume_m3": round(total_volume_m3, 2),
                     "limiting_factor": fit_result.limiting_factor.value,
                     "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
                 })
@@ -260,18 +283,43 @@ class CapacityAnalyzer:
                 "carrier_id": pl.Utf8,
                 "fit_status": pl.Utf8,
                 "units_per_carrier": pl.Int64,
+                "volume_m3": pl.Float64,
                 "limiting_factor": pl.Utf8,
                 "margin_mm": pl.Float64,
             }
         )
 
-        # Statystyki
+        # Statystyki globalne (suma wszystkich nosnikow - dla kompatybilnosci)
         fit_count = result_df.filter(pl.col("fit_status") == "FIT").height
         borderline_count = result_df.filter(pl.col("fit_status") == "BORDERLINE").height
         not_fit_count = result_df.filter(pl.col("fit_status") == "NOT_FIT").height
 
         total = fit_count + borderline_count + not_fit_count
         fit_percentage = ((fit_count + borderline_count) / total * 100) if total > 0 else 0
+
+        # Statystyki per nosnik
+        carrier_stats: dict[str, CarrierStats] = {}
+        for carrier in carriers_to_analyze:
+            carrier_df = result_df.filter(pl.col("carrier_id") == carrier.carrier_id)
+            c_fit = carrier_df.filter(pl.col("fit_status") == "FIT").height
+            c_borderline = carrier_df.filter(pl.col("fit_status") == "BORDERLINE").height
+            c_not_fit = carrier_df.filter(pl.col("fit_status") == "NOT_FIT").height
+            c_total = c_fit + c_borderline + c_not_fit
+            c_fit_pct = ((c_fit + c_borderline) / c_total * 100) if c_total > 0 else 0
+
+            # Suma volume_m3 dla SKU ktore sie miescza (FIT lub BORDERLINE)
+            fitting_df = carrier_df.filter(pl.col("fit_status").is_in(["FIT", "BORDERLINE"]))
+            c_volume_m3 = fitting_df["volume_m3"].sum() if fitting_df.height > 0 else 0.0
+
+            carrier_stats[carrier.carrier_id] = CarrierStats(
+                carrier_id=carrier.carrier_id,
+                carrier_name=carrier.name,
+                fit_count=c_fit,
+                borderline_count=c_borderline,
+                not_fit_count=c_not_fit,
+                fit_percentage=round(c_fit_pct, 1),
+                total_volume_m3=round(c_volume_m3, 2),
+            )
 
         return CapacityAnalysisResult(
             df=result_df,
@@ -281,6 +329,7 @@ class CapacityAnalyzer:
             not_fit_count=not_fit_count,
             fit_percentage=fit_percentage,
             carriers_analyzed=[c.carrier_id for c in carriers_to_analyze],
+            carrier_stats=carrier_stats,
         )
 
 

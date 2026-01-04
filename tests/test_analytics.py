@@ -190,6 +190,67 @@ class TestCapacityAnalyzer:
         assert result.not_fit_count > 0
         assert len(result.carriers_analyzed) == 2
 
+    def test_analyze_dataframe_carrier_stats(self):
+        """Test statystyk per nosnik w analizie DataFrame."""
+        carriers = self.get_test_carriers()
+        analyzer = CapacityAnalyzer(carriers)
+
+        df = pl.DataFrame({
+            "sku": ["SKU1", "SKU2", "SKU3"],
+            "length_mm": [100.0, 700.0, 100.0],  # SKU2 za dlugi
+            "width_mm": [80.0, 80.0, 80.0],
+            "height_mm": [50.0, 50.0, 50.0],
+            "weight_kg": [5.0, 5.0, 5.0],
+        })
+
+        result = analyzer.analyze_dataframe(df)
+
+        # Sprawdz czy carrier_stats zawiera statystyki dla kazdego nosnika
+        assert len(result.carrier_stats) == 2
+        assert "TRAY_S" in result.carrier_stats
+        assert "TRAY_M" in result.carrier_stats
+
+        # Sprawdz struktury CarrierStats
+        tray_s_stats = result.carrier_stats["TRAY_S"]
+        assert tray_s_stats.carrier_id == "TRAY_S"
+        assert tray_s_stats.carrier_name == "Tray Small"
+        assert tray_s_stats.fit_count >= 0
+        assert tray_s_stats.borderline_count >= 0
+        assert tray_s_stats.not_fit_count >= 0
+        assert 0 <= tray_s_stats.fit_percentage <= 100
+        assert tray_s_stats.total_volume_m3 >= 0
+
+    def test_analyze_dataframe_volume_m3(self):
+        """Test obliczania volume_m3 w wynikach analizy."""
+        carriers = self.get_test_carriers()
+        analyzer = CapacityAnalyzer(carriers)
+
+        df = pl.DataFrame({
+            "sku": ["SKU1"],
+            "length_mm": [100.0],
+            "width_mm": [100.0],
+            "height_mm": [50.0],  # 0.5 litra = 0.0005 m3 per jednostka
+            "weight_kg": [1.0],
+        })
+
+        result = analyzer.analyze_dataframe(df)
+
+        # Sprawdz czy kolumna volume_m3 istnieje w wynikowym DataFrame
+        assert "volume_m3" in result.df.columns
+
+        # Sprawdz czy wartosci sa poprawnie obliczone
+        # SKU1: 100*100*50 mm3 = 0.0005 m3 per jednostka
+        # Dla TRAY_S (600x400x100): 6*4*2=48 jednostek * 0.0005 = 0.024 m3
+        # Po zaokragleniu do 2 miejsc: 0.02 m3
+        fitting_rows = result.df.filter(
+            (pl.col("sku") == "SKU1") &
+            (pl.col("carrier_id") == "TRAY_S") &
+            (pl.col("fit_status").is_in(["FIT", "BORDERLINE"]))
+        )
+        assert fitting_rows.height > 0
+        volume = fitting_rows["volume_m3"][0]
+        assert volume == pytest.approx(0.02, rel=0.01)
+
     def test_analyze_capacity_helper(self):
         """Test funkcji pomocniczej analyze_capacity."""
         carriers = self.get_test_carriers()

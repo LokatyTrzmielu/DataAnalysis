@@ -7,6 +7,7 @@ from src.analytics.duckdb_runner import (
 from src.analytics.capacity import (
     CapacityAnalyzer,
     CapacityAnalysisResult,
+    CarrierStats,
     analyze_capacity,
 )
 from src.analytics.shifts import (
@@ -32,6 +33,7 @@ __all__ = [
     # Capacity
     "CapacityAnalyzer",
     "CapacityAnalysisResult",
+    "CarrierStats",
     "analyze_capacity",
     # Shifts
     "ShiftSchedule",
