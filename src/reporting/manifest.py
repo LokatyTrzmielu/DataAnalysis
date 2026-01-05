@@ -1,4 +1,4 @@
-"""Generowanie Manifest.json z SHA256 dla plikow."""
+"""Generate Manifest.json with SHA256 checksums for files."""
 
 import hashlib
 import json
@@ -8,14 +8,14 @@ from typing import Optional
 
 
 class ManifestGenerator:
-    """Generator manifestu z sumami kontrolnymi."""
+    """Manifest generator with checksums."""
 
     def __init__(self) -> None:
-        """Inicjalizacja generatora."""
+        """Initialize the generator."""
         pass
 
     def calculate_sha256(self, file_path: Path) -> str:
-        """Oblicz SHA256 dla pliku."""
+        """Calculate SHA256 for a file."""
         sha256 = hashlib.sha256()
         with open(file_path, "rb") as f:
             for chunk in iter(lambda: f.read(8192), b""):
@@ -29,16 +29,16 @@ class ManifestGenerator:
         client_name: str = "",
         run_id: Optional[str] = None,
     ) -> Path:
-        """Generuj manifest.
+        """Generate manifest.
 
         Args:
-            output_path: Sciezka do pliku manifestu
-            files: Lista plikow do uwzglednienia
-            client_name: Nazwa klienta
-            run_id: Identyfikator uruchomienia
+            output_path: Path to the manifest file
+            files: List of files to include
+            client_name: Client name
+            run_id: Run identifier
 
         Returns:
-            Sciezka do wygenerowanego manifestu
+            Path to the generated manifest
         """
         manifest = {
             "version": "1.0",
@@ -71,15 +71,15 @@ def generate_manifest(
     files: list[Path],
     **kwargs,
 ) -> Path:
-    """Funkcja pomocnicza do generowania manifestu.
+    """Helper function to generate manifest.
 
     Args:
-        output_path: Sciezka do pliku manifestu
-        files: Lista plikow
-        **kwargs: Dodatkowe argumenty
+        output_path: Path to the manifest file
+        files: List of files
+        **kwargs: Additional arguments
 
     Returns:
-        Sciezka do wygenerowanego manifestu
+        Path to the generated manifest
     """
     generator = ManifestGenerator()
     return generator.generate(output_path, files, **kwargs)

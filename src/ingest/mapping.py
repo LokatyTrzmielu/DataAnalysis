@@ -1,4 +1,4 @@
-"""Mapping Wizard - automatyczne i reczne mapowanie kolumn."""
+"""Mapping Wizard - automatic and manual column mapping."""
 
 from dataclasses import dataclass, field
 from typing import Optional
@@ -7,39 +7,39 @@ import polars as pl
 
 
 # ============================================================================
-# Schematy mapowania
+# Mapping schemas
 # ============================================================================
 
 MASTERDATA_SCHEMA = {
     "sku": {
         "aliases": ["sku", "item", "article", "artykul", "indeks", "item_id", "product_id", "kod", "code", "nr"],
         "required": True,
-        "description": "Unikalny identyfikator SKU",
+        "description": "Unique SKU identifier",
     },
     "length": {
         "aliases": ["length", "dlugosc", "l", "dim_l", "length_mm", "dl", "len"],
         "required": True,
-        "description": "Dlugosc (mm lub cm - zostanie skonwertowane)",
+        "description": "Length (mm or cm - will be converted)",
     },
     "width": {
         "aliases": ["width", "szerokosc", "w", "dim_w", "width_mm", "szer", "wid"],
         "required": True,
-        "description": "Szerokosc (mm lub cm)",
+        "description": "Width (mm or cm)",
     },
     "height": {
         "aliases": ["height", "wysokosc", "h", "dim_h", "height_mm", "wys", "hgt"],
         "required": True,
-        "description": "Wysokosc (mm lub cm)",
+        "description": "Height (mm or cm)",
     },
     "weight": {
         "aliases": ["weight", "waga", "mass", "kg", "weight_kg", "masa", "wgt"],
         "required": True,
-        "description": "Waga (kg lub g)",
+        "description": "Weight (kg or g)",
     },
     "stock": {
         "aliases": ["stock", "qty", "ilosc", "zapas", "quantity", "stan", "stock_qty", "on_hand"],
         "required": False,
-        "description": "Ilosc na stanie (EA)",
+        "description": "Stock quantity (EA)",
     },
 }
 
@@ -47,44 +47,44 @@ ORDERS_SCHEMA = {
     "order_id": {
         "aliases": ["order_id", "order", "zamowienie", "order_no", "order_number", "nr_zamowienia", "ordernr"],
         "required": True,
-        "description": "Identyfikator zamowienia",
+        "description": "Order identifier",
     },
     "line_id": {
         "aliases": ["line_id", "line", "linia", "line_no", "line_number", "pozycja"],
         "required": False,
-        "description": "Identyfikator linii zamowienia",
+        "description": "Order line identifier",
     },
     "sku": {
         "aliases": ["sku", "item", "article", "artykul", "indeks", "item_id", "product_id", "kod"],
         "required": True,
-        "description": "SKU produktu",
+        "description": "Product SKU",
     },
     "quantity": {
         "aliases": ["quantity", "qty", "ilosc", "amount", "szt", "pieces", "units"],
         "required": True,
-        "description": "Ilosc w linii (EA)",
+        "description": "Line quantity (EA)",
     },
     "timestamp": {
         "aliases": ["timestamp", "datetime", "date", "data", "czas", "time", "created", "shipped", "order_date"],
         "required": True,
-        "description": "Data/czas realizacji",
+        "description": "Fulfillment date/time",
     },
 }
 
 
 @dataclass
 class ColumnMapping:
-    """Mapowanie pojedynczej kolumny."""
+    """Single column mapping."""
 
-    target_field: str  # Pole docelowe (np. "sku", "length")
-    source_column: str  # Kolumna zrodlowa z pliku
-    confidence: float = 1.0  # Pewnosc mapowania (0-1)
-    is_auto: bool = True  # Czy automatycznie wykryte
+    target_field: str  # Target field (e.g., "sku", "length")
+    source_column: str  # Source column from file
+    confidence: float = 1.0  # Mapping confidence (0-1)
+    is_auto: bool = True  # Whether auto-detected
 
 
 @dataclass
 class MappingResult:
-    """Wynik mapowania kolumn."""
+    """Column mapping result."""
 
     mappings: dict[str, ColumnMapping] = field(default_factory=dict)
     unmapped_columns: list[str] = field(default_factory=list)
@@ -92,56 +92,56 @@ class MappingResult:
 
     @property
     def is_complete(self) -> bool:
-        """Czy wszystkie wymagane pola sa zmapowane."""
+        """Whether all required fields are mapped."""
         return len(self.missing_required) == 0
 
     def get_source_column(self, target_field: str) -> Optional[str]:
-        """Pobierz kolumne zrodlowa dla pola docelowego."""
+        """Get source column for target field."""
         mapping = self.mappings.get(target_field)
         return mapping.source_column if mapping else None
 
 
 class MappingWizard:
-    """Wizard do mapowania kolumn z auto-sugestiami."""
+    """Wizard for column mapping with auto-suggestions."""
 
     def __init__(self, schema: dict[str, dict]) -> None:
-        """Inicjalizacja wizarda.
+        """Initialize wizard.
 
         Args:
-            schema: Schemat mapowania (MASTERDATA_SCHEMA lub ORDERS_SCHEMA)
+            schema: Mapping schema (MASTERDATA_SCHEMA or ORDERS_SCHEMA)
         """
         self.schema = schema
         self._build_alias_index()
 
     def _build_alias_index(self) -> None:
-        """Zbuduj indeks alias -> pole docelowe."""
+        """Build alias -> target field index."""
         self.alias_index: dict[str, str] = {}
         for field_name, field_config in self.schema.items():
             for alias in field_config["aliases"]:
                 self.alias_index[alias.lower()] = field_name
 
     def _normalize_column_name(self, name: str) -> str:
-        """Normalizuj nazwe kolumny do porownania."""
-        # Lowercase, usun biale znaki i znaki specjalne
+        """Normalize column name for comparison."""
+        # Lowercase, remove whitespace and special characters
         normalized = name.lower().strip()
         normalized = normalized.replace(" ", "_").replace("-", "_")
-        # Usun podkreslniki na koncu
+        # Remove trailing underscores
         normalized = normalized.rstrip("_")
         return normalized
 
     def auto_map(self, columns: list[str]) -> MappingResult:
-        """Automatyczne mapowanie kolumn.
+        """Automatic column mapping.
 
         Args:
-            columns: Lista kolumn z pliku zrodlowego
+            columns: List of columns from source file
 
         Returns:
-            MappingResult z sugerowanymi mapowaniami
+            MappingResult with suggested mappings
         """
         result = MappingResult()
         used_columns: set[str] = set()
 
-        # Probuj zmapowac kazde pole
+        # Try to map each field
         for field_name, field_config in self.schema.items():
             best_match = self._find_best_match(columns, field_config["aliases"], used_columns)
 
@@ -157,7 +157,7 @@ class MappingWizard:
             elif field_config["required"]:
                 result.missing_required.append(field_name)
 
-        # Kolumny niezmapowane
+        # Unmapped columns
         result.unmapped_columns = [c for c in columns if c not in used_columns]
 
         return result
@@ -168,10 +168,10 @@ class MappingWizard:
         aliases: list[str],
         used: set[str],
     ) -> Optional[tuple[str, float]]:
-        """Znajdz najlepsze dopasowanie kolumny do aliasow.
+        """Find best column match for aliases.
 
         Returns:
-            Tuple (kolumna, pewnosc) lub None
+            Tuple (column, confidence) or None
         """
         best_match = None
         best_score = 0.0
@@ -185,11 +185,11 @@ class MappingWizard:
             for alias in aliases:
                 alias_normalized = alias.lower()
 
-                # Dokladne dopasowanie
+                # Exact match
                 if normalized == alias_normalized:
                     return (column, 1.0)
 
-                # Czesciowe dopasowanie
+                # Partial match
                 if alias_normalized in normalized or normalized in alias_normalized:
                     score = len(alias_normalized) / max(len(normalized), len(alias_normalized))
                     if score > best_score:
@@ -202,14 +202,14 @@ class MappingWizard:
         return None
 
     def apply_mapping(self, df: pl.DataFrame, mapping: MappingResult) -> pl.DataFrame:
-        """Zastosuj mapowanie do DataFrame.
+        """Apply mapping to DataFrame.
 
         Args:
-            df: Oryginalny DataFrame
-            mapping: Wynik mapowania
+            df: Original DataFrame
+            mapping: Mapping result
 
         Returns:
-            DataFrame z przemianowanymi kolumnami
+            DataFrame with renamed columns
         """
         rename_map = {}
         select_columns = []
@@ -218,20 +218,20 @@ class MappingWizard:
             rename_map[col_mapping.source_column] = field_name
             select_columns.append(col_mapping.source_column)
 
-        # Wybierz i przemianuj kolumny
+        # Select and rename columns
         result = df.select(select_columns)
         result = result.rename(rename_map)
 
         return result
 
     def get_suggestions(self, column: str) -> list[tuple[str, float]]:
-        """Pobierz sugestie mapowania dla kolumny.
+        """Get mapping suggestions for column.
 
         Args:
-            column: Nazwa kolumny
+            column: Column name
 
         Returns:
-            Lista (pole_docelowe, pewnosc) posortowana malejaco
+            List of (target_field, confidence) sorted descending
         """
         suggestions = []
         normalized = self._normalize_column_name(column)
@@ -252,16 +252,16 @@ class MappingWizard:
             if best_score > 0:
                 suggestions.append((field_name, best_score))
 
-        # Sortuj malejaco po pewnosci
+        # Sort descending by confidence
         suggestions.sort(key=lambda x: x[1], reverse=True)
         return suggestions
 
 
 def create_masterdata_wizard() -> MappingWizard:
-    """Utworz wizard dla Masterdata."""
+    """Create wizard for Masterdata."""
     return MappingWizard(MASTERDATA_SCHEMA)
 
 
 def create_orders_wizard() -> MappingWizard:
-    """Utworz wizard dla Orders."""
+    """Create wizard for Orders."""
     return MappingWizard(ORDERS_SCHEMA)

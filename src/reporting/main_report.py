@@ -1,4 +1,4 @@
-"""Generowanie glownego raportu Report_Main.csv."""
+"""Generate the main report Report_Main.csv."""
 
 from pathlib import Path
 from typing import Optional
@@ -11,10 +11,10 @@ from src.reporting.csv_writer import CSVWriter
 
 
 class MainReportGenerator:
-    """Generator glownego raportu."""
+    """Main report generator."""
 
     def __init__(self) -> None:
-        """Inicjalizacja generatora."""
+        """Initialize the generator."""
         self.formatter = Formatter()
         self.writer = CSVWriter()
 
@@ -26,33 +26,33 @@ class MainReportGenerator:
         performance_result: Optional[PerformanceAnalysisResult] = None,
         client_name: str = "",
     ) -> Path:
-        """Generuj glowny raport.
+        """Generate the main report.
 
         Args:
-            output_path: Sciezka do pliku wynikowego
-            quality_result: Wyniki jakosci danych
-            capacity_result: Wyniki analizy pojemnosciowej
-            performance_result: Wyniki analizy wydajnosciowej
-            client_name: Nazwa klienta
+            output_path: Path to the output file
+            quality_result: Data quality results
+            capacity_result: Capacity analysis results
+            performance_result: Performance analysis results
+            client_name: Client name
 
         Returns:
-            Sciezka do wygenerowanego pliku
+            Path to the generated file
         """
         data: list[tuple[str, str, str]] = []
 
-        # Sekcja: Info
+        # Section: Info
         data.append(("Info", "Client", client_name))
         data.append(("Info", "Generated", Formatter.datetime_iso(__import__("datetime").datetime.now())))
 
-        # Sekcja: Data Quality
+        # Section: Data Quality
         if quality_result:
             self._add_quality_section(data, quality_result)
 
-        # Sekcja: Capacity
+        # Section: Capacity
         if capacity_result:
             self._add_capacity_section(data, capacity_result)
 
-        # Sekcja: Performance
+        # Section: Performance
         if performance_result:
             self._add_performance_section(data, performance_result)
 
@@ -63,7 +63,7 @@ class MainReportGenerator:
         data: list[tuple[str, str, str]],
         result: QualityPipelineResult,
     ) -> None:
-        """Dodaj sekcje Data Quality."""
+        """Add Data Quality section."""
         data.append(("Data Quality", "Total Records", Formatter.integer(result.total_records)))
         data.append(("Data Quality", "Valid Records", Formatter.integer(result.valid_records)))
         data.append(("Data Quality", "Quality Score", Formatter.percent(result.quality_score)))
@@ -74,12 +74,12 @@ class MainReportGenerator:
         data.append(("Data Quality", "Weight Coverage Before", Formatter.percent(result.metrics_before.weight_coverage_pct)))
         data.append(("Data Quality", "Weight Coverage After", Formatter.percent(result.metrics_after.weight_coverage_pct)))
 
-        # Imputacja
+        # Imputation
         if result.imputation:
             data.append(("Data Quality", "Imputed Values", Formatter.integer(result.imputation.total_imputed)))
             data.append(("Data Quality", "Imputation Rate", Formatter.percent(result.imputation.imputation_rate)))
 
-        # Problemy
+        # Issues
         data.append(("Data Quality", "Total DQ Issues", Formatter.integer(result.dq_lists.total_issues)))
         data.append(("Data Quality", "Missing Critical", Formatter.integer(len(result.dq_lists.missing_critical))))
         data.append(("Data Quality", "Suspect Outliers", Formatter.integer(len(result.dq_lists.suspect_outliers))))
@@ -90,7 +90,7 @@ class MainReportGenerator:
         data: list[tuple[str, str, str]],
         result: CapacityAnalysisResult,
     ) -> None:
-        """Dodaj sekcje Capacity."""
+        """Add Capacity section."""
         data.append(("Capacity", "Total SKU Analyzed", Formatter.integer(result.total_sku)))
         data.append(("Capacity", "Carriers Analyzed", ", ".join(result.carriers_analyzed)))
         data.append(("Capacity", "FIT Count", Formatter.integer(result.fit_count)))
@@ -103,7 +103,7 @@ class MainReportGenerator:
         data: list[tuple[str, str, str]],
         result: PerformanceAnalysisResult,
     ) -> None:
-        """Dodaj sekcje Performance."""
+        """Add Performance section."""
         kpi = result.kpi
 
         # Totals
@@ -147,14 +147,14 @@ def generate_main_report(
     output_path: Path,
     **kwargs,
 ) -> Path:
-    """Funkcja pomocnicza do generowania glownego raportu.
+    """Helper function to generate the main report.
 
     Args:
-        output_path: Sciezka do pliku wynikowego
-        **kwargs: Argumenty dla MainReportGenerator.generate()
+        output_path: Path to the output file
+        **kwargs: Arguments for MainReportGenerator.generate()
 
     Returns:
-        Sciezka do wygenerowanego pliku
+        Path to the generated file
     """
     generator = MainReportGenerator()
     return generator.generate(output_path, **kwargs)

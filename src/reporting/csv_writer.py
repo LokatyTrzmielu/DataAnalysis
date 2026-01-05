@@ -1,4 +1,4 @@
-"""Writer CSV zgodny z wymaganiami (separator ';', UTF-8 BOM)."""
+"""CSV writer compliant with requirements (separator ';', UTF-8 BOM)."""
 
 from pathlib import Path
 from typing import Any
@@ -9,18 +9,18 @@ from src.core.config import CSV_SEPARATOR, CSV_ENCODING
 
 
 class CSVWriter:
-    """Writer plikow CSV zgodny z polskimi wymaganiami."""
+    """CSV file writer compliant with requirements."""
 
     def __init__(
         self,
         separator: str = CSV_SEPARATOR,
         encoding: str = CSV_ENCODING,
     ) -> None:
-        """Inicjalizacja writera.
+        """Initialize the writer.
 
         Args:
-            separator: Separator kolumn (domyslnie ';')
-            encoding: Kodowanie (domyslnie UTF-8 BOM)
+            separator: Column separator (default ';')
+            encoding: Encoding (default UTF-8 BOM)
         """
         self.separator = separator
         self.encoding = encoding
@@ -31,15 +31,15 @@ class CSVWriter:
         file_path: str | Path,
         include_header: bool = True,
     ) -> Path:
-        """Zapisz DataFrame do CSV.
+        """Write DataFrame to CSV.
 
         Args:
-            df: DataFrame do zapisania
-            file_path: Sciezka docelowa
-            include_header: Czy wlaczyc naglowek
+            df: DataFrame to save
+            file_path: Destination path
+            include_header: Whether to include header
 
         Returns:
-            Sciezka do zapisanego pliku
+            Path to the saved file
         """
         file_path = Path(file_path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -51,18 +51,18 @@ class CSVWriter:
             include_header=include_header,
         )
 
-        # Dodaj BOM jesli wymagane
+        # Add BOM if required
         if "sig" in self.encoding.lower() or "bom" in self.encoding.lower():
             self._add_bom(file_path)
 
         return file_path
 
     def _add_bom(self, file_path: Path) -> None:
-        """Dodaj BOM na poczatek pliku."""
+        """Add BOM at the beginning of the file."""
         with open(file_path, "rb") as f:
             content = f.read()
 
-        # Sprawdz czy BOM juz jest
+        # Check if BOM already exists
         if not content.startswith(b"\xef\xbb\xbf"):
             with open(file_path, "wb") as f:
                 f.write(b"\xef\xbb\xbf" + content)
@@ -73,15 +73,15 @@ class CSVWriter:
         file_path: str | Path,
         columns: tuple[str, str, str] = ("Section", "Metric", "Value"),
     ) -> Path:
-        """Zapisz dane w formacie Key-Value (Section | Metric | Value).
+        """Write data in Key-Value format (Section | Metric | Value).
 
         Args:
-            data: Lista krotek (section, metric, value)
-            file_path: Sciezka docelowa
-            columns: Nazwy kolumn
+            data: List of tuples (section, metric, value)
+            file_path: Destination path
+            columns: Column names
 
         Returns:
-            Sciezka do zapisanego pliku
+            Path to the saved file
         """
         df = pl.DataFrame({
             columns[0]: [d[0] for d in data],
@@ -95,14 +95,14 @@ def write_csv(
     df: pl.DataFrame,
     file_path: str | Path,
 ) -> Path:
-    """Funkcja pomocnicza do zapisu CSV.
+    """Helper function to write CSV.
 
     Args:
-        df: DataFrame do zapisania
-        file_path: Sciezka docelowa
+        df: DataFrame to save
+        file_path: Destination path
 
     Returns:
-        Sciezka do zapisanego pliku
+        Path to the saved file
     """
     writer = CSVWriter()
     return writer.write(df, file_path)

@@ -1,4 +1,4 @@
-"""Analiza pojemnosciowa - dopasowanie SKU do nosnikow."""
+"""Capacity analysis - matching SKU to carriers."""
 
 from dataclasses import dataclass, field
 from itertools import permutations
@@ -18,33 +18,33 @@ from src.core.config import BORDERLINE_THRESHOLD_MM
 
 @dataclass
 class CarrierStats:
-    """Statystyki dopasowania dla pojedynczego nosnika."""
+    """Fit statistics for a single carrier."""
     carrier_id: str
     carrier_name: str
     fit_count: int
     borderline_count: int
     not_fit_count: int
     fit_percentage: float
-    total_volume_m3: float  # Suma pojemnosci SKU ktore sie miescza (fit + borderline)
+    total_volume_m3: float  # Sum of SKU volumes that fit (fit + borderline)
 
 
 @dataclass
 class CapacityAnalysisResult:
-    """Wynik analizy pojemnosciowej."""
-    df: pl.DataFrame  # DataFrame z wynikami dopasowania
+    """Capacity analysis result."""
+    df: pl.DataFrame  # DataFrame with fit results
     total_sku: int
     fit_count: int
     borderline_count: int
     not_fit_count: int
     fit_percentage: float
     carriers_analyzed: list[str]
-    carrier_stats: dict[str, CarrierStats] = field(default_factory=dict)  # Statystyki per nosnik
+    carrier_stats: dict[str, CarrierStats] = field(default_factory=dict)  # Statistics per carrier
 
 
 class CapacityAnalyzer:
-    """Analizator pojemnosci - dopasowanie SKU do nosnikow."""
+    """Capacity analyzer - matching SKU to carriers."""
 
-    # 6 mozliwych orientacji (permutacje L, W, H)
+    # 6 possible orientations (permutations of L, W, H)
     ORIENTATIONS = list(permutations(["L", "W", "H"]))
 
     def __init__(
@@ -53,12 +53,12 @@ class CapacityAnalyzer:
         borderline_threshold_mm: float = BORDERLINE_THRESHOLD_MM,
         default_utilization: float = 0.75,
     ) -> None:
-        """Inicjalizacja analizatora.
+        """Initialize the analyzer.
 
         Args:
-            carriers: Lista nosnikow do analizy
-            borderline_threshold_mm: Prog dla BORDERLINE
-            default_utilization: Domyslny wspolczynnik wykorzystania
+            carriers: List of carriers to analyze
+            borderline_threshold_mm: Threshold for BORDERLINE
+            default_utilization: Default utilization coefficient
         """
         self.carriers = carriers
         self.borderline_threshold_mm = borderline_threshold_mm
@@ -73,16 +73,16 @@ class CapacityAnalyzer:
         weight_kg: float,
         constraint: OrientationConstraint = OrientationConstraint.ANY,
     ) -> list[CarrierFitResult]:
-        """Analizuj dopasowanie SKU do wszystkich nosnikow.
+        """Analyze SKU fit to all carriers.
 
         Args:
-            sku: Identyfikator SKU
-            length_mm, width_mm, height_mm: Wymiary w mm
-            weight_kg: Waga w kg
-            constraint: Ograniczenie orientacji
+            sku: SKU identifier
+            length_mm, width_mm, height_mm: Dimensions in mm
+            weight_kg: Weight in kg
+            constraint: Orientation constraint
 
         Returns:
-            Lista CarrierFitResult dla kazdego nosnika
+            List of CarrierFitResult for each carrier
         """
         results = []
 
@@ -108,10 +108,10 @@ class CapacityAnalyzer:
         carrier: CarrierConfig,
         constraint: OrientationConstraint,
     ) -> CarrierFitResult:
-        """Sprawdz dopasowanie SKU do nosnika."""
+        """Check SKU fit to carrier."""
         dims = {"L": length_mm, "W": width_mm, "H": height_mm}
 
-        # Generuj dozwolone orientacje
+        # Generate allowed orientations
         orientations = self._get_allowed_orientations(constraint)
 
         best_fit = None
@@ -119,12 +119,12 @@ class CapacityAnalyzer:
         best_margin = float("-inf")
 
         for orientation in orientations:
-            # Mapuj wymiary SKU na osie nosnika (X, Y, Z)
+            # Map SKU dimensions to carrier axes (X, Y, Z)
             sku_x = dims[orientation[0]]
             sku_y = dims[orientation[1]]
             sku_z = dims[orientation[2]]
 
-            # Sprawdz dopasowanie gabarytowe
+            # Check dimensional fit
             margin_x = carrier.inner_length_mm - sku_x
             margin_y = carrier.inner_width_mm - sku_y
             margin_z = carrier.inner_height_mm - sku_z
@@ -132,7 +132,7 @@ class CapacityAnalyzer:
             min_margin = min(margin_x, margin_y, margin_z)
 
             if min_margin >= 0:
-                # Miesci sie
+                # Fits
                 if min_margin > best_margin:
                     best_margin = min_margin
                     best_orientation = orientation
@@ -142,7 +142,7 @@ class CapacityAnalyzer:
                     else:
                         best_fit = FitResult.FIT
 
-        # Jesli nie miesci sie gabarytowo
+        # If it doesn't fit dimensionally
         if best_fit is None:
             return CarrierFitResult(
                 sku=sku,
@@ -151,7 +151,7 @@ class CapacityAnalyzer:
                 limiting_factor=LimitingFactor.DIMENSION,
             )
 
-        # Sprawdz wage
+        # Check weight
         if weight_kg > carrier.max_weight_kg:
             return CarrierFitResult(
                 sku=sku,
@@ -160,7 +160,7 @@ class CapacityAnalyzer:
                 limiting_factor=LimitingFactor.WEIGHT,
             )
 
-        # Oblicz ile sztuk na nosniku
+        # Calculate how many units per carrier
         units_per_carrier = self._calculate_units_per_carrier(
             dims[best_orientation[0]],
             dims[best_orientation[1]],
@@ -183,16 +183,16 @@ class CapacityAnalyzer:
         self,
         constraint: OrientationConstraint,
     ) -> list[tuple[str, str, str]]:
-        """Pobierz dozwolone orientacje."""
+        """Get allowed orientations."""
         if constraint == OrientationConstraint.ANY:
             return self.ORIENTATIONS
 
         elif constraint == OrientationConstraint.UPRIGHT_ONLY:
-            # Wysokosc musi byc na osi Z
+            # Height must be on Z axis
             return [o for o in self.ORIENTATIONS if o[2] == "H"]
 
         elif constraint == OrientationConstraint.FLAT_ONLY:
-            # Wysokosc musi byc najmniejsza (X lub Y)
+            # Height must be smallest (X or Y)
             return [o for o in self.ORIENTATIONS if o[2] != "H"]
 
         return self.ORIENTATIONS
@@ -205,15 +205,15 @@ class CapacityAnalyzer:
         weight_kg: float,
         carrier: CarrierConfig,
     ) -> int:
-        """Oblicz ile sztuk miesci sie na nosniku."""
-        # Ile w kazdym kierunku
+        """Calculate how many units fit on the carrier."""
+        # How many in each direction
         count_x = int(carrier.inner_length_mm // sku_x) if sku_x > 0 else 0
         count_y = int(carrier.inner_width_mm // sku_y) if sku_y > 0 else 0
         count_z = int(carrier.inner_height_mm // sku_z) if sku_z > 0 else 0
 
         volume_based = count_x * count_y * count_z
 
-        # Ograniczenie wagowe
+        # Weight constraint
         weight_based = int(carrier.max_weight_kg // weight_kg) if weight_kg > 0 else volume_based
 
         return min(volume_based, weight_based)
@@ -223,11 +223,11 @@ class CapacityAnalyzer:
         df: pl.DataFrame,
         carrier_id: Optional[str] = None,
     ) -> CapacityAnalysisResult:
-        """Analizuj caly DataFrame.
+        """Analyze entire DataFrame.
 
         Args:
-            df: DataFrame z Masterdata
-            carrier_id: Konkretny nosnik (None = wszystkie)
+            df: DataFrame with Masterdata
+            carrier_id: Specific carrier (None = all)
 
         Returns:
             CapacityAnalysisResult
@@ -236,7 +236,7 @@ class CapacityAnalyzer:
         if carrier_id:
             carriers_to_analyze = [c for c in self.carriers if c.carrier_id == carrier_id]
 
-        # Mapowanie carrier_id -> CarrierConfig (do nazw)
+        # Mapping carrier_id -> CarrierConfig (for names)
         carrier_map = {c.carrier_id: c for c in carriers_to_analyze}
 
         results = []
@@ -248,7 +248,7 @@ class CapacityAnalyzer:
             height = row.get("height_mm", 0) or 0
             weight = row.get("weight_kg", 0) or 0
 
-            # Oblicz volume_m3 dla pojedynczej sztuki SKU
+            # Calculate volume_m3 for a single SKU unit
             sku_volume_m3 = (length * width * height) / 1_000_000_000
 
             constraint = OrientationConstraint.ANY
@@ -262,7 +262,7 @@ class CapacityAnalyzer:
                 fit_result = self._check_fit(
                     sku, length, width, height, weight, carrier, constraint
                 )
-                # Oblicz volume_m3 dla wszystkich sztuk mieszczacych sie na nosniku
+                # Calculate volume_m3 for all units fitting on the carrier
                 total_volume_m3 = sku_volume_m3 * fit_result.units_per_carrier if fit_result.units_per_carrier else 0.0
 
                 results.append({
@@ -275,7 +275,7 @@ class CapacityAnalyzer:
                     "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
                 })
 
-        # Tworzymy DataFrame z jawnym schematem dla kolumn z None
+        # Create DataFrame with explicit schema for columns with None
         result_df = pl.DataFrame(
             results,
             schema={
@@ -289,7 +289,7 @@ class CapacityAnalyzer:
             }
         )
 
-        # Statystyki globalne (suma wszystkich nosnikow - dla kompatybilnosci)
+        # Global statistics (sum of all carriers - for compatibility)
         fit_count = result_df.filter(pl.col("fit_status") == "FIT").height
         borderline_count = result_df.filter(pl.col("fit_status") == "BORDERLINE").height
         not_fit_count = result_df.filter(pl.col("fit_status") == "NOT_FIT").height
@@ -297,7 +297,7 @@ class CapacityAnalyzer:
         total = fit_count + borderline_count + not_fit_count
         fit_percentage = ((fit_count + borderline_count) / total * 100) if total > 0 else 0
 
-        # Statystyki per nosnik
+        # Statistics per carrier
         carrier_stats: dict[str, CarrierStats] = {}
         for carrier in carriers_to_analyze:
             carrier_df = result_df.filter(pl.col("carrier_id") == carrier.carrier_id)
@@ -307,7 +307,7 @@ class CapacityAnalyzer:
             c_total = c_fit + c_borderline + c_not_fit
             c_fit_pct = ((c_fit + c_borderline) / c_total * 100) if c_total > 0 else 0
 
-            # Suma volume_m3 dla SKU ktore sie miescza (FIT lub BORDERLINE)
+            # Sum of volume_m3 for SKUs that fit (FIT or BORDERLINE)
             fitting_df = carrier_df.filter(pl.col("fit_status").is_in(["FIT", "BORDERLINE"]))
             c_volume_m3 = fitting_df["volume_m3"].sum() if fitting_df.height > 0 else 0.0
 
@@ -337,11 +337,11 @@ def analyze_capacity(
     df: pl.DataFrame,
     carriers: list[CarrierConfig],
 ) -> CapacityAnalysisResult:
-    """Funkcja pomocnicza do analizy pojemnosciowej.
+    """Helper function for capacity analysis.
 
     Args:
-        df: DataFrame z Masterdata
-        carriers: Lista nosnikow
+        df: DataFrame with Masterdata
+        carriers: List of carriers
 
     Returns:
         CapacityAnalysisResult

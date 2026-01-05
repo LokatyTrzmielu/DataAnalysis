@@ -1,4 +1,4 @@
-"""Generowanie raportow Data Quality."""
+"""Generate Data Quality reports."""
 
 from pathlib import Path
 
@@ -10,10 +10,10 @@ from src.reporting.csv_writer import CSVWriter
 
 
 class DQReportGenerator:
-    """Generator raportow Data Quality."""
+    """Data Quality reports generator."""
 
     def __init__(self) -> None:
-        """Inicjalizacja generatora."""
+        """Initialize the generator."""
         self.writer = CSVWriter()
 
     def generate_summary(
@@ -33,7 +33,7 @@ class DQReportGenerator:
             ("Completeness", "Empty Records", metrics.empty_records),
         ]
 
-        # Szczegoly per pole
+        # Details per field
         for coverage in [
             metrics.length_coverage,
             metrics.width_coverage,
@@ -54,7 +54,7 @@ class DQReportGenerator:
     ) -> Path:
         """Generuj DQ_MissingCritical.csv."""
         if not dq_lists.missing_critical:
-            # Pusty plik z naglowkiem
+            # Empty file with header
             df = pl.DataFrame({
                 "sku": [],
                 "field": [],
@@ -188,15 +188,15 @@ class DQReportGenerator:
         metrics: DataQualityMetrics,
         dq_lists: DQLists,
     ) -> list[Path]:
-        """Generuj wszystkie raporty DQ.
+        """Generate all DQ reports.
 
         Args:
-            output_dir: Katalog wynikowy
-            metrics: Metryki jakosci
-            dq_lists: Listy problemow
+            output_dir: Output directory
+            metrics: Quality metrics
+            dq_lists: Issue lists
 
         Returns:
-            Lista sciezek do wygenerowanych plikow
+            List of paths to generated files
         """
         output_dir.mkdir(parents=True, exist_ok=True)
 

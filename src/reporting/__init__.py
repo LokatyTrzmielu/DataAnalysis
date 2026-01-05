@@ -1,4 +1,4 @@
-"""Reporting module - raporty CSV, manifest, ZIP."""
+"""Reporting module - CSV reports, manifest, ZIP."""
 
 from src.reporting.csv_writer import (
     CSVWriter,

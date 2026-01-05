@@ -1,4 +1,4 @@
-"""Pipeline importu danych - integracja wszystkich krokow."""
+"""Data import pipeline - integration of all steps."""
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,7 +19,7 @@ from src.ingest.sku_normalize import SKUNormalizer, NormalizationResult
 
 @dataclass
 class IngestResult:
-    """Wynik importu danych."""
+    """Data import result."""
     df: pl.DataFrame
     mapping_result: MappingResult
     sku_normalization: Optional[NormalizationResult] = None
@@ -30,7 +30,7 @@ class IngestResult:
 
 
 class MasterdataIngestPipeline:
-    """Pipeline importu danych Masterdata."""
+    """Masterdata import pipeline."""
 
     def __init__(
         self,
@@ -39,13 +39,13 @@ class MasterdataIngestPipeline:
         length_unit: Optional[LengthUnit] = None,
         weight_unit: Optional[WeightUnit] = None,
     ) -> None:
-        """Inicjalizacja pipeline.
+        """Initialize pipeline.
 
         Args:
-            auto_detect_units: Automatyczne wykrywanie jednostek
-            normalize_sku: Normalizacja SKU
-            length_unit: Jednostka dlugosci (jesli znana)
-            weight_unit: Jednostka wagi (jesli znana)
+            auto_detect_units: Automatic unit detection
+            normalize_sku: SKU normalization
+            length_unit: Length unit (if known)
+            weight_unit: Weight unit (if known)
         """
         self.auto_detect_units = auto_detect_units
         self.normalize_sku = normalize_sku
@@ -62,35 +62,35 @@ class MasterdataIngestPipeline:
         mapping: Optional[MappingResult] = None,
         **read_kwargs,
     ) -> IngestResult:
-        """Uruchom pipeline importu.
+        """Run import pipeline.
 
         Args:
-            file_path: Sciezka do pliku
-            mapping: Gotowe mapowanie (jesli None, automatyczne)
-            **read_kwargs: Dodatkowe argumenty dla FileReader
+            file_path: Path to file
+            mapping: Ready mapping (if None, automatic)
+            **read_kwargs: Additional arguments for FileReader
 
         Returns:
-            IngestResult z danymi i metadanymi
+            IngestResult with data and metadata
         """
         warnings: list[str] = []
         file_path = Path(file_path)
 
-        # 1. Wczytaj plik
+        # 1. Read file
         reader = FileReader(file_path)
         df = reader.read(**read_kwargs)
 
-        # 2. Mapowanie kolumn
+        # 2. Column mapping
         if mapping is None:
             mapping = self.wizard.auto_map(df.columns)
 
         if not mapping.is_complete:
             missing = ", ".join(mapping.missing_required)
-            warnings.append(f"Brakuje wymaganych kolumn: {missing}")
+            warnings.append(f"Missing required columns: {missing}")
 
-        # Zastosuj mapowanie
+        # Apply mapping
         df = self.wizard.apply_mapping(df, mapping)
 
-        # 3. Konwersja jednostek (jesli mamy wymiary)
+        # 3. Unit conversion (if we have dimensions)
         if all(col in df.columns for col in ["length", "width", "height"]):
             df = self.unit_converter.convert_dimensions_to_mm(
                 df,
@@ -100,7 +100,7 @@ class MasterdataIngestPipeline:
                 auto_detect=self.auto_detect_units,
                 source_unit=self.length_unit,
             )
-            # Zmien nazwy na docelowe
+            # Rename to target names
             df = df.rename({
                 "length": "length_mm",
                 "width": "width_mm",
@@ -119,7 +119,7 @@ class MasterdataIngestPipeline:
         if "stock" in df.columns:
             df = df.rename({"stock": "stock_qty"})
 
-        # 4. Normalizacja SKU
+        # 4. SKU normalization
         sku_result = None
         if self.normalize_sku and "sku" in df.columns:
             sku_result = self.sku_normalizer.normalize_dataframe(df, "sku")
@@ -127,7 +127,7 @@ class MasterdataIngestPipeline:
 
             if sku_result.total_collisions > 0:
                 warnings.append(
-                    f"Wykryto {sku_result.total_collisions} kolizji SKU po normalizacji"
+                    f"Detected {sku_result.total_collisions} SKU collisions after normalization"
                 )
 
         return IngestResult(
@@ -142,16 +142,16 @@ class MasterdataIngestPipeline:
 
 
 class OrdersIngestPipeline:
-    """Pipeline importu danych Orders."""
+    """Orders import pipeline."""
 
     def __init__(
         self,
         normalize_sku: bool = True,
     ) -> None:
-        """Inicjalizacja pipeline.
+        """Initialize pipeline.
 
         Args:
-            normalize_sku: Normalizacja SKU
+            normalize_sku: SKU normalization
         """
         self.normalize_sku = normalize_sku
         self.wizard = create_orders_wizard()
@@ -163,43 +163,43 @@ class OrdersIngestPipeline:
         mapping: Optional[MappingResult] = None,
         **read_kwargs,
     ) -> IngestResult:
-        """Uruchom pipeline importu.
+        """Run import pipeline.
 
         Args:
-            file_path: Sciezka do pliku
-            mapping: Gotowe mapowanie (jesli None, automatyczne)
-            **read_kwargs: Dodatkowe argumenty dla FileReader
+            file_path: Path to file
+            mapping: Ready mapping (if None, automatic)
+            **read_kwargs: Additional arguments for FileReader
 
         Returns:
-            IngestResult z danymi i metadanymi
+            IngestResult with data and metadata
         """
         warnings: list[str] = []
         file_path = Path(file_path)
 
-        # 1. Wczytaj plik
+        # 1. Read file
         reader = FileReader(file_path)
         df = reader.read(**read_kwargs)
 
-        # 2. Mapowanie kolumn
+        # 2. Column mapping
         if mapping is None:
             mapping = self.wizard.auto_map(df.columns)
 
         if not mapping.is_complete:
             missing = ", ".join(mapping.missing_required)
-            warnings.append(f"Brakuje wymaganych kolumn: {missing}")
+            warnings.append(f"Missing required columns: {missing}")
 
-        # Zastosuj mapowanie
+        # Apply mapping
         df = self.wizard.apply_mapping(df, mapping)
 
-        # 3. Normalizacja SKU
+        # 3. SKU normalization
         sku_result = None
         if self.normalize_sku and "sku" in df.columns:
             sku_result = self.sku_normalizer.normalize_dataframe(df, "sku")
             df = sku_result.df
 
-        # 4. Parsowanie timestamp
+        # 4. Timestamp parsing
         if "timestamp" in df.columns:
-            # Upewnij sie ze timestamp jest datetime
+            # Ensure timestamp is datetime
             if df["timestamp"].dtype == pl.Utf8:
                 df = df.with_columns([
                     pl.col("timestamp").str.to_datetime(
@@ -223,11 +223,11 @@ def ingest_masterdata(
     file_path: str | Path,
     **kwargs,
 ) -> IngestResult:
-    """Funkcja pomocnicza do importu Masterdata.
+    """Helper function for Masterdata import.
 
     Args:
-        file_path: Sciezka do pliku
-        **kwargs: Argumenty dla MasterdataIngestPipeline
+        file_path: Path to file
+        **kwargs: Arguments for MasterdataIngestPipeline
 
     Returns:
         IngestResult
@@ -240,11 +240,11 @@ def ingest_orders(
     file_path: str | Path,
     **kwargs,
 ) -> IngestResult:
-    """Funkcja pomocnicza do importu Orders.
+    """Helper function for Orders import.
 
     Args:
-        file_path: Sciezka do pliku
-        **kwargs: Argumenty dla OrdersIngestPipeline
+        file_path: Path to file
+        **kwargs: Arguments for OrdersIngestPipeline
 
     Returns:
         IngestResult

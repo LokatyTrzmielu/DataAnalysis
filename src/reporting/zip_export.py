@@ -1,4 +1,4 @@
-"""Eksport paczki raportow do ZIP."""
+"""Export report package to ZIP."""
 
 import zipfile
 from datetime import datetime
@@ -16,10 +16,10 @@ from src.reporting.readme import ReadmeGenerator
 
 
 class ZipExporter:
-    """Eksporter paczki raportow do ZIP."""
+    """Report package exporter to ZIP."""
 
     def __init__(self) -> None:
-        """Inicjalizacja eksportera."""
+        """Initialize the exporter."""
         self.csv_writer = CSVWriter()
         self.main_generator = MainReportGenerator()
         self.dq_generator = DQReportGenerator()
@@ -36,19 +36,19 @@ class ZipExporter:
         run_id: Optional[str] = None,
         create_zip: bool = True,
     ) -> Path:
-        """Eksportuj pelna paczke raportow.
+        """Export complete report package.
 
         Args:
-            output_dir: Katalog wynikowy
-            client_name: Nazwa klienta
-            quality_result: Wyniki jakosci danych
-            capacity_result: Wyniki analizy pojemnosciowej
-            performance_result: Wyniki analizy wydajnosciowej
-            run_id: Identyfikator uruchomienia
-            create_zip: Czy utworzyc plik ZIP
+            output_dir: Output directory
+            client_name: Client name
+            quality_result: Data quality results
+            capacity_result: Capacity analysis results
+            performance_result: Performance analysis results
+            run_id: Run identifier
+            create_zip: Whether to create ZIP file
 
         Returns:
-            Sciezka do paczki (ZIP lub katalog)
+            Path to the package (ZIP or directory)
         """
         if run_id is None:
             run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -58,7 +58,7 @@ class ZipExporter:
 
         generated_files: list[Path] = []
 
-        # 1. Glowny raport
+        # 1. Main report
         main_report_path = reports_dir / "Report_Main.csv"
         self.main_generator.generate(
             main_report_path,
@@ -69,7 +69,7 @@ class ZipExporter:
         )
         generated_files.append(main_report_path)
 
-        # 2. Raporty DQ
+        # 2. DQ reports
         if quality_result:
             dq_paths = self.dq_generator.generate_all(
                 reports_dir,
@@ -98,7 +98,7 @@ class ZipExporter:
         )
         generated_files.append(manifest_path)
 
-        # 5. Utworz ZIP
+        # 5. Create ZIP
         if create_zip:
             zip_name = f"{client_name}_{run_id}.zip" if client_name else f"report_{run_id}.zip"
             zip_path = output_dir / zip_name
@@ -117,15 +117,15 @@ def export_reports(
     client_name: str,
     **kwargs,
 ) -> Path:
-    """Funkcja pomocnicza do eksportu raportow.
+    """Helper function to export reports.
 
     Args:
-        output_dir: Katalog wynikowy
-        client_name: Nazwa klienta
-        **kwargs: Dodatkowe argumenty
+        output_dir: Output directory
+        client_name: Client name
+        **kwargs: Additional arguments
 
     Returns:
-        Sciezka do paczki
+        Path to the package
     """
     exporter = ZipExporter()
     return exporter.export(output_dir, client_name, **kwargs)

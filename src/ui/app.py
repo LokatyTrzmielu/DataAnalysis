@@ -1,4 +1,4 @@
-"""Glowna aplikacja Streamlit DataAnalysis."""
+"""Main DataAnalysis Streamlit application."""
 
 from __future__ import annotations
 
@@ -9,14 +9,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from src.ingest import MappingResult
 
-# Dodaj katalog glowny projektu do PYTHONPATH
+# Add project root directory to PYTHONPATH
 _project_root = Path(__file__).resolve().parent.parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 import streamlit as st
 
-# Konfiguracja strony
+# Page configuration
 st.set_page_config(
     page_title="DataAnalysis",
     page_icon="📊",
@@ -26,7 +26,7 @@ st.set_page_config(
 
 
 def init_session_state() -> None:
-    """Inicjalizacja session state."""
+    """Initialize session state."""
     defaults = {
         "client_name": "",
         "masterdata_df": None,
@@ -55,20 +55,20 @@ def init_session_state() -> None:
 
 
 def render_sidebar() -> None:
-    """Renderuj sidebar z parametrami."""
+    """Render sidebar with parameters."""
     with st.sidebar:
         st.title("DataAnalysis")
         st.markdown("---")
 
-        # Nazwa klienta
+        # Client name
         st.session_state.client_name = st.text_input(
-            "Nazwa klienta",
+            "Client name",
             value=st.session_state.client_name,
-            placeholder="np. Klient_ABC",
+            placeholder="e.g. Client_ABC",
         )
 
         st.markdown("---")
-        st.subheader("Parametry analizy")
+        st.subheader("Analysis parameters")
 
         # Utilization
         st.session_state.utilization_vlm = st.slider(
@@ -77,7 +77,7 @@ def render_sidebar() -> None:
             max_value=1.0,
             value=0.75,
             step=0.05,
-            help="Wspolczynnik wykorzystania dla Vertical Lift Module",
+            help="Utilization coefficient for Vertical Lift Module",
         )
 
         st.session_state.utilization_mib = st.slider(
@@ -86,17 +86,17 @@ def render_sidebar() -> None:
             max_value=1.0,
             value=0.68,
             step=0.05,
-            help="Wspolczynnik wykorzystania dla Mini-load in Box",
+            help="Utilization coefficient for Mini-load in Box",
         )
 
         # Productive hours
         st.session_state.productive_hours = st.slider(
-            "Godziny produktywne / zmiana",
+            "Productive hours / shift",
             min_value=4.0,
             max_value=8.0,
             value=7.0,
             step=0.5,
-            help="Efektywny czas pracy na zmiane",
+            help="Effective work time per shift",
         )
 
         # Borderline threshold
@@ -106,16 +106,16 @@ def render_sidebar() -> None:
             max_value=10.0,
             value=2.0,
             step=0.5,
-            help="Prog dla oznaczenia SKU jako BORDERLINE (blisko limitu nosnika)",
+            help="Threshold for marking SKU as BORDERLINE (close to carrier limit)",
         )
 
         st.markdown("---")
-        st.subheader("Imputacja")
+        st.subheader("Imputation")
 
         st.session_state.imputation_enabled = st.checkbox(
-            "Wlacz imputacje",
+            "Enable imputation",
             value=True,
-            help="Uzupelniaj brakujace wartosci mediana",
+            help="Fill missing values with median",
         )
 
         st.markdown("---")
@@ -124,14 +124,14 @@ def render_sidebar() -> None:
         if st.session_state.masterdata_df is not None:
             st.success(f"Masterdata: {len(st.session_state.masterdata_df)} SKU")
         if st.session_state.orders_df is not None:
-            st.success(f"Orders: {len(st.session_state.orders_df)} linii")
+            st.success(f"Orders: {len(st.session_state.orders_df)} lines")
         if st.session_state.analysis_complete:
-            st.success("Analiza zakonczona")
+            st.success("Analysis complete")
 
 
 def render_tabs() -> None:
-    """Renderuj glowne zakladki."""
-    tabs = st.tabs(["📁 Import", "✅ Walidacja", "📊 Analiza", "📄 Raporty"])
+    """Render main tabs."""
+    tabs = st.tabs(["📁 Import", "✅ Validation", "📊 Analysis", "📄 Reports"])
 
     with tabs[0]:
         render_import_tab()
@@ -151,12 +151,12 @@ def build_mapping_result_from_selections(
     file_columns: list[str],
     schema: dict,
 ) -> "MappingResult":
-    """Buduj MappingResult z wyborow uzytkownika.
+    """Build MappingResult from user selections.
 
     Args:
-        user_mappings: Slownik target_field -> source_column
-        file_columns: Wszystkie kolumny z pliku
-        schema: MASTERDATA_SCHEMA lub ORDERS_SCHEMA
+        user_mappings: Dictionary target_field -> source_column
+        file_columns: All columns from file
+        schema: MASTERDATA_SCHEMA or ORDERS_SCHEMA
 
     Returns:
         MappingResult
@@ -175,13 +175,13 @@ def build_mapping_result_from_selections(
         )
         used_columns.add(source_col)
 
-    # Wyznacz brakujace wymagane pola
+    # Determine missing required fields
     missing_required = []
     for field_name, field_cfg in schema.items():
         if field_cfg["required"] and field_name not in user_mappings:
             missing_required.append(field_name)
 
-    # Niezmapowane kolumny
+    # Unmapped columns
     unmapped_columns = [c for c in file_columns if c not in used_columns]
 
     return MappingResult(
@@ -197,48 +197,48 @@ def render_mapping_ui(
     schema: dict,
     key_prefix: str = "md",
 ) -> "MappingResult":
-    """Renderuj UI mapowania kolumn.
+    """Render column mapping UI.
 
     Args:
-        file_columns: Kolumny z wczytanego pliku
-        mapping_result: Wynik auto-mapowania
-        schema: MASTERDATA_SCHEMA lub ORDERS_SCHEMA
-        key_prefix: Prefiks dla kluczy widgetow
+        file_columns: Columns from loaded file
+        mapping_result: Auto-mapping result
+        schema: MASTERDATA_SCHEMA or ORDERS_SCHEMA
+        key_prefix: Prefix for widget keys
 
     Returns:
-        Zaktualizowany MappingResult z wyborami uzytkownika
+        Updated MappingResult with user selections
     """
-    st.subheader("Mapowanie kolumn")
+    st.subheader("Column mapping")
 
-    # Podziel na wymagane i opcjonalne
+    # Split into required and optional
     required_fields = [f for f, cfg in schema.items() if cfg["required"]]
     optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
 
-    # Opcje dropdown: brak + kolumny z pliku
-    dropdown_options = ["-- Nie mapuj --"] + list(file_columns)
+    # Dropdown options: none + columns from file
+    dropdown_options = ["-- Don't map --"] + list(file_columns)
 
     user_mappings = {}
 
-    # Sekcja wymaganych pol
-    st.markdown("**Wymagane pola:**")
+    # Required fields section
+    st.markdown("**Required fields:**")
 
-    # Uzyj 5 kolumn dla wymaganych pol
+    # Use columns for required fields
     cols = st.columns(len(required_fields))
     for i, field_name in enumerate(required_fields):
         with cols[i]:
             field_cfg = schema[field_name]
 
-            # Pobierz aktualne mapowanie
+            # Get current mapping
             current_mapping = mapping_result.mappings.get(field_name)
             current_value = current_mapping.source_column if current_mapping else None
 
-            # Znajdz indeks dla domyslnego wyboru
+            # Find index for default selection
             if current_value and current_value in file_columns:
                 default_idx = file_columns.index(current_value) + 1
             else:
                 default_idx = 0
 
-            # Wskaznik confidence
+            # Confidence indicator
             confidence_indicator = ""
             if current_mapping:
                 if current_mapping.confidence >= 0.9:
@@ -255,12 +255,12 @@ def render_mapping_ui(
                 help=field_cfg["description"],
             )
 
-            if selected != "-- Nie mapuj --":
+            if selected != "-- Don't map --":
                 user_mappings[field_name] = selected
 
-    # Sekcja opcjonalnych pol
+    # Optional fields section
     if optional_fields:
-        st.markdown("**Opcjonalne pola:**")
+        st.markdown("**Optional fields:**")
 
         opt_cols = st.columns(len(optional_fields))
         for i, field_name in enumerate(optional_fields):
@@ -282,42 +282,42 @@ def render_mapping_ui(
                     help=field_cfg["description"],
                 )
 
-                if selected != "-- Nie mapuj --":
+                if selected != "-- Don't map --":
                     user_mappings[field_name] = selected
 
-    # Zbuduj zaktualizowany MappingResult
+    # Build updated MappingResult
     return build_mapping_result_from_selections(user_mappings, file_columns, schema)
 
 
 def render_mapping_status(mapping_result: MappingResult) -> None:
-    """Wyswietl status mapowania i komunikaty walidacji.
+    """Display mapping status and validation messages.
 
     Args:
-        mapping_result: Aktualny wynik mapowania
+        mapping_result: Current mapping result
     """
     if mapping_result.is_complete:
-        st.success("Wszystkie wymagane pola zmapowane")
+        st.success("All required fields mapped")
     else:
         missing = ", ".join(mapping_result.missing_required)
-        st.error(f"Brakuje wymaganych pol: {missing}")
+        st.error(f"Missing required fields: {missing}")
 
-    # Podsumowanie mapowania
-    with st.expander("Podsumowanie mapowania", expanded=False):
+    # Mapping summary
+    with st.expander("Mapping summary", expanded=False):
         for field_name, col_mapping in mapping_result.mappings.items():
             source = col_mapping.source_column
             auto_label = "auto" if col_mapping.is_auto else "manual"
             st.write(f"- **{field_name}** <- `{source}` ({auto_label})")
 
         if mapping_result.unmapped_columns:
-            st.write("**Niezmapowane kolumny:**")
+            st.write("**Unmapped columns:**")
             unmapped_display = mapping_result.unmapped_columns[:10]
             st.write(", ".join(unmapped_display))
             if len(mapping_result.unmapped_columns) > 10:
-                st.write(f"... i {len(mapping_result.unmapped_columns) - 10} wiecej")
+                st.write(f"... and {len(mapping_result.unmapped_columns) - 10} more")
 
 
 def render_masterdata_import() -> None:
-    """Import Masterdata z krokiem mapowania."""
+    """Import Masterdata with mapping step."""
     import tempfile
     from src.ingest import (
         FileReader,
@@ -330,32 +330,32 @@ def render_masterdata_import() -> None:
 
     step = st.session_state.get("masterdata_mapping_step", "upload")
 
-    # Krok 1: Upload pliku
+    # Step 1: File upload
     if step == "upload":
         masterdata_file = st.file_uploader(
-            "Wybierz plik Masterdata",
+            "Select Masterdata file",
             type=["xlsx", "csv", "txt"],
             key="masterdata_upload",
         )
 
         if masterdata_file is not None:
-            if st.button("Dalej - Mapowanie kolumn", key="md_to_mapping"):
-                with st.spinner("Analizowanie pliku..."):
+            if st.button("Next - Column mapping", key="md_to_mapping"):
+                with st.spinner("Analyzing file..."):
                     try:
-                        # Zapisz do pliku tymczasowego
+                        # Save to temporary file
                         suffix = Path(masterdata_file.name).suffix
                         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                             tmp.write(masterdata_file.read())
                             tmp_path = tmp.name
 
-                        # Wczytaj kolumny i uruchom auto-mapowanie
+                        # Load columns and run auto-mapping
                         reader = FileReader(tmp_path)
                         columns = reader.get_columns()
 
                         wizard = create_masterdata_wizard()
                         auto_mapping = wizard.auto_map(columns)
 
-                        # Zapisz w session state
+                        # Save in session state
                         st.session_state.masterdata_temp_path = tmp_path
                         st.session_state.masterdata_file_columns = columns
                         st.session_state.masterdata_mapping_result = auto_mapping
@@ -363,21 +363,21 @@ def render_masterdata_import() -> None:
                         st.rerun()
 
                     except Exception as e:
-                        st.error(f"Blad analizy pliku: {e}")
+                        st.error(f"File analysis error: {e}")
 
-    # Krok 2: Mapowanie kolumn
+    # Step 2: Column mapping
     elif step == "mapping":
         columns = st.session_state.masterdata_file_columns
         mapping = st.session_state.masterdata_mapping_result
 
-        # Podglad danych
-        with st.expander("Podglad danych", expanded=False):
+        # Data preview
+        with st.expander("Data preview", expanded=False):
             from src.ingest import FileReader
             reader = FileReader(st.session_state.masterdata_temp_path)
             preview_df = reader.get_preview(n_rows=5)
             st.dataframe(preview_df.to_pandas(), use_container_width=True)
 
-        # UI mapowania
+        # Mapping UI
         updated_mapping = render_mapping_ui(
             file_columns=columns,
             mapping_result=mapping,
@@ -385,17 +385,17 @@ def render_masterdata_import() -> None:
             key_prefix="md",
         )
 
-        # Zapisz zaktualizowane mapowanie
+        # Save updated mapping
         st.session_state.masterdata_mapping_result = updated_mapping
 
         # Status
         render_mapping_status(updated_mapping)
 
-        # Przyciski akcji
+        # Action buttons
         btn_col1, btn_col2 = st.columns(2)
 
         with btn_col1:
-            if st.button("Wstecz", key="md_back_to_upload"):
+            if st.button("Back", key="md_back_to_upload"):
                 st.session_state.masterdata_mapping_step = "upload"
                 st.session_state.masterdata_file_columns = None
                 st.session_state.masterdata_mapping_result = None
@@ -404,12 +404,12 @@ def render_masterdata_import() -> None:
         with btn_col2:
             import_disabled = not updated_mapping.is_complete
             if st.button(
-                "Importuj Masterdata",
+                "Import Masterdata",
                 key="md_do_import",
                 disabled=import_disabled,
                 type="primary",
             ):
-                with st.spinner("Importowanie..."):
+                with st.spinner("Importing..."):
                     try:
                         pipeline = MasterdataIngestPipeline()
                         result = pipeline.run(
@@ -420,7 +420,7 @@ def render_masterdata_import() -> None:
                         st.session_state.masterdata_df = result.df
                         st.session_state.masterdata_mapping_step = "complete"
 
-                        st.success(f"Zaimportowano {result.rows_imported} wierszy")
+                        st.success(f"Imported {result.rows_imported} rows")
 
                         if result.warnings:
                             for warning in result.warnings:
@@ -429,20 +429,20 @@ def render_masterdata_import() -> None:
                         st.rerun()
 
                     except Exception as e:
-                        st.error(f"Blad importu: {e}")
+                        st.error(f"Import error: {e}")
 
-    # Krok 3: Zakonczony import
+    # Step 3: Import complete
     elif step == "complete":
         if st.session_state.masterdata_df is not None:
             st.success(f"Masterdata: {len(st.session_state.masterdata_df)} SKU")
 
-            with st.expander("Podglad danych", expanded=False):
+            with st.expander("Data preview", expanded=False):
                 st.dataframe(
                     st.session_state.masterdata_df.head(20).to_pandas(),
                     use_container_width=True
                 )
 
-        if st.button("Importuj nowy plik", key="md_new_import"):
+        if st.button("Import new file", key="md_new_import"):
             st.session_state.masterdata_mapping_step = "upload"
             st.session_state.masterdata_file_columns = None
             st.session_state.masterdata_mapping_result = None
@@ -452,7 +452,7 @@ def render_masterdata_import() -> None:
 
 
 def render_orders_import() -> None:
-    """Import Orders z krokiem mapowania."""
+    """Import Orders with mapping step."""
     import tempfile
     from src.ingest import (
         FileReader,
@@ -465,32 +465,32 @@ def render_orders_import() -> None:
 
     step = st.session_state.get("orders_mapping_step", "upload")
 
-    # Krok 1: Upload pliku
+    # Step 1: File upload
     if step == "upload":
         orders_file = st.file_uploader(
-            "Wybierz plik Orders",
+            "Select Orders file",
             type=["xlsx", "csv", "txt"],
             key="orders_upload",
         )
 
         if orders_file is not None:
-            if st.button("Dalej - Mapowanie kolumn", key="orders_to_mapping"):
-                with st.spinner("Analizowanie pliku..."):
+            if st.button("Next - Column mapping", key="orders_to_mapping"):
+                with st.spinner("Analyzing file..."):
                     try:
-                        # Zapisz do pliku tymczasowego
+                        # Save to temporary file
                         suffix = Path(orders_file.name).suffix
                         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                             tmp.write(orders_file.read())
                             tmp_path = tmp.name
 
-                        # Wczytaj kolumny i uruchom auto-mapowanie
+                        # Load columns and run auto-mapping
                         reader = FileReader(tmp_path)
                         columns = reader.get_columns()
 
                         wizard = create_orders_wizard()
                         auto_mapping = wizard.auto_map(columns)
 
-                        # Zapisz w session state
+                        # Save in session state
                         st.session_state.orders_temp_path = tmp_path
                         st.session_state.orders_file_columns = columns
                         st.session_state.orders_mapping_result = auto_mapping
@@ -498,21 +498,21 @@ def render_orders_import() -> None:
                         st.rerun()
 
                     except Exception as e:
-                        st.error(f"Blad analizy pliku: {e}")
+                        st.error(f"File analysis error: {e}")
 
-    # Krok 2: Mapowanie kolumn
+    # Step 2: Column mapping
     elif step == "mapping":
         columns = st.session_state.orders_file_columns
         mapping = st.session_state.orders_mapping_result
 
-        # Podglad danych
-        with st.expander("Podglad danych", expanded=False):
+        # Data preview
+        with st.expander("Data preview", expanded=False):
             from src.ingest import FileReader
             reader = FileReader(st.session_state.orders_temp_path)
             preview_df = reader.get_preview(n_rows=5)
             st.dataframe(preview_df.to_pandas(), use_container_width=True)
 
-        # UI mapowania
+        # Mapping UI
         updated_mapping = render_mapping_ui(
             file_columns=columns,
             mapping_result=mapping,
@@ -520,17 +520,17 @@ def render_orders_import() -> None:
             key_prefix="orders",
         )
 
-        # Zapisz zaktualizowane mapowanie
+        # Save updated mapping
         st.session_state.orders_mapping_result = updated_mapping
 
         # Status
         render_mapping_status(updated_mapping)
 
-        # Przyciski akcji
+        # Action buttons
         btn_col1, btn_col2 = st.columns(2)
 
         with btn_col1:
-            if st.button("Wstecz", key="orders_back_to_upload"):
+            if st.button("Back", key="orders_back_to_upload"):
                 st.session_state.orders_mapping_step = "upload"
                 st.session_state.orders_file_columns = None
                 st.session_state.orders_mapping_result = None
@@ -539,12 +539,12 @@ def render_orders_import() -> None:
         with btn_col2:
             import_disabled = not updated_mapping.is_complete
             if st.button(
-                "Importuj Orders",
+                "Import Orders",
                 key="orders_do_import",
                 disabled=import_disabled,
                 type="primary",
             ):
-                with st.spinner("Importowanie..."):
+                with st.spinner("Importing..."):
                     try:
                         pipeline = OrdersIngestPipeline()
                         result = pipeline.run(
@@ -555,7 +555,7 @@ def render_orders_import() -> None:
                         st.session_state.orders_df = result.df
                         st.session_state.orders_mapping_step = "complete"
 
-                        st.success(f"Zaimportowano {result.rows_imported} wierszy")
+                        st.success(f"Imported {result.rows_imported} rows")
 
                         if result.warnings:
                             for warning in result.warnings:
@@ -564,20 +564,20 @@ def render_orders_import() -> None:
                         st.rerun()
 
                     except Exception as e:
-                        st.error(f"Blad importu: {e}")
+                        st.error(f"Import error: {e}")
 
-    # Krok 3: Zakonczony import
+    # Step 3: Import complete
     elif step == "complete":
         if st.session_state.orders_df is not None:
-            st.success(f"Orders: {len(st.session_state.orders_df)} linii")
+            st.success(f"Orders: {len(st.session_state.orders_df)} lines")
 
-            with st.expander("Podglad danych", expanded=False):
+            with st.expander("Data preview", expanded=False):
                 st.dataframe(
                     st.session_state.orders_df.head(20).to_pandas(),
                     use_container_width=True
                 )
 
-        if st.button("Importuj nowy plik", key="orders_new_import"):
+        if st.button("Import new file", key="orders_new_import"):
             st.session_state.orders_mapping_step = "upload"
             st.session_state.orders_file_columns = None
             st.session_state.orders_mapping_result = None
@@ -587,8 +587,8 @@ def render_orders_import() -> None:
 
 
 def render_import_tab() -> None:
-    """Zakladka Import."""
-    st.header("Import danych")
+    """Import tab."""
+    st.header("Data import")
 
     col1, col2 = st.columns(2)
 
@@ -600,15 +600,15 @@ def render_import_tab() -> None:
 
 
 def render_validation_tab() -> None:
-    """Zakladka Walidacja."""
-    st.header("Walidacja i jakosc danych")
+    """Validation tab."""
+    st.header("Validation and data quality")
 
     if st.session_state.masterdata_df is None:
-        st.info("Najpierw zaimportuj dane Masterdata w zakladce Import")
+        st.info("First import Masterdata in the Import tab")
         return
 
-    if st.button("Uruchom walidacje", key="run_validation"):
-        with st.spinner("Walidacja w toku..."):
+    if st.button("Run validation", key="run_validation"):
+        with st.spinner("Validation in progress..."):
             try:
                 from src.quality import run_quality_pipeline
 
@@ -619,55 +619,55 @@ def render_validation_tab() -> None:
                 st.session_state.quality_result = result
                 st.session_state.masterdata_df = result.df
 
-                st.success("Walidacja zakonczona")
+                st.success("Validation complete")
 
             except Exception as e:
-                st.error(f"Blad walidacji: {e}")
+                st.error(f"Validation error: {e}")
 
-    # Wyswietl wyniki
+    # Display results
     if st.session_state.quality_result is not None:
         result = st.session_state.quality_result
 
-        # Metryki
+        # Metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Quality Score", f"{result.quality_score:.1f}%")
         with col2:
-            st.metric("Rekordow", result.total_records)
+            st.metric("Records", result.total_records)
         with col3:
-            st.metric("Poprawnych", result.valid_records)
+            st.metric("Valid", result.valid_records)
         with col4:
-            st.metric("Imputowanych", result.imputed_records)
+            st.metric("Imputed", result.imputed_records)
 
         st.markdown("---")
 
-        # Pokrycie
-        st.subheader("Pokrycie danych")
+        # Coverage
+        st.subheader("Data coverage")
         col1, col2 = st.columns(2)
 
         with col1:
-            st.write("**Przed imputacja:**")
+            st.write("**Before imputation:**")
             st.progress(result.metrics_before.dimensions_coverage_pct / 100,
-                       text=f"Wymiary: {result.metrics_before.dimensions_coverage_pct:.1f}%")
+                       text=f"Dimensions: {result.metrics_before.dimensions_coverage_pct:.1f}%")
             st.progress(result.metrics_before.weight_coverage_pct / 100,
-                       text=f"Waga: {result.metrics_before.weight_coverage_pct:.1f}%")
+                       text=f"Weight: {result.metrics_before.weight_coverage_pct:.1f}%")
 
         with col2:
-            st.write("**Po imputacji:**")
+            st.write("**After imputation:**")
             st.progress(result.metrics_after.dimensions_coverage_pct / 100,
-                       text=f"Wymiary: {result.metrics_after.dimensions_coverage_pct:.1f}%")
+                       text=f"Dimensions: {result.metrics_after.dimensions_coverage_pct:.1f}%")
             st.progress(result.metrics_after.weight_coverage_pct / 100,
-                       text=f"Waga: {result.metrics_after.weight_coverage_pct:.1f}%")
+                       text=f"Weight: {result.metrics_after.weight_coverage_pct:.1f}%")
 
-        # Problemy
-        st.subheader("Wykryte problemy")
+        # Issues
+        st.subheader("Detected issues")
         dq = result.dq_lists
         problems = {
             "Missing Critical": len(dq.missing_critical),
             "Outliers": len(dq.suspect_outliers),
             "Borderline": len(dq.high_risk_borderline),
-            "Duplikaty": len(dq.duplicates),
-            "Konflikty": len(dq.conflicts),
+            "Duplicates": len(dq.duplicates),
+            "Conflicts": len(dq.conflicts),
         }
 
         for name, count in problems.items():
@@ -678,69 +678,69 @@ def render_validation_tab() -> None:
 
 
 def render_carrier_form() -> None:
-    """Formularz dodawania nowego nosnika."""
-    st.markdown("**Dodaj nowy nosnik:**")
+    """Form for adding a new carrier."""
+    st.markdown("**Add new carrier:**")
 
     with st.form("add_carrier_form", clear_on_submit=True):
-        st.markdown("**Wymiary wewnetrzne (mm):**")
+        st.markdown("**Internal dimensions (mm):**")
         col_w, col_l, col_h = st.columns(3)
         with col_w:
             width_mm = st.number_input(
-                "Szerokosc (W)",
+                "Width (W)",
                 min_value=1,
                 value=400,
                 step=10,
-                help="Szerokosc wewnetrzna w mm (bez przecinka)",
+                help="Internal width in mm",
             )
         with col_l:
             length_mm = st.number_input(
-                "Dlugosc (L)",
+                "Length (L)",
                 min_value=1,
                 value=600,
                 step=10,
-                help="Dlugosc wewnetrzna w mm (bez przecinka)",
+                help="Internal length in mm",
             )
         with col_h:
             height_mm = st.number_input(
-                "Wysokosc (H)",
+                "Height (H)",
                 min_value=1,
                 value=200,
                 step=10,
-                help="Wysokosc wewnetrzna w mm (bez przecinka)",
+                help="Internal height in mm",
             )
 
         max_weight = st.number_input(
-            "Max waga (kg)",
+            "Max weight (kg)",
             min_value=1,
             value=100,
             step=5,
-            help="Maksymalna dopuszczalna waga ladunku w kg",
+            help="Maximum allowed load weight in kg",
         )
 
-        # Opcjonalne pola ID i nazwy
-        with st.expander("Opcjonalnie: ID i nazwa", expanded=False):
+        # Optional ID and name fields
+        with st.expander("Optional: ID and name", expanded=False):
             col_id, col_name = st.columns(2)
             with col_id:
                 carrier_id = st.text_input(
-                    "ID nosnika",
+                    "Carrier ID",
                     placeholder="(auto)",
-                    help="Unikalny identyfikator - zostaw puste dla auto-generowania",
+                    help="Unique identifier - leave empty for auto-generation",
                 )
             with col_name:
                 carrier_name = st.text_input(
-                    "Nazwa",
+                    "Name",
                     placeholder="(auto)",
-                    help="Nazwa opisowa - zostaw puste dla auto-generowania",
+                    help="Descriptive name - leave empty for auto-generation",
                 )
 
-        submitted = st.form_submit_button("Dodaj nosnik", type="primary")
+        submitted = st.form_submit_button("Add carrier", type="primary")
 
         if submitted:
-            # Auto-generuj ID i nazwe jesli puste
+            # Auto-generate ID and name if empty
             existing_ids = [c["carrier_id"] for c in st.session_state.custom_carriers]
 
             if not carrier_id:
-                # Generuj unikalne ID na podstawie wymiarow
+                # Generate unique ID based on dimensions
                 base_id = f"CARRIER_{width_mm}x{length_mm}x{height_mm}"
                 carrier_id = base_id
                 counter = 1
@@ -749,11 +749,11 @@ def render_carrier_form() -> None:
                     counter += 1
 
             if not carrier_name:
-                carrier_name = f"Nosnik {width_mm}x{length_mm}x{height_mm}mm"
+                carrier_name = f"Carrier {width_mm}x{length_mm}x{height_mm}mm"
 
-            # Sprawdz czy ID juz istnieje (jesli podane recznie)
+            # Check if ID already exists (if manually provided)
             if carrier_id in existing_ids:
-                st.error(f"Nosnik o ID '{carrier_id}' juz istnieje")
+                st.error(f"Carrier with ID '{carrier_id}' already exists")
             else:
                 new_carrier = {
                     "carrier_id": carrier_id,
@@ -764,26 +764,26 @@ def render_carrier_form() -> None:
                     "max_weight_kg": float(max_weight),
                 }
                 st.session_state.custom_carriers.append(new_carrier)
-                st.success(f"Dodano nosnik: {carrier_name}")
+                st.success(f"Added carrier: {carrier_name}")
                 st.rerun()
 
 
 def render_carriers_table() -> None:
-    """Wyswietl tabele zdefiniowanych nosnikow z mozliwoscia usuwania."""
+    """Display table of defined carriers with delete option."""
     carriers = st.session_state.custom_carriers
 
     if not carriers:
-        st.info("Brak zdefiniowanych nosnikow. Dodaj nosniki ponizej.")
+        st.info("No carriers defined. Add carriers below.")
         return
 
-    st.markdown("**Zdefiniowane nosniki:**")
+    st.markdown("**Defined carriers:**")
 
-    # Naglowek tabeli
+    # Table header
     header_cols = st.columns([1.5, 2, 1.5, 1.5, 1.5, 1.2, 0.8])
     with header_cols[0]:
         st.markdown("**ID**")
     with header_cols[1]:
-        st.markdown("**Nazwa**")
+        st.markdown("**Name**")
     with header_cols[2]:
         st.markdown("**L (mm)**")
     with header_cols[3]:
@@ -793,9 +793,9 @@ def render_carriers_table() -> None:
     with header_cols[5]:
         st.markdown("**Max kg**")
     with header_cols[6]:
-        st.markdown("**Usun**")
+        st.markdown("**Delete**")
 
-    # Wiersze
+    # Rows
     for i, carrier in enumerate(carriers):
         cols = st.columns([1.5, 2, 1.5, 1.5, 1.5, 1.2, 0.8])
         with cols[0]:
@@ -811,52 +811,52 @@ def render_carriers_table() -> None:
         with cols[5]:
             st.text(str(carrier["max_weight_kg"]))
         with cols[6]:
-            if st.button("X", key=f"del_carrier_{i}", help="Usun nosnik"):
+            if st.button("X", key=f"del_carrier_{i}", help="Delete carrier"):
                 st.session_state.custom_carriers.pop(i)
                 st.rerun()
 
 
 def render_analysis_tab() -> None:
-    """Zakladka Analiza."""
+    """Analysis tab."""
     from src.core.types import CarrierConfig
 
-    st.header("Analiza pojemnosciowa i wydajnosciowa")
+    st.header("Capacity and performance analysis")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Analiza pojemnosciowa")
+        st.subheader("Capacity analysis")
 
         if st.session_state.masterdata_df is None:
-            st.info("Zaimportuj Masterdata")
+            st.info("Import Masterdata")
         else:
-            # Wyswietl tabele nosnikow
+            # Display carriers table
             render_carriers_table()
 
             st.markdown("---")
 
-            # Formularz dodawania nosnikow
-            with st.expander("Dodaj nosnik", expanded=len(st.session_state.custom_carriers) == 0):
+            # Carrier addition form
+            with st.expander("Add carrier", expanded=len(st.session_state.custom_carriers) == 0):
                 render_carrier_form()
 
-            # Przycisk analizy
+            # Analysis button
             carriers_defined = len(st.session_state.custom_carriers) > 0
 
             if not carriers_defined:
-                st.warning("Dodaj co najmniej jeden nosnik do analizy")
+                st.warning("Add at least one carrier for analysis")
 
-            if st.button("Uruchom analize pojemnosciowa", disabled=not carriers_defined):
-                with st.spinner("Analiza w toku..."):
+            if st.button("Run capacity analysis", disabled=not carriers_defined):
+                with st.spinner("Analysis in progress..."):
                     try:
                         from src.analytics import CapacityAnalyzer
 
-                        # Konwertuj slowniki na CarrierConfig
+                        # Convert dictionaries to CarrierConfig
                         carriers = [
                             CarrierConfig(**c)
                             for c in st.session_state.custom_carriers
                         ]
 
-                        # Uzyj borderline threshold z session state
+                        # Use borderline threshold from session state
                         borderline_threshold = st.session_state.get("borderline_threshold", 2.0)
 
                         analyzer = CapacityAnalyzer(
@@ -866,19 +866,19 @@ def render_analysis_tab() -> None:
                         result = analyzer.analyze_dataframe(st.session_state.masterdata_df)
                         st.session_state.capacity_result = result
 
-                        st.success("Analiza pojemnosciowa zakonczona")
+                        st.success("Capacity analysis complete")
 
                     except Exception as e:
-                        st.error(f"Blad: {e}")
+                        st.error(f"Error: {e}")
 
-            # Wyswietlanie wynikow analizy pojemnosciowej
+            # Display capacity analysis results
             if st.session_state.capacity_result is not None:
                 result = st.session_state.capacity_result
 
                 st.markdown("---")
-                st.markdown("**Wyniki analizy per nosnik:**")
+                st.markdown("**Analysis results per carrier:**")
 
-                # Wyswietl wyniki dla kazdego nosnika osobno
+                # Display results for each carrier separately
                 for carrier_id in result.carriers_analyzed:
                     stats = result.carrier_stats.get(carrier_id)
                     if stats:
@@ -894,61 +894,61 @@ def render_analysis_tab() -> None:
                                 st.metric("Volume (m³)", f"{stats.total_volume_m3:.2f}")
 
     with col2:
-        st.subheader("Analiza wydajnosciowa")
+        st.subheader("Performance analysis")
 
         if st.session_state.orders_df is None:
-            st.info("Zaimportuj Orders")
+            st.info("Import Orders")
         else:
-            # Konfiguracja zmian
-            st.markdown("**Konfiguracja zmian:**")
+            # Shift configuration
+            st.markdown("**Shift configuration:**")
             shift_config = st.selectbox(
-                "Harmonogram zmian",
-                options=["Domyslny (2 zmiany, Pn-Pt)", "Wlasny harmonogram", "Z pliku YAML", "Brak"],
+                "Shift schedule",
+                options=["Default (2 shifts, Mon-Fri)", "Custom schedule", "From YAML file", "None"],
                 index=0,
-                help="Wybierz harmonogram zmian do analizy wydajnosciowej",
+                help="Select shift schedule for performance analysis",
             )
 
             shift_schedule = None
 
-            # Opcja wlasnego harmonogramu
-            if shift_config == "Wlasny harmonogram":
-                st.markdown("**Wprowadz parametry harmonogramu:**")
+            # Custom schedule option
+            if shift_config == "Custom schedule":
+                st.markdown("**Enter schedule parameters:**")
                 col_days, col_hours, col_shifts = st.columns(3)
                 with col_days:
                     custom_days = st.number_input(
-                        "Dni w tygodniu",
+                        "Days per week",
                         min_value=1,
                         max_value=7,
                         value=5,
                         step=1,
-                        help="Ile dni w tygodniu pracuje magazyn",
+                        help="How many days per week the warehouse operates",
                     )
                 with col_hours:
                     custom_hours = st.number_input(
-                        "Godzin dziennie",
+                        "Hours per day",
                         min_value=1,
                         max_value=24,
                         value=8,
                         step=1,
-                        help="Ile godzin dziennie trwa praca",
+                        help="How many hours per day of work",
                     )
                 with col_shifts:
                     custom_shifts = st.number_input(
-                        "Zmian dziennie",
+                        "Shifts per day",
                         min_value=1,
                         max_value=4,
                         value=2,
                         step=1,
-                        help="Ile zmian dziennie",
+                        help="How many shifts per day",
                     )
 
-                # Wylicz godziny na zmiane
+                # Calculate hours per shift
                 hours_per_shift = custom_hours / custom_shifts
-                st.info(f"Godzin na zmiane: {hours_per_shift:.1f}h | Lacznie zmian/tydzien: {custom_days * custom_shifts}")
+                st.info(f"Hours per shift: {hours_per_shift:.1f}h | Total shifts/week: {custom_days * custom_shifts}")
 
-            if shift_config == "Z pliku YAML":
+            if shift_config == "From YAML file":
                 shifts_file = st.file_uploader(
-                    "Plik harmonogramu (YAML)",
+                    "Schedule file (YAML)",
                     type=["yml", "yaml"],
                     key="shifts_upload",
                 )
@@ -962,29 +962,29 @@ def render_analysis_tab() -> None:
 
                     try:
                         shift_schedule = load_shifts(tmp_path)
-                        st.success("Harmonogram wczytany")
+                        st.success("Schedule loaded")
                     except Exception as e:
-                        st.error(f"Blad wczytywania harmonogramu: {e}")
+                        st.error(f"Schedule loading error: {e}")
 
-            if st.button("Uruchom analize wydajnosciowa"):
-                with st.spinner("Analiza w toku..."):
+            if st.button("Run performance analysis"):
+                with st.spinner("Analysis in progress..."):
                     try:
                         from src.analytics import PerformanceAnalyzer
                         from src.analytics.shifts import ShiftSchedule
                         from src.core.types import ShiftConfig, WeeklySchedule
 
-                        # Pobierz productive hours z session state
+                        # Get productive hours from session state
                         productive_hours = st.session_state.get("productive_hours", 7.0)
 
-                        # Utworz harmonogram zmian
-                        if shift_config == "Wlasny harmonogram":
-                            # Generuj zmiany na podstawie wprowadzonych parametrow
+                        # Create shift schedule
+                        if shift_config == "Custom schedule":
+                            # Generate shifts based on entered parameters
                             hours_per_shift = custom_hours / custom_shifts
                             productive_hours = min(hours_per_shift - 1, productive_hours)
 
-                            # Generuj konfiguracje zmian
+                            # Generate shift configurations
                             shift_configs = []
-                            start_hour = 6  # Zacznij o 6:00
+                            start_hour = 6  # Start at 6:00
                             for s in range(custom_shifts):
                                 end_hour = start_hour + int(hours_per_shift)
                                 shift_configs.append(
@@ -996,7 +996,7 @@ def render_analysis_tab() -> None:
                                 )
                                 start_hour = end_hour
 
-                            # Przypisz zmiany do dni tygodnia
+                            # Assign shifts to days of the week
                             days_map = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
                             weekly_kwargs = {"productive_hours_per_shift": productive_hours}
                             for i, day in enumerate(days_map):
@@ -1008,7 +1008,7 @@ def render_analysis_tab() -> None:
                             weekly = WeeklySchedule(**weekly_kwargs)
                             shift_schedule = ShiftSchedule(weekly_schedule=weekly)
 
-                        elif shift_config == "Domyslny (2 zmiany, Pn-Pt)":
+                        elif shift_config == "Default (2 shifts, Mon-Fri)":
                             weekly = WeeklySchedule(
                                 productive_hours_per_shift=productive_hours,
                                 mon=[
@@ -1044,29 +1044,29 @@ def render_analysis_tab() -> None:
                         st.session_state.performance_result = result
                         st.session_state.analysis_complete = True
 
-                        st.success("Analiza wydajnosciowa zakonczona")
+                        st.success("Performance analysis complete")
 
                         kpi = result.kpi
                         col_a, col_b = st.columns(2)
                         with col_a:
-                            st.metric("Linii/h (avg)", f"{kpi.avg_lines_per_hour:.1f}")
-                            st.metric("Zamowien/h (avg)", f"{kpi.avg_orders_per_hour:.1f}")
+                            st.metric("Lines/h (avg)", f"{kpi.avg_lines_per_hour:.1f}")
+                            st.metric("Orders/h (avg)", f"{kpi.avg_orders_per_hour:.1f}")
                         with col_b:
-                            st.metric("Peak linii/h", kpi.peak_lines_per_hour)
-                            st.metric("P95 linii/h", f"{kpi.p95_lines_per_hour:.1f}")
+                            st.metric("Peak lines/h", kpi.peak_lines_per_hour)
+                            st.metric("P95 lines/h", f"{kpi.p95_lines_per_hour:.1f}")
 
                     except Exception as e:
-                        st.error(f"Blad: {e}")
+                        st.error(f"Error: {e}")
 
 
 def generate_individual_report(report_type: str) -> tuple[str, bytes]:
-    """Generuj pojedynczy raport i zwroc (nazwa, dane).
+    """Generate individual report and return (name, data).
 
     Args:
-        report_type: Typ raportu do wygenerowania
+        report_type: Type of report to generate
 
     Returns:
-        Tuple (nazwa_pliku, dane_csv)
+        Tuple (filename, csv_data)
     """
     import tempfile
     from src.reporting.csv_writer import CSVWriter
@@ -1147,40 +1147,40 @@ def generate_individual_report(report_type: str) -> tuple[str, bytes]:
 
 
 def render_reports_tab() -> None:
-    """Zakladka Raporty."""
-    st.header("Generowanie raportow")
+    """Reports tab."""
+    st.header("Report generation")
 
-    # Sprawdz dostepne dane
+    # Check available data
     has_quality = st.session_state.quality_result is not None
     has_capacity = st.session_state.capacity_result is not None
     has_performance = st.session_state.performance_result is not None
 
     if not (has_quality or has_capacity or has_performance):
-        st.info("Najpierw przeprowadz walidacje lub analize w odpowiednich zakladkach")
+        st.info("First run validation or analysis in the appropriate tabs")
         return
 
-    # Lista raportow
-    st.subheader("Dostepne raporty")
+    # List of reports
+    st.subheader("Available reports")
 
     reports = []
 
-    # Raport glowny - zawsze dostepny jesli sa jakies dane
+    # Main report - always available if there's any data
     reports.append({
         "name": "Report_Main",
-        "description": "Glowny raport podsumowujacy",
+        "description": "Main summary report",
         "available": True,
-        "category": "Podsumowanie",
+        "category": "Summary",
     })
 
-    # Raporty DQ - dostepne jesli jest quality_result
+    # DQ reports - available if quality_result exists
     if has_quality:
         dq_reports = [
-            ("DQ_Summary", "Podsumowanie jakosci danych"),
-            ("DQ_MissingCritical", "Lista SKU z brakujacymi krytycznymi danymi"),
-            ("DQ_SuspectOutliers", "Lista SKU z podejrzanymi wartosciami (outliery)"),
-            ("DQ_HighRiskBorderline", "Lista SKU z wymiarami blisko limitow"),
-            ("DQ_Duplicates", "Lista zduplikowanych SKU"),
-            ("DQ_Conflicts", "Lista SKU z konfliktami wartosci"),
+            ("DQ_Summary", "Data quality summary"),
+            ("DQ_MissingCritical", "List of SKUs with missing critical data"),
+            ("DQ_SuspectOutliers", "List of SKUs with suspect values (outliers)"),
+            ("DQ_HighRiskBorderline", "List of SKUs with dimensions near limits"),
+            ("DQ_Duplicates", "List of duplicate SKUs"),
+            ("DQ_Conflicts", "List of SKUs with value conflicts"),
         ]
         for name, desc in dq_reports:
             reports.append({
@@ -1190,17 +1190,17 @@ def render_reports_tab() -> None:
                 "category": "Data Quality",
             })
 
-    # Raport Capacity - dostepny jesli jest capacity_result
+    # Capacity report - available if capacity_result exists
     if has_capacity:
         reports.append({
             "name": "Capacity_Results",
-            "description": "Wyniki analizy pojemnosciowej (dopasowanie SKU do nosnikow)",
+            "description": "Capacity analysis results (SKU fit to carriers)",
             "available": True,
             "category": "Capacity",
         })
 
-    # Wyswietl liste raportow z przyciskami pobierania
-    for category in ["Podsumowanie", "Data Quality", "Capacity"]:
+    # Display list of reports with download buttons
+    for category in ["Summary", "Data Quality", "Capacity"]:
         category_reports = [r for r in reports if r["category"] == category]
         if category_reports:
             st.markdown(f"**{category}:**")
@@ -1213,27 +1213,27 @@ def render_reports_tab() -> None:
 
                 with col2:
                     if report["available"]:
-                        if st.button(f"Pobierz", key=f"download_{report['name']}"):
+                        if st.button("Download", key=f"download_{report['name']}"):
                             try:
                                 filename, data = generate_individual_report(report["name"])
                                 if data:
                                     st.download_button(
-                                        label=f"Zapisz {filename}",
+                                        label=f"Save {filename}",
                                         data=data,
                                         file_name=filename,
                                         mime="text/csv",
                                         key=f"save_{report['name']}",
                                     )
                             except Exception as e:
-                                st.error(f"Blad: {e}")
+                                st.error(f"Error: {e}")
 
     st.markdown("---")
 
-    # Przycisk do pobrania wszystkich raportow jako ZIP
-    st.subheader("Pobierz wszystkie raporty")
+    # Button to download all reports as ZIP
+    st.subheader("Download all reports")
 
-    if st.button("Generuj raporty ZIP", type="primary"):
-        with st.spinner("Generowanie raportow..."):
+    if st.button("Generate ZIP reports", type="primary"):
+        with st.spinner("Generating reports..."):
             try:
                 import tempfile
                 from src.reporting import export_reports
@@ -1249,45 +1249,45 @@ def render_reports_tab() -> None:
                         performance_result=st.session_state.performance_result,
                     )
 
-                    # Przygotuj do pobrania
+                    # Prepare for download
                     with open(zip_path, "rb") as f:
                         zip_data = f.read()
 
                     st.download_button(
-                        label="Pobierz raporty (ZIP)",
+                        label="Download reports (ZIP)",
                         data=zip_data,
                         file_name=zip_path.name,
                         mime="application/zip",
                     )
 
-                    st.success("Raporty wygenerowane!")
+                    st.success("Reports generated!")
 
             except Exception as e:
-                st.error(f"Blad generowania: {e}")
+                st.error(f"Generation error: {e}")
 
-    # Podglad raportu glownego
+    # Main report preview
     st.markdown("---")
-    st.subheader("Podglad danych")
+    st.subheader("Data preview")
 
     if has_quality:
         with st.expander("Data Quality", expanded=False):
             qr = st.session_state.quality_result
             st.write(f"- **Quality Score:** {qr.quality_score:.1f}%")
-            st.write(f"- **Rekordow:** {qr.total_records}")
-            st.write(f"- **Poprawnych:** {qr.valid_records}")
-            st.write(f"- **Imputowanych:** {qr.imputed_records}")
+            st.write(f"- **Records:** {qr.total_records}")
+            st.write(f"- **Valid:** {qr.valid_records}")
+            st.write(f"- **Imputed:** {qr.imputed_records}")
 
-            st.markdown("**Pokrycie danych po imputacji:**")
-            st.write(f"- Wymiary: {qr.metrics_after.dimensions_coverage_pct:.1f}%")
-            st.write(f"- Waga: {qr.metrics_after.weight_coverage_pct:.1f}%")
+            st.markdown("**Data coverage after imputation:**")
+            st.write(f"- Dimensions: {qr.metrics_after.dimensions_coverage_pct:.1f}%")
+            st.write(f"- Weight: {qr.metrics_after.weight_coverage_pct:.1f}%")
 
     if has_capacity:
         with st.expander("Capacity Analysis", expanded=False):
             cr = st.session_state.capacity_result
             st.write(f"- **Total SKU:** {cr.total_sku}")
-            st.write(f"- **Nosniki:** {', '.join(cr.carriers_analyzed)}")
+            st.write(f"- **Carriers:** {', '.join(cr.carriers_analyzed)}")
 
-            st.markdown("**Wyniki per nosnik:**")
+            st.markdown("**Results per carrier:**")
             for carrier_id in cr.carriers_analyzed:
                 stats = cr.carrier_stats.get(carrier_id)
                 if stats:
@@ -1299,8 +1299,8 @@ def render_reports_tab() -> None:
         with st.expander("Performance Analysis", expanded=False):
             pr = st.session_state.performance_result
             kpi = pr.kpi
-            st.write(f"- **Linii:** {kpi.total_lines}")
-            st.write(f"- **Zamowien:** {kpi.total_orders}")
+            st.write(f"- **Lines:** {kpi.total_lines}")
+            st.write(f"- **Orders:** {kpi.total_orders}")
             st.write(f"- **Units:** {kpi.total_units}")
             st.write(f"- **Avg lines/h:** {kpi.avg_lines_per_hour:.1f}")
             st.write(f"- **Peak lines/h:** {kpi.peak_lines_per_hour}")
@@ -1308,7 +1308,7 @@ def render_reports_tab() -> None:
 
 
 def main() -> None:
-    """Glowna funkcja aplikacji."""
+    """Main application function."""
     init_session_state()
     render_sidebar()
     render_tabs()

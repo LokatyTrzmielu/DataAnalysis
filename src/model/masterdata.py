@@ -1,4 +1,4 @@
-"""Przetwarzanie danych Masterdata - konsolidacja, kubatura."""
+"""Masterdata processing - consolidation, volume calculation."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -10,7 +10,7 @@ from src.core.types import DataQualityFlag
 
 @dataclass
 class MasterdataConsolidationResult:
-    """Wynik konsolidacji Masterdata."""
+    """Masterdata consolidation result."""
     df: pl.DataFrame
     original_count: int
     consolidated_count: int
@@ -19,34 +19,34 @@ class MasterdataConsolidationResult:
 
 
 class MasterdataProcessor:
-    """Przetwarzanie danych Masterdata."""
+    """Masterdata processing."""
 
     def __init__(
         self,
         consolidation_strategy: str = "first",  # first, max, mean
     ) -> None:
-        """Inicjalizacja procesora.
+        """Initialize processor.
 
         Args:
-            consolidation_strategy: Strategia rozwiazywania konfliktow
-                - "first": Pierwsza wartosc
-                - "max": Maksymalna wartosc
-                - "mean": Srednia
+            consolidation_strategy: Conflict resolution strategy
+                - "first": First value
+                - "max": Maximum value
+                - "mean": Average
         """
         self.consolidation_strategy = consolidation_strategy
 
     def consolidate_duplicates(self, df: pl.DataFrame) -> MasterdataConsolidationResult:
-        """Konsoliduj zduplikowane SKU.
+        """Consolidate duplicate SKUs.
 
         Args:
-            df: DataFrame z danymi Masterdata
+            df: DataFrame with Masterdata
 
         Returns:
             MasterdataConsolidationResult
         """
         original_count = len(df)
 
-        # Znajdz duplikaty
+        # Find duplicates
         sku_counts = df.group_by("sku").agg(pl.len().alias("count"))
         duplicate_skus = sku_counts.filter(pl.col("count") > 1)["sku"].to_list()
 
@@ -59,14 +59,14 @@ class MasterdataProcessor:
                 conflicts_resolved=0,
             )
 
-        # Rozdziel na unikalne i duplikaty
+        # Separate into unique and duplicates
         unique_df = df.filter(~pl.col("sku").is_in(duplicate_skus))
         duplicate_df = df.filter(pl.col("sku").is_in(duplicate_skus))
 
-        # Konsoliduj duplikaty
+        # Consolidate duplicates
         consolidated = self._consolidate_group(duplicate_df)
 
-        # Polacz
+        # Merge
         result_df = pl.concat([unique_df, consolidated])
 
         return MasterdataConsolidationResult(
@@ -78,7 +78,7 @@ class MasterdataProcessor:
         )
 
     def _consolidate_group(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Konsoliduj grupę zduplikowanych SKU."""
+        """Consolidate a group of duplicate SKUs."""
         numeric_cols = ["length_mm", "width_mm", "height_mm", "weight_kg", "stock_qty"]
         flag_cols = ["length_flag", "width_flag", "height_flag", "weight_flag", "stock_flag"]
 
@@ -105,13 +105,13 @@ class MasterdataProcessor:
         return df.group_by("sku").agg(agg_exprs)
 
     def calculate_volume(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Oblicz kubature dla kazdego SKU.
+        """Calculate volume for each SKU.
 
         Args:
-            df: DataFrame z wymiarami
+            df: DataFrame with dimensions
 
         Returns:
-            DataFrame z kolumna volume_m3
+            DataFrame with volume_m3 column
         """
         if not all(c in df.columns for c in ["length_mm", "width_mm", "height_mm"]):
             return df
@@ -123,13 +123,13 @@ class MasterdataProcessor:
         ])
 
     def add_size_category(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Dodaj kategorie wielkosci SKU.
+        """Add SKU size category.
 
         Args:
-            df: DataFrame z wymiarami
+            df: DataFrame with dimensions
 
         Returns:
-            DataFrame z kolumna size_category
+            DataFrame with size_category column
         """
         if "volume_m3" not in df.columns:
             df = self.calculate_volume(df)
@@ -148,35 +148,35 @@ class MasterdataProcessor:
         ])
 
     def process(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Pelne przetwarzanie Masterdata.
+        """Full Masterdata processing.
 
         Args:
-            df: DataFrame z danymi Masterdata
+            df: DataFrame with Masterdata
 
         Returns:
-            Przetworzony DataFrame
+            Processed DataFrame
         """
-        # 1. Konsoliduj duplikaty
+        # 1. Consolidate duplicates
         consolidation = self.consolidate_duplicates(df)
         result = consolidation.df
 
-        # 2. Oblicz kubature
+        # 2. Calculate volume
         result = self.calculate_volume(result)
 
-        # 3. Dodaj kategorie wielkosci
+        # 3. Add size category
         result = self.add_size_category(result)
 
         return result
 
 
 def process_masterdata(df: pl.DataFrame) -> pl.DataFrame:
-    """Funkcja pomocnicza do przetwarzania Masterdata.
+    """Helper function for processing Masterdata.
 
     Args:
-        df: DataFrame z danymi Masterdata
+        df: DataFrame with Masterdata
 
     Returns:
-        Przetworzony DataFrame
+        Processed DataFrame
     """
     processor = MasterdataProcessor()
     return processor.process(df)

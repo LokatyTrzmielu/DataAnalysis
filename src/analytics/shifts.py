@@ -1,4 +1,4 @@
-"""Parsowanie i obsluga harmonogramow zmian."""
+"""Parsing and handling of shift schedules."""
 
 from dataclasses import dataclass, field
 from datetime import datetime, date, time, timedelta
@@ -13,7 +13,7 @@ from src.core.config import DEFAULT_PRODUCTIVE_HOURS_PER_SHIFT
 
 @dataclass
 class ShiftInstance:
-    """Konkretna instancja zmiany (z data)."""
+    """Specific shift instance (with date)."""
     date: date
     name: str
     start: time
@@ -23,7 +23,7 @@ class ShiftInstance:
 
     @property
     def duration_hours(self) -> float:
-        """Czas trwania zmiany w godzinach."""
+        """Shift duration in hours."""
         start_minutes = self.start.hour * 60 + self.start.minute
         end_minutes = self.end.hour * 60 + self.end.minute
         if end_minutes <= start_minutes:
@@ -33,16 +33,16 @@ class ShiftInstance:
 
 @dataclass
 class ShiftSchedule:
-    """Pelny harmonogram zmian z exceptions."""
+    """Full shift schedule with exceptions."""
     weekly_schedule: WeeklySchedule
     exceptions: list[dict] = field(default_factory=list)
 
     def get_shifts_for_date(self, dt: date) -> list[ShiftInstance]:
-        """Pobierz zmiany dla konkretnej daty."""
+        """Get shifts for a specific date."""
         weekday = dt.weekday()
         base_shifts = self.weekly_schedule.get_shifts_for_day(weekday)
 
-        # Konwertuj na ShiftInstance
+        # Convert to ShiftInstance
         instances = []
         for shift in base_shifts:
             instances.append(ShiftInstance(
@@ -54,7 +54,7 @@ class ShiftSchedule:
                 productive_hours=self.weekly_schedule.productive_hours_per_shift,
             ))
 
-        # Dodaj overlay shifts z exceptions
+        # Add overlay shifts from exceptions
         for exc in self.exceptions:
             if self._exception_applies(exc, dt):
                 overlay_shifts = self._get_exception_shifts(exc, weekday)
@@ -71,7 +71,7 @@ class ShiftSchedule:
         return instances
 
     def _exception_applies(self, exc: dict, dt: date) -> bool:
-        """Sprawdz czy exception dotyczy daty."""
+        """Check if exception applies to date."""
         exc_type = exc.get("type", "")
 
         if exc_type == "date_overlay":
@@ -86,7 +86,7 @@ class ShiftSchedule:
         return False
 
     def _get_exception_shifts(self, exc: dict, weekday: int) -> list[dict]:
-        """Pobierz zmiany z exception."""
+        """Get shifts from exception."""
         if "add_shifts" in exc:
             return exc["add_shifts"]
 
@@ -98,7 +98,7 @@ class ShiftSchedule:
         return []
 
     def _parse_time(self, time_str: str) -> time:
-        """Parsuj czas z stringa."""
+        """Parse time from string."""
         try:
             return datetime.strptime(time_str, "%H:%M").time()
         except ValueError:
@@ -109,7 +109,7 @@ class ShiftSchedule:
         start_date: date,
         end_date: date,
     ) -> list[ShiftInstance]:
-        """Pobierz wszystkie zmiany dla zakresu dat."""
+        """Get all shifts for date range."""
         all_shifts = []
         current = start_date
 
@@ -125,7 +125,7 @@ class ShiftSchedule:
         end_date: date,
         shift_type: Optional[ShiftType] = None,
     ) -> float:
-        """Oblicz calkowita liczbe godzin w zakresie."""
+        """Calculate total hours in range."""
         shifts = self.get_shifts_for_range(start_date, end_date)
 
         if shift_type:
@@ -135,11 +135,11 @@ class ShiftSchedule:
 
 
 class ShiftScheduleLoader:
-    """Loader harmonogramow z plikow YAML."""
+    """Loader for schedules from YAML files."""
 
     @staticmethod
     def load_from_file(file_path: str | Path) -> ShiftSchedule:
-        """Wczytaj harmonogram z pliku YAML."""
+        """Load schedule from YAML file."""
         with open(file_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
@@ -147,8 +147,8 @@ class ShiftScheduleLoader:
 
     @staticmethod
     def load_from_dict(data: dict) -> ShiftSchedule:
-        """Wczytaj harmonogram ze slownika."""
-        # Parsuj weekly schedule
+        """Load schedule from dictionary."""
+        # Parse weekly schedule
         weekly_data = data.get("weekly_schedule", {})
         day_mapping = {
             "Mon": "mon", "Tue": "tue", "Wed": "wed",
@@ -185,10 +185,10 @@ class ShiftScheduleLoader:
 
 
 def load_shifts(file_path: str | Path) -> ShiftSchedule:
-    """Funkcja pomocnicza do wczytania harmonogramu.
+    """Helper function to load schedule.
 
     Args:
-        file_path: Sciezka do pliku YAML
+        file_path: Path to YAML file
 
     Returns:
         ShiftSchedule

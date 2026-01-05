@@ -1,4 +1,4 @@
-"""Reguly walidacji danych Masterdata."""
+"""Masterdata validation rules."""
 
 from dataclasses import dataclass
 from enum import Enum
@@ -15,14 +15,14 @@ from src.core.config import (
 
 
 class ValidationSeverity(str, Enum):
-    """Poziom waznosci problemu."""
-    CRITICAL = "critical"  # Blokuje analize
-    WARNING = "warning"    # Wymaga uwagi
-    INFO = "info"          # Informacyjne
+    """Issue severity level."""
+    CRITICAL = "critical"  # Blocks analysis
+    WARNING = "warning"    # Requires attention
+    INFO = "info"          # Informational
 
 
 class ValidationIssueType(str, Enum):
-    """Typ problemu walidacyjnego."""
+    """Validation issue type."""
     MISSING_VALUE = "missing_value"
     ZERO_VALUE = "zero_value"
     NEGATIVE_VALUE = "negative_value"
@@ -34,7 +34,7 @@ class ValidationIssueType(str, Enum):
 
 @dataclass
 class ValidationIssue:
-    """Pojedynczy problem walidacyjny."""
+    """Single validation issue."""
     sku: str
     field: str
     issue_type: ValidationIssueType
@@ -45,7 +45,7 @@ class ValidationIssue:
 
 @dataclass
 class ValidationResult:
-    """Wynik walidacji."""
+    """Validation result."""
     is_valid: bool
     issues: list[ValidationIssue]
     df_validated: pl.DataFrame
@@ -56,9 +56,9 @@ class ValidationResult:
 
 
 class MasterdataValidator:
-    """Walidator danych Masterdata."""
+    """Masterdata validator."""
 
-    # Progi dla outlierow
+    # Thresholds for outliers
     OUTLIER_THRESHOLDS = {
         "length_mm": {"min": 1, "max": 3000},
         "width_mm": {"min": 1, "max": 3000},
@@ -67,7 +67,7 @@ class MasterdataValidator:
         "stock_qty": {"min": 0, "max": 1_000_000},
     }
 
-    # IQR multiplier dla dynamicznych outlierow
+    # IQR multiplier for dynamic outliers
     IQR_MULTIPLIER = 3.0
 
     def __init__(
@@ -77,44 +77,44 @@ class MasterdataValidator:
         treat_zero_as_missing_quantities: bool = TREAT_ZERO_AS_MISSING_QUANTITIES,
         treat_negative_as_missing: bool = TREAT_NEGATIVE_AS_MISSING,
     ) -> None:
-        """Inicjalizacja walidatora."""
+        """Initialize validator."""
         self.treat_zero_as_missing_dimensions = treat_zero_as_missing_dimensions
         self.treat_zero_as_missing_weight = treat_zero_as_missing_weight
         self.treat_zero_as_missing_quantities = treat_zero_as_missing_quantities
         self.treat_negative_as_missing = treat_negative_as_missing
 
     def validate(self, df: pl.DataFrame) -> ValidationResult:
-        """Wykonaj walidacje danych.
+        """Perform data validation.
 
         Args:
-            df: DataFrame z danymi Masterdata
+            df: DataFrame with Masterdata
 
         Returns:
-            ValidationResult z wynikami walidacji
+            ValidationResult with validation results
         """
         issues: list[ValidationIssue] = []
         df_work = df.clone()
 
-        # 1. Walidacja brakow (NULL)
+        # 1. Validate missing values (NULL)
         issues.extend(self._validate_missing(df_work))
 
-        # 2. Walidacja zer
+        # 2. Validate zeros
         issues.extend(self._validate_zeros(df_work))
 
-        # 3. Walidacja wartosci ujemnych
+        # 3. Validate negative values
         issues.extend(self._validate_negatives(df_work))
 
-        # 4. Walidacja outlierow
+        # 4. Validate outliers
         issues.extend(self._validate_outliers(df_work))
 
-        # 5. Oznacz wartosci jako missing
+        # 5. Mark values as missing
         df_validated = self._mark_as_missing(df_work)
 
-        # Podsumowanie
+        # Summary
         critical = sum(1 for i in issues if i.severity == ValidationSeverity.CRITICAL)
         warning = sum(1 for i in issues if i.severity == ValidationSeverity.WARNING)
 
-        # Policz valid records (bez krytycznych problemow)
+        # Count valid records (without critical issues)
         critical_skus = {i.sku for i in issues if i.severity == ValidationSeverity.CRITICAL}
         valid_records = len(df) - len(critical_skus)
 
@@ -129,7 +129,7 @@ class MasterdataValidator:
         )
 
     def _validate_missing(self, df: pl.DataFrame) -> list[ValidationIssue]:
-        """Waliduj braki (NULL)."""
+        """Validate missing values (NULL)."""
         issues = []
         required_fields = ["sku", "length_mm", "width_mm", "height_mm", "weight_kg"]
 
@@ -148,16 +148,16 @@ class MasterdataValidator:
                     issue_type=ValidationIssueType.MISSING_VALUE,
                     severity=severity,
                     original_value=None,
-                    message=f"Brak wartosci w polu {field}",
+                    message=f"Missing value in field {field}",
                 ))
 
         return issues
 
     def _validate_zeros(self, df: pl.DataFrame) -> list[ValidationIssue]:
-        """Waliduj wartosci zerowe."""
+        """Validate zero values."""
         issues = []
 
-        # Wymiary
+        # Dimensions
         if self.treat_zero_as_missing_dimensions:
             for field in ["length_mm", "width_mm", "height_mm"]:
                 if field not in df.columns:
@@ -171,10 +171,10 @@ class MasterdataValidator:
                         issue_type=ValidationIssueType.ZERO_VALUE,
                         severity=ValidationSeverity.WARNING,
                         original_value="0",
-                        message=f"Zero w wymiarze {field} - traktowane jako brak",
+                        message=f"Zero in dimension {field} - treated as missing",
                     ))
 
-        # Waga
+        # Weight
         if self.treat_zero_as_missing_weight and "weight_kg" in df.columns:
             zero_mask = pl.col("weight_kg") == 0
             zero_rows = df.filter(zero_mask)
@@ -185,7 +185,7 @@ class MasterdataValidator:
                     issue_type=ValidationIssueType.ZERO_VALUE,
                     severity=ValidationSeverity.WARNING,
                     original_value="0",
-                    message="Zero w wadze - traktowane jako brak",
+                    message="Zero in weight - treated as missing",
                 ))
 
         # Stock
@@ -205,7 +205,7 @@ class MasterdataValidator:
         return issues
 
     def _validate_negatives(self, df: pl.DataFrame) -> list[ValidationIssue]:
-        """Waliduj wartosci ujemne."""
+        """Validate negative values."""
         if not self.treat_negative_as_missing:
             return []
 
@@ -226,20 +226,20 @@ class MasterdataValidator:
                     issue_type=ValidationIssueType.NEGATIVE_VALUE,
                     severity=ValidationSeverity.WARNING,
                     original_value=str(row[field]),
-                    message=f"Wartosc ujemna w {field}",
+                    message=f"Negative value in {field}",
                 ))
 
         return issues
 
     def _validate_outliers(self, df: pl.DataFrame) -> list[ValidationIssue]:
-        """Waliduj outliery (wartosci poza zakresem)."""
+        """Validate outliers (values outside range)."""
         issues = []
 
         for field, thresholds in self.OUTLIER_THRESHOLDS.items():
             if field not in df.columns:
                 continue
 
-            # Statyczne progi
+            # Static thresholds
             outlier_mask = (
                 (pl.col(field) < thresholds["min"]) |
                 (pl.col(field) > thresholds["max"])
@@ -254,16 +254,16 @@ class MasterdataValidator:
                     issue_type=ValidationIssueType.OUTLIER,
                     severity=ValidationSeverity.WARNING,
                     original_value=str(row[field]),
-                    message=f"Wartosc {row[field]} poza zakresem [{thresholds['min']}, {thresholds['max']}]",
+                    message=f"Value {row[field]} outside range [{thresholds['min']}, {thresholds['max']}]",
                 ))
 
         return issues
 
     def _mark_as_missing(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Oznacz problematyczne wartosci jako NULL."""
+        """Mark problematic values as NULL."""
         result = df.clone()
 
-        # Wymiary - zamien 0 i ujemne na NULL
+        # Dimensions - replace 0 and negative with NULL
         if self.treat_zero_as_missing_dimensions:
             for field in ["length_mm", "width_mm", "height_mm"]:
                 if field in result.columns:
@@ -274,7 +274,7 @@ class MasterdataValidator:
                         .alias(field)
                     ])
 
-        # Waga
+        # Weight
         if self.treat_zero_as_missing_weight and "weight_kg" in result.columns:
             result = result.with_columns([
                 pl.when(pl.col("weight_kg") <= 0)
@@ -283,7 +283,7 @@ class MasterdataValidator:
                 .alias("weight_kg")
             ])
 
-        # Ujemne wartosci w pozostalych polach
+        # Negative values in remaining fields
         if self.treat_negative_as_missing:
             for field in ["stock_qty"]:
                 if field in result.columns:

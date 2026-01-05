@@ -1,4 +1,4 @@
-"""Listy problematycznych SKU dla raportow DQ."""
+"""Problematic SKU lists for DQ reports."""
 
 from dataclasses import dataclass, field
 from typing import Optional
@@ -10,7 +10,7 @@ from src.core.config import BORDERLINE_THRESHOLD_MM
 
 @dataclass
 class DQListItem:
-    """Element listy DQ."""
+    """DQ list item."""
     sku: str
     issue_type: str
     field: str
@@ -20,7 +20,7 @@ class DQListItem:
 
 @dataclass
 class DQLists:
-    """Kolekcja list problematycznych SKU."""
+    """Collection of problematic SKU lists."""
     missing_critical: list[DQListItem] = field(default_factory=list)
     suspect_outliers: list[DQListItem] = field(default_factory=list)
     high_risk_borderline: list[DQListItem] = field(default_factory=list)
@@ -30,7 +30,7 @@ class DQLists:
 
     @property
     def total_issues(self) -> int:
-        """Calkowita liczba problemow."""
+        """Total number of issues."""
         return (
             len(self.missing_critical) +
             len(self.suspect_outliers) +
@@ -42,9 +42,9 @@ class DQLists:
 
 
 class DQListBuilder:
-    """Builder dla list DQ."""
+    """Builder for DQ lists."""
 
-    # Progi dla outlierow (wartosci podejrzane)
+    # Thresholds for outliers (suspicious values)
     OUTLIER_THRESHOLDS = {
         "length_mm": {"low": 10, "high": 2000},
         "width_mm": {"low": 10, "high": 2000},
@@ -56,7 +56,7 @@ class DQListBuilder:
         self,
         borderline_threshold_mm: float = BORDERLINE_THRESHOLD_MM,
     ) -> None:
-        """Inicjalizacja buildera."""
+        """Initialize builder."""
         self.borderline_threshold_mm = borderline_threshold_mm
 
     def build_all_lists(
@@ -64,14 +64,14 @@ class DQListBuilder:
         df: pl.DataFrame,
         carrier_limits: Optional[dict[str, float]] = None,
     ) -> DQLists:
-        """Zbuduj wszystkie listy DQ.
+        """Build all DQ lists.
 
         Args:
-            df: DataFrame z danymi Masterdata
-            carrier_limits: Limity nosnikow dla borderline (opcjonalne)
+            df: DataFrame with Masterdata
+            carrier_limits: Carrier limits for borderline (optional)
 
         Returns:
-            DQLists z wszystkimi listami
+            DQLists with all lists
         """
         return DQLists(
             missing_critical=self._find_missing_critical(df),
@@ -79,11 +79,11 @@ class DQListBuilder:
             high_risk_borderline=self._find_high_risk_borderline(df, carrier_limits),
             duplicates=self._find_duplicates(df),
             conflicts=self._find_conflicts(df),
-            collisions=[],  # Collisions sa wykrywane w module ingest
+            collisions=[],  # Collisions are detected in the ingest module
         )
 
     def _find_missing_critical(self, df: pl.DataFrame) -> list[DQListItem]:
-        """Znajdz SKU z brakujacymi krytycznymi danymi."""
+        """Find SKUs with missing critical data."""
         items = []
         critical_fields = ["length_mm", "width_mm", "height_mm", "weight_kg"]
 
@@ -101,20 +101,20 @@ class DQListBuilder:
                     issue_type="missing_critical",
                     field=field,
                     value=str(row.get(field, "NULL")),
-                    details=f"Brak krytycznej wartosci w {field}",
+                    details=f"Missing critical value in {field}",
                 ))
 
         return items
 
     def _find_suspect_outliers(self, df: pl.DataFrame) -> list[DQListItem]:
-        """Znajdz SKU z podejrzanymi wartosciami (outliery)."""
+        """Find SKUs with suspicious values (outliers)."""
         items = []
 
         for field, thresholds in self.OUTLIER_THRESHOLDS.items():
             if field not in df.columns:
                 continue
 
-            # Wartosci poza zakresem (ale > 0)
+            # Values outside range (but > 0)
             outlier_mask = (
                 (pl.col(field) > 0) &
                 ((pl.col(field) < thresholds["low"]) | (pl.col(field) > thresholds["high"]))
@@ -124,9 +124,9 @@ class DQListBuilder:
             for row in outlier_rows.iter_rows(named=True):
                 value = row[field]
                 if value < thresholds["low"]:
-                    detail = f"Bardzo mala wartosc: {value} < {thresholds['low']}"
+                    detail = f"Very small value: {value} < {thresholds['low']}"
                 else:
-                    detail = f"Bardzo duza wartosc: {value} > {thresholds['high']}"
+                    detail = f"Very large value: {value} > {thresholds['high']}"
 
                 items.append(DQListItem(
                     sku=str(row["sku"]),
@@ -143,11 +143,11 @@ class DQListBuilder:
         df: pl.DataFrame,
         carrier_limits: Optional[dict[str, float]] = None,
     ) -> list[DQListItem]:
-        """Znajdz SKU z wymiarami blisko limitow nosnikow."""
+        """Find SKUs with dimensions close to carrier limits."""
         items = []
 
         if carrier_limits is None:
-            # Domyslne limity typowego nosnika
+            # Default limits for a typical carrier
             carrier_limits = {
                 "length_mm": 600,
                 "width_mm": 400,
@@ -158,7 +158,7 @@ class DQListBuilder:
             if field not in df.columns:
                 continue
 
-            # Wartosci w zakresie (limit - threshold, limit]
+            # Values in range (limit - threshold, limit]
             lower_bound = limit - self.borderline_threshold_mm
             borderline_mask = (
                 (pl.col(field) > lower_bound) &
@@ -174,19 +174,19 @@ class DQListBuilder:
                     issue_type="high_risk_borderline",
                     field=field,
                     value=str(value),
-                    details=f"Margines do limitu: {margin:.1f}mm (limit: {limit}mm)",
+                    details=f"Margin to limit: {margin:.1f}mm (limit: {limit}mm)",
                 ))
 
         return items
 
     def _find_duplicates(self, df: pl.DataFrame) -> list[DQListItem]:
-        """Znajdz zduplikowane SKU."""
+        """Find duplicate SKUs."""
         items = []
 
         if "sku" not in df.columns:
             return items
 
-        # Grupuj po SKU i znajdz duplikaty
+        # Group by SKU and find duplicates
         sku_counts = df.group_by("sku").agg(pl.len().alias("count"))
         duplicates = sku_counts.filter(pl.col("count") > 1)
 
@@ -196,26 +196,26 @@ class DQListBuilder:
                 issue_type="duplicate",
                 field="sku",
                 value=str(row["count"]),
-                details=f"SKU wystepuje {row['count']} razy",
+                details=f"SKU appears {row['count']} times",
             ))
 
         return items
 
     def _find_conflicts(self, df: pl.DataFrame) -> list[DQListItem]:
-        """Znajdz SKU z konfliktami (rozne wartosci dla tego samego SKU)."""
+        """Find SKUs with conflicts (different values for the same SKU)."""
         items = []
 
         if "sku" not in df.columns:
             return items
 
-        # Znajdz SKU z wiecej niz 1 wystąpieniem
+        # Find SKUs with more than 1 occurrence
         sku_counts = df.group_by("sku").agg(pl.len().alias("count"))
         dup_skus = sku_counts.filter(pl.col("count") > 1)["sku"].to_list()
 
         if not dup_skus:
             return items
 
-        # Dla kazdego zduplikowanego SKU sprawdz czy wartosci sie roznia
+        # For each duplicate SKU check if values differ
         value_fields = ["length_mm", "width_mm", "height_mm", "weight_kg"]
         available_fields = [f for f in value_fields if f in df.columns]
 
@@ -230,7 +230,7 @@ class DQListBuilder:
                         issue_type="conflict",
                         field=field,
                         value=str(unique_values),
-                        details=f"Rozne wartosci {field}: {unique_values}",
+                        details=f"Different values for {field}: {unique_values}",
                     ))
 
         return items
@@ -240,11 +240,11 @@ def build_dq_lists(
     df: pl.DataFrame,
     carrier_limits: Optional[dict[str, float]] = None,
 ) -> DQLists:
-    """Funkcja pomocnicza do budowy list DQ.
+    """Helper function to build DQ lists.
 
     Args:
-        df: DataFrame z danymi Masterdata
-        carrier_limits: Limity nosnikow
+        df: DataFrame with Masterdata
+        carrier_limits: Carrier limits
 
     Returns:
         DQLists

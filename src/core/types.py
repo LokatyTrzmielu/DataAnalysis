@@ -1,4 +1,4 @@
-"""Modele danych Pydantic dla aplikacji DataAnalysis."""
+"""Pydantic data models for DataAnalysis application."""
 
 from datetime import datetime, time
 from enum import Enum
@@ -8,46 +8,46 @@ from pydantic import BaseModel, Field, field_validator
 
 
 # ============================================================================
-# Enumy
+# Enums
 # ============================================================================
 
 
 class DataQualityFlag(str, Enum):
-    """Flaga jakosci danych - czy wartosc jest oryginalna czy oszacowana."""
+    """Data quality flag - whether value is original or estimated."""
 
-    RAW = "RAW"  # Oryginalna wartosc z danych
-    ESTIMATED = "ESTIMATED"  # Wartosc uzupelniona przez imputacje
+    RAW = "RAW"  # Original value from data
+    ESTIMATED = "ESTIMATED"  # Value filled by imputation
 
 
 class FitResult(str, Enum):
-    """Wynik dopasowania SKU do nosnika."""
+    """SKU fit result for carrier."""
 
-    FIT = "FIT"  # Miesci sie
-    BORDERLINE = "BORDERLINE"  # Miesci sie, ale blisko granicy (< threshold)
-    NOT_FIT = "NOT_FIT"  # Nie miesci sie
+    FIT = "FIT"  # Fits
+    BORDERLINE = "BORDERLINE"  # Fits, but close to limit (< threshold)
+    NOT_FIT = "NOT_FIT"  # Does not fit
 
 
 class OrientationConstraint(str, Enum):
-    """Ograniczenie orientacji SKU na nosniku."""
+    """SKU orientation constraint on carrier."""
 
-    ANY = "ANY"  # Dowolna orientacja (6 mozliwosci)
-    UPRIGHT_ONLY = "UPRIGHT_ONLY"  # Tylko pionowo (wysokosc jako Z)
-    FLAT_ONLY = "FLAT_ONLY"  # Tylko plasko (wysokosc jako najmniejszy wymiar)
+    ANY = "ANY"  # Any orientation (6 possibilities)
+    UPRIGHT_ONLY = "UPRIGHT_ONLY"  # Only upright (height as Z)
+    FLAT_ONLY = "FLAT_ONLY"  # Only flat (height as smallest dimension)
 
 
 class ShiftType(str, Enum):
-    """Typ zmiany roboczej."""
+    """Work shift type."""
 
-    BASE = "base"  # Normalna zmiana
-    OVERLAY = "overlay"  # Dodatkowa zmiana (nadgodziny, peak season)
+    BASE = "base"  # Normal shift
+    OVERLAY = "overlay"  # Additional shift (overtime, peak season)
 
 
 class LimitingFactor(str, Enum):
-    """Czynnik limitujacy pojemnosc."""
+    """Capacity limiting factor."""
 
-    DIMENSION = "DIMENSION"  # Ograniczenie gabarytowe
-    WEIGHT = "WEIGHT"  # Ograniczenie wagowe
-    NONE = "NONE"  # Brak ograniczenia
+    DIMENSION = "DIMENSION"  # Dimensional constraint
+    WEIGHT = "WEIGHT"  # Weight constraint
+    NONE = "NONE"  # No constraint
 
 
 # ============================================================================
@@ -56,41 +56,41 @@ class LimitingFactor(str, Enum):
 
 
 class MasterdataRow(BaseModel):
-    """Wiersz danych Masterdata (SKU)."""
+    """Masterdata row (SKU)."""
 
-    sku: str = Field(..., description="Unikalny identyfikator SKU")
+    sku: str = Field(..., description="Unique SKU identifier")
 
-    # Wymiary w mm
-    length_mm: float = Field(..., ge=0, description="Dlugosc w mm")
-    width_mm: float = Field(..., ge=0, description="Szerokosc w mm")
-    height_mm: float = Field(..., ge=0, description="Wysokosc w mm")
+    # Dimensions in mm
+    length_mm: float = Field(..., ge=0, description="Length in mm")
+    width_mm: float = Field(..., ge=0, description="Width in mm")
+    height_mm: float = Field(..., ge=0, description="Height in mm")
 
-    # Waga w kg
-    weight_kg: float = Field(..., ge=0, description="Waga w kg")
+    # Weight in kg
+    weight_kg: float = Field(..., ge=0, description="Weight in kg")
 
-    # Zapas
-    stock_qty: int = Field(default=0, ge=0, description="Ilosc na stanie (EA)")
+    # Stock
+    stock_qty: int = Field(default=0, ge=0, description="Stock quantity (EA)")
 
-    # Flagi jakosci danych
+    # Data quality flags
     length_flag: DataQualityFlag = Field(default=DataQualityFlag.RAW)
     width_flag: DataQualityFlag = Field(default=DataQualityFlag.RAW)
     height_flag: DataQualityFlag = Field(default=DataQualityFlag.RAW)
     weight_flag: DataQualityFlag = Field(default=DataQualityFlag.RAW)
     stock_flag: DataQualityFlag = Field(default=DataQualityFlag.RAW)
 
-    # Ograniczenie orientacji
+    # Orientation constraint
     orientation_constraint: OrientationConstraint = Field(
         default=OrientationConstraint.ANY
     )
 
     @property
     def volume_m3(self) -> float:
-        """Oblicz kubature w m3."""
+        """Calculate volume in m3."""
         return (self.length_mm * self.width_mm * self.height_mm) / 1_000_000_000
 
     @property
     def has_estimated_dimensions(self) -> bool:
-        """Czy ktorys z wymiarow zostal oszacowany."""
+        """Whether any dimension was estimated."""
         return any(
             flag == DataQualityFlag.ESTIMATED
             for flag in [self.length_flag, self.width_flag, self.height_flag]
@@ -98,24 +98,24 @@ class MasterdataRow(BaseModel):
 
     @property
     def has_estimated_weight(self) -> bool:
-        """Czy waga zostala oszacowana."""
+        """Whether weight was estimated."""
         return self.weight_flag == DataQualityFlag.ESTIMATED
 
 
 class MasterdataStats(BaseModel):
-    """Statystyki zbiorowe dla Masterdata."""
+    """Aggregate statistics for Masterdata."""
 
     total_sku_count: int = Field(..., ge=0)
     sku_with_dimensions: int = Field(..., ge=0)
     sku_with_weight: int = Field(..., ge=0)
     sku_with_stock: int = Field(..., ge=0)
 
-    # Pokrycie danych (%)
+    # Data coverage (%)
     dimensions_coverage_pct: float = Field(..., ge=0, le=100)
     weight_coverage_pct: float = Field(..., ge=0, le=100)
     stock_coverage_pct: float = Field(..., ge=0, le=100)
 
-    # Imputacja
+    # Imputation
     sku_with_estimated_dimensions: int = Field(default=0, ge=0)
     sku_with_estimated_weight: int = Field(default=0, ge=0)
 
@@ -126,21 +126,21 @@ class MasterdataStats(BaseModel):
 
 
 class OrderRow(BaseModel):
-    """Wiersz danych zamowienia."""
+    """Order data row."""
 
-    order_id: str = Field(..., description="Identyfikator zamowienia")
-    line_id: Optional[str] = Field(default=None, description="Identyfikator linii")
-    sku: str = Field(..., description="SKU produktu")
-    quantity: int = Field(..., ge=1, description="Ilosc w linii (EA)")
-    timestamp: datetime = Field(..., description="Timestamp realizacji/wysylki")
+    order_id: str = Field(..., description="Order identifier")
+    line_id: Optional[str] = Field(default=None, description="Line identifier")
+    sku: str = Field(..., description="Product SKU")
+    quantity: int = Field(..., ge=1, description="Line quantity (EA)")
+    timestamp: datetime = Field(..., description="Fulfillment/shipping timestamp")
 
     @field_validator("timestamp", mode="before")
     @classmethod
     def parse_timestamp(cls, v: str | datetime) -> datetime:
-        """Parsuj timestamp z roznych formatow."""
+        """Parse timestamp from various formats."""
         if isinstance(v, datetime):
             return v
-        # Probuj rozne formaty
+        # Try various formats
         formats = [
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%d %H:%M",
@@ -155,90 +155,90 @@ class OrderRow(BaseModel):
                 return datetime.strptime(v, fmt)
             except ValueError:
                 continue
-        raise ValueError(f"Nie mozna sparsowac daty: {v}")
+        raise ValueError(f"Cannot parse date: {v}")
 
 
 class OrderStats(BaseModel):
-    """Statystyki zbiorowe dla Orders."""
+    """Aggregate statistics for Orders."""
 
     total_orders: int = Field(..., ge=0)
     total_lines: int = Field(..., ge=0)
     total_units: int = Field(..., ge=0)
     unique_sku: int = Field(..., ge=0)
 
-    # Przedzialy czasowe
+    # Time ranges
     date_from: datetime
     date_to: datetime
 
-    # Srednie
+    # Averages
     avg_lines_per_order: float = Field(..., ge=0)
     avg_units_per_line: float = Field(..., ge=0)
     avg_units_per_order: float = Field(..., ge=0)
 
 
 # ============================================================================
-# Carriers (Nosniki Kardex)
+# Carriers (Kardex Carriers)
 # ============================================================================
 
 
 class CarrierConfig(BaseModel):
-    """Konfiguracja nosnika Kardex."""
+    """Kardex carrier configuration."""
 
-    carrier_id: str = Field(..., description="Identyfikator nosnika")
-    name: str = Field(..., description="Nazwa nosnika")
+    carrier_id: str = Field(..., description="Carrier identifier")
+    name: str = Field(..., description="Carrier name")
 
-    # Wymiary wewnetrzne w mm
+    # Internal dimensions in mm
     inner_length_mm: float = Field(..., gt=0)
     inner_width_mm: float = Field(..., gt=0)
     inner_height_mm: float = Field(..., gt=0)
 
-    # Limit wagowy
+    # Weight limit
     max_weight_kg: float = Field(..., gt=0)
 
-    # Czy aktywny
+    # Whether active
     is_active: bool = Field(default=True)
 
     @property
     def inner_volume_m3(self) -> float:
-        """Objetosc wewnetrzna w m3."""
+        """Internal volume in m3."""
         return (
             self.inner_length_mm * self.inner_width_mm * self.inner_height_mm
         ) / 1_000_000_000
 
 
 class CarrierFitResult(BaseModel):
-    """Wynik dopasowania SKU do nosnika."""
+    """SKU fit result for carrier."""
 
     sku: str
     carrier_id: str
     fit_status: FitResult
     best_orientation: Optional[tuple[str, str, str]] = Field(
-        default=None, description="Najlepsza orientacja (L, W, H) -> (X, Y, Z)"
+        default=None, description="Best orientation (L, W, H) -> (X, Y, Z)"
     )
     units_per_carrier: int = Field(default=0, ge=0)
     limiting_factor: LimitingFactor = Field(default=LimitingFactor.NONE)
     margin_mm: Optional[float] = Field(
-        default=None, description="Margines do granicy w mm (dla BORDERLINE)"
+        default=None, description="Margin to limit in mm (for BORDERLINE)"
     )
 
 
 # ============================================================================
-# Shifts (Zmiany robocze)
+# Shifts (Work shifts)
 # ============================================================================
 
 
 class ShiftConfig(BaseModel):
-    """Konfiguracja pojedynczej zmiany."""
+    """Single shift configuration."""
 
-    name: str = Field(..., description="Nazwa zmiany (np. S1, S2, OT_N)")
-    start: time = Field(..., description="Godzina rozpoczecia")
-    end: time = Field(..., description="Godzina zakonczenia")
+    name: str = Field(..., description="Shift name (e.g., S1, S2, OT_N)")
+    start: time = Field(..., description="Start time")
+    end: time = Field(..., description="End time")
     shift_type: ShiftType = Field(default=ShiftType.BASE)
 
     @field_validator("start", "end", mode="before")
     @classmethod
     def parse_time(cls, v: str | time) -> time:
-        """Parsuj czas z stringa."""
+        """Parse time from string."""
         if isinstance(v, time):
             return v
         try:
@@ -248,11 +248,11 @@ class ShiftConfig(BaseModel):
 
     @property
     def duration_hours(self) -> float:
-        """Czas trwania zmiany w godzinach."""
+        """Shift duration in hours."""
         start_minutes = self.start.hour * 60 + self.start.minute
         end_minutes = self.end.hour * 60 + self.end.minute
 
-        # Obsluga zmiany nocnej (przechodzi przez polnoc)
+        # Handle night shift (crosses midnight)
         if end_minutes <= start_minutes:
             end_minutes += 24 * 60
 
@@ -260,7 +260,7 @@ class ShiftConfig(BaseModel):
 
 
 class WeeklySchedule(BaseModel):
-    """Harmonogram tygodniowy."""
+    """Weekly schedule."""
 
     timezone: str = Field(default="Europe/Warsaw")
     productive_hours_per_shift: float = Field(default=7.0, gt=0, le=24)
@@ -274,13 +274,13 @@ class WeeklySchedule(BaseModel):
     sun: list[ShiftConfig] = Field(default_factory=list)
 
     def get_shifts_for_day(self, weekday: int) -> list[ShiftConfig]:
-        """Pobierz zmiany dla dnia tygodnia (0=pon, 6=niedz)."""
+        """Get shifts for day of week (0=Mon, 6=Sun)."""
         days = [self.mon, self.tue, self.wed, self.thu, self.fri, self.sat, self.sun]
         return days[weekday]
 
     @property
     def total_base_hours_per_week(self) -> float:
-        """Suma godzin base shifts w tygodniu."""
+        """Sum of base shift hours per week."""
         total = 0.0
         for shifts in [self.mon, self.tue, self.wed, self.thu, self.fri, self.sat, self.sun]:
             for shift in shifts:
@@ -295,11 +295,11 @@ class WeeklySchedule(BaseModel):
 
 
 class DQIssue(BaseModel):
-    """Problem jakosci danych."""
+    """Data quality issue."""
 
     sku: str
-    issue_type: str = Field(..., description="Typ problemu: missing, outlier, duplicate, etc.")
-    field: str = Field(..., description="Pole z problemem")
+    issue_type: str = Field(..., description="Issue type: missing, outlier, duplicate, etc.")
+    field: str = Field(..., description="Field with issue")
     original_value: Optional[str] = Field(default=None)
     imputed_value: Optional[str] = Field(default=None)
     severity: str = Field(default="warning", description="critical, warning, info")
@@ -310,12 +310,12 @@ class DQScorecard(BaseModel):
 
     total_records: int = Field(..., ge=0)
 
-    # Pokrycie danych
+    # Data coverage
     dimensions_coverage_pct: float = Field(..., ge=0, le=100)
     weight_coverage_pct: float = Field(..., ge=0, le=100)
     stock_coverage_pct: float = Field(..., ge=0, le=100)
 
-    # Liczby problemow
+    # Issue counts
     missing_critical_count: int = Field(default=0, ge=0)
     suspect_outliers_count: int = Field(default=0, ge=0)
     high_risk_borderline_count: int = Field(default=0, ge=0)
@@ -323,20 +323,20 @@ class DQScorecard(BaseModel):
     conflicts_count: int = Field(default=0, ge=0)
     collisions_count: int = Field(default=0, ge=0)
 
-    # Imputacja
+    # Imputation
     imputed_dimensions_count: int = Field(default=0, ge=0)
     imputed_weight_count: int = Field(default=0, ge=0)
 
     @property
     def overall_score(self) -> float:
-        """Oblicz ogolny wynik jakosci (0-100)."""
-        # Srednia wazona pokrycia
+        """Calculate overall quality score (0-100)."""
+        # Weighted average of coverage
         coverage = (
             self.dimensions_coverage_pct * 0.4
             + self.weight_coverage_pct * 0.3
             + self.stock_coverage_pct * 0.3
         )
-        # Kara za problemy
+        # Penalty for issues
         problem_penalty = min(
             50,
             (self.missing_critical_count * 2)

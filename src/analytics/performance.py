@@ -1,4 +1,4 @@
-"""Analiza wydajnosciowa - KPI, peaks, shifts."""
+"""Performance analysis - KPI, peaks, shifts."""
 
 from dataclasses import dataclass, field
 from datetime import datetime, date, timedelta
@@ -13,7 +13,7 @@ from src.core.config import PEAK_PERCENTILES
 
 @dataclass
 class HourlyMetrics:
-    """Metryki godzinowe."""
+    """Hourly metrics."""
     hour: int
     lines: int
     orders: int
@@ -23,7 +23,7 @@ class HourlyMetrics:
 
 @dataclass
 class DailyMetrics:
-    """Metryki dzienne."""
+    """Daily metrics."""
     date: date
     lines: int
     orders: int
@@ -36,7 +36,7 @@ class DailyMetrics:
 
 @dataclass
 class PerformanceKPI:
-    """Kluczowe wskazniki wydajnosciowe."""
+    """Key performance indicators."""
     # Totals
     total_lines: int
     total_orders: int
@@ -67,7 +67,7 @@ class PerformanceKPI:
 
 @dataclass
 class ShiftPerformance:
-    """Wydajnosc per zmiana."""
+    """Performance per shift."""
     shift_type: str
     total_hours: float
     total_lines: int
@@ -80,7 +80,7 @@ class ShiftPerformance:
 
 @dataclass
 class PerformanceAnalysisResult:
-    """Wynik analizy wydajnosciowej."""
+    """Performance analysis result."""
     kpi: PerformanceKPI
     hourly_metrics: list[HourlyMetrics]
     daily_metrics: list[DailyMetrics]
@@ -91,52 +91,52 @@ class PerformanceAnalysisResult:
 
 
 class PerformanceAnalyzer:
-    """Analizator wydajnosciowy."""
+    """Performance analyzer."""
 
     def __init__(
         self,
         shift_schedule: Optional[ShiftSchedule] = None,
         productive_hours_per_shift: float = 7.0,
     ) -> None:
-        """Inicjalizacja analizatora.
+        """Initialize the analyzer.
 
         Args:
-            shift_schedule: Harmonogram zmian (opcjonalny)
-            productive_hours_per_shift: Godziny produktywne per zmiana
+            shift_schedule: Shift schedule (optional)
+            productive_hours_per_shift: Productive hours per shift
         """
         self.shift_schedule = shift_schedule
         self.productive_hours_per_shift = productive_hours_per_shift
 
     def analyze(self, df: pl.DataFrame) -> PerformanceAnalysisResult:
-        """Wykonaj analize wydajnosciowa.
+        """Perform performance analysis.
 
         Args:
-            df: DataFrame z Orders
+            df: DataFrame with Orders
 
         Returns:
             PerformanceAnalysisResult
         """
-        # Upewnij sie ze mamy wymagane kolumny
+        # Make sure we have required columns
         if "timestamp" not in df.columns:
-            raise ValueError("DataFrame musi zawierac kolumne 'timestamp'")
+            raise ValueError("DataFrame must contain 'timestamp' column")
 
-        # Zakres dat
+        # Date range
         date_from = df["timestamp"].min().date()
         date_to = df["timestamp"].max().date()
 
-        # 1. Oblicz metryki godzinowe
+        # 1. Calculate hourly metrics
         hourly = self._calculate_hourly_metrics(df)
 
-        # 2. Oblicz metryki dzienne
+        # 2. Calculate daily metrics
         daily = self._calculate_daily_metrics(df)
 
-        # 3. Oblicz KPI
+        # 3. Calculate KPI
         kpi = self._calculate_kpi(df, hourly)
 
-        # 4. Oblicz wydajnosc per zmiana
+        # 4. Calculate performance per shift
         shift_perf = self._calculate_shift_performance(df, date_from, date_to)
 
-        # 5. Oblicz calkowite godziny produktywne
+        # 5. Calculate total productive hours
         total_hours = self._calculate_total_productive_hours(date_from, date_to)
 
         return PerformanceAnalysisResult(
@@ -150,8 +150,8 @@ class PerformanceAnalyzer:
         )
 
     def _calculate_hourly_metrics(self, df: pl.DataFrame) -> list[HourlyMetrics]:
-        """Oblicz metryki per godzina."""
-        # Agregacja per godzina
+        """Calculate metrics per hour."""
+        # Aggregation per hour
         hourly_df = df.group_by(pl.col("timestamp").dt.hour().alias("hour")).agg([
             pl.len().alias("lines"),
             pl.col("order_id").n_unique().alias("orders"),
@@ -171,7 +171,7 @@ class PerformanceAnalyzer:
         ]
 
     def _calculate_daily_metrics(self, df: pl.DataFrame) -> list[DailyMetrics]:
-        """Oblicz metryki per dzien."""
+        """Calculate metrics per day."""
         daily_df = df.group_by(pl.col("timestamp").dt.date().alias("date")).agg([
             pl.len().alias("lines"),
             pl.col("order_id").n_unique().alias("orders"),
@@ -198,18 +198,18 @@ class PerformanceAnalyzer:
         df: pl.DataFrame,
         hourly: list[HourlyMetrics],
     ) -> PerformanceKPI:
-        """Oblicz KPI."""
+        """Calculate KPI."""
         total_lines = len(df)
         total_orders = df["order_id"].n_unique()
         total_units = df["quantity"].sum()
         unique_sku = df["sku"].n_unique()
 
-        # Srednie per order/line
+        # Averages per order/line
         avg_lines_per_order = total_lines / total_orders if total_orders > 0 else 0
         avg_units_per_line = total_units / total_lines if total_lines > 0 else 0
         avg_units_per_order = total_units / total_orders if total_orders > 0 else 0
 
-        # Metryki godzinowe
+        # Hourly metrics
         if hourly:
             lines_values = [h.lines for h in hourly]
             orders_values = [h.orders for h in hourly]
@@ -225,7 +225,7 @@ class PerformanceAnalyzer:
             peak_orders = max(orders_values)
             peak_units = max(units_values)
 
-            # Percentyle
+            # Percentiles
             sorted_lines = sorted(lines_values)
             n = len(sorted_lines)
             p90 = sorted_lines[int(n * 0.90)] if n > 0 else 0
@@ -263,7 +263,7 @@ class PerformanceAnalyzer:
         date_from: date,
         date_to: date,
     ) -> list[ShiftPerformance]:
-        """Oblicz wydajnosc per typ zmiany."""
+        """Calculate performance per shift type."""
         if self.shift_schedule is None:
             return []
 
@@ -314,11 +314,11 @@ class PerformanceAnalyzer:
         date_from: date,
         date_to: date,
     ) -> float:
-        """Oblicz calkowita liczbe godzin produktywnych."""
+        """Calculate total number of productive hours."""
         if self.shift_schedule:
             return self.shift_schedule.calculate_total_hours(date_from, date_to)
 
-        # Domyslnie: dni robocze * 2 zmiany * productive_hours
+        # Default: working days * 2 shifts * productive_hours
         days = (date_to - date_from).days + 1
         working_days = sum(
             1 for i in range(days)
@@ -331,11 +331,11 @@ def analyze_performance(
     df: pl.DataFrame,
     shift_schedule: Optional[ShiftSchedule] = None,
 ) -> PerformanceAnalysisResult:
-    """Funkcja pomocnicza do analizy wydajnosciowej.
+    """Helper function for performance analysis.
 
     Args:
-        df: DataFrame z Orders
-        shift_schedule: Harmonogram zmian (opcjonalny)
+        df: DataFrame with Orders
+        shift_schedule: Shift schedule (optional)
 
     Returns:
         PerformanceAnalysisResult

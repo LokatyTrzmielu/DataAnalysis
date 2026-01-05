@@ -1,4 +1,4 @@
-"""Przetwarzanie danych Orders - normalizacja, join z Masterdata."""
+"""Orders data processing - normalization, join with Masterdata."""
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -9,7 +9,7 @@ import polars as pl
 
 @dataclass
 class OrdersProcessingResult:
-    """Wynik przetwarzania Orders."""
+    """Orders processing result."""
     df: pl.DataFrame
     total_orders: int
     total_lines: int
@@ -21,37 +21,37 @@ class OrdersProcessingResult:
 
 
 class OrdersProcessor:
-    """Przetwarzanie danych zamowien."""
+    """Orders data processing."""
 
     def __init__(self) -> None:
-        """Inicjalizacja procesora."""
+        """Initialize processor."""
         pass
 
     def normalize(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Normalizuj dane zamowien.
+        """Normalize orders data.
 
         Args:
-            df: DataFrame z danymi Orders
+            df: DataFrame with Orders data
 
         Returns:
-            Znormalizowany DataFrame
+            Normalized DataFrame
         """
         result = df.clone()
 
-        # Upewnij sie ze timestamp jest datetime
+        # Ensure timestamp is datetime
         if "timestamp" in result.columns:
             if result["timestamp"].dtype == pl.Utf8:
                 result = result.with_columns([
                     pl.col("timestamp").str.to_datetime(strict=False).alias("timestamp")
                 ])
 
-        # Upewnij sie ze quantity jest int
+        # Ensure quantity is int
         if "quantity" in result.columns:
             result = result.with_columns([
                 pl.col("quantity").cast(pl.Int64).alias("quantity")
             ])
 
-        # Dodaj kolumny pomocnicze
+        # Add helper columns
         if "timestamp" in result.columns:
             result = result.with_columns([
                 pl.col("timestamp").dt.date().alias("order_date"),
@@ -67,17 +67,17 @@ class OrdersProcessor:
         masterdata_df: pl.DataFrame,
         sku_column: str = "sku",
     ) -> pl.DataFrame:
-        """Polacz Orders z Masterdata.
+        """Join Orders with Masterdata.
 
         Args:
-            orders_df: DataFrame z Orders
-            masterdata_df: DataFrame z Masterdata
-            sku_column: Nazwa kolumny SKU
+            orders_df: DataFrame with Orders
+            masterdata_df: DataFrame with Masterdata
+            sku_column: SKU column name
 
         Returns:
-            Polaczony DataFrame
+            Joined DataFrame
         """
-        # Wybierz kolumny z Masterdata
+        # Select columns from Masterdata
         md_cols = [sku_column]
         for col in ["length_mm", "width_mm", "height_mm", "weight_kg", "volume_m3", "size_category"]:
             if col in masterdata_df.columns:
@@ -92,7 +92,7 @@ class OrdersProcessor:
             how="left",
         )
 
-        # Oblicz line_volume i line_weight
+        # Calculate line_volume and line_weight
         if "volume_m3" in result.columns and "quantity" in result.columns:
             result = result.with_columns([
                 (pl.col("volume_m3") * pl.col("quantity")).alias("line_volume_m3")
@@ -106,13 +106,13 @@ class OrdersProcessor:
         return result
 
     def calculate_stats(self, df: pl.DataFrame) -> dict:
-        """Oblicz statystyki zamowien.
+        """Calculate orders statistics.
 
         Args:
-            df: DataFrame z Orders
+            df: DataFrame with Orders
 
         Returns:
-            Slownik ze statystykami
+            Dictionary with statistics
         """
         stats = {
             "total_lines": len(df),
@@ -137,29 +137,29 @@ class OrdersProcessor:
         orders_df: pl.DataFrame,
         masterdata_df: Optional[pl.DataFrame] = None,
     ) -> OrdersProcessingResult:
-        """Pelne przetwarzanie Orders.
+        """Full Orders processing.
 
         Args:
-            orders_df: DataFrame z Orders
-            masterdata_df: DataFrame z Masterdata (opcjonalny)
+            orders_df: DataFrame with Orders
+            masterdata_df: DataFrame with Masterdata (optional)
 
         Returns:
             OrdersProcessingResult
         """
-        # 1. Normalizacja
+        # 1. Normalization
         result = self.normalize(orders_df)
 
-        # 2. Join z Masterdata
+        # 2. Join with Masterdata
         unmatched_sku = []
         if masterdata_df is not None:
-            # Znajdz niezmapowane SKU
+            # Find unmapped SKUs
             order_skus = set(result["sku"].unique().to_list())
             md_skus = set(masterdata_df["sku"].unique().to_list())
             unmatched_sku = list(order_skus - md_skus)
 
             result = self.join_with_masterdata(result, masterdata_df)
 
-        # 3. Statystyki
+        # 3. Statistics
         stats = self.calculate_stats(result)
 
         return OrdersProcessingResult(
@@ -178,11 +178,11 @@ def process_orders(
     orders_df: pl.DataFrame,
     masterdata_df: Optional[pl.DataFrame] = None,
 ) -> OrdersProcessingResult:
-    """Funkcja pomocnicza do przetwarzania Orders.
+    """Helper function for processing Orders.
 
     Args:
-        orders_df: DataFrame z Orders
-        masterdata_df: DataFrame z Masterdata (opcjonalny)
+        orders_df: DataFrame with Orders
+        masterdata_df: DataFrame with Masterdata (optional)
 
     Returns:
         OrdersProcessingResult

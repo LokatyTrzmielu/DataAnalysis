@@ -1,4 +1,4 @@
-"""Data Quality Scorecard - metryki jakosci danych."""
+"""Data Quality Scorecard - data quality metrics."""
 
 from dataclasses import dataclass, field
 from typing import Optional
@@ -10,7 +10,7 @@ from src.core.types import DQScorecard
 
 @dataclass
 class FieldCoverage:
-    """Pokrycie danych dla pojedynczego pola."""
+    """Data coverage for a single field."""
     field_name: str
     total_records: int
     non_null_count: int
@@ -22,17 +22,17 @@ class FieldCoverage:
 
     @property
     def missing_count(self) -> int:
-        """Liczba brakujacych wartosci (NULL + 0 + ujemne)."""
+        """Count of missing values (NULL + 0 + negative)."""
         return self.null_count + self.zero_count + self.negative_count
 
 
 @dataclass
 class DataQualityMetrics:
-    """Pelne metryki jakosci danych."""
+    """Complete data quality metrics."""
     total_records: int
     unique_sku_count: int
 
-    # Pokrycie pol
+    # Field coverage
     sku_coverage: FieldCoverage
     length_coverage: FieldCoverage
     width_coverage: FieldCoverage
@@ -40,18 +40,18 @@ class DataQualityMetrics:
     weight_coverage: FieldCoverage
     stock_coverage: Optional[FieldCoverage] = None
 
-    # Zagregowane metryki
+    # Aggregated metrics
     dimensions_coverage_pct: float = 0.0
     weight_coverage_pct: float = 0.0
     stock_coverage_pct: float = 0.0
 
-    # Dodatkowe statystyki
-    complete_records: int = 0  # Wszystkie pola wypelnione
-    partial_records: int = 0  # Czesc pol brakuje
-    empty_records: int = 0    # Wszystkie pola puste
+    # Additional statistics
+    complete_records: int = 0  # All fields populated
+    partial_records: int = 0  # Some fields missing
+    empty_records: int = 0    # All fields empty
 
     def to_scorecard(self) -> DQScorecard:
-        """Konwertuj do DQScorecard."""
+        """Convert to DQScorecard."""
         return DQScorecard(
             total_records=self.total_records,
             dimensions_coverage_pct=self.dimensions_coverage_pct,
@@ -61,46 +61,46 @@ class DataQualityMetrics:
 
 
 class DataQualityCalculator:
-    """Kalkulator metryk jakosci danych."""
+    """Data quality metrics calculator."""
 
     def __init__(
         self,
         treat_zero_as_missing: bool = True,
         treat_negative_as_missing: bool = True,
     ) -> None:
-        """Inicjalizacja kalkulatora."""
+        """Initialize calculator."""
         self.treat_zero_as_missing = treat_zero_as_missing
         self.treat_negative_as_missing = treat_negative_as_missing
 
     def calculate(self, df: pl.DataFrame) -> DataQualityMetrics:
-        """Oblicz metryki jakosci danych.
+        """Calculate data quality metrics.
 
         Args:
-            df: DataFrame z danymi Masterdata
+            df: DataFrame with Masterdata
 
         Returns:
-            DataQualityMetrics z obliczonymi metrykami
+            DataQualityMetrics with calculated metrics
         """
         total = len(df)
 
-        # Pokrycie SKU
+        # SKU coverage
         sku_coverage = self._calculate_field_coverage(df, "sku", is_numeric=False)
 
-        # Pokrycie wymiarow
+        # Dimensions coverage
         length_coverage = self._calculate_field_coverage(df, "length_mm")
         width_coverage = self._calculate_field_coverage(df, "width_mm")
         height_coverage = self._calculate_field_coverage(df, "height_mm")
 
-        # Pokrycie wagi
+        # Weight coverage
         weight_coverage = self._calculate_field_coverage(df, "weight_kg")
 
-        # Pokrycie stock (opcjonalne)
+        # Stock coverage (optional)
         stock_coverage = None
         if "stock_qty" in df.columns:
             stock_coverage = self._calculate_field_coverage(df, "stock_qty")
 
-        # Zagregowane metryki
-        # Wymiary - wszystkie 3 musza byc obecne
+        # Aggregated metrics
+        # Dimensions - all 3 must be present
         dim_valid = self._count_complete_dimensions(df)
         dimensions_coverage_pct = (dim_valid / total * 100) if total > 0 else 0.0
 
@@ -136,7 +136,7 @@ class DataQualityCalculator:
         field: str,
         is_numeric: bool = True,
     ) -> FieldCoverage:
-        """Oblicz pokrycie dla pojedynczego pola."""
+        """Calculate coverage for a single field."""
         if field not in df.columns:
             return FieldCoverage(
                 field_name=field,
@@ -156,7 +156,7 @@ class DataQualityCalculator:
         null_count = col.null_count()
         non_null_count = total - null_count
 
-        # Zero/negative counts (tylko dla numeric)
+        # Zero/negative counts (only for numeric)
         zero_count = 0
         negative_count = 0
 
@@ -187,7 +187,7 @@ class DataQualityCalculator:
         )
 
     def _count_complete_dimensions(self, df: pl.DataFrame) -> int:
-        """Policz rekordy z kompletnymi wymiarami."""
+        """Count records with complete dimensions."""
         dim_cols = ["length_mm", "width_mm", "height_mm"]
         if not all(c in df.columns for c in dim_cols):
             return 0
@@ -208,7 +208,7 @@ class DataQualityCalculator:
         return df.filter(mask).height
 
     def _count_record_completeness(self, df: pl.DataFrame) -> tuple[int, int, int]:
-        """Policz rekordy complete/partial/empty.
+        """Count complete/partial/empty records.
 
         Returns:
             (complete, partial, empty)
@@ -219,7 +219,7 @@ class DataQualityCalculator:
         if not available_fields:
             return 0, 0, len(df)
 
-        # Dodaj kolumne z liczba valid pol
+        # Add column with valid field count
         valid_count_expr = pl.lit(0)
         for field in available_fields:
             if self.treat_zero_as_missing:
@@ -240,10 +240,10 @@ class DataQualityCalculator:
 
 
 def calculate_dq_metrics(df: pl.DataFrame) -> DataQualityMetrics:
-    """Funkcja pomocnicza do obliczenia metryk DQ.
+    """Helper function to calculate DQ metrics.
 
     Args:
-        df: DataFrame z danymi Masterdata
+        df: DataFrame with Masterdata
 
     Returns:
         DataQualityMetrics
