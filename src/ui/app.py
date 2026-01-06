@@ -413,6 +413,7 @@ def render_masterdata_import() -> None:
         create_masterdata_wizard,
         MasterdataIngestPipeline,
     )
+    from src.ingest.units import WeightUnit
 
     st.subheader("Masterdata")
 
@@ -479,6 +480,15 @@ def render_masterdata_import() -> None:
         # Status
         has_mapping_errors = render_mapping_status(updated_mapping)
 
+        # Weight unit selection
+        weight_unit_option = st.selectbox(
+            "Weight unit in source file",
+            options=["Auto-detect", "Grams (g)", "Kilograms (kg)"],
+            index=0,
+            key="md_weight_unit",
+            help="Select unit if auto-detection fails for light items",
+        )
+
         # Action buttons
         btn_col1, btn_col2 = st.columns([1, 3])
 
@@ -499,7 +509,17 @@ def render_masterdata_import() -> None:
             ):
                 with st.spinner("Importing..."):
                     try:
-                        pipeline = MasterdataIngestPipeline()
+                        # Map weight unit selection
+                        weight_unit_map = {
+                            "Auto-detect": None,
+                            "Grams (g)": WeightUnit.G,
+                            "Kilograms (kg)": WeightUnit.KG,
+                        }
+                        selected_weight_unit = weight_unit_map.get(weight_unit_option)
+
+                        pipeline = MasterdataIngestPipeline(
+                            weight_unit=selected_weight_unit,
+                        )
                         result = pipeline.run(
                             st.session_state.masterdata_temp_path,
                             mapping=updated_mapping,
@@ -907,42 +927,32 @@ def render_carriers_table() -> None:
 
     st.markdown("**Defined carriers:**")
 
-    # Table header
-    header_cols = st.columns([1.5, 2, 1.5, 1.5, 1.5, 1.2, 0.8])
-    with header_cols[0]:
-        st.markdown("**ID**")
-    with header_cols[1]:
-        st.markdown("**Name**")
-    with header_cols[2]:
-        st.markdown("**L (mm)**")
-    with header_cols[3]:
-        st.markdown("**W (mm)**")
-    with header_cols[4]:
-        st.markdown("**H (mm)**")
-    with header_cols[5]:
-        st.markdown("**Max kg**")
-    with header_cols[6]:
-        st.markdown("**Delete**")
-
-    # Rows
     for i, carrier in enumerate(carriers):
-        cols = st.columns([1.5, 2, 1.5, 1.5, 1.5, 1.2, 0.8])
-        with cols[0]:
-            st.text(carrier["carrier_id"])
-        with cols[1]:
-            st.text(carrier["name"])
-        with cols[2]:
-            st.text(str(carrier["inner_length_mm"]))
-        with cols[3]:
-            st.text(str(carrier["inner_width_mm"]))
-        with cols[4]:
-            st.text(str(carrier["inner_height_mm"]))
-        with cols[5]:
-            st.text(str(carrier["max_weight_kg"]))
-        with cols[6]:
-            if st.button("X", key=f"del_carrier_{i}", help="Delete carrier"):
+        # Row 1: ID, Name, Delete
+        row1_cols = st.columns([1.5, 3, 1])
+        with row1_cols[0]:
+            st.markdown(f"**ID:** {carrier['carrier_id']}")
+        with row1_cols[1]:
+            st.markdown(f"**Name:** {carrier['name']}")
+        with row1_cols[2]:
+            if st.button("Delete", key=f"del_carrier_{i}", help="Delete carrier"):
                 st.session_state.custom_carriers.pop(i)
                 st.rerun()
+
+        # Row 2: L, W, H, Max kg
+        row2_cols = st.columns(4)
+        with row2_cols[0]:
+            st.text(f"L: {int(carrier['inner_length_mm'])} mm")
+        with row2_cols[1]:
+            st.text(f"W: {int(carrier['inner_width_mm'])} mm")
+        with row2_cols[2]:
+            st.text(f"H: {int(carrier['inner_height_mm'])} mm")
+        with row2_cols[3]:
+            st.text(f"Max: {carrier['max_weight_kg']:.1f} kg")
+
+        # Separator between carriers
+        if i < len(carriers) - 1:
+            st.divider()
 
 
 def render_analysis_tab() -> None:
