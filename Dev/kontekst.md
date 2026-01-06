@@ -188,6 +188,22 @@ D:\VS\DataAnalysis\
   - Podsumowanie: "Godzin na zmiane: Xh | Lacznie zmian/tydzien: Y"
   - Harmonogram generowany automatycznie (start od 6:00, przypisanie do dni Pn-Nd)
 
+### Sesja 2026-01-06 (poprawki UI i walidacja)
+- **Poprawki interfejsu importu:**
+  - Przycisk "Import Masterdata" przesunięty do prawej krawędzi (layout [1,3])
+  - Naprawiono bug z etykietą "(manual)" - teraz poprawnie oznacza tylko ręcznie zmienione mapowania
+  - Dodano wykrywanie duplikatów kolumn z komunikatem błędu i blokadą importu
+- **Rozszerzenia walidacji danych:**
+  - Dodano rozwijalną sekcję "Validation help" z opisami wszystkich typów problemów
+  - Dodano kontrolki outlierów w sidebarze:
+    - Checkbox włączania/wyłączania walidacji outlierów
+    - Konfigurowalne progi dla wymiarów (mm) i wagi (kg)
+  - Progi outlierów przekazywane do pipeline'u jakości danych
+- **Zmodyfikowane pliki:**
+  - `src/ui/app.py` - UI, layout przycisków, mapowanie, sekcja pomocy, kontrolki outlierów
+  - `src/quality/validators.py` - konfigurowalne progi outlierów, flaga włączania
+  - `src/quality/pipeline.py` - obsługa parametrów outlierów
+
 ---
 
 ## Jak Kontynuować Po Przerwie
@@ -229,6 +245,6 @@ Dodatkowo zaimplementowano wszystkie wcześniej pominięte zadania (testy jednos
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-01-04
+**Data:** 2026-01-06
 **Przez:** Claude Code
-**Zmiany:** Ulepszenia UX - uproszczony formularz nośnika (wymiary na pierwszym planie, opcjonalne ID/nazwa), własny harmonogram zmian (ręczne wprowadzenie dni/godzin/zmian)
+**Zmiany:** Poprawki UI i walidacji - przycisk Import do prawej, fix etykiety manual/auto, wykrywanie duplikatów kolumn, sekcja pomocy walidacji, konfigurowalne progi outlierów w sidebarze

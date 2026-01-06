@@ -58,8 +58,8 @@ class ValidationResult:
 class MasterdataValidator:
     """Masterdata validator."""
 
-    # Thresholds for outliers
-    OUTLIER_THRESHOLDS = {
+    # Default thresholds for outliers
+    DEFAULT_OUTLIER_THRESHOLDS = {
         "length_mm": {"min": 1, "max": 3000},
         "width_mm": {"min": 1, "max": 3000},
         "height_mm": {"min": 1, "max": 2000},
@@ -76,12 +76,28 @@ class MasterdataValidator:
         treat_zero_as_missing_weight: bool = TREAT_ZERO_AS_MISSING_WEIGHT,
         treat_zero_as_missing_quantities: bool = TREAT_ZERO_AS_MISSING_QUANTITIES,
         treat_negative_as_missing: bool = TREAT_NEGATIVE_AS_MISSING,
+        enable_outlier_validation: bool = True,
+        outlier_thresholds: dict | None = None,
     ) -> None:
-        """Initialize validator."""
+        """Initialize validator.
+
+        Args:
+            enable_outlier_validation: Whether to validate outliers
+            outlier_thresholds: Custom thresholds dict, e.g.:
+                {"length_mm": {"min": 1, "max": 3000}, ...}
+        """
         self.treat_zero_as_missing_dimensions = treat_zero_as_missing_dimensions
         self.treat_zero_as_missing_weight = treat_zero_as_missing_weight
         self.treat_zero_as_missing_quantities = treat_zero_as_missing_quantities
         self.treat_negative_as_missing = treat_negative_as_missing
+        self.enable_outlier_validation = enable_outlier_validation
+
+        # Merge custom thresholds with defaults
+        self.outlier_thresholds = self.DEFAULT_OUTLIER_THRESHOLDS.copy()
+        if outlier_thresholds:
+            for field, bounds in outlier_thresholds.items():
+                if field in self.outlier_thresholds:
+                    self.outlier_thresholds[field].update(bounds)
 
     def validate(self, df: pl.DataFrame) -> ValidationResult:
         """Perform data validation.
@@ -235,7 +251,10 @@ class MasterdataValidator:
         """Validate outliers (values outside range)."""
         issues = []
 
-        for field, thresholds in self.OUTLIER_THRESHOLDS.items():
+        if not self.enable_outlier_validation:
+            return issues
+
+        for field, thresholds in self.outlier_thresholds.items():
             if field not in df.columns:
                 continue
 

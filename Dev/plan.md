@@ -171,6 +171,19 @@ reports/
 - Testy wydajnościowe (200k SKU, 2M orders)
 - Dokumentacja
 
+### FAZA 10: Poprawki UI i Walidacji ✅
+**Pliki zmodyfikowane:**
+- `src/ui/app.py` - layout przycisków, mapowanie kolumn, sekcja pomocy, kontrolki outlierów
+- `src/quality/validators.py` - konfigurowalne progi outlierów
+- `src/quality/pipeline.py` - parametry outlierów
+
+**Zmiany:**
+- Przycisk "Import Masterdata" przesunięty do prawej (layout [1,3])
+- Naprawa etykiety "(manual)" - zachowanie statusu is_auto z oryginalnego mapowania
+- Wykrywanie duplikatów kolumn z blokadą importu
+- Sekcja "Validation help" z opisami typów problemów
+- Kontrolki outlierów w sidebarze (włączanie/wyłączanie + konfigurowalne progi)
+
 ---
 
 ## Kolejność Implementacji (Backend-First)

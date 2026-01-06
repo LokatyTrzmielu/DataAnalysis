@@ -47,6 +47,8 @@ class QualityPipeline:
         imputation_method: ImputationMethod = ImputationMethod.MEDIAN,
         treat_zero_as_missing: bool = True,
         treat_negative_as_missing: bool = True,
+        enable_outlier_validation: bool = True,
+        outlier_thresholds: dict | None = None,
     ) -> None:
         """Initialize pipeline.
 
@@ -55,6 +57,8 @@ class QualityPipeline:
             imputation_method: Imputation method
             treat_zero_as_missing: Whether to treat 0 as missing
             treat_negative_as_missing: Whether to treat negative as missing
+            enable_outlier_validation: Whether to validate outliers
+            outlier_thresholds: Custom outlier thresholds dict
         """
         self.enable_imputation = enable_imputation
         self.imputation_method = imputation_method
@@ -63,6 +67,8 @@ class QualityPipeline:
             treat_zero_as_missing_dimensions=treat_zero_as_missing,
             treat_zero_as_missing_weight=treat_zero_as_missing,
             treat_negative_as_missing=treat_negative_as_missing,
+            enable_outlier_validation=enable_outlier_validation,
+            outlier_thresholds=outlier_thresholds,
         )
         self.metrics_calculator = DataQualityCalculator(
             treat_zero_as_missing=treat_zero_as_missing,

@@ -215,6 +215,25 @@
 
 ---
 
+## FAZA 10: Poprawki UI i Walidacji (2026-01-06) ✅
+
+- [x] Przesunięcie przycisku "Import Masterdata" do prawej krawędzi
+- [x] Naprawa etykiety "(manual)" w podsumowaniu mapowania
+  - Zachowanie statusu is_auto z oryginalnego mapowania
+  - Oznaczanie jako "manual" tylko przy zmianie przez użytkownika
+- [x] Wykrywanie duplikatów kolumn w mapowaniu
+  - Komunikat błędu z listą zduplikowanych mapowań
+  - Blokada przycisku Import przy duplikatach
+- [x] Sekcja pomocy walidacji ("Validation help")
+  - Opisy: Missing Critical, Outliers, Borderline, Duplicates, Conflicts
+- [x] Konfigurowalne progi outlierów w sidebarze
+  - Checkbox włączania/wyłączania walidacji outlierów
+  - Pola min/max dla wymiarów (mm) i wagi (kg)
+  - Integracja z pipeline'em jakości danych
+- [x] Weryfikacja jednostki wagi (kg) - potwierdzone że system używa kg
+
+---
+
 ## Legenda
 
 - `[ ]` - Do zrobienia

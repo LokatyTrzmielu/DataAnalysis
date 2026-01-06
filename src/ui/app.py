@@ -48,6 +48,16 @@ def init_session_state() -> None:
         "orders_mapping_step": "upload",
         # Custom carriers for capacity analysis
         "custom_carriers": [],
+        # Outlier validation settings
+        "outlier_validation_enabled": True,
+        "outlier_length_min": 1,
+        "outlier_length_max": 3000,
+        "outlier_width_min": 1,
+        "outlier_width_max": 3000,
+        "outlier_height_min": 1,
+        "outlier_height_max": 2000,
+        "outlier_weight_min": 0.001,
+        "outlier_weight_max": 500.0,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -119,6 +129,51 @@ def render_sidebar() -> None:
         )
 
         st.markdown("---")
+        st.subheader("Outlier validation")
+
+        st.session_state.outlier_validation_enabled = st.checkbox(
+            "Enable outlier detection",
+            value=True,
+            help="Flag values outside acceptable ranges",
+        )
+
+        if st.session_state.outlier_validation_enabled:
+            with st.expander("Outlier thresholds", expanded=False):
+                st.markdown("**Dimensions (mm):**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.session_state.outlier_length_min = st.number_input(
+                        "Length min", value=1, min_value=0, step=1, key="ol_len_min"
+                    )
+                    st.session_state.outlier_width_min = st.number_input(
+                        "Width min", value=1, min_value=0, step=1, key="ol_wid_min"
+                    )
+                    st.session_state.outlier_height_min = st.number_input(
+                        "Height min", value=1, min_value=0, step=1, key="ol_hgt_min"
+                    )
+                with col2:
+                    st.session_state.outlier_length_max = st.number_input(
+                        "Length max", value=3000, min_value=1, step=100, key="ol_len_max"
+                    )
+                    st.session_state.outlier_width_max = st.number_input(
+                        "Width max", value=3000, min_value=1, step=100, key="ol_wid_max"
+                    )
+                    st.session_state.outlier_height_max = st.number_input(
+                        "Height max", value=2000, min_value=1, step=100, key="ol_hgt_max"
+                    )
+
+                st.markdown("**Weight (kg):**")
+                col3, col4 = st.columns(2)
+                with col3:
+                    st.session_state.outlier_weight_min = st.number_input(
+                        "Weight min", value=0.001, min_value=0.0, step=0.001, format="%.3f", key="ol_wgt_min"
+                    )
+                with col4:
+                    st.session_state.outlier_weight_max = st.number_input(
+                        "Weight max", value=500.0, min_value=0.1, step=10.0, key="ol_wgt_max"
+                    )
+
+        st.markdown("---")
 
         # Status
         if st.session_state.masterdata_df is not None:
@@ -150,6 +205,7 @@ def build_mapping_result_from_selections(
     user_mappings: dict[str, str],
     file_columns: list[str],
     schema: dict,
+    original_mapping: "MappingResult | None" = None,
 ) -> "MappingResult":
     """Build MappingResult from user selections.
 
@@ -157,6 +213,7 @@ def build_mapping_result_from_selections(
         user_mappings: Dictionary target_field -> source_column
         file_columns: All columns from file
         schema: MASTERDATA_SCHEMA or ORDERS_SCHEMA
+        original_mapping: Original auto-mapping result to preserve is_auto status
 
     Returns:
         MappingResult
@@ -167,12 +224,24 @@ def build_mapping_result_from_selections(
     used_columns = set()
 
     for field_name, source_col in user_mappings.items():
-        mappings[field_name] = ColumnMapping(
-            target_field=field_name,
-            source_column=source_col,
-            confidence=1.0,
-            is_auto=False,
-        )
+        # Check if selection matches original auto-mapping
+        original = original_mapping.mappings.get(field_name) if original_mapping else None
+        if original and original.source_column == source_col:
+            # User didn't change - preserve original is_auto and confidence
+            mappings[field_name] = ColumnMapping(
+                target_field=field_name,
+                source_column=source_col,
+                confidence=original.confidence,
+                is_auto=original.is_auto,
+            )
+        else:
+            # User changed selection - mark as manual
+            mappings[field_name] = ColumnMapping(
+                target_field=field_name,
+                source_column=source_col,
+                confidence=1.0,
+                is_auto=False,
+            )
         used_columns.add(source_col)
 
     # Determine missing required fields
@@ -286,20 +355,37 @@ def render_mapping_ui(
                     user_mappings[field_name] = selected
 
     # Build updated MappingResult
-    return build_mapping_result_from_selections(user_mappings, file_columns, schema)
+    return build_mapping_result_from_selections(user_mappings, file_columns, schema, mapping_result)
 
 
-def render_mapping_status(mapping_result: MappingResult) -> None:
+def render_mapping_status(mapping_result: MappingResult) -> bool:
     """Display mapping status and validation messages.
 
     Args:
         mapping_result: Current mapping result
+
+    Returns:
+        True if mapping has errors (missing required or duplicates)
     """
+    has_errors = False
+
     if mapping_result.is_complete:
         st.success("All required fields mapped")
     else:
         missing = ", ".join(mapping_result.missing_required)
         st.error(f"Missing required fields: {missing}")
+        has_errors = True
+
+    # Check for duplicate column selections
+    source_columns = [m.source_column for m in mapping_result.mappings.values()]
+    duplicates = [col for col in set(source_columns) if source_columns.count(col) > 1]
+    if duplicates:
+        dup_fields = []
+        for field_name, col_mapping in mapping_result.mappings.items():
+            if col_mapping.source_column in duplicates:
+                dup_fields.append(f"{field_name} <- `{col_mapping.source_column}`")
+        st.error(f"Duplicate column mappings: {', '.join(dup_fields)}")
+        has_errors = True
 
     # Mapping summary
     with st.expander("Mapping summary", expanded=False):
@@ -314,6 +400,8 @@ def render_mapping_status(mapping_result: MappingResult) -> None:
             st.write(", ".join(unmapped_display))
             if len(mapping_result.unmapped_columns) > 10:
                 st.write(f"... and {len(mapping_result.unmapped_columns) - 10} more")
+
+    return has_errors
 
 
 def render_masterdata_import() -> None:
@@ -389,10 +477,10 @@ def render_masterdata_import() -> None:
         st.session_state.masterdata_mapping_result = updated_mapping
 
         # Status
-        render_mapping_status(updated_mapping)
+        has_mapping_errors = render_mapping_status(updated_mapping)
 
         # Action buttons
-        btn_col1, btn_col2 = st.columns(2)
+        btn_col1, btn_col2 = st.columns([1, 3])
 
         with btn_col1:
             if st.button("Back", key="md_back_to_upload"):
@@ -402,7 +490,7 @@ def render_masterdata_import() -> None:
                 st.rerun()
 
         with btn_col2:
-            import_disabled = not updated_mapping.is_complete
+            import_disabled = not updated_mapping.is_complete or has_mapping_errors
             if st.button(
                 "Import Masterdata",
                 key="md_do_import",
@@ -524,10 +612,10 @@ def render_orders_import() -> None:
         st.session_state.orders_mapping_result = updated_mapping
 
         # Status
-        render_mapping_status(updated_mapping)
+        has_mapping_errors = render_mapping_status(updated_mapping)
 
         # Action buttons
-        btn_col1, btn_col2 = st.columns(2)
+        btn_col1, btn_col2 = st.columns([1, 3])
 
         with btn_col1:
             if st.button("Back", key="orders_back_to_upload"):
@@ -537,7 +625,7 @@ def render_orders_import() -> None:
                 st.rerun()
 
         with btn_col2:
-            import_disabled = not updated_mapping.is_complete
+            import_disabled = not updated_mapping.is_complete or has_mapping_errors
             if st.button(
                 "Import Orders",
                 key="orders_do_import",
@@ -612,9 +700,31 @@ def render_validation_tab() -> None:
             try:
                 from src.quality import run_quality_pipeline
 
+                # Build outlier thresholds from session state
+                outlier_thresholds = {
+                    "length_mm": {
+                        "min": st.session_state.get("outlier_length_min", 1),
+                        "max": st.session_state.get("outlier_length_max", 3000),
+                    },
+                    "width_mm": {
+                        "min": st.session_state.get("outlier_width_min", 1),
+                        "max": st.session_state.get("outlier_width_max", 3000),
+                    },
+                    "height_mm": {
+                        "min": st.session_state.get("outlier_height_min", 1),
+                        "max": st.session_state.get("outlier_height_max", 2000),
+                    },
+                    "weight_kg": {
+                        "min": st.session_state.get("outlier_weight_min", 0.001),
+                        "max": st.session_state.get("outlier_weight_max", 500.0),
+                    },
+                }
+
                 result = run_quality_pipeline(
                     st.session_state.masterdata_df,
                     enable_imputation=st.session_state.get("imputation_enabled", True),
+                    enable_outlier_validation=st.session_state.get("outlier_validation_enabled", True),
+                    outlier_thresholds=outlier_thresholds,
                 )
                 st.session_state.quality_result = result
                 st.session_state.masterdata_df = result.df
@@ -675,6 +785,25 @@ def render_validation_tab() -> None:
                 st.warning(f"{name}: {count}")
             else:
                 st.success(f"{name}: 0")
+
+        # Validation help section
+        with st.expander("Validation help", expanded=False):
+            st.markdown("""
+**Missing Critical** - Required fields (SKU, dimensions, weight) with missing or zero values.
+These SKUs cannot be analyzed until the data is corrected.
+
+**Outliers** - Values outside the acceptable range defined in settings.
+Very small or very large dimensions/weights that may indicate data entry errors.
+
+**Borderline** - SKUs with dimensions very close to carrier size limits.
+These items may have fitting issues during automated storage operations.
+
+**Duplicates** - Same SKU appearing multiple times in the masterdata.
+Each SKU should appear only once with consistent dimension data.
+
+**Conflicts** - Same SKU with different dimension or weight values across records.
+Indicates inconsistent data that needs to be resolved.
+            """)
 
 
 def render_carrier_form() -> None:
