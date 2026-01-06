@@ -43,7 +43,7 @@ class TestFileReader:
 
     def test_detect_file_type_xlsx(self):
         """Test detekcji typu pliku XLSX."""
-        reader = FileReader(FIXTURES_DIR / "MD_Kardex_gotowy.xlsx")
+        reader = FileReader(FIXTURES_DIR / "test_masterdata.xlsx")
         assert reader.detect_file_type() == "xlsx"
 
     def test_file_not_found(self):
@@ -58,7 +58,7 @@ class TestFileReader:
             temp_path = f.name
 
         reader = FileReader(temp_path)
-        with pytest.raises(ValueError, match="Nieobslugiwane rozszerzenie"):
+        with pytest.raises(ValueError, match="Unsupported extension"):
             reader.detect_file_type()
 
         Path(temp_path).unlink()
@@ -72,9 +72,10 @@ class TestFileReader:
 
     def test_read_xlsx(self):
         """Test wczytania pliku XLSX."""
-        df = read_file(FIXTURES_DIR / "MD_Kardex_gotowy.xlsx")
+        df = read_file(FIXTURES_DIR / "test_masterdata.xlsx")
         assert isinstance(df, pl.DataFrame)
         assert len(df) > 0
+        assert "sku" in df.columns
 
     def test_detect_separator_semicolon(self):
         """Test detekcji separatora semicolon."""

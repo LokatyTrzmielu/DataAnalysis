@@ -55,9 +55,11 @@ class DQListBuilder:
     def __init__(
         self,
         borderline_threshold_mm: float = BORDERLINE_THRESHOLD_MM,
+        outlier_thresholds: dict | None = None,
     ) -> None:
         """Initialize builder."""
         self.borderline_threshold_mm = borderline_threshold_mm
+        self.outlier_thresholds = outlier_thresholds or self.OUTLIER_THRESHOLDS
 
     def build_all_lists(
         self,
@@ -110,7 +112,7 @@ class DQListBuilder:
         """Find SKUs with suspicious values (outliers)."""
         items = []
 
-        for field, thresholds in self.OUTLIER_THRESHOLDS.items():
+        for field, thresholds in self.outlier_thresholds.items():
             if field not in df.columns:
                 continue
 

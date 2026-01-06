@@ -74,7 +74,14 @@ class QualityPipeline:
             treat_zero_as_missing=treat_zero_as_missing,
             treat_negative_as_missing=treat_negative_as_missing,
         )
-        self.dq_list_builder = DQListBuilder()
+        # Convert min/max to low/high for DQListBuilder
+        dq_outlier_thresholds = None
+        if outlier_thresholds:
+            dq_outlier_thresholds = {
+                field: {"low": vals["min"], "high": vals["max"]}
+                for field, vals in outlier_thresholds.items()
+            }
+        self.dq_list_builder = DQListBuilder(outlier_thresholds=dq_outlier_thresholds)
         self.imputer = Imputer(
             method=imputation_method,
             treat_zero_as_missing=treat_zero_as_missing,
