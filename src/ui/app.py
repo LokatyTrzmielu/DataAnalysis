@@ -271,6 +271,38 @@ def build_mapping_result_from_selections(
     )
 
 
+def _get_field_status_html(confidence: float | None, is_required: bool) -> str:
+    """Return HTML for field status indicator with colored background.
+
+    Args:
+        confidence: Mapping confidence score (0.0-1.0) or None if not mapped
+        is_required: Whether this is a required field
+
+    Returns:
+        HTML string for the status indicator
+    """
+    if confidence is not None and confidence >= 0.9:
+        # Green - auto-mapped with high confidence
+        return """<div style="background-color: #d4edda; padding: 6px 10px;
+                  border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 4px;">
+                  <small style="color: #155724;">✓ Auto</small></div>"""
+    elif confidence is not None and confidence >= 0.5:
+        # Yellow - partial match
+        return """<div style="background-color: #fff3cd; padding: 6px 10px;
+                  border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 4px;">
+                  <small style="color: #856404;">~ Partial</small></div>"""
+    elif is_required:
+        # Red - required but not mapped
+        return """<div style="background-color: #f8d7da; padding: 6px 10px;
+                  border-radius: 4px; border-left: 4px solid #dc3545; margin-bottom: 4px;">
+                  <small style="color: #721c24;">⚠ Missing</small></div>"""
+    else:
+        # Gray - optional not mapped
+        return """<div style="background-color: #e2e3e5; padding: 6px 10px;
+                  border-radius: 4px; border-left: 4px solid #6c757d; margin-bottom: 4px;">
+                  <small style="color: #383d41;">– Optional</small></div>"""
+
+
 def render_mapping_ui(
     file_columns: list[str],
     mapping_result: "MappingResult",
@@ -299,6 +331,16 @@ def render_mapping_ui(
 
     user_mappings = {}
 
+    # Progress bar for required fields mapping
+    mapped_required = sum(
+        1 for f in required_fields if mapping_result.mappings.get(f)
+    )
+    total_required = len(required_fields)
+    st.progress(
+        mapped_required / total_required if total_required > 0 else 0,
+        text=f"Required: {mapped_required}/{total_required} mapped",
+    )
+
     # Required fields section
     st.markdown("**Required fields:**")
 
@@ -311,6 +353,7 @@ def render_mapping_ui(
             # Get current mapping
             current_mapping = mapping_result.mappings.get(field_name)
             current_value = current_mapping.source_column if current_mapping else None
+            confidence = current_mapping.confidence if current_mapping else None
 
             # Find index for default selection
             if current_value and current_value in file_columns:
@@ -318,17 +361,15 @@ def render_mapping_ui(
             else:
                 default_idx = 0
 
-            # Confidence indicator
-            confidence_indicator = ""
-            if current_mapping:
-                if current_mapping.confidence >= 0.9:
-                    confidence_indicator = " (auto)"
-                elif current_mapping.confidence >= 0.5:
-                    confidence_indicator = " (~)"
+            # Status indicator with colored background
+            st.markdown(
+                _get_field_status_html(confidence, is_required=True),
+                unsafe_allow_html=True,
+            )
 
             # Dropdown
             selected = st.selectbox(
-                f"{field_name}{confidence_indicator}",
+                field_name,
                 options=dropdown_options,
                 index=default_idx,
                 key=f"{key_prefix}_map_{field_name}",
@@ -348,14 +389,21 @@ def render_mapping_ui(
                 field_cfg = schema[field_name]
                 current_mapping = mapping_result.mappings.get(field_name)
                 current_value = current_mapping.source_column if current_mapping else None
+                confidence = current_mapping.confidence if current_mapping else None
 
                 if current_value and current_value in file_columns:
                     default_idx = file_columns.index(current_value) + 1
                 else:
                     default_idx = 0
 
+                # Status indicator with colored background
+                st.markdown(
+                    _get_field_status_html(confidence, is_required=False),
+                    unsafe_allow_html=True,
+                )
+
                 selected = st.selectbox(
-                    f"{field_name}",
+                    field_name,
                     options=dropdown_options,
                     index=default_idx,
                     key=f"{key_prefix}_map_{field_name}",
@@ -383,8 +431,10 @@ def render_mapping_status(mapping_result: MappingResult) -> bool:
     if mapping_result.is_complete:
         st.success("All required fields mapped")
     else:
-        missing = ", ".join(mapping_result.missing_required)
-        st.error(f"Missing required fields: {missing}")
+        # Vertical list for missing fields - better readability
+        st.error("Missing required fields:")
+        for field in mapping_result.missing_required:
+            st.markdown(f"• `{field}`")
         has_errors = True
 
     # Check for duplicate column selections
@@ -395,7 +445,10 @@ def render_mapping_status(mapping_result: MappingResult) -> bool:
         for field_name, col_mapping in mapping_result.mappings.items():
             if col_mapping.source_column in duplicates:
                 dup_fields.append(f"{field_name} <- `{col_mapping.source_column}`")
-        st.error(f"Duplicate column mappings: {', '.join(dup_fields)}")
+        # Vertical list for duplicates
+        st.error("Duplicate column mappings:")
+        for dup in dup_fields:
+            st.markdown(f"• {dup}")
         has_errors = True
 
     # Mapping summary
@@ -405,12 +458,12 @@ def render_mapping_status(mapping_result: MappingResult) -> bool:
             auto_label = "auto" if col_mapping.is_auto else "manual"
             st.write(f"- **{field_name}** <- `{source}` ({auto_label})")
 
-        if mapping_result.unmapped_columns:
-            st.write("**Unmapped columns:**")
-            unmapped_display = mapping_result.unmapped_columns[:10]
-            st.write(", ".join(unmapped_display))
-            if len(mapping_result.unmapped_columns) > 10:
-                st.write(f"... and {len(mapping_result.unmapped_columns) - 10} more")
+    # Unmapped columns in separate expander for cleaner display
+    if mapping_result.unmapped_columns:
+        count = len(mapping_result.unmapped_columns)
+        with st.expander(f"ℹ️ {count} unmapped columns from file"):
+            for col in mapping_result.unmapped_columns:
+                st.text(f"• {col}")
 
     return has_errors
 

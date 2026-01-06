@@ -12,7 +12,9 @@
       "Bash(git push)",
       "mcp__ide__getDiagnostics",
       "Bash(dir:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(cd:*)",
+      "Bash(streamlit run:*)"
     ]
   }
 }
