@@ -1,4 +1,4 @@
-"""Detekcja i konwersja jednostek (mm/cm/m, kg/g)."""
+"""Unit detection and conversion (mm/cm/m, kg/g)."""
 
 from dataclasses import dataclass
 from enum import Enum
@@ -8,7 +8,7 @@ import polars as pl
 
 
 class LengthUnit(str, Enum):
-    """Jednostki dlugosci."""
+    """Length units."""
     MM = "mm"
     CM = "cm"
     M = "m"
@@ -16,13 +16,13 @@ class LengthUnit(str, Enum):
 
 
 class WeightUnit(str, Enum):
-    """Jednostki wagi."""
+    """Weight units."""
     KG = "kg"
     G = "g"
     LB = "lb"
 
 
-# Wspolczynniki konwersji do jednostek bazowych (mm, kg)
+# Conversion factors to base units (mm, kg)
 LENGTH_TO_MM = {
     LengthUnit.MM: 1.0,
     LengthUnit.CM: 10.0,
@@ -39,7 +39,7 @@ WEIGHT_TO_KG = {
 
 @dataclass
 class UnitDetectionResult:
-    """Wynik detekcji jednostki."""
+    """Unit detection result."""
     detected_unit: LengthUnit | WeightUnit
     confidence: float  # 0-1
     sample_values: list[float]
@@ -47,20 +47,20 @@ class UnitDetectionResult:
 
 
 class UnitDetector:
-    """Detekcja jednostek na podstawie wartosci."""
+    """Unit detection based on values."""
 
-    # Typowe zakresy wymiarow w mm
+    # Typical dimension ranges in mm
     DIMENSION_RANGES_MM = {
-        "small": (10, 500),      # Male przedmioty
-        "medium": (100, 1500),   # Srednie przedmioty
-        "large": (500, 3000),    # Duze przedmioty
+        "small": (10, 500),      # Small items
+        "medium": (100, 1500),   # Medium items
+        "large": (500, 3000),    # Large items
     }
 
-    # Typowe zakresy wag w kg
+    # Typical weight ranges in kg
     WEIGHT_RANGES_KG = {
-        "light": (0.01, 5),      # Lekkie
-        "medium": (1, 50),       # Srednie
-        "heavy": (20, 200),      # Ciezkie
+        "light": (0.01, 5),      # Light
+        "medium": (1, 50),       # Medium
+        "heavy": (20, 200),      # Heavy
     }
 
     def detect_length_unit(
@@ -68,16 +68,16 @@ class UnitDetector:
         values: list[float],
         column_name: Optional[str] = None,
     ) -> UnitDetectionResult:
-        """Wykryj jednostke dlugosci.
+        """Detect length unit.
 
         Args:
-            values: Lista wartosci do analizy
-            column_name: Nazwa kolumny (moze zawierac podpowiedz jednostki)
+            values: List of values to analyze
+            column_name: Column name (may contain unit hint)
 
         Returns:
-            UnitDetectionResult z wykryta jednostka
+            UnitDetectionResult with detected unit
         """
-        # Usun None i wartosci <= 0
+        # Remove None and values <= 0
         clean_values = [v for v in values if v is not None and v > 0]
         if not clean_values:
             return UnitDetectionResult(
@@ -87,7 +87,7 @@ class UnitDetector:
                 converted_values=[],
             )
 
-        # Sprawdz nazwe kolumny
+        # Check column name
         if column_name:
             unit_from_name = self._detect_unit_from_name(column_name, "length")
             if unit_from_name:
@@ -98,26 +98,26 @@ class UnitDetector:
                     converted_values=[v * LENGTH_TO_MM[unit_from_name] for v in clean_values[:10]],
                 )
 
-        # Analiza statystyczna
+        # Statistical analysis
         median = sorted(clean_values)[len(clean_values) // 2]
         max_val = max(clean_values)
         min_val = min(clean_values)
 
-        # Heurystyki:
-        # - Jesli mediana < 10 -> prawdopodobnie metry lub cm
-        # - Jesli mediana 10-100 -> prawdopodobnie cm
-        # - Jesli mediana > 100 -> prawdopodobnie mm
+        # Heuristics:
+        # - If median < 10 -> probably meters or cm
+        # - If median 10-100 -> probably cm
+        # - If median > 100 -> probably mm
 
         if median < 5:
-            # Prawdopodobnie metry
+            # Probably meters
             detected = LengthUnit.M
             confidence = 0.7
         elif median < 100 and max_val < 500:
-            # Prawdopodobnie cm
+            # Probably cm
             detected = LengthUnit.CM
             confidence = 0.75
         else:
-            # Prawdopodobnie mm
+            # Probably mm
             detected = LengthUnit.MM
             confidence = 0.8
 
@@ -133,14 +133,14 @@ class UnitDetector:
         values: list[float],
         column_name: Optional[str] = None,
     ) -> UnitDetectionResult:
-        """Wykryj jednostke wagi.
+        """Detect weight unit.
 
         Args:
-            values: Lista wartosci do analizy
-            column_name: Nazwa kolumny
+            values: List of values to analyze
+            column_name: Column name
 
         Returns:
-            UnitDetectionResult z wykryta jednostka
+            UnitDetectionResult with detected unit
         """
         clean_values = [v for v in values if v is not None and v > 0]
         if not clean_values:
@@ -151,7 +151,7 @@ class UnitDetector:
                 converted_values=[],
             )
 
-        # Sprawdz nazwe kolumny
+        # Check column name
         if column_name:
             unit_from_name = self._detect_unit_from_name(column_name, "weight")
             if unit_from_name:
@@ -164,9 +164,9 @@ class UnitDetector:
 
         median = sorted(clean_values)[len(clean_values) // 2]
 
-        # Heurystyki:
-        # - Jesli mediana > 100 -> prawdopodobnie gramy
-        # - Jesli mediana < 100 -> prawdopodobnie kg
+        # Heuristics:
+        # - If median > 100 -> probably grams
+        # - If median < 100 -> probably kg
 
         if median > 500:
             detected = WeightUnit.G
@@ -187,7 +187,7 @@ class UnitDetector:
         column_name: str,
         unit_type: str,
     ) -> Optional[LengthUnit | WeightUnit]:
-        """Wykryj jednostke z nazwy kolumny."""
+        """Detect unit from column name."""
         name_lower = column_name.lower()
 
         if unit_type == "length":
@@ -212,7 +212,7 @@ class UnitDetector:
 
 
 class UnitConverter:
-    """Konwersja jednostek w DataFrame."""
+    """Unit conversion in DataFrame."""
 
     def __init__(self) -> None:
         self.detector = UnitDetector()
@@ -226,19 +226,19 @@ class UnitConverter:
         auto_detect: bool = True,
         source_unit: Optional[LengthUnit] = None,
     ) -> pl.DataFrame:
-        """Konwertuj wymiary do mm.
+        """Convert dimensions to mm.
 
         Args:
-            df: DataFrame z wymiarami
-            length_col, width_col, height_col: Nazwy kolumn
-            auto_detect: Czy automatycznie wykryc jednostke
-            source_unit: Jednostka zrodlowa (jesli znana)
+            df: DataFrame with dimensions
+            length_col, width_col, height_col: Column names
+            auto_detect: Whether to auto-detect unit
+            source_unit: Source unit (if known)
 
         Returns:
-            DataFrame z wymiarami w mm
+            DataFrame with dimensions in mm
         """
         if source_unit is None and auto_detect:
-            # Wykryj jednostke na podstawie pierwszej kolumny
+            # Detect unit based on first column
             sample = df[length_col].drop_nulls().to_list()[:100]
             detection = self.detector.detect_length_unit(sample, length_col)
             source_unit = detection.detected_unit
@@ -251,7 +251,7 @@ class UnitConverter:
         if factor == 1.0:
             return df
 
-        # Konwertuj wszystkie kolumny wymiarow
+        # Convert all dimension columns
         return df.with_columns([
             (pl.col(length_col) * factor).alias(length_col),
             (pl.col(width_col) * factor).alias(width_col),
@@ -265,16 +265,16 @@ class UnitConverter:
         auto_detect: bool = True,
         source_unit: Optional[WeightUnit] = None,
     ) -> pl.DataFrame:
-        """Konwertuj wage do kg.
+        """Convert weight to kg.
 
         Args:
-            df: DataFrame z waga
-            weight_col: Nazwa kolumny wagi
-            auto_detect: Czy automatycznie wykryc jednostke
-            source_unit: Jednostka zrodlowa (jesli znana)
+            df: DataFrame with weight
+            weight_col: Weight column name
+            auto_detect: Whether to auto-detect unit
+            source_unit: Source unit (if known)
 
         Returns:
-            DataFrame z waga w kg
+            DataFrame with weight in kg
         """
         if source_unit is None and auto_detect:
             sample = df[weight_col].drop_nulls().to_list()[:100]

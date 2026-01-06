@@ -1,4 +1,4 @@
-"""Normalizacja SKU i detekcja kolizji."""
+"""SKU normalization and collision detection."""
 
 import re
 from dataclasses import dataclass, field
@@ -8,7 +8,7 @@ import polars as pl
 
 @dataclass
 class SKUCollision:
-    """Kolizja SKU po normalizacji."""
+    """SKU collision after normalization."""
     normalized_sku: str
     original_skus: list[str]
     collision_type: str  # "case", "whitespace", "special_chars"
@@ -16,7 +16,7 @@ class SKUCollision:
 
 @dataclass
 class NormalizationResult:
-    """Wynik normalizacji SKU."""
+    """SKU normalization result."""
     df: pl.DataFrame
     collisions: list[SKUCollision] = field(default_factory=list)
     total_original: int = 0
@@ -25,7 +25,7 @@ class NormalizationResult:
 
 
 class SKUNormalizer:
-    """Normalizacja i walidacja SKU."""
+    """SKU normalization and validation."""
 
     def __init__(
         self,
@@ -34,13 +34,13 @@ class SKUNormalizer:
         remove_special_chars: bool = False,
         replace_chars: dict[str, str] | None = None,
     ) -> None:
-        """Inicjalizacja normalizera.
+        """Initialize normalizer.
 
         Args:
-            uppercase: Czy konwertowac do uppercase
-            strip_whitespace: Czy usuwac biale znaki
-            remove_special_chars: Czy usuwac znaki specjalne
-            replace_chars: Mapowanie znakow do zamiany
+            uppercase: Whether to convert to uppercase
+            strip_whitespace: Whether to remove whitespace
+            remove_special_chars: Whether to remove special characters
+            replace_chars: Character replacement mapping
         """
         self.uppercase = uppercase
         self.strip_whitespace = strip_whitespace
@@ -48,29 +48,29 @@ class SKUNormalizer:
         self.replace_chars = replace_chars or {}
 
     def normalize_sku(self, sku: str) -> str:
-        """Normalizuj pojedynczy SKU.
+        """Normalize single SKU.
 
         Args:
-            sku: Oryginalny SKU
+            sku: Original SKU
 
         Returns:
-            Znormalizowany SKU
+            Normalized SKU
         """
         if sku is None:
             return ""
 
         result = str(sku)
 
-        # Usun biale znaki
+        # Remove whitespace
         if self.strip_whitespace:
             result = result.strip()
             result = re.sub(r"\s+", "", result)
 
-        # Zamien znaki
+        # Replace characters
         for old, new in self.replace_chars.items():
             result = result.replace(old, new)
 
-        # Usun znaki specjalne
+        # Remove special characters
         if self.remove_special_chars:
             result = re.sub(r"[^a-zA-Z0-9\-_]", "", result)
 
@@ -86,35 +86,35 @@ class SKUNormalizer:
         sku_column: str = "sku",
         output_column: str | None = None,
     ) -> NormalizationResult:
-        """Normalizuj kolumne SKU w DataFrame.
+        """Normalize SKU column in DataFrame.
 
         Args:
-            df: DataFrame z kolumna SKU
-            sku_column: Nazwa kolumny SKU
-            output_column: Nazwa kolumny wynikowej (domyslnie nadpisuje)
+            df: DataFrame with SKU column
+            sku_column: SKU column name
+            output_column: Output column name (default: overwrite)
 
         Returns:
-            NormalizationResult z danymi i kolizjami
+            NormalizationResult with data and collisions
         """
         if output_column is None:
             output_column = sku_column
 
-        # Pobierz oryginalne SKU
+        # Get original SKUs
         original_skus = df[sku_column].to_list()
         total_original = len(original_skus)
 
-        # Normalizuj
+        # Normalize
         normalized_skus = [self.normalize_sku(sku) for sku in original_skus]
 
-        # Dodaj kolumne ze znormalizowanymi SKU
+        # Add column with normalized SKUs
         result_df = df.with_columns([
             pl.Series(output_column, normalized_skus),
         ])
 
-        # Wykryj kolizje
+        # Detect collisions
         collisions = self._detect_collisions(original_skus, normalized_skus)
 
-        # Unikalne SKU po normalizacji
+        # Unique SKUs after normalization
         total_normalized = len(set(normalized_skus))
 
         return NormalizationResult(
@@ -130,12 +130,12 @@ class SKUNormalizer:
         original_skus: list[str],
         normalized_skus: list[str],
     ) -> list[SKUCollision]:
-        """Wykryj kolizje po normalizacji.
+        """Detect collisions after normalization.
 
-        Kolizja wystepuje gdy rozne oryginalne SKU
-        maja taki sam znormalizowany SKU.
+        Collision occurs when different original SKUs
+        have the same normalized SKU.
         """
-        # Grupuj oryginalne SKU po znormalizowanych
+        # Group original SKUs by normalized
         normalized_to_original: dict[str, set[str]] = {}
         for orig, norm in zip(original_skus, normalized_skus):
             if norm not in normalized_to_original:
@@ -145,7 +145,7 @@ class SKUNormalizer:
         collisions = []
         for norm_sku, orig_set in normalized_to_original.items():
             if len(orig_set) > 1:
-                # Okresl typ kolizji
+                # Determine collision type
                 collision_type = self._determine_collision_type(list(orig_set))
                 collisions.append(SKUCollision(
                     normalized_sku=norm_sku,
@@ -156,13 +156,13 @@ class SKUNormalizer:
         return collisions
 
     def _determine_collision_type(self, skus: list[str]) -> str:
-        """Okresl typ kolizji."""
-        # Sprawdz czy roznica tylko w wielkosci liter
+        """Determine collision type."""
+        # Check if difference is only in letter case
         lowered = [s.lower() for s in skus]
         if len(set(lowered)) == 1:
             return "case"
 
-        # Sprawdz czy roznica tylko w bialych znakach
+        # Check if difference is only in whitespace
         stripped = [re.sub(r"\s+", "", s) for s in skus]
         if len(set(stripped)) == 1:
             return "whitespace"
@@ -175,12 +175,12 @@ def normalize_sku_column(
     sku_column: str = "sku",
     uppercase: bool = True,
 ) -> NormalizationResult:
-    """Funkcja pomocnicza do normalizacji SKU.
+    """Helper function for SKU normalization.
 
     Args:
         df: DataFrame
-        sku_column: Nazwa kolumny SKU
-        uppercase: Czy konwertowac do uppercase
+        sku_column: SKU column name
+        uppercase: Whether to convert to uppercase
 
     Returns:
         NormalizationResult

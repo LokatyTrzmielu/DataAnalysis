@@ -1,4 +1,4 @@
-"""Pipeline jakosci danych - integracja walidacji, metryk i imputacji."""
+"""Data quality pipeline - integration of validation, metrics and imputation."""
 
 from dataclasses import dataclass, field
 from typing import Optional
@@ -13,7 +13,7 @@ from src.quality.impute import Imputer, ImputationResult, ImputationMethod
 
 @dataclass
 class QualityPipelineResult:
-    """Wynik pipeline jakosci danych."""
+    """Data quality pipeline result."""
     df: pl.DataFrame
     validation: ValidationResult
     metrics_before: DataQualityMetrics
@@ -26,20 +26,20 @@ class QualityPipelineResult:
 
     @property
     def quality_score(self) -> float:
-        """Ogolny wynik jakosci (0-100)."""
-        # Srednia wazona metryk pokrycia
+        """Overall quality score (0-100)."""
+        # Weighted average of coverage metrics
         coverage = (
             self.metrics_after.dimensions_coverage_pct * 0.4 +
             self.metrics_after.weight_coverage_pct * 0.3 +
             self.metrics_after.stock_coverage_pct * 0.3
         )
-        # Kara za problemy
+        # Penalty for issues
         penalty = min(30, self.dq_lists.total_issues * 0.5)
         return max(0, coverage - penalty)
 
 
 class QualityPipeline:
-    """Pipeline jakosci danych dla Masterdata."""
+    """Data quality pipeline for Masterdata."""
 
     def __init__(
         self,
@@ -48,13 +48,13 @@ class QualityPipeline:
         treat_zero_as_missing: bool = True,
         treat_negative_as_missing: bool = True,
     ) -> None:
-        """Inicjalizacja pipeline.
+        """Initialize pipeline.
 
         Args:
-            enable_imputation: Czy wykonac imputacje
-            imputation_method: Metoda imputacji
-            treat_zero_as_missing: Czy traktowac 0 jako brak
-            treat_negative_as_missing: Czy traktowac ujemne jako brak
+            enable_imputation: Whether to perform imputation
+            imputation_method: Imputation method
+            treat_zero_as_missing: Whether to treat 0 as missing
+            treat_negative_as_missing: Whether to treat negative as missing
         """
         self.enable_imputation = enable_imputation
         self.imputation_method = imputation_method
@@ -79,23 +79,23 @@ class QualityPipeline:
         df: pl.DataFrame,
         carrier_limits: Optional[dict[str, float]] = None,
     ) -> QualityPipelineResult:
-        """Uruchom pipeline jakosci danych.
+        """Run data quality pipeline.
 
         Args:
-            df: DataFrame z danymi Masterdata
-            carrier_limits: Limity nosnikow dla borderline analysis
+            df: DataFrame with Masterdata
+            carrier_limits: Carrier limits for borderline analysis
 
         Returns:
-            QualityPipelineResult z wynikami
+            QualityPipelineResult with results
         """
-        # 1. Walidacja
+        # 1. Validation
         validation = self.validator.validate(df)
         df_validated = validation.df_validated
 
-        # 2. Metryki przed imputacja
+        # 2. Metrics before imputation
         metrics_before = self.metrics_calculator.calculate(df_validated)
 
-        # 3. Imputacja (opcjonalna)
+        # 3. Imputation (optional)
         imputation = None
         df_imputed = df_validated
 
@@ -103,13 +103,13 @@ class QualityPipeline:
             imputation = self.imputer.impute(df_validated)
             df_imputed = imputation.df
 
-        # 4. Metryki po imputacji
+        # 4. Metrics after imputation
         metrics_after = self.metrics_calculator.calculate(df_imputed)
 
-        # 5. Listy DQ
+        # 5. DQ lists
         dq_lists = self.dq_list_builder.build_all_lists(df_imputed, carrier_limits)
 
-        # Podsumowanie
+        # Summary
         total_records = len(df)
         valid_records = validation.valid_records
         imputed_records = imputation.total_imputed if imputation else 0
@@ -132,12 +132,12 @@ def run_quality_pipeline(
     enable_imputation: bool = True,
     **kwargs,
 ) -> QualityPipelineResult:
-    """Funkcja pomocnicza do uruchomienia pipeline jakosci.
+    """Helper function to run quality pipeline.
 
     Args:
-        df: DataFrame z danymi Masterdata
-        enable_imputation: Czy wykonac imputacje
-        **kwargs: Dodatkowe argumenty dla QualityPipeline
+        df: DataFrame with Masterdata
+        enable_imputation: Whether to perform imputation
+        **kwargs: Additional arguments for QualityPipeline
 
     Returns:
         QualityPipelineResult

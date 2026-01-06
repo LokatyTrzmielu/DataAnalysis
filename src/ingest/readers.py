@@ -1,4 +1,4 @@
-"""Odczyt plikow XLSX, CSV, TXT przy uzyciu Polars."""
+"""Reading XLSX, CSV, TXT files using Polars."""
 
 from pathlib import Path
 from typing import Literal
@@ -10,9 +10,9 @@ FileType = Literal["xlsx", "csv", "txt", "auto"]
 
 
 class FileReader:
-    """Uniwersalny reader plikow danych."""
+    """Universal data file reader."""
 
-    # Mapowanie rozszerzen na typy
+    # Extension to type mapping
     EXTENSION_MAP = {
         ".xlsx": "xlsx",
         ".xls": "xlsx",
@@ -21,57 +21,57 @@ class FileReader:
         ".tsv": "txt",
     }
 
-    # Typowe separatory dla CSV/TXT
+    # Common separators for CSV/TXT
     COMMON_SEPARATORS = [";", ",", "\t", "|"]
 
     def __init__(self, file_path: str | Path) -> None:
-        """Inicjalizacja readera.
+        """Initialize reader.
 
         Args:
-            file_path: Sciezka do pliku
+            file_path: Path to file
         """
         self.file_path = Path(file_path)
         if not self.file_path.exists():
-            raise FileNotFoundError(f"Plik nie istnieje: {self.file_path}")
+            raise FileNotFoundError(f"File does not exist: {self.file_path}")
 
     def detect_file_type(self) -> str:
-        """Wykryj typ pliku na podstawie rozszerzenia."""
+        """Detect file type based on extension."""
         ext = self.file_path.suffix.lower()
         file_type = self.EXTENSION_MAP.get(ext)
         if file_type is None:
-            raise ValueError(f"Nieobslugiwane rozszerzenie: {ext}")
+            raise ValueError(f"Unsupported extension: {ext}")
         return file_type
 
     def detect_separator(self, sample_lines: int = 5) -> str:
-        """Wykryj separator dla plikow CSV/TXT.
+        """Detect separator for CSV/TXT files.
 
         Args:
-            sample_lines: Liczba linii do analizy
+            sample_lines: Number of lines to analyze
 
         Returns:
-            Wykryty separator
+            Detected separator
         """
         with open(self.file_path, "r", encoding="utf-8-sig") as f:
             lines = [f.readline() for _ in range(sample_lines)]
 
-        # Policz wystapienia separatorow
+        # Count separator occurrences
         separator_counts = {sep: 0 for sep in self.COMMON_SEPARATORS}
         for line in lines:
             for sep in self.COMMON_SEPARATORS:
                 separator_counts[sep] += line.count(sep)
 
-        # Wybierz separator z najwieksza liczba wystapien
+        # Select separator with most occurrences
         best_separator = max(separator_counts, key=separator_counts.get)
 
-        # Jesli brak separatorow, domyslnie przecinek
+        # If no separators found, default to comma
         if separator_counts[best_separator] == 0:
             return ","
 
         return best_separator
 
     def detect_encoding(self) -> str:
-        """Wykryj kodowanie pliku."""
-        # Probuj UTF-8 z BOM
+        """Detect file encoding."""
+        # Try UTF-8 with BOM
         try:
             with open(self.file_path, "rb") as f:
                 first_bytes = f.read(3)
@@ -80,7 +80,7 @@ class FileReader:
         except Exception:
             pass
 
-        # Domyslnie UTF-8
+        # Default UTF-8
         return "utf-8"
 
     def read(
@@ -92,18 +92,18 @@ class FileReader:
         skip_rows: int = 0,
         n_rows: int | None = None,
     ) -> pl.DataFrame:
-        """Wczytaj plik do Polars DataFrame.
+        """Read file into Polars DataFrame.
 
         Args:
-            file_type: Typ pliku ("xlsx", "csv", "txt", "auto")
-            separator: Separator dla CSV/TXT (auto-detect jesli None)
-            sheet_id: Numer arkusza dla XLSX (1-based, domyslnie 1)
-            sheet_name: Nazwa arkusza dla XLSX (alternatywa dla sheet_id)
-            skip_rows: Ile wierszy pominac na poczatku
-            n_rows: Ile wierszy wczytac (None = wszystkie)
+            file_type: File type ("xlsx", "csv", "txt", "auto")
+            separator: Separator for CSV/TXT (auto-detect if None)
+            sheet_id: Sheet number for XLSX (1-based, default 1)
+            sheet_name: Sheet name for XLSX (alternative to sheet_id)
+            skip_rows: How many rows to skip at the beginning
+            n_rows: How many rows to read (None = all)
 
         Returns:
-            Polars DataFrame z danymi
+            Polars DataFrame with data
         """
         if file_type == "auto":
             file_type = self.detect_file_type()
@@ -120,8 +120,8 @@ class FileReader:
         skip_rows: int = 0,
         n_rows: int | None = None,
     ) -> pl.DataFrame:
-        """Wczytaj plik XLSX."""
-        # Domyslnie pierwszy arkusz
+        """Read XLSX file."""
+        # Default first sheet
         if sheet_id is None and sheet_name is None:
             sheet_id = 1
 
@@ -145,7 +145,7 @@ class FileReader:
         skip_rows: int = 0,
         n_rows: int | None = None,
     ) -> pl.DataFrame:
-        """Wczytaj plik CSV/TXT."""
+        """Read CSV/TXT file."""
         if separator is None:
             separator = self.detect_separator()
 
@@ -164,28 +164,28 @@ class FileReader:
         return self._normalize_columns(df)
 
     def _normalize_columns(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Normalizuj nazwy kolumn."""
-        # Usun biale znaki, zamien na lowercase
+        """Normalize column names."""
+        # Remove whitespace, convert to lowercase
         new_names = {}
         for col in df.columns:
             normalized = col.strip().lower().replace(" ", "_")
-            # Usun znaki specjalne
+            # Remove special characters
             normalized = "".join(c for c in normalized if c.isalnum() or c == "_")
             new_names[col] = normalized
 
         return df.rename(new_names)
 
     def get_preview(self, n_rows: int = 10) -> pl.DataFrame:
-        """Pobierz podglad danych (pierwszych n wierszy)."""
+        """Get data preview (first n rows)."""
         return self.read(n_rows=n_rows)
 
     def get_columns(self) -> list[str]:
-        """Pobierz liste kolumn bez wczytywania calego pliku."""
+        """Get column list without reading entire file."""
         preview = self.get_preview(n_rows=1)
         return preview.columns
 
     def get_sheet_names(self) -> list[str]:
-        """Pobierz liste arkuszy (tylko dla XLSX)."""
+        """Get sheet list (XLSX only)."""
         if self.detect_file_type() != "xlsx":
             return []
 
@@ -201,12 +201,12 @@ def read_file(
     file_type: FileType = "auto",
     **kwargs,
 ) -> pl.DataFrame:
-    """Funkcja pomocnicza do szybkiego wczytania pliku.
+    """Helper function for quick file reading.
 
     Args:
-        file_path: Sciezka do pliku
-        file_type: Typ pliku
-        **kwargs: Dodatkowe argumenty dla FileReader.read()
+        file_path: Path to file
+        file_type: File type
+        **kwargs: Additional arguments for FileReader.read()
 
     Returns:
         Polars DataFrame

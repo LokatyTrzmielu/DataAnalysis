@@ -1,4 +1,4 @@
-"""Imputacja brakujacych wartosci z flagami RAW/ESTIMATED."""
+"""Imputation of missing values with RAW/ESTIMATED flags."""
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -10,21 +10,21 @@ from src.core.types import DataQualityFlag
 
 
 class ImputationMethod(str, Enum):
-    """Metoda imputacji."""
+    """Imputation method."""
     MEDIAN = "median"
     MEAN = "mean"
     MODE = "mode"
 
 
 class ImputationScope(str, Enum):
-    """Zakres imputacji."""
-    GLOBAL = "global"  # Globalna mediana/srednia
-    PER_CATEGORY = "per_category"  # Per kategoria (jesli dostepna)
+    """Imputation scope."""
+    GLOBAL = "global"  # Global median/mean
+    PER_CATEGORY = "per_category"  # Per category (if available)
 
 
 @dataclass
 class ImputationStats:
-    """Statystyki imputacji dla pola."""
+    """Imputation statistics for a field."""
     field_name: str
     original_missing: int
     imputed_count: int
@@ -34,7 +34,7 @@ class ImputationStats:
 
 @dataclass
 class ImputationResult:
-    """Wynik imputacji."""
+    """Imputation result."""
     df: pl.DataFrame
     stats: list[ImputationStats] = field(default_factory=list)
     total_imputed: int = 0
@@ -42,16 +42,16 @@ class ImputationResult:
 
     @property
     def imputation_rate(self) -> float:
-        """Procent zaimputowanych rekordow."""
+        """Percentage of imputed records."""
         if self.total_records == 0:
             return 0.0
         return (self.total_imputed / self.total_records) * 100
 
 
 class Imputer:
-    """Imputacja brakujacych wartosci."""
+    """Missing values imputation."""
 
-    # Pola do imputacji z ich flagami
+    # Fields for imputation with their flags
     IMPUTABLE_FIELDS = {
         "length_mm": "length_flag",
         "width_mm": "width_flag",
@@ -66,12 +66,12 @@ class Imputer:
         scope: ImputationScope = ImputationScope.GLOBAL,
         treat_zero_as_missing: bool = True,
     ) -> None:
-        """Inicjalizacja imputera.
+        """Initialize imputer.
 
         Args:
-            method: Metoda imputacji
-            scope: Zakres imputacji
-            treat_zero_as_missing: Czy traktowac 0 jako brak
+            method: Imputation method
+            scope: Imputation scope
+            treat_zero_as_missing: Whether to treat 0 as missing
         """
         self.method = method
         self.scope = scope
@@ -82,14 +82,14 @@ class Imputer:
         df: pl.DataFrame,
         fields: Optional[list[str]] = None,
     ) -> ImputationResult:
-        """Wykonaj imputacje brakujacych wartosci.
+        """Perform imputation of missing values.
 
         Args:
-            df: DataFrame z danymi
-            fields: Lista pol do imputacji (None = wszystkie dostepne)
+            df: DataFrame with data
+            fields: List of fields to impute (None = all available)
 
         Returns:
-            ImputationResult z danymi i statystykami
+            ImputationResult with data and statistics
         """
         if fields is None:
             fields = [f for f in self.IMPUTABLE_FIELDS.keys() if f in df.columns]
@@ -106,13 +106,13 @@ class Imputer:
             if flag_name is None:
                 continue
 
-            # Dodaj kolumne flagi jesli nie istnieje
+            # Add flag column if it doesn't exist
             if flag_name not in result_df.columns:
                 result_df = result_df.with_columns([
                     pl.lit(DataQualityFlag.RAW.value).alias(flag_name)
                 ])
 
-            # Wykonaj imputacje
+            # Perform imputation
             result_df, stat = self._impute_field(result_df, field_name, flag_name)
             if stat:
                 stats.append(stat)
@@ -131,26 +131,26 @@ class Imputer:
         field_name: str,
         flag_name: str,
     ) -> tuple[pl.DataFrame, Optional[ImputationStats]]:
-        """Imputuj pojedyncze pole."""
-        # Okresl maske brakow
+        """Impute single field."""
+        # Determine missing mask
         if self.treat_zero_as_missing:
             missing_mask = pl.col(field_name).is_null() | (pl.col(field_name) <= 0)
         else:
             missing_mask = pl.col(field_name).is_null()
 
-        # Policz braki
+        # Count missing
         missing_count = df.filter(missing_mask).height
         if missing_count == 0:
             return df, None
 
-        # Oblicz wartosc imputacji
+        # Calculate imputation value
         valid_values = df.filter(~missing_mask)[field_name]
         if valid_values.len() == 0:
             return df, None
 
         imputation_value = self._calculate_imputation_value(valid_values)
 
-        # Zastosuj imputacje
+        # Apply imputation
         result_df = df.with_columns([
             pl.when(missing_mask)
             .then(imputation_value)
@@ -174,7 +174,7 @@ class Imputer:
         return result_df, stat
 
     def _calculate_imputation_value(self, values: pl.Series) -> float:
-        """Oblicz wartosc do imputacji."""
+        """Calculate value for imputation."""
         if self.method == ImputationMethod.MEDIAN:
             return values.median()
         elif self.method == ImputationMethod.MEAN:
@@ -191,12 +191,12 @@ def impute_missing(
     method: ImputationMethod = ImputationMethod.MEDIAN,
     fields: Optional[list[str]] = None,
 ) -> ImputationResult:
-    """Funkcja pomocnicza do imputacji.
+    """Helper function for imputation.
 
     Args:
-        df: DataFrame z danymi
-        method: Metoda imputacji
-        fields: Lista pol do imputacji
+        df: DataFrame with data
+        method: Imputation method
+        fields: List of fields to impute
 
     Returns:
         ImputationResult
