@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import polars as pl
+
 if TYPE_CHECKING:
     from src.ingest import MappingResult
 
@@ -125,8 +127,17 @@ def render_sidebar() -> None:
         st.session_state.imputation_enabled = st.checkbox(
             "Enable imputation",
             value=True,
-            help="Fill missing values with median",
+            help="Fill missing values with selected method",
         )
+
+        if st.session_state.imputation_enabled:
+            st.session_state.imputation_method = st.selectbox(
+                "Imputation method",
+                options=["Median", "Average"],
+                index=0,
+                key="imputation_method_select",
+                help="Median is more robust to outliers; Average uses arithmetic mean",
+            )
 
         st.markdown("---")
         st.subheader("Outlier validation")
@@ -719,6 +730,7 @@ def render_validation_tab() -> None:
         with st.spinner("Validation in progress..."):
             try:
                 from src.quality import run_quality_pipeline
+                from src.quality.impute import ImputationMethod
 
                 # Build outlier thresholds from session state
                 outlier_thresholds = {
@@ -740,9 +752,17 @@ def render_validation_tab() -> None:
                     },
                 }
 
+                # Determine imputation method
+                imputation_method_str = st.session_state.get("imputation_method", "Median")
+                imputation_method = (
+                    ImputationMethod.MEAN if imputation_method_str == "Average"
+                    else ImputationMethod.MEDIAN
+                )
+
                 result = run_quality_pipeline(
                     st.session_state.masterdata_df,
                     enable_imputation=st.session_state.get("imputation_enabled", True),
+                    imputation_method=imputation_method,
                     enable_outlier_validation=st.session_state.get("outlier_validation_enabled", True),
                     outlier_thresholds=outlier_thresholds,
                 )
@@ -761,7 +781,15 @@ def render_validation_tab() -> None:
         # Metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Quality Score", f"{result.quality_score:.1f}%")
+            st.metric(
+                "Quality Score",
+                f"{result.quality_score:.1f}%",
+                help=(
+                    "Weighted average of data coverage: dimensions (40%), weight (30%), "
+                    "stock (30%), minus penalty for detected issues (0.5 point per issue, max 30). "
+                    "Higher score indicates better data quality."
+                ),
+            )
         with col2:
             st.metric("Records", result.total_records)
         with col3:
@@ -940,32 +968,30 @@ def render_carriers_table() -> None:
 
     st.markdown("**Defined carriers:**")
 
+    # Header row
+    header_cols = st.columns([2, 3, 2, 1])
+    with header_cols[0]:
+        st.markdown("**ID**")
+    with header_cols[1]:
+        st.markdown("**Dimensions (L×W×H)**")
+    with header_cols[2]:
+        st.markdown("**Max weight**")
+    with header_cols[3]:
+        st.markdown("")
+
     for i, carrier in enumerate(carriers):
-        # Row 1: ID, Name, Delete
-        row1_cols = st.columns([1.5, 3, 1])
-        with row1_cols[0]:
-            st.markdown(f"**ID:** {carrier['carrier_id']}")
-        with row1_cols[1]:
-            st.markdown(f"**Name:** {carrier['name']}")
-        with row1_cols[2]:
-            if st.button("Delete", key=f"del_carrier_{i}", help="Delete carrier"):
+        cols = st.columns([2, 3, 2, 1])
+        with cols[0]:
+            st.text(carrier['carrier_id'])
+        with cols[1]:
+            dims = f"{int(carrier['inner_length_mm'])}×{int(carrier['inner_width_mm'])}×{int(carrier['inner_height_mm'])} mm"
+            st.text(dims)
+        with cols[2]:
+            st.text(f"{carrier['max_weight_kg']:.1f} kg")
+        with cols[3]:
+            if st.button("🗑️", key=f"del_carrier_{i}", help=f"Delete {carrier['name']}"):
                 st.session_state.custom_carriers.pop(i)
                 st.rerun()
-
-        # Row 2: L, W, H, Max kg
-        row2_cols = st.columns(4)
-        with row2_cols[0]:
-            st.text(f"L: {int(carrier['inner_length_mm'])} mm")
-        with row2_cols[1]:
-            st.text(f"W: {int(carrier['inner_width_mm'])} mm")
-        with row2_cols[2]:
-            st.text(f"H: {int(carrier['inner_height_mm'])} mm")
-        with row2_cols[3]:
-            st.text(f"Max: {carrier['max_weight_kg']:.1f} kg")
-
-        # Separator between carriers
-        if i < len(carriers) - 1:
-            st.divider()
 
 
 def render_analysis_tab() -> None:

@@ -217,6 +217,7 @@
 
 ## FAZA 10: Poprawki UI i Walidacji (2026-01-06) ✅
 
+### Import
 - [x] Przesunięcie przycisku "Import Masterdata" do prawej krawędzi
 - [x] Naprawa etykiety "(manual)" w podsumowaniu mapowania
   - Zachowanie statusu is_auto z oryginalnego mapowania
@@ -224,13 +225,32 @@
 - [x] Wykrywanie duplikatów kolumn w mapowaniu
   - Komunikat błędu z listą zduplikowanych mapowań
   - Blokada przycisku Import przy duplikatach
+- [x] Wybór jednostki wagi przy imporcie (Auto-detect / Grams / Kilograms)
+  - Przydatne gdy auto-detekcja zawodzi dla lekkich przedmiotów
+
+### Walidacja
 - [x] Sekcja pomocy walidacji ("Validation help")
   - Opisy: Missing Critical, Outliers, Borderline, Duplicates, Conflicts
+  - Info o wykluczaniu outliers/borderline z analizy
 - [x] Konfigurowalne progi outlierów w sidebarze
   - Checkbox włączania/wyłączania walidacji outlierów
   - Pola min/max dla wymiarów (mm) i wagi (kg)
   - Integracja z pipeline'em jakości danych
+- [x] Poprawione liczniki Outliers/Borderline (pokazuje 0 gdy walidacja wyłączona)
 - [x] Weryfikacja jednostki wagi (kg) - potwierdzone że system używa kg
+
+### Analiza pojemnościowa
+- [x] Wykluczanie Outliers i Borderline SKU z analizy pojemnościowej
+  - Automatyczne filtrowanie przed analizą
+  - Komunikat "Excluded from analysis: X SKU (outliers/borderline)"
+- [x] Tooltips do wszystkich metryk pojemnościowych
+  - FIT, BORDERLINE, NOT FIT, Fit %, Volume - wyjaśnienia działania
+- [x] Nowa metryka "Stock volume (m³)"
+  - Suma objętości jednostkowej × zapas dla wszystkich pasujących SKU
+  - Dodane pole stock_volume_m3 do CarrierStats
+- [x] Przebudowa widoku tabeli nośników
+  - Kompaktowy format 2-wierszowy zamiast 7-kolumnowego
+  - Separator między nośnikami
 
 ---
 

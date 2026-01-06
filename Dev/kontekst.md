@@ -193,16 +193,25 @@ D:\VS\DataAnalysis\
   - Przycisk "Import Masterdata" przesunięty do prawej krawędzi (layout [1,3])
   - Naprawiono bug z etykietą "(manual)" - teraz poprawnie oznacza tylko ręcznie zmienione mapowania
   - Dodano wykrywanie duplikatów kolumn z komunikatem błędu i blokadą importu
+  - Dodano wybór jednostki wagi (Auto-detect / Grams / Kilograms) dla plików z małymi wartościami
 - **Rozszerzenia walidacji danych:**
   - Dodano rozwijalną sekcję "Validation help" z opisami wszystkich typów problemów
   - Dodano kontrolki outlierów w sidebarze:
     - Checkbox włączania/wyłączania walidacji outlierów
     - Konfigurowalne progi dla wymiarów (mm) i wagi (kg)
   - Progi outlierów przekazywane do pipeline'u jakości danych
+  - Poprawiono wyświetlanie liczników Outliers/Borderline (0 gdy walidacja wyłączona)
+- **Rozszerzenia analizy pojemnościowej:**
+  - Outliers i Borderline SKU automatycznie wykluczane z analizy pojemnościowej
+  - Komunikat "Excluded from analysis: X SKU (outliers/borderline)" przy wynikach
+  - Dodano tooltips do wszystkich metryk pojemnościowych (FIT, BORDERLINE, NOT FIT, Fit %, Volume)
+  - Nowa metryka "Stock volume (m³)" - suma objętości z uwzględnieniem zapasów (unit × stock)
+  - Przebudowano widok tabeli nośników (kompaktowy format 2-wierszowy zamiast 7-kolumnowy)
 - **Zmodyfikowane pliki:**
-  - `src/ui/app.py` - UI, layout przycisków, mapowanie, sekcja pomocy, kontrolki outlierów
+  - `src/ui/app.py` - UI, layout przycisków, mapowanie, sekcja pomocy, kontrolki outlierów, analiza
   - `src/quality/validators.py` - konfigurowalne progi outlierów, flaga włączania
   - `src/quality/pipeline.py` - obsługa parametrów outlierów
+  - `src/analytics/capacity.py` - dodano stock_volume_m3 do CarrierStats
 
 ---
 
@@ -247,4 +256,4 @@ Dodatkowo zaimplementowano wszystkie wcześniej pominięte zadania (testy jednos
 
 **Data:** 2026-01-06
 **Przez:** Claude Code
-**Zmiany:** Poprawki UI i walidacji - przycisk Import do prawej, fix etykiety manual/auto, wykrywanie duplikatów kolumn, sekcja pomocy walidacji, konfigurowalne progi outlierów w sidebarze
+**Zmiany:** Rozszerzenia analizy pojemnościowej - wykluczanie outliers/borderline z analizy, stock volume (m³), tooltips, kompaktowa tabela nośników, wybór jednostki wagi przy imporcie

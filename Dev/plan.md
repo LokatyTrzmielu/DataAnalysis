@@ -173,16 +173,28 @@ reports/
 
 ### FAZA 10: Poprawki UI i Walidacji ✅
 **Pliki zmodyfikowane:**
-- `src/ui/app.py` - layout przycisków, mapowanie kolumn, sekcja pomocy, kontrolki outlierów
+- `src/ui/app.py` - layout przycisków, mapowanie kolumn, sekcja pomocy, kontrolki outlierów, analiza
 - `src/quality/validators.py` - konfigurowalne progi outlierów
 - `src/quality/pipeline.py` - parametry outlierów
+- `src/analytics/capacity.py` - stock_volume_m3
 
-**Zmiany:**
+**Zmiany w imporcie:**
 - Przycisk "Import Masterdata" przesunięty do prawej (layout [1,3])
 - Naprawa etykiety "(manual)" - zachowanie statusu is_auto z oryginalnego mapowania
 - Wykrywanie duplikatów kolumn z blokadą importu
+- Wybór jednostki wagi (Auto-detect / Grams / Kilograms)
+
+**Zmiany w walidacji:**
 - Sekcja "Validation help" z opisami typów problemów
 - Kontrolki outlierów w sidebarze (włączanie/wyłączanie + konfigurowalne progi)
+- Poprawione liczniki Outliers/Borderline (0 gdy walidacja wyłączona)
+
+**Zmiany w analizie pojemnościowej:**
+- Automatyczne wykluczanie Outliers/Borderline SKU z analizy
+- Komunikat "Excluded from analysis: X SKU (outliers/borderline)"
+- Tooltips do wszystkich metryk (FIT, BORDERLINE, NOT FIT, Fit %, Volume)
+- Nowa metryka "Stock volume (m³)" - suma objętości × zapas
+- Kompaktowa tabela nośników (format 2-wierszowy)
 
 ---
 
