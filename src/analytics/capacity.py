@@ -25,7 +25,8 @@ class CarrierStats:
     borderline_count: int
     not_fit_count: int
     fit_percentage: float
-    total_volume_m3: float  # Sum of SKU volumes that fit (fit + borderline)
+    total_volume_m3: float  # Sum of unit SKU volumes that fit (fit + borderline)
+    stock_volume_m3: float = 0.0  # Sum of (unit volume × stock_qty) for fitting SKUs
 
 
 @dataclass
@@ -247,9 +248,12 @@ class CapacityAnalyzer:
             width = row.get("width_mm", 0) or 0
             height = row.get("height_mm", 0) or 0
             weight = row.get("weight_kg", 0) or 0
+            stock_qty = row.get("stock_qty", 0) or 0
 
             # Calculate volume_m3 for a single SKU unit
             sku_volume_m3 = (length * width * height) / 1_000_000_000
+            # Stock volume = unit volume × stock quantity
+            sku_stock_volume_m3 = sku_volume_m3 * stock_qty
 
             constraint = OrientationConstraint.ANY
             if "orientation_constraint" in row:
@@ -270,7 +274,8 @@ class CapacityAnalyzer:
                     "carrier_id": carrier.carrier_id,
                     "fit_status": fit_result.fit_status.value,
                     "units_per_carrier": fit_result.units_per_carrier,
-                    "volume_m3": round(total_volume_m3, 2),
+                    "volume_m3": round(sku_volume_m3, 6),  # Unit volume
+                    "stock_volume_m3": round(sku_stock_volume_m3, 6),  # Stock volume
                     "limiting_factor": fit_result.limiting_factor.value,
                     "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
                 })
@@ -284,6 +289,7 @@ class CapacityAnalyzer:
                 "fit_status": pl.Utf8,
                 "units_per_carrier": pl.Int64,
                 "volume_m3": pl.Float64,
+                "stock_volume_m3": pl.Float64,
                 "limiting_factor": pl.Utf8,
                 "margin_mm": pl.Float64,
             }
@@ -310,6 +316,7 @@ class CapacityAnalyzer:
             # Sum of volume_m3 for SKUs that fit (FIT or BORDERLINE)
             fitting_df = carrier_df.filter(pl.col("fit_status").is_in(["FIT", "BORDERLINE"]))
             c_volume_m3 = fitting_df["volume_m3"].sum() if fitting_df.height > 0 else 0.0
+            c_stock_volume_m3 = fitting_df["stock_volume_m3"].sum() if fitting_df.height > 0 else 0.0
 
             carrier_stats[carrier.carrier_id] = CarrierStats(
                 carrier_id=carrier.carrier_id,
@@ -319,6 +326,7 @@ class CapacityAnalyzer:
                 not_fit_count=c_not_fit,
                 fit_percentage=round(c_fit_pct, 1),
                 total_volume_m3=round(c_volume_m3, 2),
+                stock_volume_m3=round(c_stock_volume_m3, 2),
             )
 
         return CapacityAnalysisResult(

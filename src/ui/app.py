@@ -792,10 +792,21 @@ def render_validation_tab() -> None:
         # Issues
         st.subheader("Detected issues")
         dq = result.dq_lists
+        # Show 0 for Outliers/Borderline when validation is disabled
+        outliers_count = (
+            len(dq.suspect_outliers)
+            if st.session_state.get("outlier_validation_enabled", True)
+            else 0
+        )
+        borderline_count = (
+            len(dq.high_risk_borderline)
+            if st.session_state.get("borderline_threshold", 0) > 0
+            else 0
+        )
         problems = {
             "Missing Critical": len(dq.missing_critical),
-            "Outliers": len(dq.suspect_outliers),
-            "Borderline": len(dq.high_risk_borderline),
+            "Outliers": outliers_count,
+            "Borderline": borderline_count,
             "Duplicates": len(dq.duplicates),
             "Conflicts": len(dq.conflicts),
         }
@@ -814,9 +825,11 @@ These SKUs cannot be analyzed until the data is corrected.
 
 **Outliers** - Values outside the acceptable range defined in settings.
 Very small or very large dimensions/weights that may indicate data entry errors.
+These SKUs are **excluded from capacity analysis** and listed for verification only.
 
 **Borderline** - SKUs with dimensions very close to carrier size limits.
 These items may have fitting issues during automated storage operations.
+These SKUs are **excluded from capacity analysis** and listed for verification only.
 
 **Duplicates** - Same SKU appearing multiple times in the masterdata.
 Each SKU should appear only once with consistent dimension data.
@@ -998,12 +1011,35 @@ def render_analysis_tab() -> None:
                         # Use borderline threshold from session state
                         borderline_threshold = st.session_state.get("borderline_threshold", 2.0)
 
+                        # Filter out Outliers and Borderline SKUs from analysis
+                        df_to_analyze = st.session_state.masterdata_df
+                        excluded_count = 0
+
+                        if st.session_state.quality_result is not None:
+                            dq = st.session_state.quality_result.dq_lists
+                            excluded_skus = set()
+
+                            # Exclude outliers if validation is enabled
+                            if st.session_state.get("outlier_validation_enabled", True):
+                                excluded_skus.update(item.sku for item in dq.suspect_outliers)
+
+                            # Exclude borderline if threshold is set
+                            if st.session_state.get("borderline_threshold", 0) > 0:
+                                excluded_skus.update(item.sku for item in dq.high_risk_borderline)
+
+                            if excluded_skus:
+                                excluded_count = len(excluded_skus)
+                                df_to_analyze = df_to_analyze.filter(
+                                    ~pl.col("sku").is_in(list(excluded_skus))
+                                )
+
                         analyzer = CapacityAnalyzer(
                             carriers=carriers,
                             borderline_threshold_mm=borderline_threshold,
                         )
-                        result = analyzer.analyze_dataframe(st.session_state.masterdata_df)
+                        result = analyzer.analyze_dataframe(df_to_analyze)
                         st.session_state.capacity_result = result
+                        st.session_state.capacity_excluded_count = excluded_count
 
                         st.success("Capacity analysis complete")
 
@@ -1017,6 +1053,11 @@ def render_analysis_tab() -> None:
                 st.markdown("---")
                 st.markdown("**Analysis results per carrier:**")
 
+                # Show excluded SKU count if any
+                excluded_count = st.session_state.get("capacity_excluded_count", 0)
+                if excluded_count > 0:
+                    st.info(f"Excluded from analysis: {excluded_count} SKU (outliers/borderline)")
+
                 # Display results for each carrier separately
                 for carrier_id in result.carriers_analyzed:
                     stats = result.carrier_stats.get(carrier_id)
@@ -1024,13 +1065,32 @@ def render_analysis_tab() -> None:
                         with st.expander(f"{stats.carrier_name} ({carrier_id})", expanded=True):
                             col_a, col_b, col_c = st.columns(3)
                             with col_a:
-                                st.metric("FIT", stats.fit_count)
-                                st.metric("BORDERLINE", stats.borderline_count)
+                                st.metric(
+                                    "FIT", stats.fit_count,
+                                    help="SKU fitting completely with margin > threshold"
+                                )
+                                st.metric(
+                                    "BORDERLINE", stats.borderline_count,
+                                    help="SKU fitting but with margin < threshold (risk of fitting issues)"
+                                )
                             with col_b:
-                                st.metric("NOT FIT", stats.not_fit_count)
-                                st.metric("Fit %", f"{stats.fit_percentage:.1f}%")
+                                st.metric(
+                                    "NOT FIT", stats.not_fit_count,
+                                    help="SKU not fitting in this carrier (size or weight exceeded)"
+                                )
+                                st.metric(
+                                    "Fit %", f"{stats.fit_percentage:.1f}%",
+                                    help="Percentage of SKU fitting (FIT + BORDERLINE) / Total"
+                                )
                             with col_c:
-                                st.metric("Volume (m³)", f"{stats.total_volume_m3:.2f}")
+                                st.metric(
+                                    "Volume (m³)", f"{stats.total_volume_m3:.2f}",
+                                    help="Sum of unit volumes (L×W×H) for all fitting SKU"
+                                )
+                                st.metric(
+                                    "Stock volume (m³)", f"{stats.stock_volume_m3:.2f}",
+                                    help="Sum of (unit volume × stock quantity) for all fitting SKU"
+                                )
 
     with col2:
         st.subheader("Performance analysis")
