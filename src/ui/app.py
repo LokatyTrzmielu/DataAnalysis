@@ -1190,19 +1190,29 @@ def render_analysis_tab() -> None:
                 st.warning("Add at least one carrier for analysis")
 
             # Exclusion settings
-            with st.expander("Exclusion settings", expanded=False):
-                outlier_count = 0
-                if st.session_state.quality_result is not None:
-                    outlier_count = len(st.session_state.quality_result.dq_lists.suspect_outliers)
+            outlier_count = 0
+            if st.session_state.quality_result is not None:
+                outlier_count = len(st.session_state.quality_result.dq_lists.suspect_outliers)
+
+            with st.expander(
+                f"Exclusion settings ({outlier_count} outliers)" if outlier_count > 0 else "Exclusion settings",
+                expanded=outlier_count > 0,
+            ):
+                if outlier_count > 0:
+                    st.warning(f"{outlier_count} SKU detected as outliers (values outside normal range)")
 
                 st.checkbox(
                     f"Exclude outliers ({outlier_count} SKU)",
-                    value=True,
+                    value=outlier_count > 0,  # Default: enabled only when outliers exist
                     key="exclude_outliers_checkbox",
+                    disabled=outlier_count == 0,
                     help="SKU with suspicious values (dimensions/weight outside normal range)",
                 )
 
-                st.caption("Borderline filters will be available after running analysis")
+                if outlier_count == 0:
+                    st.caption("No outliers detected - all SKU will be included in analysis")
+                else:
+                    st.caption("Borderline filters will be available after running analysis")
 
             if st.button("Run capacity analysis", disabled=not carriers_defined):
                 with st.spinner("Analysis in progress..."):
