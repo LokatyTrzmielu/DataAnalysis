@@ -35,9 +35,9 @@ BORDERLINE_THRESHOLD_MM: Final[float] = 2.0  # mm - threshold for BORDERLINE fit
 # Single source of truth for outlier detection across all modules
 # Used by: validators.py, dq_lists.py
 OUTLIER_THRESHOLDS: Final[dict[str, dict[str, float]]] = {
-    "length_mm": {"min": 0.01 "max": 864.0},
-    "width_mm": {"min": 0.01 "max": 3650.0},
-    "height_mm": {"min": 0.01"max": 210.0},
+    "length_mm": {"min": 0.01, "max": 864.0},
+    "width_mm": {"min": 0.01, "max": 3650.0},
+    "height_mm": {"min": 0.01, "max": 210.0},
     "weight_kg": {"min": 0.01, "max": 500.0},
     "stock_qty": {"min": 0.0, "max": 1_000_000.0},
 }
