@@ -16,5 +16,6 @@
       "Bash(cd:*)",
       "Bash(streamlit run:*)"
     ]
-  }
+  },
+  "outputStyle": "default"
 }
