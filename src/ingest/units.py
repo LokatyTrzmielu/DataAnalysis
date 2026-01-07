@@ -145,7 +145,7 @@ class UnitDetector:
         clean_values = [v for v in values if v is not None and v > 0]
         if not clean_values:
             return UnitDetectionResult(
-                detected_unit=WeightUnit.KG,
+                detected_unit=WeightUnit.G,  # Default to grams
                 confidence=0.0,
                 sample_values=[],
                 converted_values=[],
@@ -163,16 +163,19 @@ class UnitDetector:
                 )
 
         median = sorted(clean_values)[len(clean_values) // 2]
+        max_val = max(clean_values)
 
         # Heuristics:
-        # - If median > 100 -> probably grams
-        # - If median < 100 -> probably kg
+        # Default: grams (customer data is typically in grams)
+        # Detect kg only if values are very small (typical product weight range 0.01-50 kg)
 
-        if median > 500:
-            detected = WeightUnit.G
-            confidence = 0.8
-        else:
+        if median < 10 and max_val < 100:
+            # Probably kilograms - very small values
             detected = WeightUnit.KG
+            confidence = 0.7
+        else:
+            # Default: grams
+            detected = WeightUnit.G
             confidence = 0.85
 
         return UnitDetectionResult(
@@ -203,6 +206,9 @@ class UnitDetector:
         elif unit_type == "weight":
             if "_kg" in name_lower or "(kg)" in name_lower or name_lower.endswith("kg"):
                 return WeightUnit.KG
+            # Check for grams - including "grams", "_g", "(g)"
+            if "grams" in name_lower or "gram" in name_lower:
+                return WeightUnit.G
             if "_g" in name_lower or "(g)" in name_lower or name_lower.endswith("g"):
                 return WeightUnit.G
             if "lb" in name_lower or "pound" in name_lower:

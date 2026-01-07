@@ -32,9 +32,10 @@ MASTERDATA_SCHEMA = {
         "description": "Height (mm or cm)",
     },
     "weight": {
-        "aliases": ["weight", "waga", "mass", "kg", "weight_kg", "masa", "wgt"],
+        "aliases": ["weight", "waga", "mass", "kg", "weight_kg", "masa", "wgt",
+                    "grams", "gram", "weight_grams", "weight_g", "g"],
         "required": True,
-        "description": "Weight (kg or g)",
+        "description": "Weight (g or kg - will be auto-detected)",
     },
     "stock": {
         "aliases": ["stock", "qty", "ilosc", "zapas", "quantity", "stan", "stock_qty", "on_hand", "szt", "sztuk", "pieces"],
