@@ -5,7 +5,7 @@ from typing import Optional
 
 import polars as pl
 
-from src.core.config import BORDERLINE_THRESHOLD_MM
+from src.core.config import BORDERLINE_THRESHOLD_MM, OUTLIER_THRESHOLDS
 
 
 @dataclass
@@ -44,14 +44,6 @@ class DQLists:
 class DQListBuilder:
     """Builder for DQ lists."""
 
-    # Thresholds for outliers (suspicious values)
-    OUTLIER_THRESHOLDS = {
-        "length_mm": {"low": 10, "high": 2000},
-        "width_mm": {"low": 10, "high": 2000},
-        "height_mm": {"low": 5, "high": 1500},
-        "weight_kg": {"low": 0.01, "high": 200},
-    }
-
     def __init__(
         self,
         borderline_threshold_mm: float = BORDERLINE_THRESHOLD_MM,
@@ -59,7 +51,15 @@ class DQListBuilder:
     ) -> None:
         """Initialize builder."""
         self.borderline_threshold_mm = borderline_threshold_mm
-        self.outlier_thresholds = outlier_thresholds or self.OUTLIER_THRESHOLDS
+        # Use unified thresholds from config, converting min/max to low/high format
+        if outlier_thresholds:
+            self.outlier_thresholds = outlier_thresholds
+        else:
+            self.outlier_thresholds = {
+                field: {"low": bounds["min"], "high": bounds["max"]}
+                for field, bounds in OUTLIER_THRESHOLDS.items()
+                if field != "stock_qty"  # stock_qty is not checked for outliers in DQ lists
+            }
 
     def build_all_lists(
         self,

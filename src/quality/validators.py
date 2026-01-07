@@ -11,6 +11,7 @@ from src.core.config import (
     TREAT_ZERO_AS_MISSING_WEIGHT,
     TREAT_ZERO_AS_MISSING_QUANTITIES,
     TREAT_NEGATIVE_AS_MISSING,
+    OUTLIER_THRESHOLDS,
 )
 
 
@@ -58,15 +59,6 @@ class ValidationResult:
 class MasterdataValidator:
     """Masterdata validator."""
 
-    # Default thresholds for outliers
-    DEFAULT_OUTLIER_THRESHOLDS = {
-        "length_mm": {"min": 1, "max": 3000},
-        "width_mm": {"min": 1, "max": 3000},
-        "height_mm": {"min": 1, "max": 2000},
-        "weight_kg": {"min": 0.001, "max": 500},
-        "stock_qty": {"min": 0, "max": 1_000_000},
-    }
-
     # IQR multiplier for dynamic outliers
     IQR_MULTIPLIER = 3.0
 
@@ -92,8 +84,8 @@ class MasterdataValidator:
         self.treat_negative_as_missing = treat_negative_as_missing
         self.enable_outlier_validation = enable_outlier_validation
 
-        # Merge custom thresholds with defaults
-        self.outlier_thresholds = self.DEFAULT_OUTLIER_THRESHOLDS.copy()
+        # Merge custom thresholds with defaults from config
+        self.outlier_thresholds = {k: v.copy() for k, v in OUTLIER_THRESHOLDS.items()}
         if outlier_thresholds:
             for field, bounds in outlier_thresholds.items():
                 if field in self.outlier_thresholds:

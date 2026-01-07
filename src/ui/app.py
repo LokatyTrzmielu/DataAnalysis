@@ -30,6 +30,7 @@ st.set_page_config(
 def init_session_state() -> None:
     """Initialize session state."""
     from src.core.carriers import CarrierService
+    from src.core.config import OUTLIER_THRESHOLDS
 
     defaults = {
         "client_name": "",
@@ -52,16 +53,16 @@ def init_session_state() -> None:
         "orders_mapping_step": "upload",
         # Custom carriers for capacity analysis
         "custom_carriers": [],
-        # Outlier validation settings
+        # Outlier validation settings - use unified thresholds from config
         "outlier_validation_enabled": True,
-        "outlier_length_min": 1,
-        "outlier_length_max": 3000,
-        "outlier_width_min": 1,
-        "outlier_width_max": 3000,
-        "outlier_height_min": 1,
-        "outlier_height_max": 2000,
-        "outlier_weight_min": 0.001,
-        "outlier_weight_max": 500.0,
+        "outlier_length_min": OUTLIER_THRESHOLDS["length_mm"]["min"],
+        "outlier_length_max": OUTLIER_THRESHOLDS["length_mm"]["max"],
+        "outlier_width_min": OUTLIER_THRESHOLDS["width_mm"]["min"],
+        "outlier_width_max": OUTLIER_THRESHOLDS["width_mm"]["max"],
+        "outlier_height_min": OUTLIER_THRESHOLDS["height_mm"]["min"],
+        "outlier_height_max": OUTLIER_THRESHOLDS["height_mm"]["max"],
+        "outlier_weight_min": OUTLIER_THRESHOLDS["weight_kg"]["min"],
+        "outlier_weight_max": OUTLIER_THRESHOLDS["weight_kg"]["max"],
         # Carriers loaded flag
         "carriers_loaded": False,
     }
@@ -91,6 +92,8 @@ def init_session_state() -> None:
 
 def render_sidebar() -> None:
     """Render sidebar with parameters."""
+    from src.core.config import OUTLIER_THRESHOLDS
+
     with st.sidebar:
         st.title("DataAnalysis")
         st.markdown("---")
@@ -177,34 +180,42 @@ def render_sidebar() -> None:
                 col1, col2 = st.columns(2)
                 with col1:
                     st.session_state.outlier_length_min = st.number_input(
-                        "Length min", value=1, min_value=0, step=1, key="ol_len_min"
+                        "Length min", value=int(OUTLIER_THRESHOLDS["length_mm"]["min"]),
+                        min_value=0, step=1, key="ol_len_min"
                     )
                     st.session_state.outlier_width_min = st.number_input(
-                        "Width min", value=1, min_value=0, step=1, key="ol_wid_min"
+                        "Width min", value=int(OUTLIER_THRESHOLDS["width_mm"]["min"]),
+                        min_value=0, step=1, key="ol_wid_min"
                     )
                     st.session_state.outlier_height_min = st.number_input(
-                        "Height min", value=1, min_value=0, step=1, key="ol_hgt_min"
+                        "Height min", value=int(OUTLIER_THRESHOLDS["height_mm"]["min"]),
+                        min_value=0, step=1, key="ol_hgt_min"
                     )
                 with col2:
                     st.session_state.outlier_length_max = st.number_input(
-                        "Length max", value=3000, min_value=1, step=100, key="ol_len_max"
+                        "Length max", value=int(OUTLIER_THRESHOLDS["length_mm"]["max"]),
+                        min_value=1, step=100, key="ol_len_max"
                     )
                     st.session_state.outlier_width_max = st.number_input(
-                        "Width max", value=3000, min_value=1, step=100, key="ol_wid_max"
+                        "Width max", value=int(OUTLIER_THRESHOLDS["width_mm"]["max"]),
+                        min_value=1, step=100, key="ol_wid_max"
                     )
                     st.session_state.outlier_height_max = st.number_input(
-                        "Height max", value=2000, min_value=1, step=100, key="ol_hgt_max"
+                        "Height max", value=int(OUTLIER_THRESHOLDS["height_mm"]["max"]),
+                        min_value=1, step=100, key="ol_hgt_max"
                     )
 
                 st.markdown("**Weight (kg):**")
                 col3, col4 = st.columns(2)
                 with col3:
                     st.session_state.outlier_weight_min = st.number_input(
-                        "Weight min", value=0.001, min_value=0.0, step=0.001, format="%.3f", key="ol_wgt_min"
+                        "Weight min", value=OUTLIER_THRESHOLDS["weight_kg"]["min"],
+                        min_value=0.0, step=0.001, format="%.3f", key="ol_wgt_min"
                     )
                 with col4:
                     st.session_state.outlier_weight_max = st.number_input(
-                        "Weight max", value=500.0, min_value=0.1, step=10.0, key="ol_wgt_max"
+                        "Weight max", value=OUTLIER_THRESHOLDS["weight_kg"]["max"],
+                        min_value=0.1, step=10.0, key="ol_wgt_max"
                     )
 
         st.markdown("---")
@@ -405,6 +416,60 @@ def render_mapping_ui(
 
             if selected != "-- Don't map --":
                 user_mappings[field_name] = selected
+
+    # Optional fields section (e.g., stock)
+    optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
+    if optional_fields:
+        st.markdown("**Optional fields:**")
+        opt_cols = st.columns(len(optional_fields))
+        for i, field_name in enumerate(optional_fields):
+            with opt_cols[i]:
+                field_cfg = schema[field_name]
+                widget_key = f"{key_prefix}_map_{field_name}"
+
+                # Get current mapping from auto-mapping result
+                current_mapping = mapping_result.mappings.get(field_name)
+                current_value = current_mapping.source_column if current_mapping else None
+
+                # Find index for default selection
+                if current_value and current_value in file_columns:
+                    default_idx = file_columns.index(current_value) + 1
+                else:
+                    default_idx = 0
+
+                # Check if field is currently mapped
+                current_selection = st.session_state.get(widget_key)
+                is_mapped = current_selection is not None and current_selection != "-- Don't map --"
+                if current_selection is None:
+                    is_mapped = current_value is not None
+
+                # Status indicator - optional uses different styling
+                if is_mapped:
+                    st.markdown(
+                        """<div style="background-color: #d4edda; padding: 6px 10px;
+                        border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 4px;">
+                        <small style="color: #155724;">✓ Mapped</small></div>""",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        """<div style="background-color: #fff3cd; padding: 6px 10px;
+                        border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 4px;">
+                        <small style="color: #856404;">○ Optional</small></div>""",
+                        unsafe_allow_html=True,
+                    )
+
+                # Dropdown
+                selected = st.selectbox(
+                    field_name,
+                    options=dropdown_options,
+                    index=default_idx,
+                    key=widget_key,
+                    help=field_cfg["description"],
+                )
+
+                if selected != "-- Don't map --":
+                    user_mappings[field_name] = selected
 
     # Build updated MappingResult
     return build_mapping_result_from_selections(user_mappings, file_columns, schema, mapping_result)

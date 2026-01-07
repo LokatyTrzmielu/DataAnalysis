@@ -114,8 +114,8 @@ class CarrierService:
             CarrierConfig(
                 carrier_id="NOSNIK_3",
                 name="Nosnik 3 - 3650x864x200",
-                inner_length_mm=864,
-                inner_width_mm=3650,
+                inner_length_mm=3650,
+                inner_width_mm=864,
                 inner_height_mm=200,
                 max_weight_kg=440,
                 is_active=True,

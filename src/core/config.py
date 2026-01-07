@@ -29,6 +29,20 @@ IMPUTATION_SCOPE: Final[str] = "global"   # global, per_category
 BORDERLINE_THRESHOLD_MM: Final[float] = 2.0  # mm - threshold for BORDERLINE fit
 
 # ============================================================================
+# Outlier Detection - Unified thresholds
+# ============================================================================
+
+# Single source of truth for outlier detection across all modules
+# Used by: validators.py, dq_lists.py
+OUTLIER_THRESHOLDS: Final[dict[str, dict[str, float]]] = {
+    "length_mm": {"min": 10, "max": 2000},
+    "width_mm": {"min": 10, "max": 2000},
+    "height_mm": {"min": 5, "max": 1500},
+    "weight_kg": {"min": 0.01, "max": 200},
+    "stock_qty": {"min": 0, "max": 1_000_000},
+}
+
+# ============================================================================
 # Machine Utilization - Default values
 # ============================================================================
 
