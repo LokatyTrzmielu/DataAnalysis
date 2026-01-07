@@ -372,40 +372,38 @@ def render_mapping_ui(
         text=f"Required: {mapped_required}/{total_required} mapped",
     )
 
-    # Required fields section
-    st.markdown("**Required fields:**")
+    # Required fields section - vertical layout
+    for field_name in required_fields:
+        field_cfg = schema[field_name]
+        widget_key = f"{key_prefix}_map_{field_name}"
 
-    # Use columns for required fields
-    cols = st.columns(len(required_fields))
-    for i, field_name in enumerate(required_fields):
-        with cols[i]:
-            field_cfg = schema[field_name]
-            widget_key = f"{key_prefix}_map_{field_name}"
+        # Get current mapping from auto-mapping result
+        current_mapping = mapping_result.mappings.get(field_name)
+        current_value = current_mapping.source_column if current_mapping else None
 
-            # Get current mapping from auto-mapping result
-            current_mapping = mapping_result.mappings.get(field_name)
-            current_value = current_mapping.source_column if current_mapping else None
+        # Find index for default selection
+        if current_value and current_value in file_columns:
+            default_idx = file_columns.index(current_value) + 1
+        else:
+            default_idx = 0
 
-            # Find index for default selection
-            if current_value and current_value in file_columns:
-                default_idx = file_columns.index(current_value) + 1
-            else:
-                default_idx = 0
+        # Check if field is currently mapped (from session state if available)
+        current_selection = st.session_state.get(widget_key)
+        is_mapped = current_selection is not None and current_selection != "-- Don't map --"
+        # Fallback to auto-mapping if no session state yet
+        if current_selection is None:
+            is_mapped = current_value is not None
 
-            # Check if field is currently mapped (from session state if available)
-            current_selection = st.session_state.get(widget_key)
-            is_mapped = current_selection is not None and current_selection != "-- Don't map --"
-            # Fallback to auto-mapping if no session state yet
-            if current_selection is None:
-                is_mapped = current_value is not None
+        # Row layout: status | field name | dropdown
+        col_status, col_dropdown = st.columns([1, 4])
 
-            # Status indicator with colored background
+        with col_status:
             st.markdown(
                 _get_field_status_html(is_mapped),
                 unsafe_allow_html=True,
             )
 
-            # Dropdown
+        with col_dropdown:
             selected = st.selectbox(
                 field_name,
                 options=dropdown_options,
@@ -416,60 +414,6 @@ def render_mapping_ui(
 
             if selected != "-- Don't map --":
                 user_mappings[field_name] = selected
-
-    # Optional fields section
-    optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
-    if optional_fields:
-        st.markdown("**Optional fields:**")
-        opt_cols = st.columns(len(optional_fields))
-        for i, field_name in enumerate(optional_fields):
-            with opt_cols[i]:
-                field_cfg = schema[field_name]
-                widget_key = f"{key_prefix}_map_{field_name}"
-
-                # Get current mapping from auto-mapping result
-                current_mapping = mapping_result.mappings.get(field_name)
-                current_value = current_mapping.source_column if current_mapping else None
-
-                # Find index for default selection
-                if current_value and current_value in file_columns:
-                    default_idx = file_columns.index(current_value) + 1
-                else:
-                    default_idx = 0
-
-                # Check if field is currently mapped
-                current_selection = st.session_state.get(widget_key)
-                is_mapped = current_selection is not None and current_selection != "-- Don't map --"
-                if current_selection is None:
-                    is_mapped = current_value is not None
-
-                # Status indicator - optional uses different styling
-                if is_mapped:
-                    st.markdown(
-                        """<div style="background-color: #d4edda; padding: 6px 10px;
-                        border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 4px;">
-                        <small style="color: #155724;">✓ Mapped</small></div>""",
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    st.markdown(
-                        """<div style="background-color: #fff3cd; padding: 6px 10px;
-                        border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 4px;">
-                        <small style="color: #856404;">○ Optional</small></div>""",
-                        unsafe_allow_html=True,
-                    )
-
-                # Dropdown
-                selected = st.selectbox(
-                    field_name,
-                    options=dropdown_options,
-                    index=default_idx,
-                    key=widget_key,
-                    help=field_cfg["description"],
-                )
-
-                if selected != "-- Don't map --":
-                    user_mappings[field_name] = selected
 
     # Build updated MappingResult
     return build_mapping_result_from_selections(user_mappings, file_columns, schema, mapping_result)

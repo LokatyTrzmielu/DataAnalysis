@@ -37,8 +37,8 @@ MASTERDATA_SCHEMA = {
         "description": "Weight (kg or g)",
     },
     "stock": {
-        "aliases": ["stock", "qty", "ilosc", "zapas", "quantity", "stan", "stock_qty", "on_hand"],
-        "required": False,
+        "aliases": ["stock", "qty", "ilosc", "zapas", "quantity", "stan", "stock_qty", "on_hand", "szt", "sztuk", "pieces"],
+        "required": True,
         "description": "Stock quantity (EA)",
     },
 }
