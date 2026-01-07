@@ -1037,6 +1037,21 @@ def render_analysis_tab() -> None:
             if not carriers_defined:
                 st.warning("Add at least one carrier for analysis")
 
+            # Exclusion settings
+            with st.expander("Exclusion settings", expanded=False):
+                outlier_count = 0
+                if st.session_state.quality_result is not None:
+                    outlier_count = len(st.session_state.quality_result.dq_lists.suspect_outliers)
+
+                st.checkbox(
+                    f"Exclude outliers ({outlier_count} SKU)",
+                    value=True,
+                    key="exclude_outliers_checkbox",
+                    help="SKU with suspicious values (dimensions/weight outside normal range)",
+                )
+
+                st.caption("Borderline filters will be available after running analysis")
+
             if st.button("Run capacity analysis", disabled=not carriers_defined):
                 with st.spinner("Analysis in progress..."):
                     try:
@@ -1051,27 +1066,21 @@ def render_analysis_tab() -> None:
                         # Use borderline threshold from session state
                         borderline_threshold = st.session_state.get("borderline_threshold", 2.0)
 
-                        # Filter out Outliers and Borderline SKUs from analysis
+                        # Filter out only Outliers from analysis (borderline handled per carrier in UI)
                         df_to_analyze = st.session_state.masterdata_df
-                        excluded_count = 0
+                        excluded_outliers_count = 0
 
                         if st.session_state.quality_result is not None:
                             dq = st.session_state.quality_result.dq_lists
-                            excluded_skus = set()
 
-                            # Exclude outliers if validation is enabled
-                            if st.session_state.get("outlier_validation_enabled", True):
-                                excluded_skus.update(item.sku for item in dq.suspect_outliers)
-
-                            # Exclude borderline if threshold is set
-                            if st.session_state.get("borderline_threshold", 0) > 0:
-                                excluded_skus.update(item.sku for item in dq.high_risk_borderline)
-
-                            if excluded_skus:
-                                excluded_count = len(excluded_skus)
-                                df_to_analyze = df_to_analyze.filter(
-                                    ~pl.col("sku").is_in(list(excluded_skus))
-                                )
+                            # Exclude outliers if checkbox is checked
+                            if st.session_state.get("exclude_outliers_checkbox", True):
+                                outlier_skus = {item.sku for item in dq.suspect_outliers}
+                                if outlier_skus:
+                                    excluded_outliers_count = len(outlier_skus)
+                                    df_to_analyze = df_to_analyze.filter(
+                                        ~pl.col("sku").is_in(list(outlier_skus))
+                                    )
 
                         analyzer = CapacityAnalyzer(
                             carriers=carriers,
@@ -1079,7 +1088,7 @@ def render_analysis_tab() -> None:
                         )
                         result = analyzer.analyze_dataframe(df_to_analyze)
                         st.session_state.capacity_result = result
-                        st.session_state.capacity_excluded_count = excluded_count
+                        st.session_state.capacity_excluded_outliers = excluded_outliers_count
 
                         st.success("Capacity analysis complete")
 
@@ -1093,25 +1102,60 @@ def render_analysis_tab() -> None:
                 st.markdown("---")
                 st.markdown("**Analysis results per carrier:**")
 
-                # Show excluded SKU count if any
-                excluded_count = st.session_state.get("capacity_excluded_count", 0)
-                if excluded_count > 0:
-                    st.info(f"Excluded from analysis: {excluded_count} SKU (outliers/borderline)")
+                # Show excluded outliers count if any
+                excluded_outliers = st.session_state.get("capacity_excluded_outliers", 0)
+                if excluded_outliers > 0:
+                    st.info(f"Excluded from analysis: {excluded_outliers} outlier SKU")
+
+                # Borderline filters per carrier
+                with st.expander("Filter borderline SKU", expanded=False):
+                    st.caption("Exclude borderline from statistics per carrier:")
+                    for carrier_id in result.carriers_analyzed:
+                        stats = result.carrier_stats.get(carrier_id)
+                        if stats and stats.borderline_count > 0:
+                            st.checkbox(
+                                f"{stats.carrier_name}: {stats.borderline_count} borderline SKU",
+                                value=False,
+                                key=f"exclude_borderline_{carrier_id}",
+                            )
 
                 # Display results for each carrier separately
                 for carrier_id in result.carriers_analyzed:
                     stats = result.carrier_stats.get(carrier_id)
                     if stats:
+                        # Check if borderline should be excluded for this carrier
+                        exclude_borderline = st.session_state.get(
+                            f"exclude_borderline_{carrier_id}", False
+                        )
+
+                        # Calculate display values based on filter
+                        if exclude_borderline:
+                            display_fit = stats.fit_count
+                            display_borderline = 0
+                            display_total = stats.fit_count + stats.not_fit_count
+                            display_fit_pct = (
+                                (stats.fit_count / display_total * 100)
+                                if display_total > 0
+                                else 0
+                            )
+                            borderline_help = "EXCLUDED from statistics"
+                        else:
+                            display_fit = stats.fit_count
+                            display_borderline = stats.borderline_count
+                            display_fit_pct = stats.fit_percentage
+                            borderline_help = "SKU fitting but with margin < threshold (risk of fitting issues)"
+
                         with st.expander(f"{stats.carrier_name} ({carrier_id})", expanded=True):
                             col_a, col_b, col_c = st.columns(3)
                             with col_a:
                                 st.metric(
-                                    "FIT", stats.fit_count,
+                                    "FIT", display_fit,
                                     help="SKU fitting completely with margin > threshold"
                                 )
                                 st.metric(
-                                    "BORDERLINE", stats.borderline_count,
-                                    help="SKU fitting but with margin < threshold (risk of fitting issues)"
+                                    "BORDERLINE",
+                                    display_borderline if not exclude_borderline else f"({stats.borderline_count})",
+                                    help=borderline_help,
                                 )
                             with col_b:
                                 st.metric(
@@ -1119,8 +1163,10 @@ def render_analysis_tab() -> None:
                                     help="SKU not fitting in this carrier (size or weight exceeded)"
                                 )
                                 st.metric(
-                                    "Fit %", f"{stats.fit_percentage:.1f}%",
+                                    "Fit %", f"{display_fit_pct:.1f}%",
                                     help="Percentage of SKU fitting (FIT + BORDERLINE) / Total"
+                                    if not exclude_borderline
+                                    else "Percentage of SKU fitting (FIT only) / Total (excl. borderline)"
                                 )
                             with col_c:
                                 st.metric(
