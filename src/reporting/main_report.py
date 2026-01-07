@@ -1,5 +1,6 @@
 """Generate the main report Report_Main.csv."""
 
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -42,7 +43,7 @@ class MainReportGenerator:
 
         # Section: Info
         data.append(("Info", "Client", client_name))
-        data.append(("Info", "Generated", Formatter.datetime_iso(__import__("datetime").datetime.now())))
+        data.append(("Info", "Generated", Formatter.datetime_iso(datetime.now())))
 
         # Section: Data Quality
         if quality_result:

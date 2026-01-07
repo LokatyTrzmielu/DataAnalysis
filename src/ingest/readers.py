@@ -1,9 +1,12 @@
 """Reading XLSX, CSV, TXT files using Polars."""
 
+import logging
 from pathlib import Path
 from typing import Literal
 
 import polars as pl
+
+logger = logging.getLogger(__name__)
 
 
 FileType = Literal["xlsx", "csv", "txt", "auto"]
@@ -77,8 +80,12 @@ class FileReader:
                 first_bytes = f.read(3)
                 if first_bytes == b"\xef\xbb\xbf":
                     return "utf-8-sig"
-        except Exception:
-            pass
+        except (OSError, IOError) as e:
+            logger.warning(
+                "Failed to detect encoding for %s: %s. Defaulting to UTF-8.",
+                self.file_path,
+                e,
+            )
 
         # Default UTF-8
         return "utf-8"

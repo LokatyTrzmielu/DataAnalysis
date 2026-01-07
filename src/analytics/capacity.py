@@ -249,7 +249,17 @@ class CapacityAnalyzer:
 
         results = []
 
-        for row in df.iter_rows(named=True):
+        # Get required columns for processing
+        required_cols = ["sku", "length_mm", "width_mm", "height_mm", "weight_kg"]
+        available_cols = [c for c in required_cols if c in df.columns]
+        if "stock_qty" in df.columns:
+            available_cols.append("stock_qty")
+        if "orientation_constraint" in df.columns:
+            available_cols.append("orientation_constraint")
+
+        rows = df.select(available_cols).to_dicts()
+
+        for row in rows:
             sku = row["sku"]
             length = row.get("length_mm", 0) or 0
             width = row.get("width_mm", 0) or 0

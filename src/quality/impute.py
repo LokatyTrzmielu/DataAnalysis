@@ -94,7 +94,7 @@ class Imputer:
         if fields is None:
             fields = [f for f in self.IMPUTABLE_FIELDS.keys() if f in df.columns]
 
-        result_df = df.clone()
+        result_df = df
         stats: list[ImputationStats] = []
         total_imputed = 0
 

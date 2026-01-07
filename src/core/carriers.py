@@ -1,11 +1,14 @@
 """Carrier configuration loading and persistence."""
 
+import logging
 from pathlib import Path
 from typing import Optional
 
 import yaml
 
 from src.core.types import CarrierConfig
+
+logger = logging.getLogger(__name__)
 
 
 # Default path for carriers configuration
@@ -35,7 +38,12 @@ class CarrierService:
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-        except Exception:
+        except (yaml.YAMLError, OSError, IOError) as e:
+            logger.warning(
+                "Failed to load carriers config from %s: %s. Using default carriers.",
+                self.config_path,
+                e,
+            )
             return self._get_default_carriers()
 
         carriers = []

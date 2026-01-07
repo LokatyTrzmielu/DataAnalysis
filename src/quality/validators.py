@@ -101,22 +101,21 @@ class MasterdataValidator:
             ValidationResult with validation results
         """
         issues: list[ValidationIssue] = []
-        df_work = df.clone()
 
         # 1. Validate missing values (NULL)
-        issues.extend(self._validate_missing(df_work))
+        issues.extend(self._validate_missing(df))
 
         # 2. Validate zeros
-        issues.extend(self._validate_zeros(df_work))
+        issues.extend(self._validate_zeros(df))
 
         # 3. Validate negative values
-        issues.extend(self._validate_negatives(df_work))
+        issues.extend(self._validate_negatives(df))
 
         # 4. Validate outliers
-        issues.extend(self._validate_outliers(df_work))
+        issues.extend(self._validate_outliers(df))
 
         # 5. Mark values as missing
-        df_validated = self._mark_as_missing(df_work)
+        df_validated = self._mark_as_missing(df)
 
         # Summary
         critical = sum(1 for i in issues if i.severity == ValidationSeverity.CRITICAL)
@@ -138,77 +137,81 @@ class MasterdataValidator:
 
     def _validate_missing(self, df: pl.DataFrame) -> list[ValidationIssue]:
         """Validate missing values (NULL)."""
-        issues = []
+        issues: list[ValidationIssue] = []
         required_fields = ["sku", "length_mm", "width_mm", "height_mm", "weight_kg"]
 
         for field in required_fields:
             if field not in df.columns:
                 continue
 
-            null_mask = df[field].is_null()
-            null_skus = df.filter(null_mask)["sku"].to_list()
+            null_skus = df.filter(df[field].is_null()).select("sku").to_series().to_list()
+            severity = ValidationSeverity.CRITICAL if field == "sku" else ValidationSeverity.WARNING
 
-            for sku in null_skus:
-                severity = ValidationSeverity.CRITICAL if field == "sku" else ValidationSeverity.WARNING
-                issues.append(ValidationIssue(
+            issues.extend([
+                ValidationIssue(
                     sku=str(sku),
                     field=field,
                     issue_type=ValidationIssueType.MISSING_VALUE,
                     severity=severity,
                     original_value=None,
                     message=f"Missing value in field {field}",
-                ))
+                )
+                for sku in null_skus
+            ])
 
         return issues
 
     def _validate_zeros(self, df: pl.DataFrame) -> list[ValidationIssue]:
         """Validate zero values."""
-        issues = []
+        issues: list[ValidationIssue] = []
 
         # Dimensions
         if self.treat_zero_as_missing_dimensions:
             for field in ["length_mm", "width_mm", "height_mm"]:
                 if field not in df.columns:
                     continue
-                zero_mask = pl.col(field) == 0
-                zero_rows = df.filter(zero_mask)
-                for row in zero_rows.iter_rows(named=True):
-                    issues.append(ValidationIssue(
-                        sku=str(row["sku"]),
+                zero_skus = df.filter(pl.col(field) == 0).select("sku").to_series().to_list()
+                issues.extend([
+                    ValidationIssue(
+                        sku=str(sku),
                         field=field,
                         issue_type=ValidationIssueType.ZERO_VALUE,
                         severity=ValidationSeverity.WARNING,
                         original_value="0",
                         message=f"Zero in dimension {field} - treated as missing",
-                    ))
+                    )
+                    for sku in zero_skus
+                ])
 
         # Weight
         if self.treat_zero_as_missing_weight and "weight_kg" in df.columns:
-            zero_mask = pl.col("weight_kg") == 0
-            zero_rows = df.filter(zero_mask)
-            for row in zero_rows.iter_rows(named=True):
-                issues.append(ValidationIssue(
-                    sku=str(row["sku"]),
+            zero_skus = df.filter(pl.col("weight_kg") == 0).select("sku").to_series().to_list()
+            issues.extend([
+                ValidationIssue(
+                    sku=str(sku),
                     field="weight_kg",
                     issue_type=ValidationIssueType.ZERO_VALUE,
                     severity=ValidationSeverity.WARNING,
                     original_value="0",
                     message="Zero in weight - treated as missing",
-                ))
+                )
+                for sku in zero_skus
+            ])
 
         # Stock
         if self.treat_zero_as_missing_quantities and "stock_qty" in df.columns:
-            zero_mask = pl.col("stock_qty") == 0
-            zero_rows = df.filter(zero_mask)
-            for row in zero_rows.iter_rows(named=True):
-                issues.append(ValidationIssue(
-                    sku=str(row["sku"]),
+            zero_skus = df.filter(pl.col("stock_qty") == 0).select("sku").to_series().to_list()
+            issues.extend([
+                ValidationIssue(
+                    sku=str(sku),
                     field="stock_qty",
                     issue_type=ValidationIssueType.ZERO_VALUE,
                     severity=ValidationSeverity.INFO,
                     original_value="0",
                     message="Zero stock",
-                ))
+                )
+                for sku in zero_skus
+            ])
 
         return issues
 
@@ -217,31 +220,31 @@ class MasterdataValidator:
         if not self.treat_negative_as_missing:
             return []
 
-        issues = []
+        issues: list[ValidationIssue] = []
         numeric_fields = ["length_mm", "width_mm", "height_mm", "weight_kg", "stock_qty"]
 
         for field in numeric_fields:
             if field not in df.columns:
                 continue
 
-            neg_mask = pl.col(field) < 0
-            neg_rows = df.filter(neg_mask)
-
-            for row in neg_rows.iter_rows(named=True):
-                issues.append(ValidationIssue(
+            neg_rows = df.filter(pl.col(field) < 0).select(["sku", field]).to_dicts()
+            issues.extend([
+                ValidationIssue(
                     sku=str(row["sku"]),
                     field=field,
                     issue_type=ValidationIssueType.NEGATIVE_VALUE,
                     severity=ValidationSeverity.WARNING,
                     original_value=str(row[field]),
                     message=f"Negative value in {field}",
-                ))
+                )
+                for row in neg_rows
+            ])
 
         return issues
 
     def _validate_outliers(self, df: pl.DataFrame) -> list[ValidationIssue]:
         """Validate outliers (values outside range)."""
-        issues = []
+        issues: list[ValidationIssue] = []
 
         if not self.enable_outlier_validation:
             return issues
@@ -256,17 +259,20 @@ class MasterdataValidator:
                 (pl.col(field) > thresholds["max"])
             ) & pl.col(field).is_not_null() & (pl.col(field) > 0)
 
-            outlier_rows = df.filter(outlier_mask)
+            outlier_rows = df.filter(outlier_mask).select(["sku", field]).to_dicts()
+            min_val, max_val = thresholds["min"], thresholds["max"]
 
-            for row in outlier_rows.iter_rows(named=True):
-                issues.append(ValidationIssue(
+            issues.extend([
+                ValidationIssue(
                     sku=str(row["sku"]),
                     field=field,
                     issue_type=ValidationIssueType.OUTLIER,
                     severity=ValidationSeverity.WARNING,
                     original_value=str(row[field]),
-                    message=f"Value {row[field]} outside range [{thresholds['min']}, {thresholds['max']}]",
-                ))
+                    message=f"Value {row[field]} outside range [{min_val}, {max_val}]",
+                )
+                for row in outlier_rows
+            ])
 
         return issues
 

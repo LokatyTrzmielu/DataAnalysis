@@ -19,6 +19,18 @@ class DuckDBRunner:
         self.db_path = str(db_path) if db_path else ":memory:"
         self._conn: Optional[duckdb.DuckDBPyConnection] = None
 
+    def __enter__(self) -> "DuckDBRunner":
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Context manager exit - ensures connection is closed."""
+        self.close()
+
+    def __del__(self) -> None:
+        """Destructor fallback - close connection if not already closed."""
+        self.close()
+
     @property
     def conn(self) -> duckdb.DuckDBPyConnection:
         """Polaczenie do bazy."""

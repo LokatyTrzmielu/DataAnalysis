@@ -88,7 +88,7 @@ class DQListBuilder:
 
     def _find_missing_critical(self, df: pl.DataFrame) -> list[DQListItem]:
         """Find SKUs with missing critical data."""
-        items = []
+        items: list[DQListItem] = []
         critical_fields = ["length_mm", "width_mm", "height_mm", "weight_kg"]
 
         for field in critical_fields:
@@ -97,22 +97,24 @@ class DQListBuilder:
 
             # NULL lub <= 0
             missing_mask = pl.col(field).is_null() | (pl.col(field) <= 0)
-            missing_rows = df.filter(missing_mask)
+            missing_rows = df.filter(missing_mask).select(["sku", field]).to_dicts()
 
-            for row in missing_rows.iter_rows(named=True):
-                items.append(DQListItem(
+            items.extend([
+                DQListItem(
                     sku=str(row["sku"]),
                     issue_type="missing_critical",
                     field=field,
                     value=str(row.get(field, "NULL")),
                     details=f"Missing critical value in {field}",
-                ))
+                )
+                for row in missing_rows
+            ])
 
         return items
 
     def _find_suspect_outliers(self, df: pl.DataFrame) -> list[DQListItem]:
         """Find SKUs with suspicious values (outliers)."""
-        items = []
+        items: list[DQListItem] = []
 
         if not self.enable_outlier_detection:
             return items
@@ -121,27 +123,28 @@ class DQListBuilder:
             if field not in df.columns:
                 continue
 
+            low, high = thresholds["low"], thresholds["high"]
             # Values outside range (but > 0)
             outlier_mask = (
                 (pl.col(field) > 0) &
-                ((pl.col(field) < thresholds["low"]) | (pl.col(field) > thresholds["high"]))
+                ((pl.col(field) < low) | (pl.col(field) > high))
             )
-            outlier_rows = df.filter(outlier_mask)
+            outlier_rows = df.filter(outlier_mask).select(["sku", field]).to_dicts()
 
-            for row in outlier_rows.iter_rows(named=True):
-                value = row[field]
-                if value < thresholds["low"]:
-                    detail = f"Very small value: {value} < {thresholds['low']}"
-                else:
-                    detail = f"Very large value: {value} > {thresholds['high']}"
-
-                items.append(DQListItem(
+            items.extend([
+                DQListItem(
                     sku=str(row["sku"]),
                     issue_type="suspect_outlier",
                     field=field,
-                    value=str(value),
-                    details=detail,
-                ))
+                    value=str(row[field]),
+                    details=(
+                        f"Very small value: {row[field]} < {low}"
+                        if row[field] < low
+                        else f"Very large value: {row[field]} > {high}"
+                    ),
+                )
+                for row in outlier_rows
+            ])
 
         return items
 
@@ -151,7 +154,7 @@ class DQListBuilder:
         carrier_limits: Optional[dict[str, float]] = None,
     ) -> list[DQListItem]:
         """Find SKUs with dimensions close to carrier limits."""
-        items = []
+        items: list[DQListItem] = []
 
         if carrier_limits is None:
             # Default limits for a typical carrier
@@ -171,42 +174,40 @@ class DQListBuilder:
                 (pl.col(field) > lower_bound) &
                 (pl.col(field) <= limit)
             )
-            borderline_rows = df.filter(borderline_mask)
+            borderline_rows = df.filter(borderline_mask).select(["sku", field]).to_dicts()
 
-            for row in borderline_rows.iter_rows(named=True):
-                value = row[field]
-                margin = limit - value
-                items.append(DQListItem(
+            items.extend([
+                DQListItem(
                     sku=str(row["sku"]),
                     issue_type="high_risk_borderline",
                     field=field,
-                    value=str(value),
-                    details=f"Margin to limit: {margin:.1f}mm (limit: {limit}mm)",
-                ))
+                    value=str(row[field]),
+                    details=f"Margin to limit: {limit - row[field]:.1f}mm (limit: {limit}mm)",
+                )
+                for row in borderline_rows
+            ])
 
         return items
 
     def _find_duplicates(self, df: pl.DataFrame) -> list[DQListItem]:
         """Find duplicate SKUs."""
-        items = []
-
         if "sku" not in df.columns:
-            return items
+            return []
 
         # Group by SKU and find duplicates
         sku_counts = df.group_by("sku").agg(pl.len().alias("count"))
-        duplicates = sku_counts.filter(pl.col("count") > 1)
+        duplicates = sku_counts.filter(pl.col("count") > 1).to_dicts()
 
-        for row in duplicates.iter_rows(named=True):
-            items.append(DQListItem(
+        return [
+            DQListItem(
                 sku=str(row["sku"]),
                 issue_type="duplicate",
                 field="sku",
                 value=str(row["count"]),
                 details=f"SKU appears {row['count']} times",
-            ))
-
-        return items
+            )
+            for row in duplicates
+        ]
 
     def _find_conflicts(self, df: pl.DataFrame) -> list[DQListItem]:
         """Find SKUs with conflicts (different values for the same SKU)."""

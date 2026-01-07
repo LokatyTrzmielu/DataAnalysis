@@ -167,7 +167,7 @@ class PerformanceAnalyzer:
                 units=row["units"],
                 unique_sku=row["unique_sku"],
             )
-            for row in hourly_df.iter_rows(named=True)
+            for row in hourly_df.to_dicts()
         ]
 
     def _calculate_daily_metrics(self, df: pl.DataFrame) -> list[DailyMetrics]:
@@ -190,7 +190,7 @@ class PerformanceAnalyzer:
                 orders_per_hour=row["orders"] / self.productive_hours_per_shift,
                 units_per_hour=row["units"] / self.productive_hours_per_shift,
             )
-            for row in daily_df.iter_rows(named=True)
+            for row in daily_df.to_dicts()
         ]
 
     def _calculate_kpi(
