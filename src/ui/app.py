@@ -1085,7 +1085,7 @@ def render_carrier_form() -> None:
 
 
 def render_carriers_table() -> None:
-    """Display table of defined carriers with delete option."""
+    """Display table of defined carriers with delete option and activation toggle."""
     carriers = st.session_state.custom_carriers
 
     if not carriers:
@@ -1095,35 +1095,52 @@ def render_carriers_table() -> None:
     st.markdown("**Defined carriers:**")
 
     # Header row
-    header_cols = st.columns([3, 3, 2, 1, 1])
+    header_cols = st.columns([1, 3, 3, 2, 1, 1])
     with header_cols[0]:
-        st.markdown("**Carrier**")
+        st.markdown("**Active**")
     with header_cols[1]:
-        st.markdown("**Dimensions (L×W×H)**")
+        st.markdown("**Carrier**")
     with header_cols[2]:
-        st.markdown("**Max weight**")
+        st.markdown("**Dimensions (L×W×H)**")
     with header_cols[3]:
-        st.markdown("**Type**")
+        st.markdown("**Max weight**")
     with header_cols[4]:
+        st.markdown("**Type**")
+    with header_cols[5]:
         st.markdown("")
 
     for i, carrier in enumerate(carriers):
         is_predefined = carrier.get("is_predefined", False)
-        cols = st.columns([3, 3, 2, 1, 1])
+        is_active = carrier.get("is_active", True)
+        cols = st.columns([1, 3, 3, 2, 1, 1])
+
         with cols[0]:
+            # Checkbox for activation/deactivation
+            new_active = st.checkbox(
+                "Active",
+                value=is_active,
+                key=f"carrier_active_{i}",
+                label_visibility="collapsed",
+                help="Include this carrier in analysis",
+            )
+            if new_active != is_active:
+                st.session_state.custom_carriers[i]["is_active"] = new_active
+                st.rerun()
+
+        with cols[1]:
             st.text(f"{carrier['carrier_id']}")
             st.caption(carrier["name"])
-        with cols[1]:
+        with cols[2]:
             dims = f"{int(carrier['inner_length_mm'])}×{int(carrier['inner_width_mm'])}×{int(carrier['inner_height_mm'])} mm"
             st.text(dims)
-        with cols[2]:
-            st.text(f"{carrier['max_weight_kg']:.1f} kg")
         with cols[3]:
+            st.text(f"{carrier['max_weight_kg']:.1f} kg")
+        with cols[4]:
             if is_predefined:
                 st.markdown(":blue[Predef.]")
             else:
                 st.markdown(":green[Custom]")
-        with cols[4]:
+        with cols[5]:
             if is_predefined:
                 # Cannot delete predefined carriers
                 st.button(
@@ -1189,6 +1206,25 @@ def render_analysis_tab() -> None:
             if not carriers_defined:
                 st.warning("Add at least one carrier for analysis")
 
+            # Analysis mode selection
+            st.markdown("---")
+            analysis_mode = st.radio(
+                "Analysis mode",
+                options=["Independent (all carriers)", "Prioritized (smallest first)"],
+                index=0,
+                key="capacity_analysis_mode",
+                help="Independent: SKU tested vs all active carriers separately. "
+                     "Prioritized: SKU assigned to smallest fitting carrier (by volume).",
+                horizontal=True,
+            )
+            prioritization_mode = analysis_mode == "Prioritized (smallest first)"
+
+            if prioritization_mode:
+                st.info(
+                    "Prioritized mode: Each SKU will be assigned to the smallest carrier "
+                    "it fits into. Carriers are sorted by internal volume (smallest first)."
+                )
+
             # Exclusion settings
             outlier_count = 0
             if st.session_state.quality_result is not None:
@@ -1248,9 +1284,13 @@ def render_analysis_tab() -> None:
                             carriers=carriers,
                             borderline_threshold_mm=borderline_threshold,
                         )
-                        result = analyzer.analyze_dataframe(df_to_analyze)
+                        result = analyzer.analyze_dataframe(
+                            df_to_analyze,
+                            prioritization_mode=prioritization_mode,
+                        )
                         st.session_state.capacity_result = result
                         st.session_state.capacity_excluded_outliers = excluded_outliers_count
+                        st.session_state.capacity_prioritization_mode = prioritization_mode
 
                         st.success("Capacity analysis complete")
 
@@ -1260,38 +1300,66 @@ def render_analysis_tab() -> None:
             # Display capacity analysis results
             if st.session_state.capacity_result is not None:
                 result = st.session_state.capacity_result
+                is_prioritized = st.session_state.get("capacity_prioritization_mode", False)
 
                 st.markdown("---")
-                st.markdown("**Analysis results per carrier:**")
+
+                # Show analysis mode info
+                if is_prioritized:
+                    st.markdown("**Analysis results (Prioritized mode - SKU assigned to smallest fitting carrier):**")
+                else:
+                    st.markdown("**Analysis results per carrier (Independent mode):**")
 
                 # Show excluded outliers count if any
                 excluded_outliers = st.session_state.get("capacity_excluded_outliers", 0)
                 if excluded_outliers > 0:
                     st.info(f"Excluded from analysis: {excluded_outliers} outlier SKU")
 
-                # Borderline filters per carrier
-                with st.expander("Filter borderline SKU", expanded=False):
-                    st.caption("Exclude borderline from statistics per carrier:")
-                    for carrier_id in result.carriers_analyzed:
-                        stats = result.carrier_stats.get(carrier_id)
-                        if stats and stats.borderline_count > 0:
-                            st.checkbox(
-                                f"{stats.carrier_name}: {stats.borderline_count} borderline SKU",
-                                value=False,
-                                key=f"exclude_borderline_{carrier_id}",
-                            )
+                # Borderline filters per carrier (only in independent mode)
+                if not is_prioritized:
+                    with st.expander("Filter borderline SKU", expanded=False):
+                        st.caption("Exclude borderline from statistics per carrier:")
+                        for carrier_id in result.carriers_analyzed:
+                            stats = result.carrier_stats.get(carrier_id)
+                            if stats and stats.borderline_count > 0:
+                                st.checkbox(
+                                    f"{stats.carrier_name}: {stats.borderline_count} borderline SKU",
+                                    value=False,
+                                    key=f"exclude_borderline_{carrier_id}",
+                                )
 
                 # Display results for each carrier separately
                 for carrier_id in result.carriers_analyzed:
                     stats = result.carrier_stats.get(carrier_id)
                     if stats:
+                        # Special handling for "NONE" in prioritized mode
+                        if carrier_id == "NONE":
+                            with st.expander(f"Does not fit any carrier", expanded=True):
+                                col_a, col_b, col_c = st.columns(3)
+                                with col_a:
+                                    st.metric(
+                                        "SKU count", stats.not_fit_count,
+                                        help="Number of SKU that don't fit any active carrier"
+                                    )
+                                with col_b:
+                                    st.metric(
+                                        "Volume (m³)", f"{stats.total_volume_m3:.2f}",
+                                        help="Sum of unit volumes for non-fitting SKU"
+                                    )
+                                with col_c:
+                                    st.metric(
+                                        "Stock volume (m³)", f"{stats.stock_volume_m3:.2f}",
+                                        help="Sum of stock volumes for non-fitting SKU"
+                                    )
+                            continue
+
                         # Check if borderline should be excluded for this carrier
                         exclude_borderline = st.session_state.get(
                             f"exclude_borderline_{carrier_id}", False
                         )
 
                         # Calculate display values based on filter
-                        if exclude_borderline:
+                        if exclude_borderline and not is_prioritized:
                             display_fit = stats.fit_count
                             display_borderline = 0
                             display_total = stats.fit_count + stats.not_fit_count
@@ -1307,38 +1375,61 @@ def render_analysis_tab() -> None:
                             display_fit_pct = stats.fit_percentage
                             borderline_help = "SKU fitting but with margin < threshold (risk of fitting issues)"
 
-                        with st.expander(f"{stats.carrier_name} ({carrier_id})", expanded=True):
-                            col_a, col_b, col_c = st.columns(3)
-                            with col_a:
-                                st.metric(
-                                    "FIT", display_fit,
-                                    help="SKU fitting completely with margin > threshold"
-                                )
-                                st.metric(
-                                    "BORDERLINE",
-                                    display_borderline if not exclude_borderline else f"({stats.borderline_count})",
-                                    help=borderline_help,
-                                )
-                            with col_b:
-                                st.metric(
-                                    "NOT FIT", stats.not_fit_count,
-                                    help="SKU not fitting in this carrier (size or weight exceeded)"
-                                )
-                                st.metric(
-                                    "Fit %", f"{display_fit_pct:.1f}%",
-                                    help="Percentage of SKU fitting (FIT + BORDERLINE) / Total"
-                                    if not exclude_borderline
-                                    else "Percentage of SKU fitting (FIT only) / Total (excl. borderline)"
-                                )
-                            with col_c:
-                                st.metric(
-                                    "Volume (m³)", f"{stats.total_volume_m3:.2f}",
-                                    help="Sum of unit volumes (L×W×H) for all fitting SKU"
-                                )
-                                st.metric(
-                                    "Stock volume (m³)", f"{stats.stock_volume_m3:.2f}",
-                                    help="Sum of (unit volume × stock quantity) for all fitting SKU"
-                                )
+                        # In prioritized mode, show "Assigned SKU" instead of FIT/NOT_FIT
+                        if is_prioritized:
+                            assigned_count = stats.fit_count + stats.borderline_count
+                            with st.expander(f"{stats.carrier_name} ({carrier_id})", expanded=True):
+                                col_a, col_b, col_c = st.columns(3)
+                                with col_a:
+                                    st.metric(
+                                        "Assigned SKU", assigned_count,
+                                        help="Number of SKU assigned to this carrier (smallest fitting)"
+                                    )
+                                    if stats.borderline_count > 0:
+                                        st.caption(f"({stats.borderline_count} borderline)")
+                                with col_b:
+                                    st.metric(
+                                        "Volume (m³)", f"{stats.total_volume_m3:.2f}",
+                                        help="Sum of unit volumes (L×W×H) for assigned SKU"
+                                    )
+                                with col_c:
+                                    st.metric(
+                                        "Stock volume (m³)", f"{stats.stock_volume_m3:.2f}",
+                                        help="Sum of (unit volume × stock quantity) for assigned SKU"
+                                    )
+                        else:
+                            with st.expander(f"{stats.carrier_name} ({carrier_id})", expanded=True):
+                                col_a, col_b, col_c = st.columns(3)
+                                with col_a:
+                                    st.metric(
+                                        "FIT", display_fit,
+                                        help="SKU fitting completely with margin > threshold"
+                                    )
+                                    st.metric(
+                                        "BORDERLINE",
+                                        display_borderline if not exclude_borderline else f"({stats.borderline_count})",
+                                        help=borderline_help,
+                                    )
+                                with col_b:
+                                    st.metric(
+                                        "NOT FIT", stats.not_fit_count,
+                                        help="SKU not fitting in this carrier (size or weight exceeded)"
+                                    )
+                                    st.metric(
+                                        "Fit %", f"{display_fit_pct:.1f}%",
+                                        help="Percentage of SKU fitting (FIT + BORDERLINE) / Total"
+                                        if not exclude_borderline
+                                        else "Percentage of SKU fitting (FIT only) / Total (excl. borderline)"
+                                    )
+                                with col_c:
+                                    st.metric(
+                                        "Volume (m³)", f"{stats.total_volume_m3:.2f}",
+                                        help="Sum of unit volumes (L×W×H) for all fitting SKU"
+                                    )
+                                    st.metric(
+                                        "Stock volume (m³)", f"{stats.stock_volume_m3:.2f}",
+                                        help="Sum of (unit volume × stock quantity) for all fitting SKU"
+                                    )
 
     with col2:
         st.subheader("Performance analysis")

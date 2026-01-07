@@ -223,22 +223,29 @@ class CapacityAnalyzer:
         self,
         df: pl.DataFrame,
         carrier_id: Optional[str] = None,
+        prioritization_mode: bool = False,
     ) -> CapacityAnalysisResult:
         """Analyze entire DataFrame.
 
         Args:
             df: DataFrame with Masterdata
             carrier_id: Specific carrier (None = all)
+            prioritization_mode: If True, assign each SKU to smallest fitting carrier
 
         Returns:
             CapacityAnalysisResult
         """
-        carriers_to_analyze = self.carriers
+        # Filter only active carriers
+        carriers_to_analyze = [c for c in self.carriers if c.is_active]
         if carrier_id:
-            carriers_to_analyze = [c for c in self.carriers if c.carrier_id == carrier_id]
+            carriers_to_analyze = [c for c in carriers_to_analyze if c.carrier_id == carrier_id]
 
-        # Mapping carrier_id -> CarrierConfig (for names)
-        carrier_map = {c.carrier_id: c for c in carriers_to_analyze}
+        # In prioritization mode, sort carriers by volume (smallest first)
+        if prioritization_mode:
+            carriers_to_analyze = sorted(
+                carriers_to_analyze,
+                key=lambda c: c.inner_volume_m3
+            )
 
         results = []
 
@@ -262,22 +269,51 @@ class CapacityAnalyzer:
                 except (ValueError, TypeError):
                     pass
 
+            sku_assigned = False
             for carrier in carriers_to_analyze:
                 fit_result = self._check_fit(
                     sku, length, width, height, weight, carrier, constraint
                 )
-                # Calculate volume_m3 for all units fitting on the carrier
-                total_volume_m3 = sku_volume_m3 * fit_result.units_per_carrier if fit_result.units_per_carrier else 0.0
 
+                if prioritization_mode:
+                    # In prioritization mode: assign SKU to first fitting carrier
+                    if fit_result.fit_status in [FitResult.FIT, FitResult.BORDERLINE]:
+                        results.append({
+                            "sku": sku,
+                            "carrier_id": carrier.carrier_id,
+                            "fit_status": fit_result.fit_status.value,
+                            "units_per_carrier": fit_result.units_per_carrier,
+                            "volume_m3": round(sku_volume_m3, 6),
+                            "stock_volume_m3": round(sku_stock_volume_m3, 6),
+                            "limiting_factor": fit_result.limiting_factor.value,
+                            "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
+                        })
+                        sku_assigned = True
+                        break  # Stop after first fitting carrier
+                else:
+                    # Independent mode: add all results
+                    results.append({
+                        "sku": sku,
+                        "carrier_id": carrier.carrier_id,
+                        "fit_status": fit_result.fit_status.value,
+                        "units_per_carrier": fit_result.units_per_carrier,
+                        "volume_m3": round(sku_volume_m3, 6),
+                        "stock_volume_m3": round(sku_stock_volume_m3, 6),
+                        "limiting_factor": fit_result.limiting_factor.value,
+                        "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
+                    })
+
+            # In prioritization mode: if SKU doesn't fit any carrier, record as NOT_FIT
+            if prioritization_mode and not sku_assigned and carriers_to_analyze:
                 results.append({
                     "sku": sku,
-                    "carrier_id": carrier.carrier_id,
-                    "fit_status": fit_result.fit_status.value,
-                    "units_per_carrier": fit_result.units_per_carrier,
-                    "volume_m3": round(sku_volume_m3, 6),  # Unit volume
-                    "stock_volume_m3": round(sku_stock_volume_m3, 6),  # Stock volume
-                    "limiting_factor": fit_result.limiting_factor.value,
-                    "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
+                    "carrier_id": "NONE",  # Special marker - doesn't fit any carrier
+                    "fit_status": FitResult.NOT_FIT.value,
+                    "units_per_carrier": 0,
+                    "volume_m3": round(sku_volume_m3, 6),
+                    "stock_volume_m3": round(sku_stock_volume_m3, 6),
+                    "limiting_factor": LimitingFactor.DIMENSION.value,
+                    "margin_mm": None,
                 })
 
         # Create DataFrame with explicit schema for columns with None
@@ -329,6 +365,28 @@ class CapacityAnalyzer:
                 stock_volume_m3=round(c_stock_volume_m3, 2),
             )
 
+        # In prioritization mode, add stats for SKUs that don't fit any carrier
+        if prioritization_mode:
+            none_df = result_df.filter(pl.col("carrier_id") == "NONE")
+            if none_df.height > 0:
+                none_volume = none_df["volume_m3"].sum()
+                none_stock_volume = none_df["stock_volume_m3"].sum()
+                carrier_stats["NONE"] = CarrierStats(
+                    carrier_id="NONE",
+                    carrier_name="Does not fit any carrier",
+                    fit_count=0,
+                    borderline_count=0,
+                    not_fit_count=none_df.height,
+                    fit_percentage=0.0,
+                    total_volume_m3=round(none_volume, 2),
+                    stock_volume_m3=round(none_stock_volume, 2),
+                )
+
+        # Build list of analyzed carriers
+        carriers_analyzed_ids = [c.carrier_id for c in carriers_to_analyze]
+        if prioritization_mode and "NONE" in carrier_stats:
+            carriers_analyzed_ids.append("NONE")
+
         return CapacityAnalysisResult(
             df=result_df,
             total_sku=df["sku"].n_unique(),
@@ -336,7 +394,7 @@ class CapacityAnalyzer:
             borderline_count=borderline_count,
             not_fit_count=not_fit_count,
             fit_percentage=fit_percentage,
-            carriers_analyzed=[c.carrier_id for c in carriers_to_analyze],
+            carriers_analyzed=carriers_analyzed_ids,
             carrier_stats=carrier_stats,
         )
 
