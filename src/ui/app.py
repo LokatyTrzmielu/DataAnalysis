@@ -29,6 +29,8 @@ st.set_page_config(
 
 def init_session_state() -> None:
     """Initialize session state."""
+    from src.core.carriers import CarrierService
+
     defaults = {
         "client_name": "",
         "masterdata_df": None,
@@ -60,10 +62,31 @@ def init_session_state() -> None:
         "outlier_height_max": 2000,
         "outlier_weight_min": 0.001,
         "outlier_weight_max": 500.0,
+        # Carriers loaded flag
+        "carriers_loaded": False,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+    # Load carriers from file on first run
+    if not st.session_state.carriers_loaded:
+        service = CarrierService()
+        carriers = service.load_all_carriers()
+        st.session_state.custom_carriers = [
+            {
+                "carrier_id": c.carrier_id,
+                "name": c.name,
+                "inner_length_mm": c.inner_length_mm,
+                "inner_width_mm": c.inner_width_mm,
+                "inner_height_mm": c.inner_height_mm,
+                "max_weight_kg": c.max_weight_kg,
+                "is_predefined": c.is_predefined,
+                "is_active": c.is_active,
+            }
+            for c in carriers
+        ]
+        st.session_state.carriers_loaded = True
 
 
 def render_sidebar() -> None:
@@ -937,9 +960,19 @@ def render_carrier_form() -> None:
                     help="Descriptive name - leave empty for auto-generation",
                 )
 
+        # Option to save permanently
+        save_to_file = st.checkbox(
+            "Save permanently",
+            value=False,
+            help="Save carrier to file - will be available in future sessions",
+        )
+
         submitted = st.form_submit_button("Add carrier", type="primary")
 
         if submitted:
+            from src.core.carriers import CarrierService
+            from src.core.types import CarrierConfig
+
             # Auto-generate ID and name if empty
             existing_ids = [c["carrier_id"] for c in st.session_state.custom_carriers]
 
@@ -966,9 +999,23 @@ def render_carrier_form() -> None:
                     "inner_width_mm": float(width_mm),
                     "inner_height_mm": float(height_mm),
                     "max_weight_kg": float(max_weight),
+                    "is_predefined": False,
+                    "is_active": True,
                 }
                 st.session_state.custom_carriers.append(new_carrier)
-                st.success(f"Added carrier: {carrier_name}")
+
+                # Save to file if requested
+                if save_to_file:
+                    service = CarrierService()
+                    custom_list = [
+                        CarrierConfig(**c)
+                        for c in st.session_state.custom_carriers
+                        if not c.get("is_predefined", False)
+                    ]
+                    service.save_custom_carriers(custom_list)
+                    st.success(f"Added and saved carrier: {carrier_name}")
+                else:
+                    st.success(f"Added carrier: {carrier_name} (this session only)")
                 st.rerun()
 
 
@@ -983,7 +1030,7 @@ def render_carriers_table() -> None:
     st.markdown("**Defined carriers:**")
 
     # Header row
-    header_cols = st.columns([3, 3, 2, 1])
+    header_cols = st.columns([3, 3, 2, 1, 1])
     with header_cols[0]:
         st.markdown("**Carrier**")
     with header_cols[1]:
@@ -991,21 +1038,39 @@ def render_carriers_table() -> None:
     with header_cols[2]:
         st.markdown("**Max weight**")
     with header_cols[3]:
+        st.markdown("**Type**")
+    with header_cols[4]:
         st.markdown("")
 
     for i, carrier in enumerate(carriers):
-        cols = st.columns([3, 3, 2, 1])
+        is_predefined = carrier.get("is_predefined", False)
+        cols = st.columns([3, 3, 2, 1, 1])
         with cols[0]:
-            st.text(f"{carrier['carrier_id']} ({carrier['name']})")
+            st.text(f"{carrier['carrier_id']}")
+            st.caption(carrier["name"])
         with cols[1]:
             dims = f"{int(carrier['inner_length_mm'])}×{int(carrier['inner_width_mm'])}×{int(carrier['inner_height_mm'])} mm"
             st.text(dims)
         with cols[2]:
             st.text(f"{carrier['max_weight_kg']:.1f} kg")
         with cols[3]:
-            if st.button("✕", key=f"del_carrier_{i}", help=f"Delete {carrier['name']}"):
-                st.session_state.custom_carriers.pop(i)
-                st.rerun()
+            if is_predefined:
+                st.markdown(":blue[Predef.]")
+            else:
+                st.markdown(":green[Custom]")
+        with cols[4]:
+            if is_predefined:
+                # Cannot delete predefined carriers
+                st.button(
+                    "🔒", key=f"lock_carrier_{i}", disabled=True, help="Predefined"
+                )
+            else:
+                # Can delete custom carriers
+                if st.button(
+                    "✕", key=f"del_carrier_{i}", help=f"Delete {carrier['name']}"
+                ):
+                    st.session_state.custom_carriers.pop(i)
+                    st.rerun()
 
 
 def render_analysis_tab() -> None:
@@ -1024,6 +1089,28 @@ def render_analysis_tab() -> None:
         else:
             # Display carriers table
             render_carriers_table()
+
+            # Save all custom carriers button
+            custom_count = sum(
+                1
+                for c in st.session_state.custom_carriers
+                if not c.get("is_predefined", False)
+            )
+            if custom_count > 0:
+                if st.button(
+                    f"Save {custom_count} custom carrier(s) permanently",
+                    help="Save all custom carriers to config file",
+                ):
+                    from src.core.carriers import CarrierService
+
+                    service = CarrierService()
+                    custom_list = [
+                        CarrierConfig(**c)
+                        for c in st.session_state.custom_carriers
+                        if not c.get("is_predefined", False)
+                    ]
+                    service.save_custom_carriers(custom_list)
+                    st.success(f"Saved {len(custom_list)} carrier(s)")
 
             st.markdown("---")
 

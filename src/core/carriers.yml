@@ -1,0 +1,30 @@
+# Predefined carriers configuration
+# These carriers are loaded at application startup
+
+carriers:
+  - carrier_id: 1
+    name: "600x400x220"
+    inner_length_mm: 570
+    inner_width_mm: 370
+    inner_height_mm: 200
+    max_weight_kg: 35
+    is_active: true
+
+  - carrier_id: 2
+    name: "640x440x238"
+    inner_length_mm: 610
+    inner_width_mm: 410
+    inner_height_mm: 210
+    max_weight_kg: 35
+    is_active: true
+
+  - carrier_id: 3
+    name: "3650x864x200"
+    inner_length_mm: 864
+    inner_width_mm: 3650
+    inner_height_mm: 200
+    max_weight_kg: 440
+    is_active: true
+
+# User-saved custom carriers will be appended here
+custom_carriers: []

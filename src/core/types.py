@@ -198,6 +198,9 @@ class CarrierConfig(BaseModel):
     # Whether active
     is_active: bool = Field(default=True)
 
+    # Whether this is a predefined carrier (cannot be deleted)
+    is_predefined: bool = Field(default=False)
+
     @property
     def inner_volume_m3(self) -> float:
         """Internal volume in m3."""
