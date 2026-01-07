@@ -240,8 +240,7 @@ class TestCapacityAnalyzer:
 
         # Sprawdz czy wartosci sa poprawnie obliczone
         # SKU1: 100*100*50 mm3 = 0.0005 m3 per jednostka
-        # Dla TRAY_S (600x400x100): 6*4*2=48 jednostek * 0.0005 = 0.024 m3
-        # Po zaokragleniu do 2 miejsc: 0.02 m3
+        # volume_m3 przechowuje objetosc JEDNOSTKOWA, nie calkowita
         fitting_rows = result.df.filter(
             (pl.col("sku") == "SKU1") &
             (pl.col("carrier_id") == "TRAY_S") &
@@ -249,7 +248,7 @@ class TestCapacityAnalyzer:
         )
         assert fitting_rows.height > 0
         volume = fitting_rows["volume_m3"][0]
-        assert volume == pytest.approx(0.02, rel=0.01)
+        assert volume == pytest.approx(0.0005, rel=0.01)  # Objetosc jednostkowa
 
     def test_analyze_capacity_helper(self):
         """Test funkcji pomocniczej analyze_capacity."""
