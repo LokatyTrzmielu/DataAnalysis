@@ -220,7 +220,7 @@ D:\VS\DataAnalysis\
   - Możliwość zapisywania własnych (custom) nośników do pliku YAML
   - 3 predefiniowane nośniki:
     - Nosnik 1: 600x400x220 (wew. 570x370x200mm, max 35kg)
-    - Nosnik 2: 640x440x238 (wew. 610x410x210mm, max 35kg)
+    - Nosnik 2: 640x440x238 (wew. 610x410x410mm, max 35kg)
     - Nosnik 3: 3650x864x200 (wew. 3650x864x200mm, max 440kg)
   - Rozdzielenie nośników na `carriers` (predefiniowane) i `custom_carriers` (użytkownika)
 - **Zunifikowane progi outlierów (`src/core/config.py`):**
@@ -239,6 +239,19 @@ D:\VS\DataAnalysis\
   - `src/quality/validators.py` - integracja z OUTLIER_THRESHOLDS
   - `src/quality/dq_lists.py` - integracja z OUTLIER_THRESHOLDS
   - `src/ui/app.py` - refaktoryzacja layoutu, integracja CarrierService
+
+### Sesja 2026-01-07 (wyłączenie funkcji tymczasowo)
+- **Wyłączone funkcje (do przyszłego rozwinięcia):**
+  - **Utilization sliders** (`src/ui/app.py` linie 111-127):
+    - Slidery VLM (0.70-0.80) i MiB (0.60-0.75) zakomentowane
+    - Powód: Wymaga dopracowania integracji z analizą pojemnościową
+    - Plan: Wrócić gdy będzie jasna koncepcja wykorzystania współczynników
+  - **Optional fields w Masterdata** (`src/ui/app.py` linie 420-472):
+    - Sekcja mapowania opcjonalnych pól (np. stock) zakomentowana
+    - Powód: Uproszczenie interfejsu na obecnym etapie
+    - Plan: Rozważyć efektywne wykorzystanie w przyszłości
+- **Zmodyfikowane pliki:**
+  - `src/ui/app.py` - zakomentowane sekcje utilization i optional fields
 
 ---
 
@@ -283,4 +296,4 @@ Dodatkowo zaimplementowano wszystkie wcześniej pominięte zadania (testy jednos
 
 **Data:** 2026-01-07
 **Przez:** Claude Code
-**Zmiany:** Nowy system zarządzania nośnikami (CarrierService + carriers.yml), zunifikowane progi outlierów w config.py, refaktoryzacja UI
+**Zmiany:** Wyłączono tymczasowo: Utilization sliders, Optional fields w Masterdata. Kod zakomentowany - gotowy do przywrócenia.

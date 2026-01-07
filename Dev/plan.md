@@ -235,6 +235,34 @@ OUTLIER_THRESHOLDS = {
 
 ---
 
+## Funkcje Tymczasowo Wyłączone ⏸️
+
+> Poniższe funkcje zostały zakomentowane w kodzie. Mogą zostać przywrócone w przyszłości.
+
+### 1. Utilization Sliders
+**Lokalizacja:** `src/ui/app.py` linie 111-127
+**Status:** Zakomentowane
+**Opis:** Slidery współczynników utilization dla VLM (0.70-0.80) i MiB (0.60-0.75)
+**Powód wyłączenia:** Wymaga dopracowania koncepcji integracji z analizą pojemnościową
+**Plan powrotu:**
+- [ ] Zdefiniować jak utilization wpływa na sizing maszyn
+- [ ] Określić czy różne nośniki mają różne współczynniki
+- [ ] Zintegrować z wynikami analizy pojemnościowej
+- [ ] Odkomentować slidery i podłączyć do logiki
+
+### 2. Optional Fields w Masterdata Mapping
+**Lokalizacja:** `src/ui/app.py` linie 420-472
+**Status:** Zakomentowane
+**Opis:** Sekcja mapowania opcjonalnych pól (np. stock) w Mapping Wizard
+**Powód wyłączenia:** Uproszczenie interfejsu - skupienie na polach wymaganych
+**Plan powrotu:**
+- [ ] Określić które pola opcjonalne są potrzebne (stock, category, etc.)
+- [ ] Zaprojektować UX - czy pokazywać od razu czy na żądanie
+- [ ] Rozważyć wpływ na analizę pojemnościową (stock × volume)
+- [ ] Odkomentować sekcję i dostosować UI
+
+---
+
 ## Kolejność Implementacji (Backend-First)
 
 ```

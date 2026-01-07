@@ -281,8 +281,33 @@
 
 ---
 
+## Funkcje Tymczasowo Wyłączone ⏸️
+
+> Zakomentowane w kodzie - do przyszłego rozwinięcia
+
+### Utilization Sliders
+- [-] Slidery VLM (0.70-0.80) i MiB (0.60-0.75) w sidebarze
+- **Lokalizacja:** `src/ui/app.py` linie 111-127
+- **Plan powrotu:**
+  - [ ] Zdefiniować wpływ utilization na sizing maszyn
+  - [ ] Określić współczynniki per typ nośnika
+  - [ ] Zintegrować z analizą pojemnościową
+  - [ ] Odkomentować i podłączyć logikę
+
+### Optional Fields (Masterdata Mapping)
+- [-] Sekcja mapowania opcjonalnych pól (np. stock)
+- **Lokalizacja:** `src/ui/app.py` linie 420-472
+- **Plan powrotu:**
+  - [ ] Określić potrzebne pola opcjonalne
+  - [ ] Zaprojektować UX prezentacji
+  - [ ] Rozważyć wpływ na analizę (stock × volume)
+  - [ ] Odkomentować i dostosować UI
+
+---
+
 ## Legenda
 
 - `[ ]` - Do zrobienia
 - `[x]` - Zrobione
 - `[-]` - Pominięte / Nie dotyczy
+- `⏸️` - Tymczasowo wyłączone (zakomentowane)
