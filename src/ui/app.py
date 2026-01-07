@@ -320,9 +320,18 @@ def render_mapping_ui(
     user_mappings = {}
 
     # Progress bar for required fields mapping
-    mapped_required = sum(
-        1 for f in required_fields if mapping_result.mappings.get(f)
-    )
+    # Calculate based on CURRENT session state widget values for accurate real-time update
+    mapped_required = 0
+    for field_name in required_fields:
+        widget_key = f"{key_prefix}_map_{field_name}"
+        current_selection = st.session_state.get(widget_key)
+        if current_selection is not None and current_selection != "-- Don't map --":
+            mapped_required += 1
+        elif current_selection is None:
+            # Fallback to auto-mapping if widget not yet rendered
+            if mapping_result.mappings.get(field_name):
+                mapped_required += 1
+
     total_required = len(required_fields)
     st.progress(
         mapped_required / total_required if total_required > 0 else 0,
@@ -974,9 +983,9 @@ def render_carriers_table() -> None:
     st.markdown("**Defined carriers:**")
 
     # Header row
-    header_cols = st.columns([2, 3, 2, 1])
+    header_cols = st.columns([3, 3, 2, 1])
     with header_cols[0]:
-        st.markdown("**ID**")
+        st.markdown("**Carrier**")
     with header_cols[1]:
         st.markdown("**Dimensions (L×W×H)**")
     with header_cols[2]:
@@ -985,16 +994,16 @@ def render_carriers_table() -> None:
         st.markdown("")
 
     for i, carrier in enumerate(carriers):
-        cols = st.columns([2, 3, 2, 1])
+        cols = st.columns([3, 3, 2, 1])
         with cols[0]:
-            st.text(carrier['carrier_id'])
+            st.text(f"{carrier['carrier_id']} ({carrier['name']})")
         with cols[1]:
             dims = f"{int(carrier['inner_length_mm'])}×{int(carrier['inner_width_mm'])}×{int(carrier['inner_height_mm'])} mm"
             st.text(dims)
         with cols[2]:
             st.text(f"{carrier['max_weight_kg']:.1f} kg")
         with cols[3]:
-            if st.button("🗑️", key=f"del_carrier_{i}", help=f"Delete {carrier['name']}"):
+            if st.button("✕", key=f"del_carrier_{i}", help=f"Delete {carrier['name']}"):
                 st.session_state.custom_carriers.pop(i)
                 st.rerun()
 
