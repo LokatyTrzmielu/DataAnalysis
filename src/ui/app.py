@@ -108,24 +108,24 @@ def render_sidebar() -> None:
         st.markdown("---")
         st.subheader("Analysis parameters")
 
-        # Utilization
-        st.session_state.utilization_vlm = st.slider(
-            "Utilization VLM",
-            min_value=0.5,
-            max_value=1.0,
-            value=0.75,
-            step=0.05,
-            help="Utilization coefficient for Vertical Lift Module",
-        )
-
-        st.session_state.utilization_mib = st.slider(
-            "Utilization MiB",
-            min_value=0.5,
-            max_value=1.0,
-            value=0.68,
-            step=0.05,
-            help="Utilization coefficient for Mini-load in Box",
-        )
+        # Utilization - DISABLED
+        # st.session_state.utilization_vlm = st.slider(
+        #     "Utilization VLM",
+        #     min_value=0.5,
+        #     max_value=1.0,
+        #     value=0.75,
+        #     step=0.05,
+        #     help="Utilization coefficient for Vertical Lift Module",
+        # )
+        #
+        # st.session_state.utilization_mib = st.slider(
+        #     "Utilization MiB",
+        #     min_value=0.5,
+        #     max_value=1.0,
+        #     value=0.68,
+        #     step=0.05,
+        #     help="Utilization coefficient for Mini-load in Box",
+        # )
 
         # Productive hours
         st.session_state.productive_hours = st.slider(
