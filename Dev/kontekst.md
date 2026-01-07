@@ -88,7 +88,7 @@ D:\VS\DataAnalysis\
 | `src/reporting/` | ✅ Kompletny | csv_writer, reports, manifest, zip |
 | `src/ui/` | ✅ Kompletny | monolityczny app.py z pełnym UI |
 | `tests/fixtures/` | ✅ Kompletny | generate_fixtures, dane testowe (clean + dirty) |
-| `tests/` | ✅ Kompletny | 119 testów jednostkowych (ingest, quality, model, analytics, reporting) |
+| `tests/` | ✅ Kompletny | 122 testy jednostkowe (ingest, quality, model, analytics, reporting, integration) |
 
 ---
 
@@ -245,13 +245,51 @@ D:\VS\DataAnalysis\
   - **Utilization sliders** (`src/ui/app.py` linie 111-127):
     - Slidery VLM (0.70-0.80) i MiB (0.60-0.75) zakomentowane
     - Powód: Wymaga dopracowania integracji z analizą pojemnościową
-    - Plan: Wrócić gdy będzie jasna koncepcja wykorzystania współczynników
   - **Optional fields w Masterdata** (`src/ui/app.py` linie 420-472):
     - Sekcja mapowania opcjonalnych pól (np. stock) zakomentowana
     - Powód: Uproszczenie interfejsu na obecnym etapie
-    - Plan: Rozważyć efektywne wykorzystanie w przyszłości
+
+### Sesja 2026-01-07 (poprawki mapowania kolumn)
+- **Column mapping fixes:**
+  - Uproszczenie kodu mapowania w `src/ui/app.py` (usunięto ~80 linii)
+  - Poprawki w `src/ingest/mapping.py`
+- **Commity:** `7dbd720`, `19e4801`
+
+### Sesja 2026-01-07 (sprawdzanie wagi)
+- Weryfikacja i poprawki obsługi wagi w pipeline
+- **Commit:** `d96e456`
+
+### Sesja 2026-01-07 (Code Review - kompleksowa weryfikacja kodu)
+- **Przegląd i poprawki w 19 plikach:**
+  - `src/analytics/capacity.py` - poprawki analizy pojemnościowej
+  - `src/analytics/duckdb_runner.py` - rozszerzenia SQL
+  - `src/analytics/performance.py` - poprawki wydajności
+  - `src/core/carriers.py` - rozszerzenia CarrierService
+  - `src/ingest/readers.py` - poprawki odczytu plików
+  - `src/quality/dq_lists.py` - refaktoryzacja list DQ
+  - `src/quality/impute.py` - poprawki imputacji
+  - `src/quality/validators.py` - refaktoryzacja walidatorów
+  - `src/reporting/main_report.py` - poprawki raportów
+- **Commit:** `a9ea8af Code Review Fixes Applied`
+
+### Sesja 2026-01-07 (weryfikacja volume_m3 i stock_volume_m3)
+- **Weryfikacja obliczeń objętości:**
+  - Sprawdzono poprawność formuł matematycznych - OK
+  - Sprawdzono spójność między plikami - OK
+  - Uruchomiono testy jednostkowe - 122/122 passed
+  - Wykonano manualną weryfikację z przykładowymi danymi - OK
+- **Znaleziony i naprawiony błąd w teście:**
+  - Plik: `tests/test_analytics.py:252`
+  - Problem: Test oczekiwał 0.02 m³ (objętość 48 jednostek) zamiast 0.0005 m³ (objętość jednostkowa)
+  - Rozwiązanie: Poprawiono oczekiwaną wartość testu
+  - Commit: `0aed40c Fix incorrect test expectation for volume_m3 in capacity analysis`
+- **Potwierdzenie definicji kolumn:**
+  | Kolumna | Formuła | Opis |
+  |---------|---------|------|
+  | `volume_m3` | `(L×W×H) / 10⁹` | Objętość jednej sztuki SKU |
+  | `stock_volume_m3` | `volume_m3 × stock_qty` | Całkowita objętość stanu magazynowego |
 - **Zmodyfikowane pliki:**
-  - `src/ui/app.py` - zakomentowane sekcje utilization i optional fields
+  - `tests/test_analytics.py` - naprawa błędnego testu
 
 ---
 
@@ -296,4 +334,4 @@ Dodatkowo zaimplementowano wszystkie wcześniej pominięte zadania (testy jednos
 
 **Data:** 2026-01-07
 **Przez:** Claude Code
-**Zmiany:** Wyłączono tymczasowo: Utilization sliders, Optional fields w Masterdata. Kod zakomentowany - gotowy do przywrócenia.
+**Zmiany:** Weryfikacja volume_m3 i stock_volume_m3. Naprawa błędnego testu (test_analyze_dataframe_volume_m3). Wszystkie 122 testy przechodzą.

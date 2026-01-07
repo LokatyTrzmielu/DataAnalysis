@@ -233,6 +233,43 @@ OUTLIER_THRESHOLDS = {
 - Integracja z CarrierService dla analizy pojemnościowej
 - Poprawki wyświetlania i interakcji
 
+### FAZA 12: Poprawki i Weryfikacja Kodu (2026-01-07) ✅
+
+**1. Wyłączenie funkcji tymczasowo:**
+- Utilization sliders (`src/ui/app.py` linie 111-127) - zakomentowane
+- Optional fields w Masterdata mapping (`src/ui/app.py` linie 420-472) - zakomentowane
+
+**2. Poprawki mapowania kolumn:**
+- Uproszczenie kodu w `src/ui/app.py` (usunięto ~80 linii)
+- Poprawki w `src/ingest/mapping.py`
+- Commity: `7dbd720`, `19e4801`
+
+**3. Code Review - kompleksowa weryfikacja (commit `a9ea8af`):**
+- `src/analytics/capacity.py` - poprawki analizy pojemnościowej
+- `src/analytics/duckdb_runner.py` - rozszerzenia SQL
+- `src/analytics/performance.py` - poprawki wydajności
+- `src/core/carriers.py` - rozszerzenia CarrierService
+- `src/ingest/readers.py` - poprawki odczytu plików
+- `src/quality/dq_lists.py` - refaktoryzacja list DQ
+- `src/quality/impute.py` - poprawki imputacji
+- `src/quality/validators.py` - refaktoryzacja walidatorów
+- `src/reporting/main_report.py` - poprawki raportów
+
+**4. Weryfikacja volume_m3 i stock_volume_m3:**
+- Formuły matematycznie poprawne (przelicznik mm³→m³ = ÷10⁹)
+- Kod spójny we wszystkich lokalizacjach
+- 122 testy przechodzą pomyślnie
+- Naprawa błędu w teście `tests/test_analytics.py:252`
+- Commit: `0aed40c`
+
+**Definicje kolumn volume:**
+| Kolumna | Formuła | Znaczenie |
+|---------|---------|-----------|
+| `volume_m3` | `(L×W×H) / 10⁹` | Objętość jednej sztuki SKU |
+| `stock_volume_m3` | `volume_m3 × stock_qty` | Całkowita objętość magazynowa |
+| `CarrierStats.total_volume_m3` | Suma `volume_m3` | Suma objętości jednostkowych pasujących SKU |
+| `CarrierStats.stock_volume_m3` | Suma `stock_volume_m3` | Suma objętości magazynowych pasujących SKU |
+
 ---
 
 ## Funkcje Tymczasowo Wyłączone ⏸️

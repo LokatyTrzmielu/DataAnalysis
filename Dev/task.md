@@ -305,6 +305,50 @@
 
 ---
 
+## FAZA 12: Poprawki i Weryfikacja Kodu (2026-01-07) ✅
+
+### Wyłączenie funkcji tymczasowo
+- [x] Zakomentowanie Utilization sliders (`src/ui/app.py`)
+- [x] Zakomentowanie Optional fields w Masterdata mapping
+
+### Poprawki mapowania kolumn
+- [x] Uproszczenie kodu mapowania w `src/ui/app.py` (usunięto ~80 linii)
+- [x] Poprawki w `src/ingest/mapping.py`
+- **Commity:** `7dbd720`, `19e4801`
+
+### Sprawdzanie wagi
+- [x] Weryfikacja obsługi wagi w pipeline
+- **Commit:** `d96e456`
+
+### Code Review - kompleksowa weryfikacja kodu
+- [x] Przegląd i poprawki capacity.py
+- [x] Rozszerzenia duckdb_runner.py (SQL)
+- [x] Poprawki performance.py
+- [x] Rozszerzenia CarrierService (carriers.py)
+- [x] Poprawki readers.py
+- [x] Refaktoryzacja dq_lists.py
+- [x] Poprawki impute.py
+- [x] Refaktoryzacja validators.py
+- [x] Poprawki main_report.py
+- **Commit:** `a9ea8af Code Review Fixes Applied`
+
+### Weryfikacja volume_m3 i stock_volume_m3
+- [x] Sprawdzenie poprawności formuł matematycznych
+  - Formuła: `(length_mm × width_mm × height_mm) / 10⁹`
+  - Przelicznik mm³→m³ poprawny
+- [x] Sprawdzenie spójności między plikami
+  - `src/core/types.py:87-89` - MasterdataRow.volume_m3
+  - `src/core/types.py:205-209` - CarrierConfig.inner_volume_m3
+  - `src/model/masterdata.py:119-122` - MasterdataProcessor.calculate_volume()
+  - `src/analytics/capacity.py:271` - CapacityAnalyzer.analyze_dataframe()
+- [x] Uruchomienie testów jednostkowych (122/122 passed)
+- [x] Manualna weryfikacja z przykładowymi danymi
+- [x] Naprawa błędnego testu `test_analyze_dataframe_volume_m3`
+  - Zmiana oczekiwanej wartości z 0.02 na 0.0005 m³
+- **Commit:** `0aed40c Fix incorrect test expectation for volume_m3`
+
+---
+
 ## Legenda
 
 - `[ ]` - Do zrobienia
