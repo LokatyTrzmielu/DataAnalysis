@@ -271,36 +271,25 @@ def build_mapping_result_from_selections(
     )
 
 
-def _get_field_status_html(confidence: float | None, is_required: bool) -> str:
+def _get_field_status_html(is_mapped: bool) -> str:
     """Return HTML for field status indicator with colored background.
 
     Args:
-        confidence: Mapping confidence score (0.0-1.0) or None if not mapped
-        is_required: Whether this is a required field
+        is_mapped: Whether this field has a column mapped to it
 
     Returns:
         HTML string for the status indicator
     """
-    if confidence is not None and confidence >= 0.9:
-        # Green - auto-mapped with high confidence
+    if is_mapped:
+        # Green - field is mapped
         return """<div style="background-color: #d4edda; padding: 6px 10px;
                   border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 4px;">
-                  <small style="color: #155724;">✓ Auto</small></div>"""
-    elif confidence is not None and confidence >= 0.5:
-        # Yellow - partial match
-        return """<div style="background-color: #fff3cd; padding: 6px 10px;
-                  border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 4px;">
-                  <small style="color: #856404;">~ Partial</small></div>"""
-    elif is_required:
-        # Red - required but not mapped
+                  <small style="color: #155724;">✓ Done</small></div>"""
+    else:
+        # Red - field is not mapped
         return """<div style="background-color: #f8d7da; padding: 6px 10px;
                   border-radius: 4px; border-left: 4px solid #dc3545; margin-bottom: 4px;">
                   <small style="color: #721c24;">⚠ Missing</small></div>"""
-    else:
-        # Gray - optional not mapped
-        return """<div style="background-color: #e2e3e5; padding: 6px 10px;
-                  border-radius: 4px; border-left: 4px solid #6c757d; margin-bottom: 4px;">
-                  <small style="color: #383d41;">– Optional</small></div>"""
 
 
 def render_mapping_ui(
@@ -322,9 +311,8 @@ def render_mapping_ui(
     """
     st.subheader("Column mapping")
 
-    # Split into required and optional
+    # Get required fields only
     required_fields = [f for f, cfg in schema.items() if cfg["required"]]
-    optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
 
     # Dropdown options: none + columns from file
     dropdown_options = ["-- Don't map --"] + list(file_columns)
@@ -349,11 +337,11 @@ def render_mapping_ui(
     for i, field_name in enumerate(required_fields):
         with cols[i]:
             field_cfg = schema[field_name]
+            widget_key = f"{key_prefix}_map_{field_name}"
 
-            # Get current mapping
+            # Get current mapping from auto-mapping result
             current_mapping = mapping_result.mappings.get(field_name)
             current_value = current_mapping.source_column if current_mapping else None
-            confidence = current_mapping.confidence if current_mapping else None
 
             # Find index for default selection
             if current_value and current_value in file_columns:
@@ -361,9 +349,16 @@ def render_mapping_ui(
             else:
                 default_idx = 0
 
+            # Check if field is currently mapped (from session state if available)
+            current_selection = st.session_state.get(widget_key)
+            is_mapped = current_selection is not None and current_selection != "-- Don't map --"
+            # Fallback to auto-mapping if no session state yet
+            if current_selection is None:
+                is_mapped = current_value is not None
+
             # Status indicator with colored background
             st.markdown(
-                _get_field_status_html(confidence, is_required=True),
+                _get_field_status_html(is_mapped),
                 unsafe_allow_html=True,
             )
 
@@ -372,46 +367,12 @@ def render_mapping_ui(
                 field_name,
                 options=dropdown_options,
                 index=default_idx,
-                key=f"{key_prefix}_map_{field_name}",
+                key=widget_key,
                 help=field_cfg["description"],
             )
 
             if selected != "-- Don't map --":
                 user_mappings[field_name] = selected
-
-    # Optional fields section
-    if optional_fields:
-        st.markdown("**Optional fields:**")
-
-        opt_cols = st.columns(len(optional_fields))
-        for i, field_name in enumerate(optional_fields):
-            with opt_cols[i]:
-                field_cfg = schema[field_name]
-                current_mapping = mapping_result.mappings.get(field_name)
-                current_value = current_mapping.source_column if current_mapping else None
-                confidence = current_mapping.confidence if current_mapping else None
-
-                if current_value and current_value in file_columns:
-                    default_idx = file_columns.index(current_value) + 1
-                else:
-                    default_idx = 0
-
-                # Status indicator with colored background
-                st.markdown(
-                    _get_field_status_html(confidence, is_required=False),
-                    unsafe_allow_html=True,
-                )
-
-                selected = st.selectbox(
-                    field_name,
-                    options=dropdown_options,
-                    index=default_idx,
-                    key=f"{key_prefix}_map_{field_name}",
-                    help=field_cfg["description"],
-                )
-
-                if selected != "-- Don't map --":
-                    user_mappings[field_name] = selected
 
     # Build updated MappingResult
     return build_mapping_result_from_selections(user_mappings, file_columns, schema, mapping_result)
@@ -426,16 +387,7 @@ def render_mapping_status(mapping_result: MappingResult) -> bool:
     Returns:
         True if mapping has errors (missing required or duplicates)
     """
-    has_errors = False
-
-    if mapping_result.is_complete:
-        st.success("All required fields mapped")
-    else:
-        # Vertical list for missing fields - better readability
-        st.error("Missing required fields:")
-        for field in mapping_result.missing_required:
-            st.markdown(f"• `{field}`")
-        has_errors = True
+    has_errors = not mapping_result.is_complete
 
     # Check for duplicate column selections
     source_columns = [m.source_column for m in mapping_result.mappings.values()]
@@ -553,8 +505,8 @@ def render_masterdata_import() -> None:
             help="Select unit if auto-detection fails for light items",
         )
 
-        # Action buttons
-        btn_col1, btn_col2 = st.columns([1, 3])
+        # Action buttons - Back on left, Import on right
+        btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
 
         with btn_col1:
             if st.button("Back", key="md_back_to_upload"):
@@ -563,7 +515,7 @@ def render_masterdata_import() -> None:
                 st.session_state.masterdata_mapping_result = None
                 st.rerun()
 
-        with btn_col2:
+        with btn_col3:
             import_disabled = not updated_mapping.is_complete or has_mapping_errors
             if st.button(
                 "Import Masterdata",
@@ -698,8 +650,8 @@ def render_orders_import() -> None:
         # Status
         has_mapping_errors = render_mapping_status(updated_mapping)
 
-        # Action buttons
-        btn_col1, btn_col2 = st.columns([1, 3])
+        # Action buttons - Back on left, Import on right
+        btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
 
         with btn_col1:
             if st.button("Back", key="orders_back_to_upload"):
@@ -708,7 +660,7 @@ def render_orders_import() -> None:
                 st.session_state.orders_mapping_result = None
                 st.rerun()
 
-        with btn_col2:
+        with btn_col3:
             import_disabled = not updated_mapping.is_complete or has_mapping_errors
             if st.button(
                 "Import Orders",
