@@ -48,9 +48,11 @@ class DQListBuilder:
         self,
         borderline_threshold_mm: float = BORDERLINE_THRESHOLD_MM,
         outlier_thresholds: dict | None = None,
+        enable_outlier_detection: bool = True,
     ) -> None:
         """Initialize builder."""
         self.borderline_threshold_mm = borderline_threshold_mm
+        self.enable_outlier_detection = enable_outlier_detection
         # Use unified thresholds from config, converting min/max to low/high format
         if outlier_thresholds:
             self.outlier_thresholds = outlier_thresholds
@@ -111,6 +113,9 @@ class DQListBuilder:
     def _find_suspect_outliers(self, df: pl.DataFrame) -> list[DQListItem]:
         """Find SKUs with suspicious values (outliers)."""
         items = []
+
+        if not self.enable_outlier_detection:
+            return items
 
         for field, thresholds in self.outlier_thresholds.items():
             if field not in df.columns:

@@ -266,7 +266,7 @@ class TestDQListBuilder:
         """Test znajdowania outlierow."""
         df = pl.DataFrame({
             "sku": ["SKU1", "SKU2", "SKU3"],
-            "length_mm": [100.0, 5.0, 3000.0],  # 5 za maly, 3000 za duzy
+            "length_mm": [100.0, 0.005, 3000.0],  # 0.005 < 0.01 (too small), 3000 > 864 (too large)
             "width_mm": [50.0, 100.0, 150.0],
             "height_mm": [30.0, 60.0, 90.0],
             "weight_kg": [1.5, 3.0, 4.5],
@@ -344,6 +344,26 @@ class TestDQListBuilder:
 
         assert lists.total_issues > 0
         assert len(lists.missing_critical) > 0
+
+    def test_outlier_detection_disabled(self):
+        """Test that outliers are not detected when flag is False."""
+        df = pl.DataFrame({
+            "sku": ["SKU1", "SKU2", "SKU3"],
+            "length_mm": [100.0, 0.005, 3000.0],  # 0.005 < 0.01 (too small), 3000 > 864 (too large)
+            "width_mm": [50.0, 100.0, 150.0],
+            "height_mm": [30.0, 60.0, 90.0],
+            "weight_kg": [1.5, 3.0, 4.5],
+        })
+
+        # With outlier detection enabled (default)
+        builder_enabled = DQListBuilder(enable_outlier_detection=True)
+        outliers_enabled = builder_enabled._find_suspect_outliers(df)
+        assert len(outliers_enabled) == 2  # Should find 2 outliers
+
+        # With outlier detection disabled
+        builder_disabled = DQListBuilder(enable_outlier_detection=False)
+        outliers_disabled = builder_disabled._find_suspect_outliers(df)
+        assert len(outliers_disabled) == 0  # Should find no outliers
 
 
 # ============================================================================

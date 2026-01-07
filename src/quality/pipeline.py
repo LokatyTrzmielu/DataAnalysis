@@ -81,7 +81,10 @@ class QualityPipeline:
                 field: {"low": vals["min"], "high": vals["max"]}
                 for field, vals in outlier_thresholds.items()
             }
-        self.dq_list_builder = DQListBuilder(outlier_thresholds=dq_outlier_thresholds)
+        self.dq_list_builder = DQListBuilder(
+            outlier_thresholds=dq_outlier_thresholds,
+            enable_outlier_detection=enable_outlier_validation,
+        )
         self.imputer = Imputer(
             method=imputation_method,
             treat_zero_as_missing=treat_zero_as_missing,
