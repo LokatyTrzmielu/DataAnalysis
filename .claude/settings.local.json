@@ -26,7 +26,12 @@
       "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline --since=\"2026-01-07 00:00:00\" --until=\"2026-01-07 23:59:59\")",
       "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline --since=\"2026-01-07 00:00:00\" --format=\"%h %s\")",
       "Bash(git -C \"D:/VS/DataAnalysis\" show a9ea8af --stat --oneline)",
-      "Bash(git -C \"D:/VS/DataAnalysis\" show 7dbd720 --stat --oneline)"
+      "Bash(git -C \"D:/VS/DataAnalysis\" show 7dbd720 --stat --oneline)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline --all)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" show e556837 --stat --oneline)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" show be6320d --stat --oneline)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline --name-status --since=\"2026-01-07 00:00:00\")",
+      "Bash(findstr:*)"
     ]
   },
   "outputStyle": "default"

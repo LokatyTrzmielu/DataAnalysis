@@ -10,6 +10,10 @@ from src.ingest.mapping import (
     create_masterdata_wizard,
     create_orders_wizard,
 )
+from src.ingest.mapping_history import (
+    MappingHistoryService,
+    MappingHistoryEntry,
+)
 from src.ingest.units import (
     UnitDetector,
     UnitConverter,
@@ -42,6 +46,9 @@ __all__ = [
     "ORDERS_SCHEMA",
     "create_masterdata_wizard",
     "create_orders_wizard",
+    # Mapping History
+    "MappingHistoryService",
+    "MappingHistoryEntry",
     # Units
     "UnitDetector",
     "UnitConverter",

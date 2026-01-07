@@ -44,13 +44,17 @@ def init_session_state() -> None:
         # Masterdata mapping state
         "masterdata_file_columns": None,
         "masterdata_mapping_result": None,
+        "masterdata_original_mapping": None,  # For tracking corrections
         "masterdata_temp_path": None,
         "masterdata_mapping_step": "upload",
         # Orders mapping state
         "orders_file_columns": None,
         "orders_mapping_result": None,
+        "orders_original_mapping": None,  # For tracking corrections
         "orders_temp_path": None,
         "orders_mapping_step": "upload",
+        # Mapping history service (singleton)
+        "mapping_history_service": None,
         # Custom carriers for capacity analysis
         "custom_carriers": [],
         # Outlier validation settings - use unified thresholds from config
@@ -69,6 +73,11 @@ def init_session_state() -> None:
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+    # Initialize mapping history service
+    if st.session_state.mapping_history_service is None:
+        from src.ingest import MappingHistoryService
+        st.session_state.mapping_history_service = MappingHistoryService()
 
     # Load carriers from file on first run
     if not st.session_state.carriers_loaded:
@@ -472,6 +481,8 @@ def render_masterdata_import() -> None:
     )
     from src.ingest.units import WeightUnit
 
+    history_service = st.session_state.mapping_history_service
+
     st.subheader("Masterdata")
 
     step = st.session_state.get("masterdata_mapping_step", "upload")
@@ -498,13 +509,15 @@ def render_masterdata_import() -> None:
                         reader = FileReader(tmp_path)
                         columns = reader.get_columns()
 
-                        wizard = create_masterdata_wizard()
-                        auto_mapping = wizard.auto_map(columns)
+                        wizard = create_masterdata_wizard(history_service)
+                        client_name = st.session_state.get("client_name", "")
+                        auto_mapping = wizard.auto_map(columns, client_name)
 
                         # Save in session state
                         st.session_state.masterdata_temp_path = tmp_path
                         st.session_state.masterdata_file_columns = columns
                         st.session_state.masterdata_mapping_result = auto_mapping
+                        st.session_state.masterdata_original_mapping = auto_mapping
                         st.session_state.masterdata_mapping_step = "mapping"
                         st.rerun()
 
@@ -585,6 +598,16 @@ def render_masterdata_import() -> None:
                         st.session_state.masterdata_df = result.df
                         st.session_state.masterdata_mapping_step = "complete"
 
+                        # Record user corrections to history
+                        original = st.session_state.masterdata_original_mapping
+                        if original is not None and history_service is not None:
+                            wizard = create_masterdata_wizard(history_service)
+                            client_name = st.session_state.get("client_name", "")
+                            wizard.record_user_corrections(
+                                original, updated_mapping, client_name
+                            )
+                            history_service.save_history()
+
                         st.success(f"Imported {result.rows_imported} rows")
 
                         if result.warnings:
@@ -626,6 +649,8 @@ def render_orders_import() -> None:
         OrdersIngestPipeline,
     )
 
+    history_service = st.session_state.mapping_history_service
+
     st.subheader("Orders")
 
     step = st.session_state.get("orders_mapping_step", "upload")
@@ -652,13 +677,15 @@ def render_orders_import() -> None:
                         reader = FileReader(tmp_path)
                         columns = reader.get_columns()
 
-                        wizard = create_orders_wizard()
-                        auto_mapping = wizard.auto_map(columns)
+                        wizard = create_orders_wizard(history_service)
+                        client_name = st.session_state.get("client_name", "")
+                        auto_mapping = wizard.auto_map(columns, client_name)
 
                         # Save in session state
                         st.session_state.orders_temp_path = tmp_path
                         st.session_state.orders_file_columns = columns
                         st.session_state.orders_mapping_result = auto_mapping
+                        st.session_state.orders_original_mapping = auto_mapping
                         st.session_state.orders_mapping_step = "mapping"
                         st.rerun()
 
@@ -719,6 +746,16 @@ def render_orders_import() -> None:
 
                         st.session_state.orders_df = result.df
                         st.session_state.orders_mapping_step = "complete"
+
+                        # Record user corrections to history
+                        original = st.session_state.orders_original_mapping
+                        if original is not None and history_service is not None:
+                            wizard = create_orders_wizard(history_service)
+                            client_name = st.session_state.get("client_name", "")
+                            wizard.record_user_corrections(
+                                original, updated_mapping, client_name
+                            )
+                            history_service.save_history()
 
                         st.success(f"Imported {result.rows_imported} rows")
 
