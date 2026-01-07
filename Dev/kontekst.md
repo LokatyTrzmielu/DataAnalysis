@@ -213,6 +213,33 @@ D:\VS\DataAnalysis\
   - `src/quality/pipeline.py` - obsługa parametrów outlierów
   - `src/analytics/capacity.py` - dodano stock_volume_m3 do CarrierStats
 
+### Sesja 2026-01-07 (system nośników i refaktoryzacja)
+- **Nowy system zarządzania nośnikami (`src/core/carriers.py`):**
+  - Klasa `CarrierService` do ładowania i zapisywania konfiguracji nośników
+  - Plik konfiguracyjny `src/core/carriers.yml` z predefiniowanymi nośnikami
+  - Możliwość zapisywania własnych (custom) nośników do pliku YAML
+  - 3 predefiniowane nośniki:
+    - Nosnik 1: 600x400x220 (wew. 570x370x200mm, max 35kg)
+    - Nosnik 2: 640x440x238 (wew. 610x410x210mm, max 35kg)
+    - Nosnik 3: 3650x864x200 (wew. 3650x864x200mm, max 440kg)
+  - Rozdzielenie nośników na `carriers` (predefiniowane) i `custom_carriers` (użytkownika)
+- **Zunifikowane progi outlierów (`src/core/config.py`):**
+  - Nowy słownik `OUTLIER_THRESHOLDS` - centralne źródło prawdy
+  - Progi dla: length_mm, width_mm, height_mm, weight_kg, stock_qty
+  - Używane przez: validators.py, dq_lists.py
+- **Refaktoryzacja UI:**
+  - Uproszczenie layoutu w app.py
+  - Integracja nowego systemu nośników z interfejsem analizy pojemnościowej
+  - Poprawki wyświetlania i interakcji
+- **Zmodyfikowane pliki:**
+  - `src/core/carriers.py` - NOWY moduł CarrierService
+  - `src/core/carriers.yml` - NOWY plik konfiguracji nośników
+  - `src/core/config.py` - dodano OUTLIER_THRESHOLDS
+  - `src/core/types.py` - rozszerzenie CarrierConfig o is_predefined
+  - `src/quality/validators.py` - integracja z OUTLIER_THRESHOLDS
+  - `src/quality/dq_lists.py` - integracja z OUTLIER_THRESHOLDS
+  - `src/ui/app.py` - refaktoryzacja layoutu, integracja CarrierService
+
 ---
 
 ## Jak Kontynuować Po Przerwie
@@ -254,6 +281,6 @@ Dodatkowo zaimplementowano wszystkie wcześniej pominięte zadania (testy jednos
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-01-06
+**Data:** 2026-01-07
 **Przez:** Claude Code
-**Zmiany:** Rozszerzenia analizy pojemnościowej - wykluczanie outliers/borderline z analizy, stock volume (m³), tooltips, kompaktowa tabela nośników, wybór jednostki wagi przy imporcie
+**Zmiany:** Nowy system zarządzania nośnikami (CarrierService + carriers.yml), zunifikowane progi outlierów w config.py, refaktoryzacja UI

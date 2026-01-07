@@ -196,6 +196,43 @@ reports/
 - Nowa metryka "Stock volume (m³)" - suma objętości × zapas
 - Kompaktowa tabela nośników (format 2-wierszowy)
 
+### FAZA 11: System Nośników i Refaktoryzacja (2026-01-07) ✅
+**Nowe pliki:**
+- `src/core/carriers.py` - CarrierService do zarządzania nośnikami
+- `src/core/carriers.yml` - konfiguracja nośników (predefined + custom)
+
+**Zmodyfikowane pliki:**
+- `src/core/config.py` - dodano OUTLIER_THRESHOLDS
+- `src/core/types.py` - rozszerzenie CarrierConfig o is_predefined
+- `src/quality/validators.py` - integracja z OUTLIER_THRESHOLDS
+- `src/quality/dq_lists.py` - integracja z OUTLIER_THRESHOLDS
+- `src/ui/app.py` - refaktoryzacja layoutu, integracja CarrierService
+
+**System nośników:**
+- `CarrierService` klasa do ładowania i zapisywania konfiguracji
+- Predefiniowane nośniki ładowane z `carriers.yml`
+- Własne nośniki użytkownika zapisywane jako `custom_carriers`
+- 3 domyślne nośniki:
+  - Nosnik 1: 600x400x220 (570x370x200mm wew., max 35kg)
+  - Nosnik 2: 640x440x238 (610x410x210mm wew., max 35kg)
+  - Nosnik 3: 3650x864x200 (3650x864x200mm wew., max 440kg)
+
+**Zunifikowane progi outlierów:**
+```python
+OUTLIER_THRESHOLDS = {
+    "length_mm": {"min": 10, "max": 2000},
+    "width_mm": {"min": 10, "max": 2000},
+    "height_mm": {"min": 5, "max": 1500},
+    "weight_kg": {"min": 0.01, "max": 200},
+    "stock_qty": {"min": 0, "max": 1_000_000},
+}
+```
+
+**Refaktoryzacja UI:**
+- Uproszczenie layoutu w app.py
+- Integracja z CarrierService dla analizy pojemnościowej
+- Poprawki wyświetlania i interakcji
+
 ---
 
 ## Kolejność Implementacji (Backend-First)

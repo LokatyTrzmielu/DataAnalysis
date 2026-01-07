@@ -254,6 +254,33 @@
 
 ---
 
+## FAZA 11: System Nośników i Refaktoryzacja (2026-01-07) ✅
+
+### System nośników
+- [x] Utworzenie `src/core/carriers.py` - moduł CarrierService
+  - [x] Klasa CarrierService z metodami load_all_carriers() i save_custom_carriers()
+  - [x] Domyślne nośniki hardcoded jako fallback
+  - [x] Helper function load_carriers()
+- [x] Utworzenie `src/core/carriers.yml` - konfiguracja nośników
+  - [x] Sekcja `carriers` dla predefiniowanych nośników
+  - [x] Sekcja `custom_carriers` dla zapisanych przez użytkownika
+  - [x] 3 predefiniowane nośniki (600x400x220, 640x440x238, 3650x864x200)
+- [x] Rozszerzenie `src/core/types.py` - pole is_predefined w CarrierConfig
+
+### Zunifikowane progi outlierów
+- [x] Dodanie `OUTLIER_THRESHOLDS` do `src/core/config.py`
+  - [x] Progi dla length_mm, width_mm, height_mm, weight_kg, stock_qty
+  - [x] Centralne źródło prawdy dla walidacji
+- [x] Aktualizacja `src/quality/validators.py` - użycie OUTLIER_THRESHOLDS
+- [x] Aktualizacja `src/quality/dq_lists.py` - użycie OUTLIER_THRESHOLDS
+
+### Refaktoryzacja UI
+- [x] Uproszczenie layoutu w `src/ui/app.py`
+- [x] Integracja CarrierService z interfejsem analizy pojemnościowej
+- [x] Poprawki wyświetlania i interakcji
+
+---
+
 ## Legenda
 
 - `[ ]` - Do zrobienia
