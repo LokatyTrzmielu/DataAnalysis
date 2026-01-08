@@ -48,10 +48,16 @@ src/
 ├── analytics/  # DuckDB, capacity, performance
 ├── reporting/  # Raporty CSV, manifest, ZIP
 └── ui/         # Streamlit UI
-    ├── app.py      # Główna aplikacja
+    ├── app.py      # Główna aplikacja (zrefaktoryzowana, ~280 linii)
     ├── theme.py    # Dark theme, paleta kolorów, CSS
     ├── layout.py   # Komponenty UI (KPI cards, badges, sekcje)
-    └── views/      # Widoki zakładek (w budowie)
+    └── views/      # Widoki zakładek
+        ├── import_view.py      # Import danych z mapowaniem
+        ├── validation_view.py  # Walidacja i jakość danych
+        ├── capacity_view.py    # Analiza pojemnościowa
+        ├── performance_view.py # Analiza wydajnościowa
+        ├── reports_view.py     # Raporty i eksport
+        └── components_demo.py  # Demo komponentów UI
 
 tests/          # 122 testy jednostkowe + integracyjne
 runs/           # Wyniki analiz per klient
@@ -103,8 +109,8 @@ python -m pytest tests/ -v
 |------|-------|--------|
 | 1 | Theme i struktura plików | ✅ |
 | 2 | Komponenty UI (layout.py) | ✅ |
-| 3 | Refaktoryzacja app.py | ⏳ |
-| 4-7 | Widoki zakładek | ⏳ |
+| 3 | Refaktoryzacja app.py | ✅ |
+| 4-7 | Widoki zakładek (restyling) | ⏳ |
 | 8 | Finalizacja i testy | ⏳ |
 
 **Zmiany Etapu 1:**
@@ -120,9 +126,20 @@ python -m pytest tests/ -v
 - Strona demo: `views/components_demo.py`
 - Skrypt testowy: `run_components_demo.py`
 
+**Zmiany Etapu 3:**
+- Rozbicie monolitu app.py (1838 → ~280 linii)
+- Nowe moduły widoków:
+  - `import_view.py` - import + mapowanie kolumn
+  - `validation_view.py` - walidacja danych
+  - `capacity_view.py` - nośniki + analiza pojemnościowa
+  - `performance_view.py` - zmiany + analiza wydajnościowa
+  - `reports_view.py` - generowanie raportów
+- Nowa struktura 5 zakładek: Import | Validation | Capacity | Performance | Reports
+- Aplikowanie dark theme w main()
+
 ---
 
 ## Ostatnia Aktualizacja
 
 **Data:** 2026-01-08
-**Status:** MVP kompletne, modernizacja UI - Etap 2 ukończony
+**Status:** MVP kompletne, modernizacja UI - Etap 3 ukończony

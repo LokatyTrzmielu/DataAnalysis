@@ -35,18 +35,23 @@
 |------|--------|--------|
 | 1 | Dark theme + struktura | ✅ |
 | 2 | Komponenty UI | ✅ |
-| 3 | Refaktoryzacja app.py | ⏳ |
+| 3 | Refaktoryzacja app.py | ✅ |
 | 4 | Import view | ⏳ |
 | 5 | Capacity view + Plotly | ⏳ |
 | 6 | Performance view + Plotly | ⏳ |
 | 7 | Reports view | ⏳ |
 | 8 | Finalizacja | ⏳ |
 
-**Etap 2 - szczegóły:**
-- Rozszerzone CSS (hover, responsywność 4→2→1 kolumny)
-- Message boxes: info/warning/error/success
-- Nowe komponenty: table_container, empty_state, progress_section
-- Demo: `run_components_demo.py`
+**Etap 3 - szczegóły:**
+- Rozbicie monolitu app.py (1838 linii → ~280 linii)
+- Utworzono moduły widoków w `src/ui/views/`:
+  - `import_view.py` - import danych z mapowaniem kolumn
+  - `validation_view.py` - walidacja i jakość danych
+  - `capacity_view.py` - analiza pojemnościowa z nośnikami
+  - `performance_view.py` - analiza wydajnościowa ze zmianami
+  - `reports_view.py` - generowanie i pobieranie raportów
+- Nowa struktura zakładek: Import | Validation | Capacity | Performance | Reports
+- Aplikacja dark theme w main()
 
 ---
 
