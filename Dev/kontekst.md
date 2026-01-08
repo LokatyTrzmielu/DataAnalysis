@@ -11,7 +11,7 @@
 | Nazwa projektu | DataAnalysis |
 | Katalog roboczy | `D:\VS\DataAnalysis` |
 | Data rozpoczęcia | 2026-01-03 |
-| Status | **MVP KOMPLETNE** |
+| Status | **MVP KOMPLETNE** - Modernizacja UI w toku |
 | Testy | 122 (wszystkie przechodzą) |
 
 ---
@@ -47,7 +47,11 @@ src/
 ├── model/      # Masterdata, Orders processing
 ├── analytics/  # DuckDB, capacity, performance
 ├── reporting/  # Raporty CSV, manifest, ZIP
-└── ui/         # Streamlit app.py (monolityczny)
+└── ui/         # Streamlit UI
+    ├── app.py      # Główna aplikacja
+    ├── theme.py    # Dark theme, paleta kolorów, CSS
+    ├── layout.py   # Komponenty UI (KPI cards, badges, sekcje)
+    └── views/      # Widoki zakładek (w budowie)
 
 tests/          # 122 testy jednostkowe + integracyjne
 runs/           # Wyniki analiz per klient
@@ -91,7 +95,34 @@ python -m pytest tests/ -v
 
 ---
 
+## Modernizacja UI (w toku)
+
+**Plan:** `Dev/UI_MODERNIZATION_PLAN.md`
+
+| Etap | Nazwa | Status |
+|------|-------|--------|
+| 1 | Theme i struktura plików | ✅ |
+| 2 | Komponenty UI (layout.py) | ✅ |
+| 3 | Refaktoryzacja app.py | ⏳ |
+| 4-7 | Widoki zakładek | ⏳ |
+| 8 | Finalizacja i testy | ⏳ |
+
+**Zmiany Etapu 1:**
+- Dark theme (#121212, #1E1E1E, #4CAF50)
+- `theme.py` - paleta kolorów, CSS
+- `layout.py` - komponenty KPI, badges, sekcje
+- `views/` - katalog na widoki
+
+**Zmiany Etapu 2:**
+- Rozszerzone CSS - hover effects, responsywność (4→2→1 kolumny)
+- Message boxes (info/warning/error/success)
+- Nowe komponenty: table_container, metric_row, divider, spacer, empty_state, progress_section
+- Strona demo: `views/components_demo.py`
+- Skrypt testowy: `run_components_demo.py`
+
+---
+
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-01-07
-**Status:** MVP kompletne, dokumentacja uproszczona
+**Data:** 2026-01-08
+**Status:** MVP kompletne, modernizacja UI - Etap 2 ukończony

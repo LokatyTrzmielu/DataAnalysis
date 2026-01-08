@@ -220,6 +220,188 @@ def get_custom_css() -> str:
         font-size: 1rem;
         font-weight: 500;
     }}
+
+    /* ===== ETAP 2: Rozszerzone style ===== */
+
+    /* KPI Card hover effects */
+    .kpi-card {{
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }}
+
+    .kpi-card:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        border-color: {COLORS["surface_light"]};
+    }}
+
+    /* Status badge hover */
+    .status-badge {{
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        cursor: default;
+    }}
+
+    .status-badge:hover {{
+        transform: scale(1.05);
+    }}
+
+    /* Card container hover */
+    .card-container {{
+        transition: border-color 0.2s ease;
+    }}
+
+    .card-container:hover {{
+        border-color: {COLORS["surface_light"]};
+    }}
+
+    /* Section header with icon alignment */
+    .section-header {{
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }}
+
+    /* Table container styling */
+    .table-container {{
+        background-color: {COLORS["surface"]};
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid {COLORS["border"]};
+        overflow-x: auto;
+    }}
+
+    .table-container h4 {{
+        color: {COLORS["text"]};
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        font-weight: 500;
+    }}
+
+    /* Info box styling */
+    .info-box {{
+        background-color: rgba(33, 150, 243, 0.1);
+        border-left: 3px solid {COLORS["info"]};
+        padding: 1rem;
+        border-radius: 0 8px 8px 0;
+        margin: 1rem 0;
+    }}
+
+    .info-box p {{
+        color: {COLORS["text"]};
+        margin: 0;
+    }}
+
+    /* Warning box styling */
+    .warning-box {{
+        background-color: rgba(255, 152, 0, 0.1);
+        border-left: 3px solid {COLORS["warning"]};
+        padding: 1rem;
+        border-radius: 0 8px 8px 0;
+        margin: 1rem 0;
+    }}
+
+    .warning-box p {{
+        color: {COLORS["text"]};
+        margin: 0;
+    }}
+
+    /* Error box styling */
+    .error-box {{
+        background-color: rgba(244, 67, 54, 0.1);
+        border-left: 3px solid {COLORS["error"]};
+        padding: 1rem;
+        border-radius: 0 8px 8px 0;
+        margin: 1rem 0;
+    }}
+
+    .error-box p {{
+        color: {COLORS["text"]};
+        margin: 0;
+    }}
+
+    /* Success box styling */
+    .success-box {{
+        background-color: rgba(76, 175, 80, 0.1);
+        border-left: 3px solid {COLORS["primary"]};
+        padding: 1rem;
+        border-radius: 0 8px 8px 0;
+        margin: 1rem 0;
+    }}
+
+    .success-box p {{
+        color: {COLORS["text"]};
+        margin: 0;
+    }}
+
+    /* Responsive grid for KPI cards */
+    @media (max-width: 768px) {{
+        /* Force 2 columns on tablet */
+        [data-testid="stHorizontalBlock"] {{
+            flex-wrap: wrap !important;
+        }}
+
+        [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {{
+            flex: 0 0 calc(50% - 0.5rem) !important;
+            min-width: calc(50% - 0.5rem) !important;
+        }}
+
+        .kpi-card {{
+            padding: 0.75rem 1rem;
+        }}
+
+        .kpi-card .value {{
+            font-size: 1.5rem;
+        }}
+    }}
+
+    @media (max-width: 480px) {{
+        /* Force 1 column on mobile */
+        [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"] {{
+            flex: 0 0 100% !important;
+            min-width: 100% !important;
+        }}
+
+        .kpi-card {{
+            padding: 0.75rem;
+        }}
+
+        .kpi-card .value {{
+            font-size: 1.25rem;
+        }}
+
+        .kpi-card h3 {{
+            font-size: 0.75rem;
+        }}
+    }}
+
+    /* Scrollbar styling for dark theme */
+    ::-webkit-scrollbar {{
+        width: 8px;
+        height: 8px;
+    }}
+
+    ::-webkit-scrollbar-track {{
+        background: {COLORS["background"]};
+    }}
+
+    ::-webkit-scrollbar-thumb {{
+        background: {COLORS["surface_light"]};
+        border-radius: 4px;
+    }}
+
+    ::-webkit-scrollbar-thumb:hover {{
+        background: {COLORS["border"]};
+    }}
+
+    /* Loading spinner override */
+    .stSpinner > div {{
+        border-top-color: {COLORS["primary"]} !important;
+    }}
+
+    /* Toast/notification styling */
+    .stAlert {{
+        background-color: {COLORS["surface"]};
+        border-radius: 8px;
+    }}
     </style>
     """
 

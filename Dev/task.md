@@ -23,6 +23,30 @@
 | 10 | Poprawki UI | outliers, borderline, tooltips | ✅ |
 | 11 | System nośników | carriers.py, carriers.yml | ✅ |
 | 12 | Code review | weryfikacja volume_m3, naprawa testów | ✅ |
+| 13 | Modernizacja UI | dark theme, komponenty, Plotly | ⏳ |
+
+---
+
+## Modernizacja UI (Faza 13)
+
+**Plan:** `Dev/UI_MODERNIZATION_PLAN.md`
+
+| Etap | Zakres | Status |
+|------|--------|--------|
+| 1 | Dark theme + struktura | ✅ |
+| 2 | Komponenty UI | ✅ |
+| 3 | Refaktoryzacja app.py | ⏳ |
+| 4 | Import view | ⏳ |
+| 5 | Capacity view + Plotly | ⏳ |
+| 6 | Performance view + Plotly | ⏳ |
+| 7 | Reports view | ⏳ |
+| 8 | Finalizacja | ⏳ |
+
+**Etap 2 - szczegóły:**
+- Rozszerzone CSS (hover, responsywność 4→2→1 kolumny)
+- Message boxes: info/warning/error/success
+- Nowe komponenty: table_container, empty_state, progress_section
+- Demo: `run_components_demo.py`
 
 ---
 
@@ -39,7 +63,7 @@
 
 - [ ] Testy wydajnościowe (200k SKU, 2M orders)
 - [ ] Eksport do Excel z formatowaniem
-- [ ] Dashboard z wykresami (Plotly)
+- [x] Dashboard z wykresami (Plotly) → Faza 13
 - [ ] Przywrócenie utilization sliders
 - [ ] Rozszerzenie optional fields
 
@@ -50,5 +74,6 @@
 | Symbol | Znaczenie |
 |--------|-----------|
 | ✅ | Ukończone |
+| ⏳ | W trakcie realizacji |
 | ⏸️ | Wyłączone tymczasowo |
 | [ ] | Do zrobienia (przyszłość) |

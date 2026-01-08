@@ -94,7 +94,7 @@ src/ui/
 
 ## Etap 2: Komponenty UI (layout.py)
 
-**Status:** [ ] Do zrobienia
+**Status:** [x] Zrealizowany
 
 ### Cel
 Zbudowanie reużywalnych komponentów UI w stylu n8n.
@@ -150,8 +150,8 @@ def render_chart_container(
 - Hover effects
 
 ### Weryfikacja
-- [ ] Utworzyć testową stronę z przykładowymi komponentami
-- [ ] Sprawdzić responsywność (4 kolumny → 2 kolumny)
+- [x] Utworzyć testową stronę z przykładowymi komponentami
+- [x] Sprawdzić responsywność (4 kolumny → 2 kolumny)
 
 ---
 
@@ -436,3 +436,4 @@ dependencies = [
 |------|------|--------|-------|
 | 2026-01-08 | Plan | Utworzony | Zatwierdzony przez użytkownika |
 | 2026-01-08 | Etap 1 | Zrealizowany | Dark theme + struktura plików |
+| 2026-01-08 | Etap 2 | Zrealizowany | Komponenty UI, CSS responsywny, strona demo |

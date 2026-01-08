@@ -20,7 +20,7 @@
 | `src/model/` | masterdata, orders | Przetwarzanie danych |
 | `src/analytics/` | duckdb_runner, capacity, shifts, performance | Analiza pojemnościowa i wydajnościowa |
 | `src/reporting/` | csv_writer, main_report, dq_reports, readme, manifest, zip | Raporty CSV, ZIP |
-| `src/ui/` | app.py | Streamlit (monolityczny) |
+| `src/ui/` | app.py, theme.py, layout.py, views/ | Streamlit UI (modernizacja w toku) |
 
 ---
 
@@ -41,6 +41,35 @@
 | 10 | Poprawki UI i walidacji | ✅ |
 | 11 | System nośników | ✅ |
 | 12 | Code review i weryfikacja | ✅ |
+| 13 | Modernizacja UI | ⏳ (Etap 2/8) |
+
+---
+
+## Modernizacja UI
+
+**Szczegółowy plan:** `Dev/UI_MODERNIZATION_PLAN.md`
+
+| Etap | Zakres | Status |
+|------|--------|--------|
+| 1 | Dark theme + struktura plików | ✅ |
+| 2 | Komponenty UI (layout.py) | ✅ |
+| 3 | Refaktoryzacja app.py na views | ⏳ |
+| 4 | Import view restyling | ⏳ |
+| 5 | Capacity view + Plotly | ⏳ |
+| 6 | Performance view + Plotly | ⏳ |
+| 7 | Reports view | ⏳ |
+| 8 | Finalizacja i testy | ⏳ |
+
+**Nowe pliki (Etap 1):**
+- `src/ui/theme.py` - COLORS, get_custom_css(), apply_theme()
+- `src/ui/layout.py` - render_kpi_card(), render_section(), render_status_badge()
+- `src/ui/views/__init__.py` - katalog na widoki zakładek
+
+**Rozszerzenia (Etap 2):**
+- `theme.py` - hover effects, responsywność CSS, message boxes, scrollbar
+- `layout.py` - render_message_box(), render_table_container(), render_empty_state(), render_progress_section()
+- `views/components_demo.py` - strona demo wszystkich komponentów
+- `run_components_demo.py` - skrypt uruchamiający demo
 
 ---
 

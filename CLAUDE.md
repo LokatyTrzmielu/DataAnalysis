@@ -13,3 +13,5 @@
 5. **Maintain Documentation**: Keep a documentation file that describes how the architecture of the app works inside and out.
 
 6. **No Speculation**: Never speculate about code you have not opened. If the user references a specific file, read it first before answering. Investigate and read relevant files BEFORE answering questions about the codebase. Never make claims about code before investigating - give grounded and hallucination-free answers.
+
+7. **Update files**: After every changes, update the files in folder @Dev to keep track of progress.

@@ -198,3 +198,183 @@ def apply_plotly_dark_theme(fig) -> None:
         fig: Plotly figure object to modify in-place
     """
     fig.update_layout(**get_plotly_layout_defaults())
+
+
+# ===== ETAP 2: Dodatkowe komponenty =====
+
+
+def render_message_box(
+    message: str,
+    box_type: Literal["info", "warning", "error", "success"] = "info",
+) -> None:
+    """Render a styled message box.
+
+    Args:
+        message: Message text to display
+        box_type: Type of box (determines color/style)
+    """
+    st.markdown(
+        f'<div class="{box_type}-box"><p>{message}</p></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_info_box(message: str) -> None:
+    """Render an info message box (blue accent)."""
+    render_message_box(message, "info")
+
+
+def render_warning_box(message: str) -> None:
+    """Render a warning message box (orange accent)."""
+    render_message_box(message, "warning")
+
+
+def render_error_box(message: str) -> None:
+    """Render an error message box (red accent)."""
+    render_message_box(message, "error")
+
+
+def render_success_box(message: str) -> None:
+    """Render a success message box (green accent)."""
+    render_message_box(message, "success")
+
+
+@contextmanager
+def render_table_container(title: str | None = None) -> Generator[None, None, None]:
+    """Context manager for a styled table container.
+
+    Args:
+        title: Optional title for the table section
+
+    Yields:
+        None (content is rendered inside the container)
+    """
+    if title:
+        st.markdown(
+            f'<div class="table-container"><h4>{title}</h4>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown('<div class="table-container">', unsafe_allow_html=True)
+    yield
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_metric_row(metrics: list[tuple[str, str | int | float]]) -> None:
+    """Render a simple row of metrics using Streamlit's native metric component.
+
+    Args:
+        metrics: List of (label, value) tuples
+    """
+    cols = st.columns(len(metrics))
+    for col, (label, value) in zip(cols, metrics):
+        with col:
+            st.metric(label=label, value=value)
+
+
+def render_divider() -> None:
+    """Render a styled horizontal divider."""
+    st.markdown(
+        f'<hr style="border: none; border-top: 1px solid {COLORS["border"]}; margin: 1.5rem 0;">',
+        unsafe_allow_html=True,
+    )
+
+
+def render_spacer(height: int = 20) -> None:
+    """Render vertical space.
+
+    Args:
+        height: Height in pixels
+    """
+    st.markdown(f'<div style="height: {height}px;"></div>', unsafe_allow_html=True)
+
+
+def render_centered_text(
+    text: str,
+    size: Literal["small", "medium", "large"] = "medium",
+    color: str | None = None,
+) -> None:
+    """Render centered text.
+
+    Args:
+        text: Text to display
+        size: Text size (small=0.85rem, medium=1rem, large=1.25rem)
+        color: Optional color override (defaults to text_secondary)
+    """
+    sizes = {"small": "0.85rem", "medium": "1rem", "large": "1.25rem"}
+    text_color = color or COLORS["text_secondary"]
+    st.markdown(
+        f'<p style="text-align: center; font-size: {sizes[size]}; color: {text_color};">{text}</p>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_empty_state(
+    message: str,
+    icon: str = "📭",
+    action_label: str | None = None,
+) -> bool:
+    """Render an empty state placeholder with optional action button.
+
+    Args:
+        message: Message to display
+        icon: Emoji icon to show
+        action_label: Optional button label
+
+    Returns:
+        True if action button was clicked, False otherwise
+    """
+    st.markdown(
+        f"""
+        <div style="text-align: center; padding: 3rem; color: {COLORS["text_secondary"]};">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">{icon}</div>
+            <p style="font-size: 1.1rem; margin: 0;">{message}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if action_label:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            return st.button(action_label, use_container_width=True)
+    return False
+
+
+def render_progress_section(
+    current: int,
+    total: int,
+    label: str = "Progress",
+) -> None:
+    """Render a progress indicator with label.
+
+    Args:
+        current: Current value
+        total: Total value
+        label: Label text
+    """
+    progress = current / total if total > 0 else 0
+    percentage = int(progress * 100)
+    st.markdown(
+        f'<p style="color: {COLORS["text_secondary"]}; margin-bottom: 0.5rem;">'
+        f"{label}: {current}/{total} ({percentage}%)</p>",
+        unsafe_allow_html=True,
+    )
+    st.progress(progress)
+
+
+def get_status_color(status: Literal["success", "warning", "error", "info"]) -> str:
+    """Get the color for a given status.
+
+    Args:
+        status: Status type
+
+    Returns:
+        Hex color string
+    """
+    status_colors = {
+        "success": COLORS["primary"],
+        "warning": COLORS["warning"],
+        "error": COLORS["error"],
+        "info": COLORS["info"],
+    }
+    return status_colors.get(status, COLORS["text_secondary"])
