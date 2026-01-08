@@ -36,22 +36,20 @@
 | 1 | Dark theme + struktura | ✅ |
 | 2 | Komponenty UI | ✅ |
 | 3 | Refaktoryzacja app.py | ✅ |
-| 4 | Import view | ⏳ |
+| 4 | Import view | ✅ |
 | 5 | Capacity view + Plotly | ⏳ |
 | 6 | Performance view + Plotly | ⏳ |
 | 7 | Reports view | ⏳ |
 | 8 | Finalizacja | ⏳ |
 
-**Etap 3 - szczegóły:**
-- Rozbicie monolitu app.py (1838 linii → ~280 linii)
-- Utworzono moduły widoków w `src/ui/views/`:
-  - `import_view.py` - import danych z mapowaniem kolumn
-  - `validation_view.py` - walidacja i jakość danych
-  - `capacity_view.py` - analiza pojemnościowa z nośnikami
-  - `performance_view.py` - analiza wydajnościowa ze zmianami
-  - `reports_view.py` - generowanie i pobieranie raportów
-- Nowa struktura zakładek: Import | Validation | Capacity | Performance | Reports
-- Aplikacja dark theme w main()
+**Etap 4 - szczegóły:**
+- Zakładka Import dostosowana do dark theme
+- `_get_field_status_html()` - rgba backgrounds dla ciemnego motywu
+- `render_section_header()` - dla nagłówków Masterdata/Orders/Column mapping
+- `render_status_badge()` - dla statusu ukończonego importu
+- `render_error_box()` - dla błędów duplikacji kolumn
+- Stylizowane mapping summary z kolorami auto/manual
+- Główny header z ikoną 📁
 
 ---
 

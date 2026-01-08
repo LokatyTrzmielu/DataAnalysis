@@ -219,7 +219,7 @@ def render_tabs():
 
 ## Etap 4: Zakładka Import (restyling)
 
-**Status:** [ ] Do zrobienia
+**Status:** [x] Zrealizowany
 
 ### Cel
 Dostosowanie zakładki Import do nowego stylu.
@@ -238,9 +238,17 @@ Dostosowanie zakładki Import do nowego stylu.
 - ℹ️ Info → szary badge
 
 ### Weryfikacja
-- [ ] Import Masterdata działa
-- [ ] Import Orders działa
-- [ ] Mapping UI jest czytelny w dark mode
+- [x] Import Masterdata działa
+- [x] Import Orders działa
+- [x] Mapping UI jest czytelny w dark mode
+
+### Szczegóły implementacji
+- `_get_field_status_html()` - zaktualizowane do dark theme (rgba backgrounds)
+- `render_section_header()` - zastąpiło `st.subheader()` w całym module
+- `render_status_badge()` - używane dla statusu ukończonego importu
+- `render_error_box()` - dla błędów duplikacji kolumn
+- Mapping summary - stylizowane z kolorami auto/manual
+- Główny header - stylowany z ikoną 📁
 
 ---
 
@@ -443,3 +451,4 @@ dependencies = [
 | 2026-01-08 | Etap 1 | Zrealizowany | Dark theme + struktura plików |
 | 2026-01-08 | Etap 2 | Zrealizowany | Komponenty UI, CSS responsywny, strona demo |
 | 2026-01-08 | Etap 3 | Zrealizowany | Refaktoryzacja app.py, 5 modułów widoków, 5 zakładek |
+| 2026-01-08 | Etap 4 | Zrealizowany | Import view restyling - dark theme statusy, section headers, badges |

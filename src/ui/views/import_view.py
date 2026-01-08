@@ -8,12 +8,22 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
+from src.ui.layout import (
+    render_section_header,
+    render_status_badge,
+    render_success_box,
+    render_error_box,
+    render_info_box,
+    render_spacer,
+)
+from src.ui.theme import COLORS
+
 if TYPE_CHECKING:
     from src.ingest import MappingResult
 
 
 def _get_field_status_html(is_mapped: bool) -> str:
-    """Return HTML for field status indicator with colored background.
+    """Return HTML for field status indicator with colored background (dark theme).
 
     Args:
         is_mapped: Whether this field has a column mapped to it
@@ -22,15 +32,15 @@ def _get_field_status_html(is_mapped: bool) -> str:
         HTML string for the status indicator
     """
     if is_mapped:
-        # Green - field is mapped
-        return """<div style="background-color: #d4edda; padding: 6px 10px;
-                  border-radius: 4px; border-left: 4px solid #28a745; margin-bottom: 4px;">
-                  <small style="color: #155724;">✓ Done</small></div>"""
+        # Green - field is mapped (dark theme)
+        return f"""<div style="background-color: rgba(76, 175, 80, 0.15); padding: 6px 10px;
+                  border-radius: 4px; border-left: 4px solid {COLORS["primary"]}; margin-bottom: 4px;">
+                  <small style="color: {COLORS["primary"]}; font-weight: 500;">✓ Done</small></div>"""
     else:
-        # Red - field is not mapped
-        return """<div style="background-color: #f8d7da; padding: 6px 10px;
-                  border-radius: 4px; border-left: 4px solid #dc3545; margin-bottom: 4px;">
-                  <small style="color: #721c24;">⚠ Missing</small></div>"""
+        # Red - field is not mapped (dark theme)
+        return f"""<div style="background-color: rgba(244, 67, 54, 0.15); padding: 6px 10px;
+                  border-radius: 4px; border-left: 4px solid {COLORS["error"]}; margin-bottom: 4px;">
+                  <small style="color: {COLORS["error"]}; font-weight: 500;">⚠ Missing</small></div>"""
 
 
 def build_mapping_result_from_selections(
@@ -109,7 +119,7 @@ def render_mapping_ui(
     Returns:
         Updated MappingResult with user selections
     """
-    st.subheader("Column mapping")
+    render_section_header("Column mapping", "🔗")
 
     # Get required fields only
     required_fields = [f for f, cfg in schema.items() if cfg["required"]]
@@ -203,26 +213,36 @@ def render_mapping_status(mapping_result: "MappingResult") -> bool:
         dup_fields = []
         for field_name, col_mapping in mapping_result.mappings.items():
             if col_mapping.source_column in duplicates:
-                dup_fields.append(f"{field_name} <- `{col_mapping.source_column}`")
-        # Vertical list for duplicates
-        st.error("Duplicate column mappings:")
-        for dup in dup_fields:
-            st.markdown(f"• {dup}")
+                dup_fields.append(f"{field_name} ← {col_mapping.source_column}")
+        # Styled error box for duplicates
+        dup_list = " • ".join(dup_fields)
+        render_error_box(f"Duplicate column mappings: {dup_list}")
         has_errors = True
 
-    # Mapping summary
-    with st.expander("Mapping summary", expanded=False):
+    # Mapping summary with styled content
+    with st.expander("📋 Mapping summary", expanded=False):
         for field_name, col_mapping in mapping_result.mappings.items():
             source = col_mapping.source_column
-            auto_label = "auto" if col_mapping.is_auto else "manual"
-            st.write(f"- **{field_name}** <- `{source}` ({auto_label})")
+            badge_color = COLORS["primary"] if col_mapping.is_auto else COLORS["info"]
+            badge_text = "auto" if col_mapping.is_auto else "manual"
+            st.markdown(
+                f'<div style="padding: 4px 0; color: {COLORS["text"]};">'
+                f'<strong>{field_name}</strong> ← <code style="background: {COLORS["surface_light"]}; '
+                f'padding: 2px 6px; border-radius: 4px;">{source}</code> '
+                f'<span style="color: {badge_color}; font-size: 0.8rem;">({badge_text})</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
     # Unmapped columns in separate expander for cleaner display
     if mapping_result.unmapped_columns:
         count = len(mapping_result.unmapped_columns)
         with st.expander(f"ℹ️ {count} unmapped columns from file"):
-            for col in mapping_result.unmapped_columns:
-                st.text(f"• {col}")
+            cols_text = ", ".join(mapping_result.unmapped_columns)
+            st.markdown(
+                f'<p style="color: {COLORS["text_secondary"]}; font-size: 0.9rem;">{cols_text}</p>',
+                unsafe_allow_html=True,
+            )
 
     return has_errors
 
@@ -239,7 +259,7 @@ def render_masterdata_import() -> None:
 
     history_service = st.session_state.mapping_history_service
 
-    st.subheader("Masterdata")
+    render_section_header("Masterdata", "📦")
 
     step = st.session_state.get("masterdata_mapping_step", "upload")
 
@@ -377,7 +397,9 @@ def render_masterdata_import() -> None:
     # Step 3: Import complete
     elif step == "complete":
         if st.session_state.masterdata_df is not None:
-            st.success(f"Masterdata: {len(st.session_state.masterdata_df)} SKU")
+            # Status badge with count
+            render_status_badge(f"✓ {len(st.session_state.masterdata_df)} SKU imported", "success")
+            render_spacer(10)
 
             with st.expander("Data preview", expanded=False):
                 st.dataframe(
@@ -405,7 +427,7 @@ def render_orders_import() -> None:
 
     history_service = st.session_state.mapping_history_service
 
-    st.subheader("Orders")
+    render_section_header("Orders", "📋")
 
     step = st.session_state.get("orders_mapping_step", "upload")
 
@@ -525,7 +547,9 @@ def render_orders_import() -> None:
     # Step 3: Import complete
     elif step == "complete":
         if st.session_state.orders_df is not None:
-            st.success(f"Orders: {len(st.session_state.orders_df)} lines")
+            # Status badge with count
+            render_status_badge(f"✓ {len(st.session_state.orders_df)} lines imported", "success")
+            render_spacer(10)
 
             with st.expander("Data preview", expanded=False):
                 st.dataframe(
@@ -544,7 +568,10 @@ def render_orders_import() -> None:
 
 def render_import_view() -> None:
     """Render the Import tab content."""
-    st.header("Data import")
+    st.markdown(
+        f'<h2 style="color: {COLORS["text"]}; margin-bottom: 1.5rem;">📁 Data Import</h2>',
+        unsafe_allow_html=True,
+    )
 
     col1, col2 = st.columns(2)
 

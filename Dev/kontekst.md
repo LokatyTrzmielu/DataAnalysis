@@ -110,7 +110,8 @@ python -m pytest tests/ -v
 | 1 | Theme i struktura plików | ✅ |
 | 2 | Komponenty UI (layout.py) | ✅ |
 | 3 | Refaktoryzacja app.py | ✅ |
-| 4-7 | Widoki zakładek (restyling) | ⏳ |
+| 4 | Import view (restyling) | ✅ |
+| 5-7 | Pozostałe widoki zakładek | ⏳ |
 | 8 | Finalizacja i testy | ⏳ |
 
 **Zmiany Etapu 1:**
@@ -137,9 +138,18 @@ python -m pytest tests/ -v
 - Nowa struktura 5 zakładek: Import | Validation | Capacity | Performance | Reports
 - Aplikowanie dark theme w main()
 
+**Zmiany Etapu 4:**
+- Import view dostosowany do dark theme
+- `_get_field_status_html()` - rgba backgrounds (zielony/czerwony dla status pól)
+- `render_section_header()` - nagłówki Masterdata 📦, Orders 📋, Column mapping 🔗
+- `render_status_badge()` - status ukończonego importu (✓ X SKU imported)
+- `render_error_box()` - stylizowane błędy duplikacji kolumn
+- Mapping summary - kolory auto (zielony) / manual (niebieski)
+- Główny header - stylowany z ikoną 📁
+
 ---
 
 ## Ostatnia Aktualizacja
 
 **Data:** 2026-01-08
-**Status:** MVP kompletne, modernizacja UI - Etap 3 ukończony
+**Status:** MVP kompletne, modernizacja UI - Etap 4 ukończony

@@ -41,7 +41,7 @@
 | 10 | Poprawki UI i walidacji | ✅ |
 | 11 | System nośników | ✅ |
 | 12 | Code review i weryfikacja | ✅ |
-| 13 | Modernizacja UI | ⏳ (Etap 2/8) |
+| 13 | Modernizacja UI | ⏳ (Etap 4/8) |
 
 ---
 
@@ -53,8 +53,8 @@
 |------|--------|--------|
 | 1 | Dark theme + struktura plików | ✅ |
 | 2 | Komponenty UI (layout.py) | ✅ |
-| 3 | Refaktoryzacja app.py na views | ⏳ |
-| 4 | Import view restyling | ⏳ |
+| 3 | Refaktoryzacja app.py na views | ✅ |
+| 4 | Import view restyling | ✅ |
 | 5 | Capacity view + Plotly | ⏳ |
 | 6 | Performance view + Plotly | ⏳ |
 | 7 | Reports view | ⏳ |
@@ -70,6 +70,18 @@
 - `layout.py` - render_message_box(), render_table_container(), render_empty_state(), render_progress_section()
 - `views/components_demo.py` - strona demo wszystkich komponentów
 - `run_components_demo.py` - skrypt uruchamiający demo
+
+**Refaktoryzacja (Etap 3):**
+- Rozbicie `app.py` z 1838 linii na ~280 linii
+- Moduły widoków: import_view.py, validation_view.py, capacity_view.py, performance_view.py, reports_view.py
+- 5 zakładek: Import | Validation | Capacity | Performance | Reports
+
+**Import view restyling (Etap 4):**
+- Dark theme dla statusów pól (rgba backgrounds)
+- `render_section_header()` dla nagłówków (📦 Masterdata, 📋 Orders, 🔗 Column mapping)
+- `render_status_badge()` dla statusu importu
+- `render_error_box()` dla błędów duplikacji
+- Stylizowane mapping summary (auto=zielony, manual=niebieski)
 
 ---
 
