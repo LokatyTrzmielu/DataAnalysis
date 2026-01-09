@@ -320,8 +320,10 @@ def _render_hourly_heatmap() -> None:
         st.info("No timestamp data available for heatmap.")
         return
 
-    # Aggregate by day of week (0=Mon) and hour
-    heatmap_df = orders_df.with_columns([
+    # Filter out null timestamps and aggregate by day of week (0=Mon) and hour
+    heatmap_df = orders_df.filter(
+        pl.col("timestamp").is_not_null()
+    ).with_columns([
         pl.col("timestamp").dt.weekday().alias("day_of_week"),
         pl.col("timestamp").dt.hour().alias("hour"),
     ]).group_by(["day_of_week", "hour"]).agg(
