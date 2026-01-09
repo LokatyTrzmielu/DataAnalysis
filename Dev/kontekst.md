@@ -113,7 +113,8 @@ python -m pytest tests/ -v
 | 3 | Refaktoryzacja app.py | ✅ |
 | 4 | Import view (restyling) | ✅ |
 | 5 | Capacity view (KPI + wykresy Plotly) | ✅ |
-| 6-7 | Pozostałe widoki zakładek | ⏳ |
+| 6 | Performance view (KPI + wykresy Plotly) | ✅ |
+| 7 | Reports view | ⏳ |
 | 8 | Finalizacja i testy | ⏳ |
 
 **Zmiany Etapu 1:**
@@ -161,9 +162,19 @@ python -m pytest tests/ -v
 - Wykresy Plotly z dark theme (`apply_plotly_dark_theme()`)
 - Zachowano istniejące elementy: Carrier management, Exclusion settings, Analysis mode
 
+**Zmiany Etapu 6:**
+- Performance view z nowymi sekcjami:
+  - **KPI Section**: 4 karty (Avg Lines/h, Peak Hour, Total Orders, Avg Lines/Order)
+  - **Charts Section**:
+    - Daily activity line chart (2 osie Y: lines + orders)
+    - Hourly heatmap (dzień tygodnia × godzina)
+    - Order structure histogram (lines per order)
+- Wykresy Plotly z dark theme
+- Zachowano istniejące elementy: Shift configuration (Default/Custom/YAML/None)
+
 ---
 
 ## Ostatnia Aktualizacja
 
 **Data:** 2026-01-09
-**Status:** MVP kompletne, modernizacja UI - Etap 5 ukończony
+**Status:** MVP kompletne, modernizacja UI - Etap 6 ukończony

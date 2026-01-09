@@ -313,7 +313,7 @@ Layout: 2 kolumny
 
 ## Etap 6: Zakładka Analiza wydajnościowa
 
-**Status:** [ ] Do zrobienia
+**Status:** [x] Zrealizowany
 
 ### Cel
 Nowy widok z KPI wydajnościowymi i wykresami czasowymi.
@@ -348,9 +348,18 @@ Nowy widok z KPI wydajnościowymi i wykresami czasowymi.
 - Productive hours slider
 
 ### Weryfikacja
-- [ ] KPI wydajnościowe są poprawne
-- [ ] Wykresy czasowe działają
-- [ ] Heatmapa jest czytelna
+- [x] KPI wydajnościowe są poprawne
+- [x] Wykresy czasowe działają
+- [x] Heatmapa jest czytelna
+
+### Szczegóły implementacji
+- `_render_performance_kpi()` - sekcja z 4 kartami KPI (Avg Lines/h, Peak Hour, Total Orders, Avg Lines/Order)
+- `_render_daily_lines_chart()` - line chart Plotly z 2 osiami Y (lines i orders)
+- `_render_hourly_heatmap()` - heatmapa aktywności (dzień tygodnia × godzina)
+- `_render_order_structure_chart()` - histogram lines per order
+- `_render_performance_charts()` - kontener dla wykresów (2 kolumny + pełna szerokość)
+- Zachowano shift configuration (Default/Custom/YAML/None)
+- Wszystkie wykresy używają `apply_plotly_dark_theme()`
 
 ---
 
@@ -463,3 +472,4 @@ dependencies = [
 | 2026-01-08 | Etap 3 | Zrealizowany | Refaktoryzacja app.py, 5 modułów widoków, 5 zakładek |
 | 2026-01-08 | Etap 4 | Zrealizowany | Import view restyling - dark theme statusy, section headers, badges |
 | 2026-01-09 | Etap 5 | Zrealizowany | Capacity view - KPI cards, 3 wykresy Plotly, tabela z filtrowaniem i eksportem CSV |
+| 2026-01-09 | Etap 6 | Zrealizowany | Performance view - KPI cards, daily line chart, hourly heatmap, order structure histogram |

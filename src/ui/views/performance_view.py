@@ -5,7 +5,17 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+import plotly.express as px
+import plotly.graph_objects as go
+import polars as pl
 import streamlit as st
+
+from src.ui.layout import (
+    apply_plotly_dark_theme,
+    render_kpi_section,
+    render_section_header,
+)
+from src.ui.theme import COLORS
 
 
 def render_performance_view() -> None:
@@ -176,24 +186,221 @@ def _render_performance_results() -> None:
     kpi = result.kpi
 
     st.markdown("---")
-    st.markdown("**Analysis results:**")
+
+    # New KPI section
+    _render_performance_kpi()
+
+    st.markdown("---")
+
+    # New charts section
+    _render_performance_charts()
+
+    st.markdown("---")
+
+    # Detailed statistics section
+    render_section_header("Detailed Statistics", "📊")
 
     col_a, col_b = st.columns(2)
     with col_a:
         st.metric("Lines/h (avg)", f"{kpi.avg_lines_per_hour:.1f}")
         st.metric("Orders/h (avg)", f"{kpi.avg_orders_per_hour:.1f}")
+        st.metric("Total lines", f"{kpi.total_lines:,}")
     with col_b:
         st.metric("Peak lines/h", kpi.peak_lines_per_hour)
         st.metric("P95 lines/h", f"{kpi.p95_lines_per_hour:.1f}")
+        st.metric("Total units", f"{kpi.total_units:,}")
 
-    # Additional metrics in expander
-    with st.expander("Detailed statistics", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Total lines", f"{kpi.total_lines:,}")
-            st.metric("Total orders", f"{kpi.total_orders:,}")
-        with col2:
-            st.metric("Total units", f"{kpi.total_units:,}")
-            if kpi.total_orders > 0:
-                avg_lines_per_order = kpi.total_lines / kpi.total_orders
-                st.metric("Avg lines/order", f"{avg_lines_per_order:.2f}")
+
+def _render_performance_kpi() -> None:
+    """Render KPI section with 4 cards."""
+    result = st.session_state.performance_result
+    kpi = result.kpi
+
+    # Find peak hour
+    hourly = result.hourly_metrics
+    peak_hour = 0
+    if hourly:
+        max_lines = max(h.lines for h in hourly)
+        for h in hourly:
+            if h.lines == max_lines:
+                peak_hour = h.hour
+                break
+
+    render_section_header("Key Performance Indicators", "📊")
+
+    metrics = [
+        {
+            "title": "Avg Lines/h",
+            "value": f"{kpi.avg_lines_per_hour:.1f}",
+            "icon": "📈",
+            "help_text": "Average lines per hour across all hours",
+        },
+        {
+            "title": "Peak Hour",
+            "value": f"{peak_hour:02d}:00",
+            "icon": "⏰",
+            "help_text": f"Hour with highest activity ({kpi.peak_lines_per_hour} lines)",
+        },
+        {
+            "title": "Total Orders",
+            "value": f"{kpi.total_orders:,}",
+            "icon": "📦",
+            "help_text": "Total number of unique orders",
+        },
+        {
+            "title": "Avg Lines/Order",
+            "value": f"{kpi.avg_lines_per_order:.2f}",
+            "icon": "📋",
+            "help_text": "Average lines per order",
+        },
+    ]
+
+    render_kpi_section(metrics)
+
+
+def _render_daily_lines_chart() -> None:
+    """Render daily lines/orders line chart."""
+    result = st.session_state.performance_result
+    daily = result.daily_metrics
+
+    if not daily:
+        st.info("No daily metrics available.")
+        return
+
+    # Prepare data
+    dates = [d.date for d in daily]
+    lines = [d.lines for d in daily]
+    orders = [d.orders for d in daily]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=dates,
+        y=lines,
+        mode="lines+markers",
+        name="Lines",
+        line={"color": COLORS["primary"], "width": 2},
+        marker={"size": 6},
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=dates,
+        y=orders,
+        mode="lines+markers",
+        name="Orders",
+        line={"color": COLORS["info"], "width": 2},
+        marker={"size": 6},
+        yaxis="y2",
+    ))
+
+    fig.update_layout(
+        title="Daily Activity",
+        xaxis_title="Date",
+        yaxis={"title": "Lines", "side": "left"},
+        yaxis2={
+            "title": "Orders",
+            "side": "right",
+            "overlaying": "y",
+            "showgrid": False,
+        },
+        showlegend=True,
+        legend={"x": 0, "y": 1.1, "orientation": "h"},
+        hovermode="x unified",
+    )
+
+    apply_plotly_dark_theme(fig)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_hourly_heatmap() -> None:
+    """Render hourly activity heatmap by day of week."""
+    orders_df = st.session_state.orders_df
+
+    if orders_df is None or "timestamp" not in orders_df.columns:
+        st.info("No timestamp data available for heatmap.")
+        return
+
+    # Aggregate by day of week (0=Mon) and hour
+    heatmap_df = orders_df.with_columns([
+        pl.col("timestamp").dt.weekday().alias("day_of_week"),
+        pl.col("timestamp").dt.hour().alias("hour"),
+    ]).group_by(["day_of_week", "hour"]).agg(
+        pl.len().alias("lines")
+    ).sort(["day_of_week", "hour"])
+
+    # Create matrix (7 days x 24 hours)
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    hours = list(range(24))
+
+    # Initialize with zeros
+    matrix = [[0 for _ in range(24)] for _ in range(7)]
+
+    for row in heatmap_df.to_dicts():
+        day_idx = row["day_of_week"] - 1  # Polars weekday is 1-7
+        if 0 <= day_idx < 7:
+            matrix[day_idx][row["hour"]] = row["lines"]
+
+    fig = go.Figure(data=go.Heatmap(
+        z=matrix,
+        x=[f"{h:02d}:00" for h in hours],
+        y=days,
+        colorscale=[
+            [0, COLORS["surface"]],
+            [0.5, COLORS["warning"]],
+            [1, COLORS["primary"]],
+        ],
+        hovertemplate="Day: %{y}<br>Hour: %{x}<br>Lines: %{z}<extra></extra>",
+    ))
+
+    fig.update_layout(
+        title="Hourly Activity Heatmap",
+        xaxis_title="Hour",
+        yaxis_title="Day of Week",
+        yaxis={"autorange": "reversed"},
+    )
+
+    apply_plotly_dark_theme(fig)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_order_structure_chart() -> None:
+    """Render order structure histogram (lines per order distribution)."""
+    orders_df = st.session_state.orders_df
+
+    if orders_df is None or "order_id" not in orders_df.columns:
+        st.info("No order data available.")
+        return
+
+    # Calculate lines per order
+    lines_per_order = orders_df.group_by("order_id").agg(
+        pl.len().alias("lines_count")
+    )
+
+    lines_counts = lines_per_order["lines_count"].to_list()
+
+    fig = px.histogram(
+        x=lines_counts,
+        nbins=30,
+        labels={"x": "Lines per Order", "y": "Order Count"},
+        title="Order Structure (Lines per Order)",
+    )
+
+    fig.update_traces(marker_color=COLORS["warning"])
+    apply_plotly_dark_theme(fig)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_performance_charts() -> None:
+    """Render all performance charts."""
+    render_section_header("Performance Charts", "📈")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        _render_daily_lines_chart()
+
+    with col2:
+        _render_hourly_heatmap()
+
+    # Full width chart
+    _render_order_structure_chart()
