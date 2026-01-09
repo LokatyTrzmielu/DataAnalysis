@@ -33,6 +33,7 @@ Lokalna aplikacja do analizy danych magazynowych:
 | Polars | Transformacje danych |
 | DuckDB | Agregacje SQL |
 | Streamlit | UI lokalne |
+| Plotly | Interaktywne wykresy |
 | Pydantic | Typy i walidacja |
 
 ---
@@ -111,7 +112,8 @@ python -m pytest tests/ -v
 | 2 | Komponenty UI (layout.py) | ✅ |
 | 3 | Refaktoryzacja app.py | ✅ |
 | 4 | Import view (restyling) | ✅ |
-| 5-7 | Pozostałe widoki zakładek | ⏳ |
+| 5 | Capacity view (KPI + wykresy Plotly) | ✅ |
+| 6-7 | Pozostałe widoki zakładek | ⏳ |
 | 8 | Finalizacja i testy | ⏳ |
 
 **Zmiany Etapu 1:**
@@ -147,9 +149,21 @@ python -m pytest tests/ -v
 - Mapping summary - kolory auto (zielony) / manual (niebieski)
 - Główny header - stylowany z ikoną 📁
 
+**Zmiany Etapu 5:**
+- Dodano Plotly do zależności (`plotly>=5.18.0`)
+- Capacity view z nowymi sekcjami:
+  - **KPI Section**: 4 karty (SKU Count, Avg Fit %, Avg Dimensions, Avg Weight)
+  - **Charts Section**:
+    - Histogram gabarytów (L/W/H overlay)
+    - Stacked bar chart FIT/BORDERLINE/NOT_FIT per carrier
+    - Histogram wag
+  - **Results Table**: filtry status + carrier, eksport CSV
+- Wykresy Plotly z dark theme (`apply_plotly_dark_theme()`)
+- Zachowano istniejące elementy: Carrier management, Exclusion settings, Analysis mode
+
 ---
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-01-08
-**Status:** MVP kompletne, modernizacja UI - Etap 4 ukończony
+**Data:** 2026-01-09
+**Status:** MVP kompletne, modernizacja UI - Etap 5 ukończony
