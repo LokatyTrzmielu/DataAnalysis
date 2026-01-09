@@ -199,14 +199,21 @@ class OrdersIngestPipeline:
 
         # 4. Timestamp parsing
         if "timestamp" in df.columns:
+            ts_dtype = df["timestamp"].dtype
             # Ensure timestamp is datetime
-            if df["timestamp"].dtype == pl.Utf8:
-                df = df.with_columns([
-                    pl.col("timestamp").str.to_datetime(
-                        format=None,  # Auto-detect
-                        strict=False,
-                    ).alias("timestamp")
-                ])
+            if not str(ts_dtype).startswith("Datetime"):
+                if ts_dtype == pl.Utf8:
+                    df = df.with_columns([
+                        pl.col("timestamp").str.to_datetime(
+                            format=None,  # Auto-detect
+                            strict=False,
+                        ).alias("timestamp")
+                    ])
+                elif ts_dtype in [pl.Int64, pl.Int32, pl.UInt64, pl.UInt32]:
+                    # Convert Unix epoch (seconds) to datetime
+                    df = df.with_columns([
+                        pl.from_epoch(pl.col("timestamp"), time_unit="s").alias("timestamp")
+                    ])
 
         return IngestResult(
             df=df,
