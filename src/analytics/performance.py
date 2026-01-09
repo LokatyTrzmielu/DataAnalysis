@@ -120,6 +120,21 @@ class PerformanceAnalyzer:
         if "timestamp" not in df.columns:
             raise ValueError("DataFrame must contain 'timestamp' column")
 
+        # Ensure timestamp is datetime type
+        ts_dtype = df["timestamp"].dtype
+        if not str(ts_dtype).startswith("Datetime"):
+            if ts_dtype == pl.Utf8:
+                df = df.with_columns([
+                    pl.col("timestamp").str.to_datetime(strict=False)
+                ])
+            elif ts_dtype in [pl.Int64, pl.Int32, pl.UInt64, pl.UInt32]:
+                # Assume Unix timestamp in seconds
+                df = df.with_columns([
+                    pl.from_epoch(pl.col("timestamp"), time_unit="s").alias("timestamp")
+                ])
+            else:
+                raise ValueError(f"Cannot convert timestamp column of type {ts_dtype} to datetime")
+
         # Date range
         date_from = df["timestamp"].min().date()
         date_to = df["timestamp"].max().date()
