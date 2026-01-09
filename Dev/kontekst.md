@@ -114,7 +114,7 @@ python -m pytest tests/ -v
 | 4 | Import view (restyling) | ✅ |
 | 5 | Capacity view (KPI + wykresy Plotly) | ✅ |
 | 6 | Performance view (KPI + wykresy Plotly) | ✅ |
-| 7 | Reports view | ⏳ |
+| 7 | Reports view (KPI + styled cards + preview) | ✅ |
 | 8 | Finalizacja i testy | ⏳ |
 
 **Zmiany Etapu 1:**
@@ -172,9 +172,18 @@ python -m pytest tests/ -v
 - Wykresy Plotly z dark theme
 - Zachowano istniejące elementy: Shift configuration (Default/Custom/YAML/None)
 
+**Zmiany Etapu 7:**
+- Reports view z nowymi sekcjami:
+  - **KPI Section**: 4 karty (Total Reports, Data Sources, DQ Reports, Analysis Reports)
+  - **Report Categories**: stylizowane karty pogrupowane per kategoria
+  - **Bulk Download**: przycisk ZIP z progress bar (20% → 40% → 80% → 100%)
+  - **Data Preview**: expanders ze styled metrics dla DQ, Capacity, Performance
+- Nowe funkcje: `_render_reports_kpi()`, `_render_report_categories()`, `_render_category_section()`, `_render_report_card()`, `_render_bulk_download()`, `_generate_zip_package()`, `_render_data_preview()`, `_render_quality_preview()`, `_render_capacity_preview()`, `_render_performance_preview()`
+- Nowe style CSS: `.report-category-header`, `.report-card`, `.preview-metric`
+
 ---
 
 ## Ostatnia Aktualizacja
 
 **Data:** 2026-01-09
-**Status:** MVP kompletne, modernizacja UI - Etap 6 ukończony
+**Status:** MVP kompletne, modernizacja UI - Etap 7 ukończony (Reports view)

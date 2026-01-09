@@ -365,7 +365,7 @@ Nowy widok z KPI wydajnościowymi i wykresami czasowymi.
 
 ## Etap 7: Zakładka Raporty
 
-**Status:** [ ] Do zrobienia
+**Status:** [x] Zrealizowany
 
 ### Cel
 Uporządkowanie sekcji raportów w nowym stylu.
@@ -384,9 +384,22 @@ Uporządkowanie sekcji raportów w nowym stylu.
 - Stylizacja na ciemnym tle
 
 ### Weryfikacja
-- [ ] Wszystkie raporty się generują
-- [ ] ZIP działa
-- [ ] Preview jest czytelny
+- [x] Wszystkie raporty się generują
+- [x] ZIP działa
+- [x] Preview jest czytelny
+
+### Szczegóły implementacji
+- `_render_reports_kpi()` - sekcja z 4 kartami KPI (Total Reports, Data Sources, DQ Reports, Analysis Reports)
+- `_render_report_categories()` - lista raportów pogrupowana per kategoria (Summary, Data Quality, Capacity)
+- `_render_category_section()` - stylizowany nagłówek kategorii z ikoną i licznikiem raportów
+- `_render_report_card()` - karta raportu z nazwą, opisem i przyciskiem Download
+- `_render_bulk_download()` - sekcja generowania ZIP z progress bar
+- `_generate_zip_package()` - generowanie ZIP z postępem (20% → 40% → 80% → 100%)
+- `_render_data_preview()` - sekcja podglądu danych
+- `_render_quality_preview()` - expander z preview DQ (Quality Score, Records, Coverage)
+- `_render_capacity_preview()` - expander z preview Capacity (SKU, Carriers, Fit status badges)
+- `_render_performance_preview()` - expander z preview Performance (Lines, Orders, Avg/Peak metrics)
+- Nowe style CSS w theme.py: `.report-category-header`, `.report-card`, `.preview-metric`
 
 ---
 
@@ -473,3 +486,4 @@ dependencies = [
 | 2026-01-08 | Etap 4 | Zrealizowany | Import view restyling - dark theme statusy, section headers, badges |
 | 2026-01-09 | Etap 5 | Zrealizowany | Capacity view - KPI cards, 3 wykresy Plotly, tabela z filtrowaniem i eksportem CSV |
 | 2026-01-09 | Etap 6 | Zrealizowany | Performance view - KPI cards, daily line chart, hourly heatmap, order structure histogram |
+| 2026-01-09 | Etap 7 | Zrealizowany | Reports view - KPI summary, styled report cards, category grouping, ZIP progress, styled preview expanders |

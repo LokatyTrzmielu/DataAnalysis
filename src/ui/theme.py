@@ -402,6 +402,94 @@ def get_custom_css() -> str:
         background-color: {COLORS["surface"]};
         border-radius: 8px;
     }}
+
+    /* ===== ETAP 7: Report cards and preview styling ===== */
+
+    /* Report category header */
+    .report-category-header {{
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+        margin-bottom: 0.25rem;
+    }}
+
+    .report-category-header .category-icon {{
+        font-size: 1.2rem;
+    }}
+
+    .report-category-header .category-name {{
+        font-size: 1rem;
+        font-weight: 600;
+        color: {COLORS["text"]};
+    }}
+
+    .report-category-header .category-count {{
+        font-size: 0.75rem;
+        color: {COLORS["text_secondary"]};
+        background-color: {COLORS["surface_light"]};
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+        margin-left: auto;
+    }}
+
+    .category-desc {{
+        font-size: 0.85rem;
+        color: {COLORS["text_secondary"]};
+        margin: 0 0 0.75rem 0;
+    }}
+
+    /* Report card */
+    .report-card {{
+        background-color: {COLORS["surface"]};
+        border: 1px solid {COLORS["border"]};
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+    }}
+
+    .report-card:hover {{
+        border-color: {COLORS["surface_light"]};
+        transform: translateX(2px);
+    }}
+
+    .report-card .report-name {{
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: {COLORS["text"]};
+        margin-bottom: 0.25rem;
+    }}
+
+    .report-card .report-desc {{
+        font-size: 0.8rem;
+        color: {COLORS["text_secondary"]};
+        line-height: 1.3;
+    }}
+
+    /* Preview metrics */
+    .preview-metric {{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid {COLORS["border"]};
+    }}
+
+    .preview-metric:last-child {{
+        border-bottom: none;
+    }}
+
+    .preview-metric .metric-label {{
+        font-size: 0.85rem;
+        color: {COLORS["text_secondary"]};
+    }}
+
+    .preview-metric .metric-value {{
+        font-size: 1rem;
+        font-weight: 600;
+        color: {COLORS["text"]};
+    }}
     </style>
     """
 
