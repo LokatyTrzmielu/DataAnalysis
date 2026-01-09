@@ -336,7 +336,7 @@ def render_empty_state(
     if action_label:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            return st.button(action_label, use_container_width=True)
+            return st.button(action_label, width="stretch")
     return False
 
 

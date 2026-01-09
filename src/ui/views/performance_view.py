@@ -309,7 +309,7 @@ def _render_daily_lines_chart() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_hourly_heatmap() -> None:
@@ -360,7 +360,7 @@ def _render_hourly_heatmap() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_order_structure_chart() -> None:
@@ -387,7 +387,7 @@ def _render_order_structure_chart() -> None:
 
     fig.update_traces(marker_color=COLORS["warning"])
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_performance_charts() -> None:

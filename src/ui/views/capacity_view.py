@@ -444,7 +444,7 @@ def _render_dimensions_histogram() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_carrier_fit_chart() -> None:
@@ -499,7 +499,7 @@ def _render_carrier_fit_chart() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_weight_histogram() -> None:
@@ -525,7 +525,7 @@ def _render_weight_histogram() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_capacity_charts() -> None:
@@ -598,7 +598,7 @@ def _render_capacity_table() -> None:
     # Display table
     st.dataframe(
         display_df.to_pandas(),
-        use_container_width=True,
+        width="stretch",
         height=400,
     )
 
@@ -612,7 +612,7 @@ def _render_capacity_table() -> None:
             data=csv_data,
             file_name="capacity_analysis_results.csv",
             mime="text/csv",
-            use_container_width=True,
+            width="stretch",
         )
 
     st.caption(f"Showing {len(filtered_df):,} of {len(results_df):,} rows")

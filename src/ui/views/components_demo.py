@@ -48,7 +48,7 @@ def render_demo_chart() -> None:
         )
         apply_plotly_dark_theme(fig)
         fig.update_layout(height=250)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     except ImportError:
         st.warning("Plotly not installed. Run: pip install plotly")
 
@@ -206,7 +206,7 @@ def render_components_demo() -> None:
                 "Status": ["FIT", "BORDERLINE", "NOT_FIT"],
             }
         )
-        st.dataframe(sample_data, use_container_width=True)
+        st.dataframe(sample_data, width="stretch")
 
     render_divider()
 

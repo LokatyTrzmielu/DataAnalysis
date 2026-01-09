@@ -280,7 +280,7 @@ def _render_report_card(report: dict) -> None:
 
     with col2:
         if report["available"]:
-            if st.button("Download", key=f"download_{report['name']}", use_container_width=True):
+            if st.button("Download", key=f"download_{report['name']}", width="stretch"):
                 try:
                     filename, data = generate_individual_report(report["name"])
                     if data:
@@ -310,7 +310,7 @@ def _render_bulk_download() -> None:
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("Generate ZIP Package", type="primary", use_container_width=True):
+        if st.button("Generate ZIP Package", type="primary", width="stretch"):
             _generate_zip_package()
 
 
@@ -348,7 +348,7 @@ def _generate_zip_package() -> None:
                 data=zip_data,
                 file_name=zip_path.name,
                 mime="application/zip",
-                use_container_width=True,
+                width="stretch",
             )
 
             st.success("Reports generated successfully!")

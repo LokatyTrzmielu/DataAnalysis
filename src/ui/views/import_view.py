@@ -309,7 +309,7 @@ def render_masterdata_import() -> None:
         with st.expander("Data preview", expanded=False):
             reader = FileReader(st.session_state.masterdata_temp_path)
             preview_df = reader.get_preview(n_rows=5)
-            st.dataframe(preview_df.to_pandas(), use_container_width=True)
+            st.dataframe(preview_df.to_pandas(), width="stretch")
 
         # Mapping UI
         updated_mapping = render_mapping_ui(
@@ -404,7 +404,7 @@ def render_masterdata_import() -> None:
             with st.expander("Data preview", expanded=False):
                 st.dataframe(
                     st.session_state.masterdata_df.head(20).to_pandas(),
-                    use_container_width=True,
+                    width="stretch",
                 )
 
         if st.button("Import new file", key="md_new_import"):
@@ -478,7 +478,7 @@ def render_orders_import() -> None:
             from src.ingest import FileReader
             reader = FileReader(st.session_state.orders_temp_path)
             preview_df = reader.get_preview(n_rows=5)
-            st.dataframe(preview_df.to_pandas(), use_container_width=True)
+            st.dataframe(preview_df.to_pandas(), width="stretch")
 
         # Mapping UI
         updated_mapping = render_mapping_ui(
@@ -554,7 +554,7 @@ def render_orders_import() -> None:
             with st.expander("Data preview", expanded=False):
                 st.dataframe(
                     st.session_state.orders_df.head(20).to_pandas(),
-                    use_container_width=True,
+                    width="stretch",
                 )
 
         if st.button("Import new file", key="orders_new_import"):
