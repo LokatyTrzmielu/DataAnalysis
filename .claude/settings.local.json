@@ -34,8 +34,22 @@
       "Bash(findstr:*)",
       "Bash(if not exist \"D:\\\\VS\\\\DataAnalysis\\\\src\\\\ui\\\\views\" mkdir \"D:\\\\VS\\\\DataAnalysis\\\\src\\\\ui\\\\views\")",
       "Bash(git check-ignore:*)",
-      "Bash(uv run ruff check:*)"
+      "Bash(uv run ruff check:*)",
+      "mcp__ide__executeCode"
     ]
   },
-  "outputStyle": "default"
+  "outputStyle": "default",
+  "hooks": {
+    "Notification":[
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "say 'Claude Code'"
+          }
+        ]
+      }
+    ]
+  }
 }

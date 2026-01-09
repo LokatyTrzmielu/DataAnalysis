@@ -254,7 +254,7 @@ Dostosowanie zakładki Import do nowego stylu.
 
 ## Etap 5: Zakładka Analiza pojemnościowa
 
-**Status:** [ ] Do zrobienia
+**Status:** [x] Zrealizowany
 
 ### Cel
 Nowy widok z KPI, wykresami i tabelą.
@@ -295,9 +295,19 @@ Layout: 2 kolumny
 - Analysis mode (Independent/Prioritized)
 
 ### Weryfikacja
-- [ ] KPI wyświetlają poprawne wartości
-- [ ] Wykresy są interaktywne (hover, zoom)
-- [ ] Eksport działa
+- [x] KPI wyświetlają poprawne wartości
+- [x] Wykresy są interaktywne (hover, zoom)
+- [x] Eksport działa
+
+### Szczegóły implementacji
+- `_render_capacity_kpi()` - sekcja z 4 kartami KPI używając `render_kpi_section()`
+- `_render_dimensions_histogram()` - histogram Plotly dla L/W/H z overlay
+- `_render_carrier_fit_chart()` - stacked bar chart dla FIT/BORDERLINE/NOT_FIT per carrier
+- `_render_weight_histogram()` - histogram wag z Plotly Express
+- `_render_capacity_charts()` - kontener dla wszystkich wykresów (2 kolumny + pełna szerokość)
+- `_render_capacity_table()` - tabela z filtrowaniem po statusie i carrier, eksport CSV
+- Dodano `plotly>=5.18.0` do zależności w `pyproject.toml`
+- Wszystkie wykresy używają `apply_plotly_dark_theme()` dla spójności z dark mode
 
 ---
 
@@ -452,3 +462,4 @@ dependencies = [
 | 2026-01-08 | Etap 2 | Zrealizowany | Komponenty UI, CSS responsywny, strona demo |
 | 2026-01-08 | Etap 3 | Zrealizowany | Refaktoryzacja app.py, 5 modułów widoków, 5 zakładek |
 | 2026-01-08 | Etap 4 | Zrealizowany | Import view restyling - dark theme statusy, section headers, badges |
+| 2026-01-09 | Etap 5 | Zrealizowany | Capacity view - KPI cards, 3 wykresy Plotly, tabela z filtrowaniem i eksportem CSV |

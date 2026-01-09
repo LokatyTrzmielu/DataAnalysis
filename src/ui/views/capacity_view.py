@@ -3,9 +3,17 @@
 from __future__ import annotations
 
 import polars as pl
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.core.types import CarrierConfig
+from src.ui.layout import (
+    apply_plotly_dark_theme,
+    render_kpi_section,
+    render_section_header,
+)
+from src.ui.theme import COLORS
 
 
 def render_carrier_form() -> None:
@@ -334,6 +342,282 @@ def render_capacity_view() -> None:
         _render_capacity_results()
 
 
+def _render_capacity_kpi() -> None:
+    """Render KPI section with 4 cards: SKU count, fit %, avg dimensions, avg weight."""
+    df = st.session_state.masterdata_df
+    result = st.session_state.capacity_result
+
+    if df is None:
+        return
+
+    # Calculate KPIs from masterdata
+    total_sku = len(df)
+
+    # Average fit percentage across all carriers (excluding NONE)
+    fit_percentages = []
+    for carrier_id, stats in result.carrier_stats.items():
+        total_count = stats.fit_count + stats.borderline_count + stats.not_fit_count
+        if carrier_id != "NONE" and total_count > 0:
+            fit_percentages.append(stats.fit_percentage)
+    avg_fit_pct = sum(fit_percentages) / len(fit_percentages) if fit_percentages else 0
+
+    # Average dimensions (L×W×H)
+    avg_length = df.select(pl.col("length_mm").mean()).item() or 0
+    avg_width = df.select(pl.col("width_mm").mean()).item() or 0
+    avg_height = df.select(pl.col("height_mm").mean()).item() or 0
+
+    # Average weight
+    avg_weight = df.select(pl.col("weight_kg").mean()).item() or 0
+
+    render_section_header("Key Performance Indicators", "📊")
+
+    metrics = [
+        {
+            "title": "SKU Count",
+            "value": f"{total_sku:,}",
+            "icon": "📦",
+            "help_text": "Total number of SKU in analysis",
+        },
+        {
+            "title": "Avg Fit %",
+            "value": f"{avg_fit_pct:.1f}%",
+            "icon": "✅",
+            "help_text": "Average fit percentage across all carriers",
+        },
+        {
+            "title": "Avg Dimensions",
+            "value": f"{avg_length:.0f}×{avg_width:.0f}×{avg_height:.0f}",
+            "icon": "📐",
+            "help_text": "Average L×W×H in mm",
+        },
+        {
+            "title": "Avg Weight",
+            "value": f"{avg_weight:.2f} kg",
+            "icon": "⚖️",
+            "help_text": "Average weight in kg",
+        },
+    ]
+
+    render_kpi_section(metrics)
+    st.markdown("")  # Spacer
+
+
+def _render_dimensions_histogram() -> None:
+    """Render histogram of dimensions (Length, Width, Height)."""
+    df = st.session_state.masterdata_df
+    if df is None:
+        return
+
+    # Prepare data for histogram
+    length_data = df.select(pl.col("length_mm")).to_series().to_list()
+    width_data = df.select(pl.col("width_mm")).to_series().to_list()
+    height_data = df.select(pl.col("height_mm")).to_series().to_list()
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Histogram(
+        x=length_data,
+        name="Length",
+        opacity=0.7,
+        marker_color=COLORS["warning"],
+    ))
+    fig.add_trace(go.Histogram(
+        x=width_data,
+        name="Width",
+        opacity=0.7,
+        marker_color=COLORS["primary"],
+    ))
+    fig.add_trace(go.Histogram(
+        x=height_data,
+        name="Height",
+        opacity=0.7,
+        marker_color=COLORS["info"],
+    ))
+
+    fig.update_layout(
+        title="Dimensions Distribution (mm)",
+        xaxis_title="Dimension (mm)",
+        yaxis_title="Count",
+        barmode="overlay",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+
+    apply_plotly_dark_theme(fig)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_carrier_fit_chart() -> None:
+    """Render bar chart showing FIT/BORDERLINE/NOT_FIT per carrier."""
+    result = st.session_state.capacity_result
+    is_prioritized = st.session_state.get("capacity_prioritization_mode", False)
+
+    carriers = []
+    fit_counts = []
+    borderline_counts = []
+    not_fit_counts = []
+
+    for carrier_id, stats in result.carrier_stats.items():
+        if carrier_id == "NONE":
+            continue
+        carriers.append(stats.carrier_name)
+        fit_counts.append(stats.fit_count)
+        borderline_counts.append(stats.borderline_count)
+        not_fit_counts.append(stats.not_fit_count)
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        name="FIT",
+        x=carriers,
+        y=fit_counts,
+        marker_color=COLORS["primary"],
+    ))
+    fig.add_trace(go.Bar(
+        name="BORDERLINE",
+        x=carriers,
+        y=borderline_counts,
+        marker_color=COLORS["warning"],
+    ))
+
+    if not is_prioritized:
+        fig.add_trace(go.Bar(
+            name="NOT FIT",
+            x=carriers,
+            y=not_fit_counts,
+            marker_color=COLORS["error"],
+        ))
+
+    title = "SKU Assignment per Carrier" if is_prioritized else "Carrier Fit Analysis"
+    fig.update_layout(
+        title=title,
+        xaxis_title="Carrier",
+        yaxis_title="SKU Count",
+        barmode="stack",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+
+    apply_plotly_dark_theme(fig)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_weight_histogram() -> None:
+    """Render histogram of weight distribution."""
+    df = st.session_state.masterdata_df
+    if df is None:
+        return
+
+    weight_data = df.select(pl.col("weight_kg")).to_series().to_list()
+
+    fig = px.histogram(
+        x=weight_data,
+        nbins=30,
+        title="Weight Distribution (kg)",
+        labels={"x": "Weight (kg)", "y": "Count"},
+        color_discrete_sequence=[COLORS["warning"]],
+    )
+
+    fig.update_layout(
+        xaxis_title="Weight (kg)",
+        yaxis_title="Count",
+        showlegend=False,
+    )
+
+    apply_plotly_dark_theme(fig)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_capacity_charts() -> None:
+    """Render all capacity analysis charts."""
+    render_section_header("Charts", "📈")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        _render_dimensions_histogram()
+
+    with col2:
+        _render_carrier_fit_chart()
+
+    # Weight histogram in full width
+    _render_weight_histogram()
+
+
+def _render_capacity_table() -> None:
+    """Render results table with filtering and CSV export."""
+    result = st.session_state.capacity_result
+
+    render_section_header("Results Table", "📋")
+
+    # Get the results dataframe
+    if result.df is None or result.df.height == 0:
+        st.info("No results available.")
+        return
+
+    results_df = result.df
+
+    # Filter options
+    col_filter, col_carrier, col_export = st.columns([2, 2, 1])
+
+    with col_filter:
+        # Status filter
+        status_options = ["All", "FIT", "BORDERLINE", "NOT_FIT"]
+        selected_status = st.selectbox(
+            "Filter by status",
+            status_options,
+            key="capacity_table_status_filter",
+        )
+
+    with col_carrier:
+        # Carrier filter
+        carrier_options = ["All"] + list(results_df["carrier_id"].unique().to_list())
+        selected_carrier = st.selectbox(
+            "Filter by carrier",
+            carrier_options,
+            key="capacity_table_carrier_filter",
+        )
+
+    # Apply filters
+    filtered_df = results_df
+    if selected_status != "All":
+        filtered_df = filtered_df.filter(pl.col("fit_status") == selected_status)
+    if selected_carrier != "All":
+        filtered_df = filtered_df.filter(pl.col("carrier_id") == selected_carrier)
+
+    # Rename columns for display
+    display_df = filtered_df.select([
+        pl.col("sku").alias("SKU"),
+        pl.col("carrier_id").alias("Carrier"),
+        pl.col("fit_status").alias("Status"),
+        pl.col("units_per_carrier").alias("Units/Carrier"),
+        pl.col("volume_m3").alias("Volume (m³)"),
+        pl.col("limiting_factor").alias("Limiting Factor"),
+    ])
+
+    # Display table
+    st.dataframe(
+        display_df.to_pandas(),
+        use_container_width=True,
+        height=400,
+    )
+
+    # Export button
+    with col_export:
+        st.markdown("")  # Align with selectbox
+        st.markdown("")  # Additional spacing
+        csv_data = filtered_df.write_csv()
+        st.download_button(
+            label="📥 Export CSV",
+            data=csv_data,
+            file_name="capacity_analysis_results.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    st.caption(f"Showing {len(filtered_df):,} of {len(results_df):,} rows")
+
+
 def _render_capacity_results() -> None:
     """Display capacity analysis results."""
     result = st.session_state.capacity_result
@@ -341,11 +625,27 @@ def _render_capacity_results() -> None:
 
     st.markdown("---")
 
+    # === NEW: KPI Section ===
+    _render_capacity_kpi()
+
+    st.markdown("---")
+
+    # === NEW: Charts Section ===
+    _render_capacity_charts()
+
+    st.markdown("---")
+
+    # === NEW: Results Table ===
+    _render_capacity_table()
+
+    st.markdown("---")
+
     # Show analysis mode info
+    render_section_header("Carrier Details", "📦")
     if is_prioritized:
-        st.markdown("**Analysis results (Prioritized mode - SKU assigned to smallest fitting carrier):**")
+        st.caption("Prioritized mode - SKU assigned to smallest fitting carrier")
     else:
-        st.markdown("**Analysis results per carrier (Independent mode):**")
+        st.caption("Independent mode - each SKU tested vs all carriers")
 
     # Show excluded outliers count if any
     excluded_outliers = st.session_state.get("capacity_excluded_outliers", 0)
