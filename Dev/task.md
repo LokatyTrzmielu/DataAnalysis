@@ -23,11 +23,12 @@
 | 10 | Poprawki UI | outliers, borderline, tooltips | ✅ |
 | 11 | System nośników | carriers.py, carriers.yml | ✅ |
 | 12 | Code review | weryfikacja volume_m3, naprawa testów | ✅ |
-| 13 | Modernizacja UI | dark theme, komponenty, Plotly | ⏳ |
+| 13 | Modernizacja UI | dark theme, komponenty, Plotly | ✅ |
+| 14 | Poprawki bugów | timestamp conversion, null handling | ✅ |
 
 ---
 
-## Modernizacja UI (Faza 13)
+## Modernizacja UI (Faza 13) - ZAKOŃCZONA
 
 **Plan:** `Dev/UI_MODERNIZATION_PLAN.md`
 
@@ -37,19 +38,21 @@
 | 2 | Komponenty UI | ✅ |
 | 3 | Refaktoryzacja app.py | ✅ |
 | 4 | Import view | ✅ |
-| 5 | Capacity view + Plotly | ⏳ |
-| 6 | Performance view + Plotly | ⏳ |
-| 7 | Reports view | ⏳ |
-| 8 | Finalizacja | ⏳ |
+| 5 | Capacity view + Plotly | ✅ |
+| 6 | Performance view + Plotly | ✅ |
+| 7 | Reports view | ✅ |
+| 8 | Finalizacja | ✅ |
 
-**Etap 4 - szczegóły:**
-- Zakładka Import dostosowana do dark theme
-- `_get_field_status_html()` - rgba backgrounds dla ciemnego motywu
-- `render_section_header()` - dla nagłówków Masterdata/Orders/Column mapping
-- `render_status_badge()` - dla statusu ukończonego importu
-- `render_error_box()` - dla błędów duplikacji kolumn
-- Stylizowane mapping summary z kolorami auto/manual
-- Główny header z ikoną 📁
+---
+
+## Poprawki Bugów (Faza 14) - ZAKOŃCZONA
+
+| Problem | Rozwiązanie | Plik |
+|---------|-------------|------|
+| `'int' object has no attribute 'date'` | Konwersja Unix epoch → datetime | `pipeline.py:200-216` |
+| `InvalidOperationError` na `.dt.weekday()` | Defensywna konwersja timestamp | `performance.py:123-136` |
+| `NoneType - int` w heatmapie | Filtr null timestamps | `performance_view.py:324` |
+| `use_container_width` deprecated | Zamiana na `width="stretch"` | 6 plików UI |
 
 ---
 

@@ -191,7 +191,28 @@ python -m pytest tests/ -v
 
 ---
 
+## Poprawki (2026-01-09)
+
+### Konwersja Timestamp w Pipeline
+- **Problem:** Błąd `'int' object has no attribute 'date'` przy analizie wydajnościowej
+- **Przyczyna:** Pipeline konwertował tylko stringowe timestampy, nie obsługiwał Unix epoch (int)
+- **Rozwiązanie:** `pipeline.py:200-216` - dodano konwersję `pl.from_epoch()` dla typów Int64/Int32/UInt64/UInt32
+- **Dodatkowe zabezpieczenie:** `performance.py:123-136` - defensywna konwersja przed użyciem `.date()`
+
+### Null Timestamps w Heatmapie
+- **Problem:** `TypeError: unsupported operand type(s) for -: 'NoneType' and 'int'`
+- **Przyczyna:** Null timestamps dawały None przy `.dt.weekday()`
+- **Rozwiązanie:** `performance_view.py:324` - filtr `pl.col("timestamp").is_not_null()` przed agregacją
+
+### Deprecation Warning Streamlit
+- **Problem:** `use_container_width` deprecated po 2025-12-31
+- **Rozwiązanie:** Zamiana `use_container_width=True` na `width="stretch"` w 6 plikach:
+  - `layout.py`, `capacity_view.py`, `reports_view.py`
+  - `performance_view.py`, `components_demo.py`, `import_view.py`
+
+---
+
 ## Ostatnia Aktualizacja
 
 **Data:** 2026-01-09
-**Status:** MVP kompletne, **modernizacja UI zakończona** - wszystkie 8 etapów zrealizowane
+**Status:** MVP kompletne, **modernizacja UI zakończona** + poprawki błędów timestamp
