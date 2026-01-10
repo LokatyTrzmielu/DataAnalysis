@@ -18,7 +18,7 @@ import streamlit as st
 
 # Page configuration - must be first Streamlit command
 st.set_page_config(
-    page_title="DataAnalysis",
+    page_title="Data Analysis",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",

@@ -211,3 +211,4 @@ python -m pytest tests/ -v
 5. `import_view.py` - Użycie render_status_button() dla importu
 6. `reports_view.py` - Użycie render_status_buttons_inline() dla capacity preview
 7. `components_demo.py` - Demo wszystkich 7 typów statusu + paleta kolorów
+8. `theme.py` - Dodane obramowanie espresso (`#5e3123`) dla aktywnej zakładki w sidebarze (2026-01-10)

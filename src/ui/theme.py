@@ -631,9 +631,10 @@ def get_custom_css() -> str:
         font-weight: 600 !important;
     }}
 
-    /* Selected state - dim-grey rectangle */
+    /* Selected state - dim-grey rectangle with espresso border */
     [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] {{
         background-color: {COLORS["surface_light"]} !important;
+        border: 1px solid {COLORS["border"]} !important;
     }}
 
     [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] > div:last-child {{
