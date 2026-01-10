@@ -11,6 +11,7 @@ import streamlit as st
 from src.ui.layout import (
     render_section_header,
     render_status_badge,
+    render_status_button,
     render_success_box,
     render_error_box,
     render_info_box,
@@ -397,8 +398,8 @@ def render_masterdata_import() -> None:
     # Step 3: Import complete
     elif step == "complete":
         if st.session_state.masterdata_df is not None:
-            # Status badge with count
-            render_status_badge(f"✓ {len(st.session_state.masterdata_df)} SKU imported", "success")
+            # Status button with count
+            render_status_button(f"{len(st.session_state.masterdata_df)} SKU imported", "success")
             render_spacer(10)
 
             with st.expander("Data preview", expanded=False):
@@ -547,8 +548,8 @@ def render_orders_import() -> None:
     # Step 3: Import complete
     elif step == "complete":
         if st.session_state.orders_df is not None:
-            # Status badge with count
-            render_status_badge(f"✓ {len(st.session_state.orders_df)} lines imported", "success")
+            # Status button with count
+            render_status_button(f"{len(st.session_state.orders_df)} lines imported", "success")
             render_spacer(10)
 
             with st.expander("Data preview", expanded=False):

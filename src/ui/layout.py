@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable, Literal
 
 import streamlit as st
 
-from src.ui.theme import COLORS
+from src.ui.theme import COLORS, STATUS_COLORS, STATUS_ICONS
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -131,6 +131,49 @@ def render_status_badges_inline(badges: list[tuple[str, str]]) -> None:
         for text, status in badges
     )
     st.markdown(badges_html, unsafe_allow_html=True)
+
+
+# Status type for new 7-type system
+StatusType = Literal[
+    "pending", "in_progress", "submitted", "in_review", "success", "failed", "expired"
+]
+
+
+def render_status_button(
+    text: str,
+    status: StatusType,
+    show_icon: bool = True,
+) -> None:
+    """Render a status button with icon and appropriate color.
+
+    Args:
+        text: Button text
+        status: Status type (one of 7 types)
+        show_icon: Whether to show the SVG icon
+    """
+    icon_html = STATUS_ICONS.get(status, "") if show_icon else ""
+    st.markdown(
+        f'<span class="status-btn {status}">{icon_html}{text}</span>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_status_buttons_inline(
+    buttons: list[tuple[str, StatusType]],
+    show_icons: bool = True,
+) -> None:
+    """Render multiple status buttons inline.
+
+    Args:
+        buttons: List of (text, status) tuples
+        show_icons: Whether to show SVG icons
+    """
+    buttons_html = " ".join(
+        f'<span class="status-btn {status}">'
+        f'{STATUS_ICONS.get(status, "") if show_icons else ""}{text}</span>'
+        for text, status in buttons
+    )
+    st.markdown(buttons_html, unsafe_allow_html=True)
 
 
 @contextmanager
@@ -362,19 +405,29 @@ def render_progress_section(
     st.progress(progress)
 
 
-def get_status_color(status: Literal["success", "warning", "error", "info"]) -> str:
+def get_status_color(
+    status: Literal[
+        "success", "warning", "error", "info",
+        "pending", "in_progress", "submitted", "in_review", "failed", "expired"
+    ]
+) -> str:
     """Get the color for a given status.
 
     Args:
-        status: Status type
+        status: Status type (supports both legacy 4-type and new 7-type system)
 
     Returns:
         Hex color string
     """
-    status_colors = {
-        "success": COLORS["primary"],
-        "warning": COLORS["warning"],
-        "error": COLORS["error"],
-        "info": COLORS["info"],
+    # New 7-type system
+    if status in STATUS_COLORS:
+        return STATUS_COLORS[status]
+
+    # Legacy mapping
+    legacy_colors = {
+        "success": STATUS_COLORS["success"],
+        "warning": STATUS_COLORS["pending"],
+        "error": STATUS_COLORS["failed"],
+        "info": STATUS_COLORS["in_progress"],
     }
-    return status_colors.get(status, COLORS["text_secondary"])
+    return legacy_colors.get(status, COLORS["text_secondary"])

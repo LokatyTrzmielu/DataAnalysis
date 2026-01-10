@@ -3,8 +3,8 @@ headless = true
 port = 8501
 
 [theme]
-primaryColor = "#4CAF50"           # Zielony akcent
-backgroundColor = "#121212"        # Główne tło
-secondaryBackgroundColor = "#1E1E1E"  # Tło paneli
-textColor = "#EAEAEA"              # Jasny tekst
+primaryColor = "#b7622c"              # burnt-caramel akcent
+backgroundColor = "#20100e"           # coffee-bean tło
+secondaryBackgroundColor = "#323232"  # graphite tło paneli
+textColor = "#F5F0E8"                 # ciepła biel
 font = "sans serif"

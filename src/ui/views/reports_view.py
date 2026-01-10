@@ -12,6 +12,8 @@ from src.ui.layout import (
     render_section_header,
     render_status_badge,
     render_status_badges_inline,
+    render_status_button,
+    render_status_buttons_inline,
 )
 from src.ui.theme import COLORS
 
@@ -456,10 +458,10 @@ def _render_capacity_preview() -> None:
                 with col1:
                     st.markdown(f"**{stats.carrier_name}**")
                 with col2:
-                    render_status_badges_inline([
+                    render_status_buttons_inline([
                         (f"FIT: {stats.fit_count}", "success"),
-                        (f"BORDER: {stats.borderline_count}", "warning"),
-                        (f"NOT: {stats.not_fit_count}", "error"),
+                        (f"BORDER: {stats.borderline_count}", "pending"),
+                        (f"NOT: {stats.not_fit_count}", "failed"),
                     ])
                 with col3:
                     st.metric("Fit %", f"{stats.fit_percentage:.1f}%")

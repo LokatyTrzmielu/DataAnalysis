@@ -190,9 +190,24 @@ python -m pytest tests/ -v
 ```
 
 **Checklist:**
-- [ ] Wszystkie zakładki wyświetlają się poprawnie
-- [ ] Kontrast tekstu czytelny
-- [ ] Przyciski statusu pokazują ikony
-- [ ] Wykresy Plotly mają ciepłe kolory
-- [ ] Hover effects działają
-- [ ] 122 testy przechodzą
+- [x] Wszystkie zakładki wyświetlają się poprawnie
+- [x] Kontrast tekstu czytelny
+- [x] Przyciski statusu pokazują ikony
+- [x] Wykresy Plotly mają ciepłe kolory
+- [x] Hover effects działają
+- [x] 122 testy przechodzą
+
+---
+
+## 8. Status Implementacji
+
+**Data zakończenia:** 2026-01-10
+
+**Zmiany wykonane:**
+1. `theme.py` - Nowa paleta COLORS, STATUS_COLORS, STATUS_ICONS + CSS dla .status-btn
+2. `config.toml` - Zaktualizowane kolory Streamlit
+3. `layout.py` - Nowe funkcje render_status_button(), render_status_buttons_inline(), zaktualizowane get_status_color()
+4. `__init__.py` - Eksporty nowych funkcji i słowników
+5. `import_view.py` - Użycie render_status_button() dla importu
+6. `reports_view.py` - Użycie render_status_buttons_inline() dla capacity preview
+7. `components_demo.py` - Demo wszystkich 7 typów statusu + paleta kolorów

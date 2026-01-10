@@ -23,11 +23,13 @@ from src.ui.layout import (
     render_spacer,
     render_status_badge,
     render_status_badges_inline,
+    render_status_button,
+    render_status_buttons_inline,
     render_success_box,
     render_table_container,
     render_warning_box,
 )
-from src.ui.theme import COLORS, apply_theme
+from src.ui.theme import COLORS, STATUS_COLORS, apply_theme
 
 
 def render_demo_chart() -> None:
@@ -125,10 +127,45 @@ def render_components_demo() -> None:
 
     render_divider()
 
-    # Section 2: Status Badges
-    render_section_header("Status Badges", icon="🏷️")
+    # Section 2: Status Buttons (7 types)
+    render_section_header("Status Buttons", icon="🏷️")
 
-    st.markdown("**render_status_badge() - pojedyncze badge:**")
+    st.markdown("**render_status_button() - 7 typów statusu z ikonami:**")
+
+    # Row 1: 4 buttons
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        render_status_button("Pending", "pending")
+    with col2:
+        render_status_button("In Progress", "in_progress")
+    with col3:
+        render_status_button("Submitted", "submitted")
+    with col4:
+        render_status_button("In Review", "in_review")
+
+    render_spacer(10)
+
+    # Row 2: 3 buttons
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        render_status_button("Success", "success")
+    with col2:
+        render_status_button("Failed", "failed")
+    with col3:
+        render_status_button("Expired", "expired")
+
+    render_spacer(20)
+
+    st.markdown("**render_status_buttons_inline() - wiele przycisków w jednej linii:**")
+    render_status_buttons_inline([
+        ("FIT: 45", "success"),
+        ("BORDER: 12", "pending"),
+        ("NOT: 3", "failed"),
+    ])
+
+    render_spacer(20)
+
+    st.markdown("**Legacy: render_status_badge() - zachowana wsteczna kompatybilność:**")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         render_status_badge("Success", "success")
@@ -138,17 +175,6 @@ def render_components_demo() -> None:
         render_status_badge("Error", "error")
     with col4:
         render_status_badge("Info", "info")
-
-    render_spacer(10)
-
-    st.markdown("**render_status_badges_inline() - wiele badge w jednej linii:**")
-    render_status_badges_inline(
-        [
-            ("Mapped: 45", "success"),
-            ("Missing: 3", "error"),
-            ("Pending: 12", "warning"),
-        ]
-    )
 
     render_divider()
 
@@ -253,7 +279,7 @@ def render_components_demo() -> None:
     # Section 9: Colors Reference
     render_section_header("Color Palette Reference", icon="🎨")
 
-    st.markdown("**COLORS dictionary values:**")
+    st.markdown("**COLORS dictionary - paleta kawowo-brązowa:**")
     color_cols = st.columns(5)
     for i, (name, hex_value) in enumerate(COLORS.items()):
         with color_cols[i % 5]:
@@ -262,6 +288,20 @@ def render_components_demo() -> None:
                 f'border-radius: 8px; margin-bottom: 0.5rem; text-align: center;">'
                 f'<span style="color: {"#000" if name in ["text", "text_secondary"] else "#fff"};">'
                 f"{name}</span></div>",
+                unsafe_allow_html=True,
+            )
+            st.caption(hex_value)
+
+    render_spacer(20)
+
+    st.markdown("**STATUS_COLORS - 7 typów statusu:**")
+    status_cols = st.columns(7)
+    for i, (name, hex_value) in enumerate(STATUS_COLORS.items()):
+        with status_cols[i]:
+            st.markdown(
+                f'<div style="background-color: {hex_value}; padding: 0.75rem; '
+                f'border-radius: 8px; margin-bottom: 0.5rem; text-align: center;">'
+                f'<span style="color: #000; font-size: 0.75rem;">{name}</span></div>',
                 unsafe_allow_html=True,
             )
             st.caption(hex_value)

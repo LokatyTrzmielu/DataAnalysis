@@ -1,17 +1,51 @@
 """Theme configuration for the Streamlit app - dark mode inspired by n8n."""
 
-# Paleta kolorów
+# Paleta kolorów - ciepła kawowo-brązowa
 COLORS = {
-    "background": "#121212",
-    "surface": "#1E1E1E",
-    "surface_light": "#2A2A2A",
-    "primary": "#4CAF50",      # Zielony - sukces
-    "error": "#F44336",        # Czerwony - błędy
-    "warning": "#FF9800",      # Pomarańczowy - Kardex/gabaryty
-    "info": "#2196F3",         # Niebieski - info
-    "text": "#EAEAEA",
-    "text_secondary": "#B0B0B0",
-    "border": "#333333",
+    # === TŁA ===
+    "background": "#20100e",      # coffee-bean
+    "surface": "#323232",         # graphite
+    "surface_light": "#5f605b",   # dim-grey
+
+    # === AKCENTY ===
+    "accent": "#b7622c",          # burnt-caramel - główny
+    "accent_dark": "#923b1b",     # rust-brown - hover
+    "accent_muted": "#5e3123",    # espresso - subtle
+
+    # === FUNKCJONALNE ===
+    "primary": "#4CAF50",         # Zielony sukces (zachowany)
+    "error": "#E57373",           # Ciepły czerwony
+    "warning": "#b7622c",         # burnt-caramel
+    "info": "#8D6E63",            # Ciepły brąz
+
+    # === TEKST ===
+    "text": "#F5F0E8",            # Ciepła biel
+    "text_secondary": "#A89F94",  # Ciepły taupe
+
+    # === BORDERY ===
+    "border": "#5e3123",          # espresso
+}
+
+# Kolory dla 7 typów statusu
+STATUS_COLORS = {
+    "pending": "#FFB74D",       # żółty
+    "in_progress": "#64B5F6",   # niebieski
+    "submitted": "#BA68C8",     # fioletowy
+    "in_review": "#FF8A65",     # pomarańczowy
+    "success": "#81C784",       # zielony
+    "failed": "#E57373",        # czerwony
+    "expired": "#90A4AE",       # szary
+}
+
+# Ikony SVG dla statusów
+STATUS_ICONS = {
+    "pending": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>',
+    "in_progress": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"><circle cx="12" cy="12" r="10"/></svg>',
+    "submitted": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>',
+    "in_review": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>',
+    "success": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>',
+    "failed": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
+    "expired": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
 }
 
 
@@ -76,33 +110,100 @@ def get_custom_css() -> str:
         margin-right: 0.5rem;
     }}
 
-    /* Badges statusów */
-    .status-badge {{
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.8rem;
+    /* Przyciski statusów - 7 typów */
+    .status-btn {{
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
         font-weight: 500;
+        border: 1px solid;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        cursor: default;
+    }}
+
+    .status-btn:hover {{
+        transform: scale(1.02);
+    }}
+
+    .status-btn.pending {{
+        background-color: rgba(255, 183, 77, 0.15);
+        border-color: rgba(255, 183, 77, 0.4);
+        color: {STATUS_COLORS["pending"]};
+    }}
+
+    .status-btn.in_progress {{
+        background-color: rgba(100, 181, 246, 0.15);
+        border-color: rgba(100, 181, 246, 0.4);
+        color: {STATUS_COLORS["in_progress"]};
+    }}
+
+    .status-btn.submitted {{
+        background-color: rgba(186, 104, 200, 0.15);
+        border-color: rgba(186, 104, 200, 0.4);
+        color: {STATUS_COLORS["submitted"]};
+    }}
+
+    .status-btn.in_review {{
+        background-color: rgba(255, 138, 101, 0.15);
+        border-color: rgba(255, 138, 101, 0.4);
+        color: {STATUS_COLORS["in_review"]};
+    }}
+
+    .status-btn.success {{
+        background-color: rgba(129, 199, 132, 0.15);
+        border-color: rgba(129, 199, 132, 0.4);
+        color: {STATUS_COLORS["success"]};
+    }}
+
+    .status-btn.failed {{
+        background-color: rgba(229, 115, 115, 0.15);
+        border-color: rgba(229, 115, 115, 0.4);
+        color: {STATUS_COLORS["failed"]};
+    }}
+
+    .status-btn.expired {{
+        background-color: rgba(144, 164, 174, 0.15);
+        border-color: rgba(144, 164, 174, 0.4);
+        color: {STATUS_COLORS["expired"]};
+    }}
+
+    /* Legacy .status-badge support (backwards compat) */
+    .status-badge {{
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: 1px solid;
     }}
 
     .status-badge.success {{
-        background-color: rgba(76, 175, 80, 0.2);
-        color: {COLORS["primary"]};
+        background-color: rgba(129, 199, 132, 0.15);
+        border-color: rgba(129, 199, 132, 0.4);
+        color: {STATUS_COLORS["success"]};
     }}
 
     .status-badge.warning {{
-        background-color: rgba(255, 152, 0, 0.2);
-        color: {COLORS["warning"]};
+        background-color: rgba(255, 183, 77, 0.15);
+        border-color: rgba(255, 183, 77, 0.4);
+        color: {STATUS_COLORS["pending"]};
     }}
 
     .status-badge.error {{
-        background-color: rgba(244, 67, 54, 0.2);
-        color: {COLORS["error"]};
+        background-color: rgba(229, 115, 115, 0.15);
+        border-color: rgba(229, 115, 115, 0.4);
+        color: {STATUS_COLORS["failed"]};
     }}
 
     .status-badge.info {{
-        background-color: rgba(33, 150, 243, 0.2);
-        color: {COLORS["info"]};
+        background-color: rgba(100, 181, 246, 0.15);
+        border-color: rgba(100, 181, 246, 0.4);
+        color: {STATUS_COLORS["in_progress"]};
     }}
 
     /* Stylizacja tabel */
@@ -127,7 +228,7 @@ def get_custom_css() -> str:
 
     /* Buttons */
     .stButton > button {{
-        background-color: {COLORS["primary"]};
+        background-color: {COLORS["accent"]};
         color: white;
         border: none;
         border-radius: 6px;
@@ -136,7 +237,7 @@ def get_custom_css() -> str:
     }}
 
     .stButton > button:hover {{
-        background-color: #43A047;
+        background-color: {COLORS["accent_dark"]};
     }}
 
     /* Sidebar styling */
@@ -185,7 +286,7 @@ def get_custom_css() -> str:
 
     /* Progress bar */
     .stProgress > div > div {{
-        background-color: {COLORS["primary"]};
+        background-color: {COLORS["accent"]};
     }}
 
     /* Metric styling */
@@ -234,14 +335,14 @@ def get_custom_css() -> str:
         border-color: {COLORS["surface_light"]};
     }}
 
-    /* Status badge hover */
-    .status-badge {{
+    /* Status btn/badge hover */
+    .status-badge, .status-btn {{
         transition: transform 0.15s ease, box-shadow 0.15s ease;
         cursor: default;
     }}
 
-    .status-badge:hover {{
-        transform: scale(1.05);
+    .status-badge:hover, .status-btn:hover {{
+        transform: scale(1.02);
     }}
 
     /* Card container hover */
@@ -278,7 +379,7 @@ def get_custom_css() -> str:
 
     /* Info box styling */
     .info-box {{
-        background-color: rgba(33, 150, 243, 0.1);
+        background-color: rgba(141, 110, 99, 0.15);
         border-left: 3px solid {COLORS["info"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -292,7 +393,7 @@ def get_custom_css() -> str:
 
     /* Warning box styling */
     .warning-box {{
-        background-color: rgba(255, 152, 0, 0.1);
+        background-color: rgba(183, 98, 44, 0.15);
         border-left: 3px solid {COLORS["warning"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -306,7 +407,7 @@ def get_custom_css() -> str:
 
     /* Error box styling */
     .error-box {{
-        background-color: rgba(244, 67, 54, 0.1);
+        background-color: rgba(229, 115, 115, 0.15);
         border-left: 3px solid {COLORS["error"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -320,7 +421,7 @@ def get_custom_css() -> str:
 
     /* Success box styling */
     .success-box {{
-        background-color: rgba(76, 175, 80, 0.1);
+        background-color: rgba(129, 199, 132, 0.15);
         border-left: 3px solid {COLORS["primary"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -394,7 +495,7 @@ def get_custom_css() -> str:
 
     /* Loading spinner override */
     .stSpinner > div {{
-        border-top-color: {COLORS["primary"]} !important;
+        border-top-color: {COLORS["accent"]} !important;
     }}
 
     /* Toast/notification styling */
