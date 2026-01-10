@@ -13,7 +13,6 @@ import streamlit as st
 from src.ui.layout import (
     apply_plotly_dark_theme,
     render_kpi_section,
-    render_section_header,
 )
 from src.ui.theme import COLORS
 
@@ -198,7 +197,7 @@ def _render_performance_results() -> None:
     st.markdown("---")
 
     # Detailed statistics section
-    render_section_header("Detailed Statistics", "📊")
+    st.subheader("Detailed Statistics")
 
     col_a, col_b = st.columns(2)
     with col_a:
@@ -226,31 +225,27 @@ def _render_performance_kpi() -> None:
                 peak_hour = h.hour
                 break
 
-    render_section_header("Key Performance Indicators", "📊")
+    st.subheader("Key Performance Indicators")
 
     metrics = [
         {
             "title": "Avg Lines/h",
             "value": f"{kpi.avg_lines_per_hour:.1f}",
-            "icon": "📈",
             "help_text": "Average lines per hour across all hours",
         },
         {
             "title": "Peak Hour",
             "value": f"{peak_hour:02d}:00",
-            "icon": "⏰",
             "help_text": f"Hour with highest activity ({kpi.peak_lines_per_hour} lines)",
         },
         {
             "title": "Total Orders",
             "value": f"{kpi.total_orders:,}",
-            "icon": "📦",
             "help_text": "Total number of unique orders",
         },
         {
             "title": "Avg Lines/Order",
             "value": f"{kpi.avg_lines_per_order:.2f}",
-            "icon": "📋",
             "help_text": "Average lines per order",
         },
     ]
@@ -394,7 +389,7 @@ def _render_order_structure_chart() -> None:
 
 def _render_performance_charts() -> None:
     """Render all performance charts."""
-    render_section_header("Performance Charts", "📈")
+    st.subheader("Performance Charts")
 
     col1, col2 = st.columns(2)
 

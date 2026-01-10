@@ -38,10 +38,10 @@ from src.ui.theme import apply_theme
 
 # Navigation constants
 SECTIONS = {
-    "🏠 Dashboard": "Dashboard",
-    "📊 Capacity": "Capacity",
-    "⚡ Performance": "Performance",
-    "📄 Reports": "Reports",
+    "Dashboard": "Dashboard",
+    "Capacity": "Capacity",
+    "Performance": "Performance",
+    "Reports": "Reports",
 }
 SUBTAB_ORDER = ["import", "validation", "analysis"]
 
@@ -124,9 +124,7 @@ def init_session_state() -> None:
 
 
 def render_sidebar() -> None:
-    """Render sidebar with navigation and section-specific settings."""
-    from src.core.config import OUTLIER_THRESHOLDS
-
+    """Render sidebar with navigation."""
     with st.sidebar:
         st.title("DataAnalysis")
         st.markdown("---")
@@ -151,14 +149,6 @@ def render_sidebar() -> None:
 
         st.markdown("---")
 
-        # Section-specific settings
-        active = st.session_state.active_section
-
-        if active == "Capacity":
-            _render_capacity_settings(OUTLIER_THRESHOLDS)
-        elif active == "Performance":
-            _render_performance_settings()
-
         # Status badges (always visible)
         st.markdown("### Status")
         if st.session_state.masterdata_df is not None:
@@ -171,115 +161,6 @@ def render_sidebar() -> None:
             st.info("Orders: Not loaded")
         if st.session_state.analysis_complete:
             st.success("Analysis complete")
-
-
-def _render_capacity_settings(outlier_thresholds: dict) -> None:
-    """Render Capacity-specific sidebar settings."""
-    st.markdown("### 📊 Capacity Settings")
-
-    # Client name
-    st.session_state.client_name = st.text_input(
-        "Client name",
-        value=st.session_state.client_name,
-        placeholder="e.g. Client_ABC",
-    )
-
-    # Borderline threshold
-    st.session_state.borderline_threshold = st.slider(
-        "Borderline threshold (mm)",
-        min_value=0.5,
-        max_value=10.0,
-        value=st.session_state.get("borderline_threshold", 2.0),
-        step=0.5,
-        help="Threshold for marking SKU as BORDERLINE (close to carrier limit)",
-    )
-
-    # Imputation
-    with st.expander("Imputation", expanded=False):
-        st.session_state.imputation_enabled = st.checkbox(
-            "Enable imputation",
-            value=st.session_state.get("imputation_enabled", True),
-            help="Fill missing values with selected method",
-        )
-
-        if st.session_state.imputation_enabled:
-            st.session_state.imputation_method = st.selectbox(
-                "Imputation method",
-                options=["Median", "Average"],
-                index=0 if st.session_state.get("imputation_method", "Median") == "Median" else 1,
-                key="imputation_method_select",
-                help="Median is more robust to outliers",
-            )
-
-    # Outlier validation
-    with st.expander("Outlier validation", expanded=False):
-        st.session_state.outlier_validation_enabled = st.checkbox(
-            "Enable outlier detection",
-            value=st.session_state.get("outlier_validation_enabled", True),
-            help="Flag values outside acceptable ranges",
-        )
-
-        if st.session_state.outlier_validation_enabled:
-            st.markdown("**Dimensions (mm):**")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.session_state.outlier_length_min = st.number_input(
-                    "Length min", value=int(st.session_state.get("outlier_length_min", outlier_thresholds["length_mm"]["min"])),
-                    min_value=0, step=1, key="ol_len_min"
-                )
-                st.session_state.outlier_width_min = st.number_input(
-                    "Width min", value=int(st.session_state.get("outlier_width_min", outlier_thresholds["width_mm"]["min"])),
-                    min_value=0, step=1, key="ol_wid_min"
-                )
-                st.session_state.outlier_height_min = st.number_input(
-                    "Height min", value=int(st.session_state.get("outlier_height_min", outlier_thresholds["height_mm"]["min"])),
-                    min_value=0, step=1, key="ol_hgt_min"
-                )
-            with col2:
-                st.session_state.outlier_length_max = st.number_input(
-                    "Length max", value=int(st.session_state.get("outlier_length_max", outlier_thresholds["length_mm"]["max"])),
-                    min_value=1, step=100, key="ol_len_max"
-                )
-                st.session_state.outlier_width_max = st.number_input(
-                    "Width max", value=int(st.session_state.get("outlier_width_max", outlier_thresholds["width_mm"]["max"])),
-                    min_value=1, step=100, key="ol_wid_max"
-                )
-                st.session_state.outlier_height_max = st.number_input(
-                    "Height max", value=int(st.session_state.get("outlier_height_max", outlier_thresholds["height_mm"]["max"])),
-                    min_value=1, step=100, key="ol_hgt_max"
-                )
-
-            st.markdown("**Weight (kg):**")
-            col3, col4 = st.columns(2)
-            with col3:
-                st.session_state.outlier_weight_min = st.number_input(
-                    "Weight min", value=st.session_state.get("outlier_weight_min", outlier_thresholds["weight_kg"]["min"]),
-                    min_value=0.0, step=0.001, format="%.3f", key="ol_wgt_min"
-                )
-            with col4:
-                st.session_state.outlier_weight_max = st.number_input(
-                    "Weight max", value=st.session_state.get("outlier_weight_max", outlier_thresholds["weight_kg"]["max"]),
-                    min_value=0.1, step=10.0, key="ol_wgt_max"
-                )
-
-    st.markdown("---")
-
-
-def _render_performance_settings() -> None:
-    """Render Performance-specific sidebar settings."""
-    st.markdown("### ⚡ Performance Settings")
-
-    # Productive hours
-    st.session_state.productive_hours = st.slider(
-        "Productive hours / shift",
-        min_value=4.0,
-        max_value=8.0,
-        value=st.session_state.get("productive_hours", 7.0),
-        step=0.5,
-        help="Effective work time per shift",
-    )
-
-    st.markdown("---")
 
 
 def render_main_content() -> None:
@@ -305,9 +186,9 @@ def render_main_content() -> None:
 
 def _render_dashboard() -> None:
     """Render Dashboard with status overview."""
-    from src.ui.layout import render_section_header, render_kpi_card
+    from src.ui.layout import render_kpi_card
 
-    render_section_header("Dashboard", "🏠")
+    st.header("Dashboard")
 
     # Status cards - 4 columns
     cols = st.columns(4)
@@ -339,7 +220,7 @@ def _render_dashboard() -> None:
 
 def _render_capacity_section() -> None:
     """Render Capacity section with sub-tabs."""
-    tabs = st.tabs(["📁 Import", "✅ Validation", "📊 Analysis"])
+    tabs = st.tabs(["Import", "Validation", "Analysis"])
 
     with tabs[0]:
         # For now, render masterdata part of import view
@@ -362,12 +243,101 @@ def _render_capacity_import() -> None:
 
 
 def _render_capacity_validation() -> None:
-    """Render Capacity Validation sub-tab."""
+    """Render Capacity Validation sub-tab with settings."""
+    from src.core.config import OUTLIER_THRESHOLDS
     from src.ui.layout import render_message_box
 
     if st.session_state.masterdata_df is None:
         render_message_box("Please import Masterdata first in the Import tab.", "info")
         return
+
+    # Capacity Settings section
+    with st.expander("Capacity Settings", expanded=False):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Client name
+            st.session_state.client_name = st.text_input(
+                "Client name",
+                value=st.session_state.client_name,
+                placeholder="e.g. Client_ABC",
+            )
+
+            # Borderline threshold
+            st.session_state.borderline_threshold = st.slider(
+                "Borderline threshold (mm)",
+                min_value=0.5,
+                max_value=10.0,
+                value=st.session_state.get("borderline_threshold", 2.0),
+                step=0.5,
+                help="Threshold for marking SKU as BORDERLINE (close to carrier limit)",
+            )
+
+        with col2:
+            # Imputation
+            st.session_state.imputation_enabled = st.checkbox(
+                "Enable imputation",
+                value=st.session_state.get("imputation_enabled", True),
+                help="Fill missing values with selected method",
+            )
+
+            if st.session_state.imputation_enabled:
+                st.session_state.imputation_method = st.selectbox(
+                    "Imputation method",
+                    options=["Median", "Average"],
+                    index=0 if st.session_state.get("imputation_method", "Median") == "Median" else 1,
+                    key="capacity_imputation_method_select",
+                    help="Median is more robust to outliers",
+                )
+
+        # Outlier validation
+        st.markdown("**Outlier validation**")
+        st.session_state.outlier_validation_enabled = st.checkbox(
+            "Enable outlier detection",
+            value=st.session_state.get("outlier_validation_enabled", True),
+            help="Flag values outside acceptable ranges",
+        )
+
+        if st.session_state.outlier_validation_enabled:
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.session_state.outlier_length_min = st.number_input(
+                    "Length min (mm)", value=int(st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"])),
+                    min_value=0, step=1, key="cv_ol_len_min"
+                )
+                st.session_state.outlier_length_max = st.number_input(
+                    "Length max (mm)", value=int(st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"])),
+                    min_value=1, step=100, key="cv_ol_len_max"
+                )
+            with col2:
+                st.session_state.outlier_width_min = st.number_input(
+                    "Width min (mm)", value=int(st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"])),
+                    min_value=0, step=1, key="cv_ol_wid_min"
+                )
+                st.session_state.outlier_width_max = st.number_input(
+                    "Width max (mm)", value=int(st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"])),
+                    min_value=1, step=100, key="cv_ol_wid_max"
+                )
+            with col3:
+                st.session_state.outlier_height_min = st.number_input(
+                    "Height min (mm)", value=int(st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"])),
+                    min_value=0, step=1, key="cv_ol_hgt_min"
+                )
+                st.session_state.outlier_height_max = st.number_input(
+                    "Height max (mm)", value=int(st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"])),
+                    min_value=1, step=100, key="cv_ol_hgt_max"
+                )
+            with col4:
+                st.session_state.outlier_weight_min = st.number_input(
+                    "Weight min (kg)", value=st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"]),
+                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_wgt_min"
+                )
+                st.session_state.outlier_weight_max = st.number_input(
+                    "Weight max (kg)", value=st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"]),
+                    min_value=0.1, step=10.0, key="cv_ol_wgt_max"
+                )
+
+    st.markdown("---")
 
     # Use existing validation view
     render_validation_view()
@@ -375,7 +345,7 @@ def _render_capacity_validation() -> None:
 
 def _render_performance_section() -> None:
     """Render Performance section with sub-tabs."""
-    tabs = st.tabs(["📁 Import", "✅ Validation", "📊 Analysis"])
+    tabs = st.tabs(["Import", "Validation", "Analysis"])
 
     with tabs[0]:
         _render_performance_import()
@@ -394,12 +364,33 @@ def _render_performance_import() -> None:
 
 
 def _render_performance_validation() -> None:
-    """Render Performance Validation sub-tab."""
+    """Render Performance Validation sub-tab with settings."""
     from src.ui.layout import render_message_box
 
     if st.session_state.orders_df is None:
         render_message_box("Please import Orders first in the Import tab.", "info")
         return
+
+    # Performance Settings section
+    with st.expander("Performance Settings", expanded=False):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Productive hours
+            st.session_state.productive_hours = st.slider(
+                "Productive hours / shift",
+                min_value=4.0,
+                max_value=8.0,
+                value=st.session_state.get("productive_hours", 7.0),
+                step=0.5,
+                help="Effective work time per shift",
+            )
+
+        with col2:
+            # Placeholder for future settings
+            st.markdown("*Additional settings can be added here*")
+
+    st.markdown("---")
 
     # Use existing validation view
     render_validation_view()

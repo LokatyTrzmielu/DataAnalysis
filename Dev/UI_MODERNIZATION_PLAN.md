@@ -4,6 +4,9 @@
 >
 > **Uwaga:** Paleta kolorów została zaktualizowana w `Dev/UI_COLOR_BUTTONS_PLAN.md` (2026-01-10).
 > Nowa paleta kawowo-brązowa zastąpiła oryginalny dark theme (#121212 → #20100e).
+>
+> **Nawigacja:** Restrukturyzacja nawigacji opisana w `Dev/UI_NAVIGATION_PLAN.md` (2026-01-10).
+> Sidebar z sekcjami, sub-zakładki, Dashboard, usunięcie emoji.
 
 ## Podsumowanie
 Kompletna przebudowa interfejsu aplikacji z jasnego motywu na ciemny (dark theme) inspirowany dashboardem n8n, z nową strukturą kodu i interaktywnymi wykresami Plotly.

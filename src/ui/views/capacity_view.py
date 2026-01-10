@@ -11,7 +11,6 @@ from src.core.types import CarrierConfig
 from src.ui.layout import (
     apply_plotly_dark_theme,
     render_kpi_section,
-    render_section_header,
 )
 from src.ui.theme import COLORS
 
@@ -369,31 +368,27 @@ def _render_capacity_kpi() -> None:
     # Average weight
     avg_weight = df.select(pl.col("weight_kg").mean()).item() or 0
 
-    render_section_header("Key Performance Indicators", "📊")
+    st.subheader("Key Performance Indicators")
 
     metrics = [
         {
             "title": "SKU Count",
             "value": f"{total_sku:,}",
-            "icon": "📦",
             "help_text": "Total number of SKU in analysis",
         },
         {
             "title": "Avg Fit %",
             "value": f"{avg_fit_pct:.1f}%",
-            "icon": "✅",
             "help_text": "Average fit percentage across all carriers",
         },
         {
             "title": "Avg Dimensions",
             "value": f"{avg_length:.0f}×{avg_width:.0f}×{avg_height:.0f}",
-            "icon": "📐",
             "help_text": "Average L×W×H in mm",
         },
         {
             "title": "Avg Weight",
             "value": f"{avg_weight:.2f} kg",
-            "icon": "⚖️",
             "help_text": "Average weight in kg",
         },
     ]
@@ -530,7 +525,7 @@ def _render_weight_histogram() -> None:
 
 def _render_capacity_charts() -> None:
     """Render all capacity analysis charts."""
-    render_section_header("Charts", "📈")
+    st.subheader("Charts")
 
     col1, col2 = st.columns(2)
 
@@ -548,7 +543,7 @@ def _render_capacity_table() -> None:
     """Render results table with filtering and CSV export."""
     result = st.session_state.capacity_result
 
-    render_section_header("Results Table", "📋")
+    st.subheader("Results Table")
 
     # Get the results dataframe
     if result.df is None or result.df.height == 0:
@@ -641,7 +636,7 @@ def _render_capacity_results() -> None:
     st.markdown("---")
 
     # Show analysis mode info
-    render_section_header("Carrier Details", "📦")
+    st.subheader("Carrier Details")
     if is_prioritized:
         st.caption("Prioritized mode - SKU assigned to smallest fitting carrier")
     else:

@@ -11,7 +11,7 @@
 | Nazwa projektu | DataAnalysis |
 | Katalog roboczy | `D:\VS\DataAnalysis` |
 | Data rozpoczęcia | 2026-01-03 |
-| Status | **MVP KOMPLETNE** - Modernizacja UI zakończona |
+| Status | **MVP KOMPLETNE** - Modernizacja UI + nawigacja sidebar |
 | Testy | 122 (wszystkie przechodzą) |
 
 ---
@@ -49,8 +49,8 @@ src/
 ├── analytics/  # DuckDB, capacity, performance
 ├── reporting/  # Raporty CSV, manifest, ZIP
 └── ui/         # Streamlit UI
-    ├── app.py      # Główna aplikacja (zrefaktoryzowana, ~280 linii)
-    ├── theme.py    # Dark theme, paleta kolorów, CSS
+    ├── app.py      # Główna aplikacja (sidebar nav, ~420 linii)
+    ├── theme.py    # Dark theme, paleta kolorów, CSS, sidebar styling
     ├── layout.py   # Komponenty UI (KPI cards, badges, sekcje)
     └── views/      # Widoki zakładek
         ├── import_view.py      # Import danych z mapowaniem
@@ -59,6 +59,13 @@ src/
         ├── performance_view.py # Analiza wydajnościowa
         ├── reports_view.py     # Raporty i eksport
         └── components_demo.py  # Demo komponentów UI
+
+# Nawigacja UI (sidebar)
+SIDEBAR:                    MAIN VIEW:
+├─ Dashboard         ───>   Status overview (4 KPI cards)
+├─ Capacity          ───>   [Import] [Validation] [Analysis]
+├─ Performance       ───>   [Import] [Validation] [Analysis]
+└─ Reports           ───>   Report generation
 
 tests/          # 122 testy jednostkowe + integracyjne
 runs/           # Wyniki analiz per klient
@@ -248,7 +255,34 @@ python -m pytest tests/ -v
 
 ---
 
+## Restrukturyzacja Nawigacji (2026-01-10)
+
+**Plan:** `Dev/UI_NAVIGATION_PLAN.md`
+
+### Phase 1: Nawigacja Sidebar
+- Zamiana 5 płaskich zakładek na hierarchiczną nawigację sidebar
+- 4 sekcje w sidebar: Dashboard, Capacity, Performance, Reports
+- Sub-zakładki w sekcjach: Import | Validation | Analysis
+- Dashboard z 4 kartami KPI statusu
+
+### Phase 2: Styling & Consistency
+| Zmiana | Szczegóły |
+|--------|-----------|
+| Settings w Validation | Przeniesiono z sidebar do zakładek Validation |
+| Sidebar styling | Bez bullet points, hover rust-brown, selected dim-grey |
+| Emoji removal | Usunięto emoji z tabs, headers, sekcji |
+| Header standardization | `st.header()` / `st.subheader()` zamiast custom HTML |
+
+### Zmienione pliki (Phase 2)
+- `src/ui/app.py` - nawigacja, settings w validation tabs, bez emoji
+- `src/ui/theme.py` - CSS dla sidebar navigation styling
+- `src/ui/views/import_view.py` - bez emoji, st.subheader
+- `src/ui/views/capacity_view.py` - bez emoji, st.subheader
+- `src/ui/views/performance_view.py` - bez emoji, st.subheader
+
+---
+
 ## Ostatnia Aktualizacja
 
 **Data:** 2026-01-10
-**Status:** MVP kompletne, **modernizacja UI zakończona** + nowa paleta kolorów i przyciski statusu
+**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + styling consistency

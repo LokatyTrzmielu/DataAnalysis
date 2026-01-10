@@ -591,6 +591,55 @@ def get_custom_css() -> str:
         font-weight: 600;
         color: {COLORS["text"]};
     }}
+
+    /* ===== Sidebar Navigation Styling ===== */
+
+    /* Hide default radio button styling in sidebar */
+    [data-testid="stSidebar"] .stRadio > div {{
+        gap: 0 !important;
+    }}
+
+    [data-testid="stSidebar"] .stRadio > div > label {{
+        display: block !important;
+        width: 100% !important;
+        padding: 0.75rem 1rem !important;
+        margin: 0.15rem 0 !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        background-color: transparent !important;
+    }}
+
+    /* Hide the radio circle */
+    [data-testid="stSidebar"] .stRadio > div > label > div:first-child {{
+        display: none !important;
+    }}
+
+    /* Style the text */
+    [data-testid="stSidebar"] .stRadio > div > label > div:last-child {{
+        color: {COLORS["text"]} !important;
+        font-size: 0.95rem !important;
+    }}
+
+    /* Hover state - rust-brown color */
+    [data-testid="stSidebar"] .stRadio > div > label:hover {{
+        background-color: transparent !important;
+    }}
+
+    [data-testid="stSidebar"] .stRadio > div > label:hover > div:last-child {{
+        color: {COLORS["accent_dark"]} !important;
+        font-weight: 600 !important;
+    }}
+
+    /* Selected state - dim-grey rectangle */
+    [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] {{
+        background-color: {COLORS["surface_light"]} !important;
+    }}
+
+    [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] > div:last-child {{
+        color: {COLORS["text"]} !important;
+        font-weight: 600 !important;
+    }}
     </style>
     """
 

@@ -43,6 +43,7 @@
 | 12 | Code review i weryfikacja | ✅ |
 | 13 | Modernizacja UI | ✅ |
 | 14 | Paleta kolorów i przyciski statusu | ✅ |
+| 15 | Restrukturyzacja nawigacji | ✅ |
 
 ---
 
@@ -72,6 +73,25 @@
 - 7 typów statusu z ikonami SVG (pending, in_progress, submitted, in_review, success, failed, expired)
 - Nowe funkcje: `render_status_button()`, `render_status_buttons_inline()`
 - Zachowana wsteczna kompatybilność ze starymi `.status-badge`
+
+---
+
+## Restrukturyzacja Nawigacji
+
+**Szczegółowy plan:** `Dev/UI_NAVIGATION_PLAN.md`
+
+**Phase 1:** Nawigacja sidebar
+- 4 sekcje: Dashboard, Capacity, Performance, Reports
+- Sub-zakładki: Import | Validation | Analysis
+- Dashboard z 4 kartami KPI
+
+**Phase 2:** Styling & Consistency
+- Settings przeniesione z sidebar do zakładek Validation
+- Sidebar bez bullet points (hover rust-brown, selected dim-grey)
+- Usunięto wszystkie emoji z UI
+- Standardowe headers: `st.header()` / `st.subheader()`
+
+---
 
 **Nowe pliki (Etap 1):**
 - `src/ui/theme.py` - COLORS, get_custom_css(), apply_theme()
