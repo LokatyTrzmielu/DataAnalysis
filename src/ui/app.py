@@ -314,27 +314,27 @@ def _render_dashboard() -> None:
 
     with cols[0]:
         masterdata_count = len(st.session_state.masterdata_df) if st.session_state.masterdata_df is not None else 0
-        status = "success" if masterdata_count > 0 else "info"
+        icon = "✅" if masterdata_count > 0 else "📭"
         value = f"{masterdata_count} SKU" if masterdata_count > 0 else "Not loaded"
-        render_kpi_card("Masterdata", value, color=status)
+        render_kpi_card("Masterdata", value, icon=icon)
 
     with cols[1]:
         orders_count = len(st.session_state.orders_df) if st.session_state.orders_df is not None else 0
-        status = "success" if orders_count > 0 else "info"
+        icon = "✅" if orders_count > 0 else "📭"
         value = f"{orders_count} lines" if orders_count > 0 else "Not loaded"
-        render_kpi_card("Orders", value, color=status)
+        render_kpi_card("Orders", value, icon=icon)
 
     with cols[2]:
         capacity_done = st.session_state.capacity_result is not None
-        status = "success" if capacity_done else "warning"
+        icon = "✅" if capacity_done else "⏳"
         value = "Complete" if capacity_done else "Pending"
-        render_kpi_card("Capacity Analysis", value, color=status)
+        render_kpi_card("Capacity Analysis", value, icon=icon)
 
     with cols[3]:
         performance_done = st.session_state.performance_result is not None
-        status = "success" if performance_done else "warning"
+        icon = "✅" if performance_done else "⏳"
         value = "Complete" if performance_done else "Pending"
-        render_kpi_card("Performance Analysis", value, color=status)
+        render_kpi_card("Performance Analysis", value, icon=icon)
 
 
 def _render_capacity_section() -> None:
