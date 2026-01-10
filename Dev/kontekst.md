@@ -212,7 +212,43 @@ python -m pytest tests/ -v
 
 ---
 
+## Aktualizacja Palety Kolorów i Przycisków (2026-01-10)
+
+### Nowa Paleta Kawowo-Brązowa
+**Plan:** `Dev/UI_COLOR_BUTTONS_PLAN.md`
+
+| Kolor | Hex | Rola |
+|-------|-----|------|
+| coffee-bean | `#20100e` | Główne tło |
+| graphite | `#323232` | Powierzchnie |
+| dim-grey | `#5f605b` | Hover states |
+| espresso | `#5e3123` | Bordery |
+| rust-brown | `#923b1b` | Hover przycisków |
+| burnt-caramel | `#b7622c` | Główny akcent |
+
+### Nowe Przyciski Statusu (7 typów)
+| Status | Kolor | Ikona |
+|--------|-------|-------|
+| pending | `#FFB74D` żółty | Triangle warning |
+| in_progress | `#64B5F6` niebieski | Dashed circle |
+| submitted | `#BA68C8` fioletowy | Paper plane |
+| in_review | `#FF8A65` pomarańczowy | Circular arrows |
+| success | `#81C784` zielony | Checkmark circle |
+| failed | `#E57373` czerwony | X circle |
+| expired | `#90A4AE` szary | Clock |
+
+### Zmienione Pliki
+- `src/ui/theme.py` - COLORS, STATUS_COLORS, STATUS_ICONS, CSS `.status-btn`
+- `.streamlit/config.toml` - nowe kolory Streamlit theme
+- `src/ui/layout.py` - `render_status_button()`, `render_status_buttons_inline()`, `get_status_color()`
+- `src/ui/__init__.py` - eksporty nowych funkcji
+- `src/ui/views/import_view.py` - użycie `render_status_button()`
+- `src/ui/views/reports_view.py` - użycie `render_status_buttons_inline()`
+- `src/ui/views/components_demo.py` - demo 7 typów statusu
+
+---
+
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-01-09
-**Status:** MVP kompletne, **modernizacja UI zakończona** + poprawki błędów timestamp
+**Data:** 2026-01-10
+**Status:** MVP kompletne, **modernizacja UI zakończona** + nowa paleta kolorów i przyciski statusu

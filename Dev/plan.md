@@ -41,7 +41,8 @@
 | 10 | Poprawki UI i walidacji | ✅ |
 | 11 | System nośników | ✅ |
 | 12 | Code review i weryfikacja | ✅ |
-| 13 | Modernizacja UI | ⏳ (Etap 4/8) |
+| 13 | Modernizacja UI | ✅ |
+| 14 | Paleta kolorów i przyciski statusu | ✅ |
 
 ---
 
@@ -55,10 +56,22 @@
 | 2 | Komponenty UI (layout.py) | ✅ |
 | 3 | Refaktoryzacja app.py na views | ✅ |
 | 4 | Import view restyling | ✅ |
-| 5 | Capacity view + Plotly | ⏳ |
-| 6 | Performance view + Plotly | ⏳ |
-| 7 | Reports view | ⏳ |
-| 8 | Finalizacja i testy | ⏳ |
+| 5 | Capacity view + Plotly | ✅ |
+| 6 | Performance view + Plotly | ✅ |
+| 7 | Reports view | ✅ |
+| 8 | Finalizacja i testy | ✅ |
+
+---
+
+## Paleta Kolorów i Przyciski Statusu
+
+**Szczegółowy plan:** `Dev/UI_COLOR_BUTTONS_PLAN.md`
+
+**Zmiany:**
+- Nowa paleta kawowo-brązowa (coffee-bean, graphite, burnt-caramel)
+- 7 typów statusu z ikonami SVG (pending, in_progress, submitted, in_review, success, failed, expired)
+- Nowe funkcje: `render_status_button()`, `render_status_buttons_inline()`
+- Zachowana wsteczna kompatybilność ze starymi `.status-badge`
 
 **Nowe pliki (Etap 1):**
 - `src/ui/theme.py` - COLORS, get_custom_css(), apply_theme()

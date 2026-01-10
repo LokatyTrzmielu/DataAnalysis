@@ -1,5 +1,10 @@
 # Plan modernizacji UI aplikacji Streamlit - DataAnalysis
 
+> **Status:** ✅ ZAKOŃCZONE (2026-01-09)
+>
+> **Uwaga:** Paleta kolorów została zaktualizowana w `Dev/UI_COLOR_BUTTONS_PLAN.md` (2026-01-10).
+> Nowa paleta kawowo-brązowa zastąpiła oryginalny dark theme (#121212 → #20100e).
+
 ## Podsumowanie
 Kompletna przebudowa interfejsu aplikacji z jasnego motywu na ciemny (dark theme) inspirowany dashboardem n8n, z nową strukturą kodu i interaktywnymi wykresami Plotly.
 

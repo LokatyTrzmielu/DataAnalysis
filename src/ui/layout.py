@@ -431,3 +431,63 @@ def get_status_color(
         "info": STATUS_COLORS["in_progress"],
     }
     return legacy_colors.get(status, COLORS["text_secondary"])
+
+
+def render_navigation_buttons(
+    show_back: bool = True,
+    show_next: bool = True,
+    back_label: str = "< Back",
+    next_label: str = "Next >",
+    on_back: Callable[[], None] | None = None,
+    on_next: Callable[[], None] | None = None,
+    next_disabled: bool = False,
+    back_disabled: bool = False,
+) -> tuple[bool, bool]:
+    """Render navigation buttons at the bottom of a view.
+
+    Args:
+        show_back: Whether to show the back button
+        show_next: Whether to show the next button
+        back_label: Label for back button
+        next_label: Label for next button
+        on_back: Callback when back is clicked
+        on_next: Callback when next is clicked
+        next_disabled: Disable the next button
+        back_disabled: Disable the back button
+
+    Returns:
+        Tuple of (back_clicked, next_clicked) booleans
+    """
+    st.markdown("---")
+
+    back_clicked = False
+    next_clicked = False
+
+    cols = st.columns([1, 2, 1])
+
+    with cols[0]:
+        if show_back:
+            if st.button(
+                back_label,
+                key="nav_back",
+                use_container_width=True,
+                disabled=back_disabled,
+            ):
+                back_clicked = True
+                if on_back:
+                    on_back()
+
+    with cols[2]:
+        if show_next:
+            if st.button(
+                next_label,
+                key="nav_next",
+                use_container_width=True,
+                disabled=next_disabled,
+                type="primary",
+            ):
+                next_clicked = True
+                if on_next:
+                    on_next()
+
+    return back_clicked, next_clicked
