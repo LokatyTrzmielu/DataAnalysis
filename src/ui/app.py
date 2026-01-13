@@ -249,7 +249,7 @@ def _render_capacity_validation() -> None:
         return
 
     # Capacity Settings section
-    with st.expander("Capacity Settings", expanded=False):
+    with st.expander("⚙️ Capacity Settings", expanded=False):
         col1, col2 = st.columns(2)
 
         with col1:
@@ -369,7 +369,7 @@ def _render_performance_validation() -> None:
         return
 
     # Performance Settings section
-    with st.expander("Performance Settings", expanded=False):
+    with st.expander("⚙️ Performance Settings", expanded=False):
         col1, col2 = st.columns(2)
 
         with col1:

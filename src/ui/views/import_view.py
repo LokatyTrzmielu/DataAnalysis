@@ -9,9 +9,10 @@ from typing import TYPE_CHECKING
 import streamlit as st
 
 from src.ui.layout import (
-    render_status_button,
     render_error_box,
+    render_section_header,
     render_spacer,
+    render_status_button,
 )
 from src.ui.theme import COLORS
 
@@ -116,7 +117,7 @@ def render_mapping_ui(
     Returns:
         Updated MappingResult with user selections
     """
-    st.subheader("Column mapping")
+    render_section_header("Column mapping", "🔗")
 
     # Get required fields only
     required_fields = [f for f, cfg in schema.items() if cfg["required"]]
@@ -217,7 +218,7 @@ def render_mapping_status(mapping_result: "MappingResult") -> bool:
         has_errors = True
 
     # Mapping summary with styled content
-    with st.expander("Mapping summary", expanded=False):
+    with st.expander("📋 Mapping summary", expanded=False):
         for field_name, col_mapping in mapping_result.mappings.items():
             source = col_mapping.source_column
             badge_color = COLORS["primary"] if col_mapping.is_auto else COLORS["info"]
@@ -234,7 +235,7 @@ def render_mapping_status(mapping_result: "MappingResult") -> bool:
     # Unmapped columns in separate expander for cleaner display
     if mapping_result.unmapped_columns:
         count = len(mapping_result.unmapped_columns)
-        with st.expander(f"{count} unmapped columns from file"):
+        with st.expander(f"📁 {count} unmapped columns from file"):
             cols_text = ", ".join(mapping_result.unmapped_columns)
             st.markdown(
                 f'<p style="color: {COLORS["text_secondary"]}; font-size: 0.9rem;">{cols_text}</p>',
@@ -256,7 +257,7 @@ def render_masterdata_import() -> None:
 
     history_service = st.session_state.mapping_history_service
 
-    st.subheader("Masterdata")
+    render_section_header("Masterdata", "📁")
 
     step = st.session_state.get("masterdata_mapping_step", "upload")
 
@@ -303,7 +304,7 @@ def render_masterdata_import() -> None:
         mapping = st.session_state.masterdata_mapping_result
 
         # Data preview
-        with st.expander("Data preview", expanded=False):
+        with st.expander("👁️ Data preview", expanded=False):
             reader = FileReader(st.session_state.masterdata_temp_path)
             preview_df = reader.get_preview(n_rows=5)
             st.dataframe(preview_df.to_pandas(), width="stretch")
@@ -398,7 +399,7 @@ def render_masterdata_import() -> None:
             render_status_button(f"{len(st.session_state.masterdata_df)} SKU imported", "success")
             render_spacer(10)
 
-            with st.expander("Data preview", expanded=False):
+            with st.expander("👁️ Data preview", expanded=False):
                 st.dataframe(
                     st.session_state.masterdata_df.head(20).to_pandas(),
                     width="stretch",
@@ -424,7 +425,7 @@ def render_orders_import() -> None:
 
     history_service = st.session_state.mapping_history_service
 
-    st.subheader("Orders")
+    render_section_header("Orders", "📝")
 
     step = st.session_state.get("orders_mapping_step", "upload")
 
@@ -471,7 +472,7 @@ def render_orders_import() -> None:
         mapping = st.session_state.orders_mapping_result
 
         # Data preview
-        with st.expander("Data preview", expanded=False):
+        with st.expander("👁️ Data preview", expanded=False):
             from src.ingest import FileReader
             reader = FileReader(st.session_state.orders_temp_path)
             preview_df = reader.get_preview(n_rows=5)
@@ -548,7 +549,7 @@ def render_orders_import() -> None:
             render_status_button(f"{len(st.session_state.orders_df)} lines imported", "success")
             render_spacer(10)
 
-            with st.expander("Data preview", expanded=False):
+            with st.expander("👁️ Data preview", expanded=False):
                 st.dataframe(
                     st.session_state.orders_df.head(20).to_pandas(),
                     width="stretch",

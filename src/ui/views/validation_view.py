@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.ui.layout import render_divider
+from src.ui.layout import render_divider, render_section_header
 
 
 def render_validation_view() -> None:
@@ -85,16 +85,28 @@ def _render_validation_results() -> None:
             ),
         )
     with col2:
-        st.metric("Records", result.total_records)
+        st.metric(
+            "Records",
+            result.total_records,
+            help="Total number of SKU records in the masterdata file",
+        )
     with col3:
-        st.metric("Valid", result.valid_records)
+        st.metric(
+            "Valid",
+            result.valid_records,
+            help="Records with complete dimensions and weight data",
+        )
     with col4:
-        st.metric("Imputed", result.imputed_records)
+        st.metric(
+            "Imputed",
+            result.imputed_records,
+            help="Records with missing values filled using imputation",
+        )
 
     render_divider()
 
     # Coverage
-    st.subheader("Data coverage")
+    render_section_header("Data coverage", "📊")
     col1, col2 = st.columns(2)
 
     with col1:
@@ -112,7 +124,7 @@ def _render_validation_results() -> None:
                    text=f"Weight: {result.metrics_after.weight_coverage_pct:.1f}%")
 
     # Issues
-    st.subheader("Detected issues")
+    render_section_header("Detected issues", "⚠️")
     dq = result.dq_lists
     # Show 0 for Outliers/Borderline when validation is disabled
     outliers_count = (
@@ -140,7 +152,7 @@ def _render_validation_results() -> None:
             st.success(f"{name}: 0")
 
     # Validation help section
-    with st.expander("Validation help", expanded=False):
+    with st.expander("❓ Validation help", expanded=False):
         st.markdown("""
 **Missing Critical** - Required fields (SKU, dimensions, weight) with missing or zero values.
 These SKUs cannot be analyzed until the data is corrected.

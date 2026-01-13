@@ -425,9 +425,17 @@ def _render_quality_preview() -> None:
         st.markdown("**Data coverage after imputation:**")
         col1, col2 = st.columns(2)
         with col1:
-            st.metric("Dimensions", f"{qr.metrics_after.dimensions_coverage_pct:.1f}%")
+            st.metric(
+                "Dimensions",
+                f"{qr.metrics_after.dimensions_coverage_pct:.1f}%",
+                help="Percentage of SKU with complete L×W×H dimensions",
+            )
         with col2:
-            st.metric("Weight", f"{qr.metrics_after.weight_coverage_pct:.1f}%")
+            st.metric(
+                "Weight",
+                f"{qr.metrics_after.weight_coverage_pct:.1f}%",
+                help="Percentage of SKU with weight data",
+            )
 
 
 def _render_capacity_preview() -> None:
@@ -465,7 +473,11 @@ def _render_capacity_preview() -> None:
                         (f"NOT: {stats.not_fit_count}", "failed"),
                     ])
                 with col3:
-                    st.metric("Fit %", f"{stats.fit_percentage:.1f}%")
+                    st.metric(
+                        "Fit %",
+                        f"{stats.fit_percentage:.1f}%",
+                        help="Percentage of SKU fitting this carrier",
+                    )
 
 
 def _render_performance_preview() -> None:

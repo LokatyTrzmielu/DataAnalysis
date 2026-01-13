@@ -14,6 +14,7 @@ from src.ui.layout import (
     apply_plotly_dark_theme,
     render_divider,
     render_kpi_section,
+    render_section_header,
 )
 from src.ui.theme import COLORS
 
@@ -198,17 +199,41 @@ def _render_performance_results() -> None:
     render_divider()
 
     # Detailed statistics section
-    st.subheader("Detailed Statistics")
+    render_section_header("Detailed Statistics", "📊")
 
     col_a, col_b = st.columns(2)
     with col_a:
-        st.metric("Lines/h (avg)", f"{kpi.avg_lines_per_hour:.1f}")
-        st.metric("Orders/h (avg)", f"{kpi.avg_orders_per_hour:.1f}")
-        st.metric("Total lines", f"{kpi.total_lines:,}")
+        st.metric(
+            "Lines/h (avg)",
+            f"{kpi.avg_lines_per_hour:.1f}",
+            help="Average order lines processed per hour",
+        )
+        st.metric(
+            "Orders/h (avg)",
+            f"{kpi.avg_orders_per_hour:.1f}",
+            help="Average number of orders processed per hour",
+        )
+        st.metric(
+            "Total lines",
+            f"{kpi.total_lines:,}",
+            help="Total number of order lines in the dataset",
+        )
     with col_b:
-        st.metric("Peak lines/h", kpi.peak_lines_per_hour)
-        st.metric("P95 lines/h", f"{kpi.p95_lines_per_hour:.1f}")
-        st.metric("Total units", f"{kpi.total_units:,}")
+        st.metric(
+            "Peak lines/h",
+            kpi.peak_lines_per_hour,
+            help="Maximum lines per hour observed (busiest hour)",
+        )
+        st.metric(
+            "P95 lines/h",
+            f"{kpi.p95_lines_per_hour:.1f}",
+            help="95th percentile of hourly line throughput",
+        )
+        st.metric(
+            "Total units",
+            f"{kpi.total_units:,}",
+            help="Total number of units (quantity) across all lines",
+        )
 
 
 def _render_performance_kpi() -> None:
@@ -226,7 +251,7 @@ def _render_performance_kpi() -> None:
                 peak_hour = h.hour
                 break
 
-    st.subheader("Key Performance Indicators")
+    render_section_header("Key Performance Indicators", "📊")
 
     metrics = [
         {
@@ -390,7 +415,7 @@ def _render_order_structure_chart() -> None:
 
 def _render_performance_charts() -> None:
     """Render all performance charts."""
-    st.subheader("Performance Charts")
+    render_section_header("Performance Charts", "📈")
 
     col1, col2 = st.columns(2)
 
