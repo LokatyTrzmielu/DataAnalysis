@@ -37,22 +37,7 @@
       "Bash(uv run ruff check:*)",
       "mcp__ide__executeCode",
       "Skill(frontend-design:frontend-design)",
-      "Bash(git stash:*)",
-      "WebSearch",
-      "WebFetch(domain:docs.streamlit.io)"
-    ]
-  },
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "say 'Claude Code'"
-          }
-        ]
-      }
+      "Bash(git stash:*)"
     ]
   },
   "outputStyle": "default"
