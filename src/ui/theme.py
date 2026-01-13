@@ -641,6 +641,32 @@ def get_custom_css() -> str:
         color: {COLORS["text"]} !important;
         font-weight: 600 !important;
     }}
+
+    /* ===== Sidebar Elements Visibility Fix ===== */
+
+    /* Tytuł w sidebarze */
+    [data-testid="stSidebar"] h1 {{
+        color: {COLORS["text"]} !important;
+    }}
+
+    /* Nagłówki markdown w sidebarze */
+    [data-testid="stSidebar"] h3 {{
+        color: {COLORS["text"]} !important;
+        font-size: 0.9rem !important;
+    }}
+
+    /* Alerty (st.success, st.info) w sidebarze */
+    [data-testid="stSidebar"] .stAlert {{
+        background-color: {COLORS["background"]} !important;
+        border-radius: 6px !important;
+        padding: 0.5rem 0.75rem !important;
+        margin: 0.25rem 0 !important;
+    }}
+
+    [data-testid="stSidebar"] .stAlert p {{
+        color: {COLORS["text"]} !important;
+        font-size: 0.85rem !important;
+    }}
     </style>
     """
 

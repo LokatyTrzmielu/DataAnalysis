@@ -37,7 +37,9 @@
       "Bash(uv run ruff check:*)",
       "mcp__ide__executeCode",
       "Skill(frontend-design:frontend-design)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.streamlit.io)"
     ]
   },
   "hooks": {
