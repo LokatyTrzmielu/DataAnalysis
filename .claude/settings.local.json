@@ -4,25 +4,52 @@
       "Bash(mkdir:*)",
       "Bash(python:*)",
       "Bash(pip install:*)",
-      "Bash(git:*)",
-      "Bash(streamlit:*)",
-      "Bash(dir:*)",
-      "Bash(uv run:*)",
-      "Bash(npx:*)",
+      "Bash(where:*)",
+      "Bash(C:Python314python.exe -m pip install fastexcel)",
+      "Bash(streamlit --version:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
       "mcp__ide__getDiagnostics",
-      "mcp__ide__executeCode",
-      "Skill(frontend-design:frontend-design)",
-      "Bash(timeout:*)",
-      "Bash(powershell -c \"Start-Sleep -Seconds 5; Get-Content ''C:\\\\Users\\\\roszc\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--VS-DataAnalysis\\\\tasks\\\\b8b0996.output''\")",
-      "mcp__plugin_playwright_playwright__browser_navigate",
-      "mcp__plugin_playwright_playwright__browser_wait_for",
-      "mcp__plugin_playwright_playwright__browser_click",
-      "mcp__plugin_playwright_playwright__browser_snapshot",
-      "WebSearch",
-      "Bash(pip index:*)",
-      "Bash(pip show:*)",
+      "Bash(dir:*)",
+      "Bash(git show:*)",
+      "Bash(cd:*)",
+      "Bash(streamlit run:*)",
+      "Bash(wc -l \"D:\\\\VS\\\\DataAnalysis\\\\src\"/**/*.py)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" status)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" diff)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline -5)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" add:*)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" commit -m \"$\\(cat <<''EOF''\nFix incorrect test expectation for volume_m3 in capacity analysis\n\nThe test was expecting volume_m3 to be the total volume of units fitting\nin a carrier \\(0.02 m³\\), but volume_m3 actually stores the unit volume\n\\(0.0005 m³\\). Updated test to check the correct expected value.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline -3)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" push)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline --since=\"2026-01-07 00:00:00\" --until=\"2026-01-07 23:59:59\")",
+      "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline --since=\"2026-01-07 00:00:00\" --format=\"%h %s\")",
+      "Bash(git -C \"D:/VS/DataAnalysis\" show a9ea8af --stat --oneline)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" show 7dbd720 --stat --oneline)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline --all)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" show e556837 --stat --oneline)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" show be6320d --stat --oneline)",
+      "Bash(git -C \"D:/VS/DataAnalysis\" log --oneline --name-status --since=\"2026-01-07 00:00:00\")",
       "Bash(findstr:*)",
-      "WebFetch(domain:github.com)"
+      "Bash(if not exist \"D:\\\\VS\\\\DataAnalysis\\\\src\\\\ui\\\\views\" mkdir \"D:\\\\VS\\\\DataAnalysis\\\\src\\\\ui\\\\views\")",
+      "Bash(git check-ignore:*)",
+      "Bash(uv run ruff check:*)",
+      "mcp__ide__executeCode",
+      "Skill(frontend-design:frontend-design)"
+    ]
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "say 'Claude Code'"
+          }
+        ]
+      }
     ]
   },
   "outputStyle": "default"
