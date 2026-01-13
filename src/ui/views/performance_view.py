@@ -12,6 +12,7 @@ import streamlit as st
 
 from src.ui.layout import (
     apply_plotly_dark_theme,
+    render_divider,
     render_kpi_section,
 )
 from src.ui.theme import COLORS
@@ -184,17 +185,17 @@ def _render_performance_results() -> None:
     result = st.session_state.performance_result
     kpi = result.kpi
 
-    st.markdown("---")
+    render_divider()
 
     # New KPI section
     _render_performance_kpi()
 
-    st.markdown("---")
+    render_divider()
 
     # New charts section
     _render_performance_charts()
 
-    st.markdown("---")
+    render_divider()
 
     # Detailed statistics section
     st.subheader("Detailed Statistics")

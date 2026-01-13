@@ -35,6 +35,7 @@ from src.ui.views import (
     render_reports_view,
 )
 from src.ui.theme import apply_theme
+from src.ui.layout import render_divider
 
 # Navigation constants
 SECTIONS = {
@@ -127,7 +128,7 @@ def render_sidebar() -> None:
     """Render sidebar with navigation."""
     with st.sidebar:
         st.title("DataAnalysis")
-        st.markdown("---")
+        render_divider()
 
         # Section navigation
         st.markdown("### Navigation")
@@ -147,7 +148,7 @@ def render_sidebar() -> None:
         )
         st.session_state.active_section = SECTIONS[selected]
 
-        st.markdown("---")
+        render_divider()
 
         # Status badges (always visible)
         st.markdown("### Status")
@@ -333,7 +334,7 @@ def _render_capacity_validation() -> None:
                     min_value=0.1, step=10.0, key="cv_ol_wgt_max"
                 )
 
-    st.markdown("---")
+    render_divider()
 
     # Use existing validation view
     render_validation_view()
@@ -386,7 +387,7 @@ def _render_performance_validation() -> None:
             # Placeholder for future settings
             st.markdown("*Additional settings can be added here*")
 
-    st.markdown("---")
+    render_divider()
 
     # Use existing validation view
     render_validation_view()

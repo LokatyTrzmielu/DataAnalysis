@@ -8,6 +8,7 @@ from pathlib import Path
 import streamlit as st
 
 from src.ui.layout import (
+    render_divider,
     render_kpi_section,
     render_section_header,
     render_status_badge,
@@ -120,17 +121,17 @@ def render_reports_view() -> None:
     # KPI Section - Report availability summary
     _render_reports_kpi(has_quality, has_capacity, has_performance)
 
-    st.markdown("---")
+    render_divider()
 
     # Report categories section
     _render_report_categories(has_quality, has_capacity, has_performance)
 
-    st.markdown("---")
+    render_divider()
 
     # Bulk download section
     _render_bulk_download()
 
-    st.markdown("---")
+    render_divider()
 
     # Preview section
     _render_data_preview(has_quality, has_capacity, has_performance)
@@ -420,7 +421,7 @@ def _render_quality_preview() -> None:
                 unsafe_allow_html=True,
             )
 
-        st.markdown("---")
+        render_divider()
         st.markdown("**Data coverage after imputation:**")
         col1, col2 = st.columns(2)
         with col1:
@@ -448,7 +449,7 @@ def _render_capacity_preview() -> None:
             unsafe_allow_html=True,
         )
 
-        st.markdown("---")
+        render_divider()
         st.markdown("**Results per carrier:**")
 
         for carrier_id in cr.carriers_analyzed:

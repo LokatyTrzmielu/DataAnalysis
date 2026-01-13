@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.ui.layout import render_divider
+
 
 def render_validation_view() -> None:
     """Render the Validation tab content."""
@@ -89,7 +91,7 @@ def _render_validation_results() -> None:
     with col4:
         st.metric("Imputed", result.imputed_records)
 
-    st.markdown("---")
+    render_divider()
 
     # Coverage
     st.subheader("Data coverage")

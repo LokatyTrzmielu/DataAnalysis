@@ -10,6 +10,7 @@ import streamlit as st
 from src.core.types import CarrierConfig
 from src.ui.layout import (
     apply_plotly_dark_theme,
+    render_divider,
     render_kpi_section,
 )
 from src.ui.theme import COLORS
@@ -233,7 +234,7 @@ def render_capacity_view() -> None:
             service.save_custom_carriers(custom_list)
             st.success(f"Saved {len(custom_list)} carrier(s)")
 
-    st.markdown("---")
+    render_divider()
 
     # Carrier addition form
     with st.expander("Add carrier", expanded=len(st.session_state.custom_carriers) == 0):
@@ -246,7 +247,7 @@ def render_capacity_view() -> None:
         st.warning("Add at least one carrier for analysis")
 
     # Analysis mode selection
-    st.markdown("---")
+    render_divider()
     analysis_mode = st.radio(
         "Analysis mode",
         options=["Independent (all carriers)", "Prioritized (smallest first)"],
@@ -618,22 +619,22 @@ def _render_capacity_results() -> None:
     result = st.session_state.capacity_result
     is_prioritized = st.session_state.get("capacity_prioritization_mode", False)
 
-    st.markdown("---")
+    render_divider()
 
     # === NEW: KPI Section ===
     _render_capacity_kpi()
 
-    st.markdown("---")
+    render_divider()
 
     # === NEW: Charts Section ===
     _render_capacity_charts()
 
-    st.markdown("---")
+    render_divider()
 
     # === NEW: Results Table ===
     _render_capacity_table()
 
-    st.markdown("---")
+    render_divider()
 
     # Show analysis mode info
     st.subheader("Carrier Details")
