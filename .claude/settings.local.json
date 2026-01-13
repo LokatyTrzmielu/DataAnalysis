@@ -11,7 +11,18 @@
       "Bash(npx:*)",
       "mcp__ide__getDiagnostics",
       "mcp__ide__executeCode",
-      "Skill(frontend-design:frontend-design)"
+      "Skill(frontend-design:frontend-design)",
+      "Bash(timeout:*)",
+      "Bash(powershell -c \"Start-Sleep -Seconds 5; Get-Content ''C:\\\\Users\\\\roszc\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--VS-DataAnalysis\\\\tasks\\\\b8b0996.output''\")",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_wait_for",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "WebSearch",
+      "Bash(pip index:*)",
+      "Bash(pip show:*)",
+      "Bash(findstr:*)",
+      "WebFetch(domain:github.com)"
     ]
   },
   "outputStyle": "default"
