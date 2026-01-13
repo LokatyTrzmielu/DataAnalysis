@@ -104,11 +104,15 @@ def render_section(
         yield
 
 
+# DEPRECATED - use render_status_button() instead (7-type system)
 def render_status_badge(
     text: str,
     status: Literal["success", "warning", "error", "info"],
 ) -> None:
     """Render a status badge with appropriate color.
+
+    DEPRECATED: Use render_status_button() with 7-type status system instead.
+    This function uses legacy 4-type status system (success/warning/error/info).
 
     Args:
         text: Badge text
@@ -120,8 +124,12 @@ def render_status_badge(
     )
 
 
+# DEPRECATED - use render_status_buttons_inline() instead (7-type system)
 def render_status_badges_inline(badges: list[tuple[str, str]]) -> None:
     """Render multiple status badges inline.
+
+    DEPRECATED: Use render_status_buttons_inline() with 7-type status system instead.
+    This function uses legacy 4-type status system (success/warning/error/info).
 
     Args:
         badges: List of (text, status) tuples
@@ -491,3 +499,58 @@ def render_navigation_buttons(
                     on_next()
 
     return back_clicked, next_clicked
+
+
+# ===== ETAP 3: Nowe komponenty =====
+
+
+def render_bold_label(
+    text: str,
+    icon: str | None = None,
+    size: Literal["small", "medium", "large"] = "medium",
+) -> None:
+    """Render a styled bold label with optional icon.
+
+    Use this instead of st.markdown("**text**") for consistent styling.
+
+    Args:
+        text: Label text to display
+        icon: Optional emoji icon (displayed before text)
+        size: Text size (small=0.9rem, medium=1rem, large=1.1rem)
+    """
+    sizes = {"small": "0.9rem", "medium": "1rem", "large": "1.1rem"}
+    icon_html = f'<span style="margin-right: 0.4rem;">{icon}</span>' if icon else ""
+    st.markdown(
+        f'<p style="font-weight: 600; font-size: {sizes[size]}; color: {COLORS["text"]}; '
+        f'margin: 0.5rem 0;">{icon_html}{text}</p>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_data_table(
+    df,
+    height: int = 400,
+    title: str | None = None,
+    hide_index: bool = True,
+) -> None:
+    """Render a styled dataframe table with consistent settings.
+
+    Args:
+        df: Polars or Pandas DataFrame to display
+        height: Table height in pixels (default 400)
+        title: Optional title displayed above the table
+        hide_index: Whether to hide the row index (default True)
+    """
+    if title:
+        st.markdown(
+            f'<p style="font-weight: 600; font-size: 1rem; color: {COLORS["text"]}; '
+            f'margin-bottom: 0.5rem;">{title}</p>',
+            unsafe_allow_html=True,
+        )
+
+    st.dataframe(
+        df,
+        height=height,
+        hide_index=hide_index,
+        use_container_width=True,
+    )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.ui.layout import render_divider, render_section_header
+from src.ui.layout import render_bold_label, render_divider, render_section_header
 
 
 def render_validation_view() -> None:

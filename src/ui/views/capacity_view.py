@@ -10,6 +10,7 @@ import streamlit as st
 from src.core.types import CarrierConfig
 from src.ui.layout import (
     apply_plotly_dark_theme,
+    render_bold_label,
     render_divider,
     render_kpi_section,
     render_section_header,
@@ -21,10 +22,10 @@ from src.ui.theme import COLORS
 
 def render_carrier_form() -> None:
     """Form for adding a new carrier."""
-    st.markdown("**Add new carrier:**")
+    render_bold_label("Add new carrier:", "➕")
 
     with st.form("add_carrier_form", clear_on_submit=True):
-        st.markdown("**Internal dimensions (mm):**")
+        render_bold_label("Internal dimensions (mm):", "📐")
         col_w, col_l, col_h = st.columns(3)
         with col_w:
             width_mm = st.number_input(
@@ -141,20 +142,20 @@ def render_carriers_table() -> None:
         st.info("No carriers defined. Add carriers below.")
         return
 
-    st.markdown("**Defined carriers:**")
+    render_bold_label("Defined carriers:", "📦")
 
     # Header row
     header_cols = st.columns([1, 3, 3, 2, 1, 1])
     with header_cols[0]:
-        st.markdown("**Active**")
+        render_bold_label("Active", size="small")
     with header_cols[1]:
-        st.markdown("**Carrier**")
+        render_bold_label("Carrier", size="small")
     with header_cols[2]:
-        st.markdown("**Dimensions (L×W×H)**")
+        render_bold_label("Dimensions (L×W×H)", size="small")
     with header_cols[3]:
-        st.markdown("**Max weight**")
+        render_bold_label("Max weight", size="small")
     with header_cols[4]:
-        st.markdown("**Type**")
+        render_bold_label("Type", size="small")
     with header_cols[5]:
         st.markdown("")
 

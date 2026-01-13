@@ -4,13 +4,13 @@ port = 8501
 
 [theme]
 primaryColor = "#b7622c"              # burnt-caramel akcent
-backgroundColor = "#20100e"           # coffee-bean tło
-secondaryBackgroundColor = "#323232"  # graphite tło paneli
+backgroundColor = "#323232"           # graphite tło
+secondaryBackgroundColor = "#20100e"  # coffee-bean tło paneli
 textColor = "#F5F0E8"                 # ciepła biel
 font = "sans serif"
 
 [theme.sidebar]
-backgroundColor = "#323232"           # graphite (surface)
-secondaryBackgroundColor = "#20100e"  # coffee-bean (swap dla kontrastu)
+backgroundColor = "#20100e"           # coffee-bean (surface)
+secondaryBackgroundColor = "#323232"  # graphite (swap dla kontrastu)
 primaryColor = "#b7622c"              # burnt-caramel
 textColor = "#F5F0E8"                 # ciepła biel
