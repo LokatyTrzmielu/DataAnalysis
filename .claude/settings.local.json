@@ -45,18 +45,5 @@
       "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\roszc\\\\.claude\\\\settings.json''\")"
     ]
   },
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "say 'Claude Code'"
-          }
-        ]
-      }
-    ]
-  },
   "outputStyle": "default"
 }
