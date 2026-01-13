@@ -92,7 +92,7 @@ def render_performance_view() -> None:
             except Exception as e:
                 st.error(f"Schedule loading error: {e}")
 
-    if st.button("Run performance analysis"):
+    if st.button("Run performance analysis", type="primary"):
         with st.spinner("Analysis in progress..."):
             try:
                 from src.analytics import PerformanceAnalyzer

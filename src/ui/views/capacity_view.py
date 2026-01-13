@@ -12,6 +12,8 @@ from src.ui.layout import (
     apply_plotly_dark_theme,
     render_divider,
     render_kpi_section,
+    render_spacer,
+    render_status_button,
 )
 from src.ui.theme import COLORS
 
@@ -183,9 +185,9 @@ def render_carriers_table() -> None:
             st.text(f"{carrier['max_weight_kg']:.1f} kg")
         with cols[4]:
             if is_predefined:
-                st.markdown(":blue[Predef.]")
+                render_status_button("Predef.", "in_progress", show_icon=False)
             else:
-                st.markdown(":green[Custom]")
+                render_status_button("Custom", "success", show_icon=False)
         with cols[5]:
             if is_predefined:
                 # Cannot delete predefined carriers
@@ -290,7 +292,7 @@ def render_capacity_view() -> None:
         else:
             st.caption("Borderline filters will be available after running analysis")
 
-    if st.button("Run capacity analysis", disabled=not carriers_defined):
+    if st.button("Run capacity analysis", disabled=not carriers_defined, type="primary"):
         with st.spinner("Analysis in progress..."):
             try:
                 from src.analytics import CapacityAnalyzer
@@ -395,7 +397,7 @@ def _render_capacity_kpi() -> None:
     ]
 
     render_kpi_section(metrics)
-    st.markdown("")  # Spacer
+    render_spacer()
 
 
 def _render_dimensions_histogram() -> None:
@@ -600,8 +602,8 @@ def _render_capacity_table() -> None:
 
     # Export button
     with col_export:
-        st.markdown("")  # Align with selectbox
-        st.markdown("")  # Additional spacing
+        render_spacer(20)  # Align with selectbox
+        render_spacer(10)  # Additional spacing
         csv_data = filtered_df.write_csv()
         st.download_button(
             label="📥 Export CSV",

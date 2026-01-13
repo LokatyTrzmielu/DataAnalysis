@@ -15,7 +15,7 @@ def render_validation_view() -> None:
         st.info("First import Masterdata in the Import tab")
         return
 
-    if st.button("Run validation", key="run_validation"):
+    if st.button("Run validation", key="run_validation", type="primary"):
         with st.spinner("Validation in progress..."):
             try:
                 from src.quality import run_quality_pipeline

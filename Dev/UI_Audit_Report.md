@@ -257,9 +257,9 @@ else:
 
 ### Priorytet 1: Quick Wins (5-10 minut każdy)
 1. ✅ **ZREALIZOWANE (2026-01-13)** Zamień `st.markdown("---")` na `render_divider()` (19 miejsc - 4 w app.py, 6 w capacity_view.py, 3 w performance_view.py, 1 w validation_view.py, 5 w reports_view.py)
-2. ✅ Zamień `st.markdown("")` na `render_spacer()` (3 miejsca)
-3. ✅ Dodaj `type="primary"` do 3 przycisków akcji
-4. ✅ Napraw inline colors w capacity_view.py:184-187
+2. ✅ **ZREALIZOWANE (2026-01-13)** Zamień `st.markdown("")` na `render_spacer()` (3 miejsca w capacity_view.py)
+3. ✅ **ZREALIZOWANE (2026-01-13)** Dodaj `type="primary"` do 3 przycisków akcji (validation_view.py, capacity_view.py, performance_view.py)
+4. ✅ **ZREALIZOWANE (2026-01-13)** Napraw inline colors w capacity_view.py:184-187 → render_status_button()
 
 ### Priorytet 2: Standaryzacja komponentów (30-60 minut)
 1. Zamień `st.subheader()` na `render_section_header()` z ikonami
@@ -287,11 +287,11 @@ else:
 
 ### capacity_view.py
 - [ ] L20, L23, L140, L145-155: Zamień `st.markdown("**...**")` na styled component
-- [ ] L184-187: Zamień `:blue[Predef.]`/`:green[Custom]` na `render_status_button()`
+- [x] L184-187: Zamień `:blue[Predef.]`/`:green[Custom]` na `render_status_button()` ✅ DONE (2026-01-13)
 - [x] L236, L249, L621, L626, L631, L636: `st.markdown("---")` → `render_divider()` ✅ DONE
-- [ ] L292: Dodaj `type="primary"` do przycisku
+- [x] L292: Dodaj `type="primary"` do przycisku ✅ DONE (2026-01-13)
 - [ ] L371, L528, L546, L639: `st.subheader()` → `render_section_header()`
-- [ ] L397, L601-603: `st.markdown("")` → `render_spacer()`
+- [x] L397, L601-603: `st.markdown("")` → `render_spacer()` ✅ DONE (2026-01-13)
 - [ ] L670, L714, L734: Zmień `col_a, col_b, col_c` na `col1, col2, col3`
 
 ### import_view.py
@@ -299,7 +299,7 @@ else:
 - [ ] L220, L237, L306, L401, L474, L551: Dodaj ikony do expanderów
 
 ### validation_view.py
-- [ ] L16: Dodaj `type="primary"` do przycisku "Run validation"
+- [x] L16: Dodaj `type="primary"` do przycisku "Run validation" ✅ DONE (2026-01-13)
 - [ ] L86-90: Dodaj help text do metryk
 - [x] L92: `st.markdown("---")` → `render_divider()` ✅ DONE
 - [ ] L95, L113: `st.subheader()` → `render_section_header()`
@@ -307,7 +307,7 @@ else:
 
 ### performance_view.py
 - [ ] L29, L41: Zamień `st.markdown("**...**")` na styled component
-- [ ] L94: Dodaj `type="primary"` do przycisku
+- [x] L94: Dodaj `type="primary"` do przycisku ✅ DONE (2026-01-13)
 - [x] L187, L192, L197: `st.markdown("---")` → `render_divider()` ✅ DONE
 - [ ] L200, L228, L392: `st.subheader()` → `render_section_header()`
 - [ ] L204-210: Dodaj help text do metryk
