@@ -36,7 +36,13 @@
       "Bash(git check-ignore:*)",
       "Bash(uv run ruff check:*)",
       "mcp__ide__executeCode",
-      "Skill(frontend-design:frontend-design)"
+      "Skill(frontend-design:frontend-design)",
+      "Bash(claude mcp add playwright npx @playwright/mcp@latest)",
+      "Bash(cmd /c \"claude mcp add playwright npx @playwright/mcp@latest\")",
+      "Bash(cmd /c \"claude mcp list\")",
+      "Bash(powershell -Command \"$content = @''\n{\n  \"\"permissions\"\": {\n    \"\"allow\"\": [\n      \"\"Bash\\(mkdir:*\\)\"\",\n      \"\"Bash\\(python:*\\)\"\",\n      \"\"Bash\\(pip install:*\\)\"\",\n      \"\"Bash\\(where:*\\)\"\",\n      \"\"Bash\\(C:Python314python.exe -m pip install fastexcel\\)\"\",\n      \"\"Bash\\(streamlit --version:*\\)\"\",\n      \"\"Bash\\(git add:*\\)\"\",\n      \"\"Bash\\(git commit:*\\)\"\",\n      \"\"Bash\\(git push\\)\"\",\n      \"\"mcp__ide__getDiagnostics\"\",\n      \"\"Bash\\(dir:*\\)\"\",\n      \"\"Bash\\(git show:*\\)\"\",\n      \"\"Bash\\(cd:*\\)\"\",\n      \"\"Bash\\(streamlit run:*\\)\"\"\n    ],\n    \"\"defaultMode\"\": \"\"default\"\"\n  },\n  \"\"enabledPlugins\"\": {\n    \"\"frontend-design@claude-plugins-official\"\": true,\n    \"\"playwright@claude-plugins-official\"\": true\n  }\n}\n''@; $content | Out-File -FilePath ''C:\\\\Users\\\\roszc\\\\.claude\\\\settings.json'' -Encoding utf8\")",
+      "Bash(powershell -Command \"Set-Content -Path ''C:\\\\Users\\\\roszc\\\\.claude\\\\settings.json'' -Value ''{\"\"permissions\"\":{\"\"allow\"\":[\"\"Bash\\(mkdir:*\\)\"\",\"\"Bash\\(python:*\\)\"\",\"\"Bash\\(pip install:*\\)\"\",\"\"Bash\\(where:*\\)\"\",\"\"Bash\\(C:Python314python.exe -m pip install fastexcel\\)\"\",\"\"Bash\\(streamlit --version:*\\)\"\",\"\"Bash\\(git add:*\\)\"\",\"\"Bash\\(git commit:*\\)\"\",\"\"Bash\\(git push\\)\"\",\"\"mcp__ide__getDiagnostics\"\",\"\"Bash\\(dir:*\\)\"\",\"\"Bash\\(git show:*\\)\"\",\"\"Bash\\(cd:*\\)\"\",\"\"Bash\\(streamlit run:*\\)\"\"],\"\"defaultMode\"\":\"\"default\"\"},\"\"enabledPlugins\"\":{\"\"frontend-design@claude-plugins-official\"\":true,\"\"playwright@claude-plugins-official\"\":true}}''\")",
+      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\roszc\\\\.claude\\\\settings.json''\")"
     ]
   },
   "hooks": {
