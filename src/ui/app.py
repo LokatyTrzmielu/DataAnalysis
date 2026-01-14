@@ -153,15 +153,15 @@ def render_sidebar() -> None:
         # Status badges (always visible)
         st.markdown("### Status")
         if st.session_state.masterdata_df is not None:
-            st.success(f"Masterdata: {len(st.session_state.masterdata_df)} SKU")
+            st.markdown(f"✅ Masterdata: {len(st.session_state.masterdata_df)} SKU")
         else:
-            st.info("Masterdata: Not loaded")
+            st.markdown("ℹ️ Masterdata: Not loaded")
         if st.session_state.orders_df is not None:
-            st.success(f"Orders: {len(st.session_state.orders_df)} lines")
+            st.markdown(f"✅ Orders: {len(st.session_state.orders_df)} lines")
         else:
-            st.info("Orders: Not loaded")
+            st.markdown("ℹ️ Orders: Not loaded")
         if st.session_state.analysis_complete:
-            st.success("Analysis complete")
+            st.markdown("✅ Analysis complete")
 
 
 def render_main_content() -> None:
