@@ -5,6 +5,7 @@ COLORS = {
     # === TŁA ===
     "background": "#20100e",      # coffee-bean
     "surface": "#323232",         # graphite
+    "surface_elevated": "#424242", # elevated surface - dla kart na szarym tle
     "surface_light": "#5f605b",   # dim-grey
 
     # === AKCENTY ===
@@ -55,12 +56,12 @@ def get_custom_css() -> str:
     <style>
     /* Główne tło i tekst */
     .stApp {{
-        background-color: {COLORS["background"]};
+        background-color: {COLORS["surface"]};
     }}
 
     /* Karty KPI */
     .kpi-card {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
         padding: 1rem 1.25rem;
         border: 1px solid {COLORS["border"]};
@@ -208,21 +209,21 @@ def get_custom_css() -> str:
 
     /* Stylizacja tabel */
     .stDataFrame {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
     }}
 
     .stDataFrame [data-testid="stDataFrameResizable"] {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
     }}
 
     /* Expanders */
     .streamlit-expanderHeader {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
     }}
 
     .streamlit-expanderContent {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border-radius: 0 0 8px 8px;
     }}
 
@@ -242,13 +243,13 @@ def get_custom_css() -> str:
 
     /* Sidebar styling */
     [data-testid="stSidebar"] {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["background"]};
         border-right: 1px solid {COLORS["border"]};
     }}
 
     /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
         padding: 0.25rem;
         gap: 0.5rem;
@@ -268,19 +269,19 @@ def get_custom_css() -> str:
 
     /* File uploader */
     [data-testid="stFileUploader"] {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
         border: 1px dashed {COLORS["border"]};
     }}
 
     /* Selectbox */
     .stSelectbox [data-baseweb="select"] {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
     }}
 
     /* Number input */
     .stNumberInput input {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         color: {COLORS["text"]};
     }}
 
@@ -300,7 +301,7 @@ def get_custom_css() -> str:
 
     /* Container cards */
     .card-container {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
         padding: 1.5rem;
         border: 1px solid {COLORS["border"]};
@@ -309,7 +310,7 @@ def get_custom_css() -> str:
 
     /* Chart containers */
     .chart-container {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
         padding: 1rem;
         border: 1px solid {COLORS["border"]};
@@ -363,7 +364,7 @@ def get_custom_css() -> str:
 
     /* Table container styling */
     .table-container {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
         padding: 1rem;
         border: 1px solid {COLORS["border"]};
@@ -500,7 +501,7 @@ def get_custom_css() -> str:
 
     /* Toast/notification styling */
     .stAlert {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
     }}
 
@@ -542,7 +543,7 @@ def get_custom_css() -> str:
 
     /* Report card */
     .report-card {{
-        background-color: {COLORS["surface"]};
+        background-color: {COLORS["surface_elevated"]};
         border: 1px solid {COLORS["border"]};
         border-radius: 8px;
         padding: 0.75rem 1rem;
