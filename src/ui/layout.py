@@ -43,10 +43,7 @@ def render_kpi_card(
     </div>
     """
 
-    if help_text:
-        st.markdown(card_html, unsafe_allow_html=True, help=help_text)
-    else:
-        st.markdown(card_html, unsafe_allow_html=True)
+    st.markdown(card_html, unsafe_allow_html=True)
 
 
 def render_kpi_section(metrics: list[dict]) -> None:
