@@ -26,6 +26,7 @@
 | 13 | Modernizacja UI | dark theme, komponenty, Plotly | ✅ |
 | 14 | Poprawki bugów | timestamp conversion, null handling | ✅ |
 | 15 | UI Audit Priority 3 | render_bold_label, render_data_table, DEPRECATED | ✅ |
+| 16 | UI Fixes - Sidebar & Titles | nawigacja, statusy, tytuły sekcji | ✅ |
 
 ---
 
@@ -54,6 +55,25 @@
 | `InvalidOperationError` na `.dt.weekday()` | Defensywna konwersja timestamp | `performance.py:123-136` |
 | `NoneType - int` w heatmapie | Filtr null timestamps | `performance_view.py:324` |
 | `use_container_width` deprecated | Zamiana na `width="stretch"` | 6 plików UI |
+
+---
+
+## UI Fixes - Sidebar & Titles (Faza 16) - ZAKOŃCZONA
+
+**Zmiany:**
+
+| Zmiana | Plik | Szczegóły |
+|--------|------|-----------|
+| Aktywna zakładka nawigacji | theme.py | Dodano obramowanie 2px accent (#b7622c) dla wybranego elementu |
+| Usunięcie border ze statusów | theme.py | Dodano selektory dla .stAlertContainer z border: none |
+| Nazwa aplikacji | app.py:130 | "DataAnalysis" → "Data Analysis" |
+| Tytuł Capacity | app.py:220 | Dodano st.header("Capacity") |
+| Tytuł Performance | app.py:348 | Dodano st.header("Performance") |
+
+**CSS Selektory dla nawigacji:**
+- `label:has(input:checked)` - nowoczesny CSS
+- `label[aria-checked="true"]` - fallback ARIA
+- `label[data-checked="true"]` - fallback legacy
 
 ---
 

@@ -713,6 +713,24 @@ def get_custom_css() -> str:
         border-left: none !important;
         box-shadow: none !important;
     }}
+
+    /* Precyzyjny selektor dla stAlertContainer */
+    [data-testid="stSidebar"] .stAlertContainer {{
+        border: none !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-top: none !important;
+        border-bottom: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }}
+
+    [data-testid="stSidebar"] [data-testid="stAlertContainer"] {{
+        border: none !important;
+        border-left: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }}
     </style>
     """
 
