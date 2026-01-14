@@ -127,7 +127,7 @@ def init_session_state() -> None:
 def render_sidebar() -> None:
     """Render sidebar with navigation."""
     with st.sidebar:
-        st.title("DataAnalysis")
+        st.title("Data Analysis")
         render_divider()
 
         # Section navigation
@@ -217,6 +217,7 @@ def _render_dashboard() -> None:
 
 def _render_capacity_section() -> None:
     """Render Capacity section with sub-tabs."""
+    st.header("Capacity")
     tabs = st.tabs(["Import", "Validation", "Analysis"])
 
     with tabs[0]:
@@ -344,6 +345,7 @@ def _render_capacity_validation() -> None:
 
 def _render_performance_section() -> None:
     """Render Performance section with sub-tabs."""
+    st.header("Performance")
     tabs = st.tabs(["Import", "Validation", "Analysis"])
 
     with tabs[0]:

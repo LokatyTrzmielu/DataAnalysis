@@ -631,10 +631,10 @@ def get_custom_css() -> str:
         font-weight: 600 !important;
     }}
 
-    /* Selected state - dim-grey rectangle with espresso border */
+    /* Selected state - dim-grey rectangle with accent border */
     [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] {{
         background-color: {COLORS["surface_light"]} !important;
-        border: 1px solid {COLORS["border"]} !important;
+        border: 2px solid {COLORS["accent"]} !important;
     }}
 
     [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] > div:last-child {{
@@ -661,6 +661,7 @@ def get_custom_css() -> str:
         border-radius: 6px !important;
         padding: 0.5rem 0.75rem !important;
         margin: 0.25rem 0 !important;
+        border: none !important;
     }}
 
     [data-testid="stSidebar"] .stAlert p {{
