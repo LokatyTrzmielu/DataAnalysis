@@ -632,6 +632,29 @@ def get_custom_css() -> str:
     }}
 
     /* Selected state - dim-grey rectangle with accent border */
+    /* Modern CSS :has() selector for checked radio */
+    [data-testid="stSidebar"] .stRadio > div > label:has(input:checked) {{
+        background-color: {COLORS["surface_light"]} !important;
+        border: 2px solid {COLORS["accent"]} !important;
+    }}
+
+    [data-testid="stSidebar"] .stRadio > div > label:has(input:checked) > div:last-child {{
+        color: {COLORS["text"]} !important;
+        font-weight: 600 !important;
+    }}
+
+    /* Fallback: aria-checked attribute */
+    [data-testid="stSidebar"] .stRadio > div > label[aria-checked="true"] {{
+        background-color: {COLORS["surface_light"]} !important;
+        border: 2px solid {COLORS["accent"]} !important;
+    }}
+
+    [data-testid="stSidebar"] .stRadio > div > label[aria-checked="true"] > div:last-child {{
+        color: {COLORS["text"]} !important;
+        font-weight: 600 !important;
+    }}
+
+    /* Fallback: data-checked attribute */
     [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] {{
         background-color: {COLORS["surface_light"]} !important;
         border: 2px solid {COLORS["accent"]} !important;
@@ -655,18 +678,40 @@ def get_custom_css() -> str:
         font-size: 0.9rem !important;
     }}
 
-    /* Alerty (st.success, st.info) w sidebarze */
+    /* Alerty (st.success, st.info) w sidebarze - usunięcie obramowania */
     [data-testid="stSidebar"] .stAlert {{
         background-color: {COLORS["background"]} !important;
         border-radius: 6px !important;
         padding: 0.5rem 0.75rem !important;
         margin: 0.25rem 0 !important;
         border: none !important;
+        border-left: none !important;
+        box-shadow: none !important;
+    }}
+
+    [data-testid="stSidebar"] .stAlert > div {{
+        border: none !important;
+        border-left: none !important;
     }}
 
     [data-testid="stSidebar"] .stAlert p {{
         color: {COLORS["text"]} !important;
         font-size: 0.85rem !important;
+    }}
+
+    /* Alternatywne selektory dla alertów */
+    [data-testid="stSidebar"] [data-testid="stAlert"] {{
+        background-color: {COLORS["background"]} !important;
+        border: none !important;
+        border-left: none !important;
+        box-shadow: none !important;
+    }}
+
+    [data-testid="stSidebar"] .element-container .stAlert,
+    [data-testid="stSidebar"] [data-baseweb="notification"] {{
+        border: none !important;
+        border-left: none !important;
+        box-shadow: none !important;
     }}
     </style>
     """

@@ -41,7 +41,8 @@
       "WebSearch",
       "WebFetch(domain:docs.streamlit.io)",
       "WebFetch(domain:github.com)",
-      "Bash(streamlit cache:*)"
+      "Bash(streamlit cache:*)",
+      "WebFetch(domain:discuss.streamlit.io)"
     ]
   },
   "outputStyle": "default"
