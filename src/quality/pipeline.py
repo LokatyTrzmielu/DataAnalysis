@@ -9,6 +9,7 @@ from src.quality.validators import MasterdataValidator, ValidationResult
 from src.quality.dq_metrics import DataQualityCalculator, DataQualityMetrics
 from src.quality.dq_lists import DQListBuilder, DQLists
 from src.quality.impute import Imputer, ImputationResult, ImputationMethod
+from src.core.types import CarrierConfig
 
 
 @dataclass
@@ -49,6 +50,7 @@ class QualityPipeline:
         treat_negative_as_missing: bool = True,
         enable_outlier_validation: bool = True,
         outlier_thresholds: dict | None = None,
+        carriers: list[CarrierConfig] | None = None,
     ) -> None:
         """Initialize pipeline.
 
@@ -59,9 +61,12 @@ class QualityPipeline:
             treat_negative_as_missing: Whether to treat negative as missing
             enable_outlier_validation: Whether to validate outliers
             outlier_thresholds: Custom outlier thresholds dict
+            carriers: List of carrier configurations for rotation-aware
+                dimensional outlier detection
         """
         self.enable_imputation = enable_imputation
         self.imputation_method = imputation_method
+        self.carriers = carriers
 
         self.validator = MasterdataValidator(
             treat_zero_as_missing_dimensions=treat_zero_as_missing,
@@ -69,6 +74,7 @@ class QualityPipeline:
             treat_negative_as_missing=treat_negative_as_missing,
             enable_outlier_validation=enable_outlier_validation,
             outlier_thresholds=outlier_thresholds,
+            carriers=carriers,
         )
         self.metrics_calculator = DataQualityCalculator(
             treat_zero_as_missing=treat_zero_as_missing,
@@ -84,6 +90,7 @@ class QualityPipeline:
         self.dq_list_builder = DQListBuilder(
             outlier_thresholds=dq_outlier_thresholds,
             enable_outlier_detection=enable_outlier_validation,
+            carriers=carriers,
         )
         self.imputer = Imputer(
             method=imputation_method,

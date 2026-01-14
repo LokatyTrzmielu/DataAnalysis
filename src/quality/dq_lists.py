@@ -6,6 +6,8 @@ from typing import Optional
 import polars as pl
 
 from src.core.config import BORDERLINE_THRESHOLD_MM, OUTLIER_THRESHOLDS
+from src.core.types import CarrierConfig
+from src.core.dimension_checker import DimensionChecker
 
 
 @dataclass
@@ -49,10 +51,20 @@ class DQListBuilder:
         borderline_threshold_mm: float = BORDERLINE_THRESHOLD_MM,
         outlier_thresholds: dict | None = None,
         enable_outlier_detection: bool = True,
+        carriers: list[CarrierConfig] | None = None,
     ) -> None:
-        """Initialize builder."""
+        """Initialize builder.
+
+        Args:
+            borderline_threshold_mm: Threshold for borderline detection
+            outlier_thresholds: Custom outlier thresholds
+            enable_outlier_detection: Whether to detect outliers
+            carriers: List of carrier configurations for rotation-aware
+                dimensional outlier detection
+        """
         self.borderline_threshold_mm = borderline_threshold_mm
         self.enable_outlier_detection = enable_outlier_detection
+        self.carriers = carriers
         # Use unified thresholds from config, converting min/max to low/high format
         if outlier_thresholds:
             self.outlier_thresholds = outlier_thresholds
@@ -113,38 +125,126 @@ class DQListBuilder:
         return items
 
     def _find_suspect_outliers(self, df: pl.DataFrame) -> list[DQListItem]:
-        """Find SKUs with suspicious values (outliers)."""
+        """Find SKUs with suspicious values (outliers).
+
+        For dimensional fields, uses rotation-aware checking if carriers are
+        configured - an item is only a suspect outlier if it cannot fit in
+        ANY active carrier with ANY rotation.
+
+        For non-dimensional fields (weight_kg), uses static thresholds.
+        """
         items: list[DQListItem] = []
 
         if not self.enable_outlier_detection:
             return items
 
-        for field, thresholds in self.outlier_thresholds.items():
-            if field not in df.columns:
+        dimension_fields = ["length_mm", "width_mm", "height_mm"]
+
+        # If carriers configured, use rotation-aware check for dimensions
+        if self.carriers:
+            items.extend(self._find_dimensional_outliers_with_rotation(df))
+
+            # For non-dimensional fields (weight), use static thresholds
+            for field, thresholds in self.outlier_thresholds.items():
+                if field in dimension_fields or field not in df.columns:
+                    continue
+                items.extend(self._find_static_outliers(df, field, thresholds))
+        else:
+            # Fallback: use static thresholds for all fields
+            for field, thresholds in self.outlier_thresholds.items():
+                if field not in df.columns:
+                    continue
+                items.extend(self._find_static_outliers(df, field, thresholds))
+
+        return items
+
+    def _find_static_outliers(
+        self, df: pl.DataFrame, field: str, thresholds: dict
+    ) -> list[DQListItem]:
+        """Find outliers using static low/high thresholds."""
+        items: list[DQListItem] = []
+
+        low, high = thresholds["low"], thresholds["high"]
+        # Values outside range (but > 0)
+        outlier_mask = (
+            (pl.col(field) > 0) &
+            ((pl.col(field) < low) | (pl.col(field) > high))
+        )
+        outlier_rows = df.filter(outlier_mask).select(["sku", field]).to_dicts()
+
+        items.extend([
+            DQListItem(
+                sku=str(row["sku"]),
+                issue_type="suspect_outlier",
+                field=field,
+                value=str(row[field]),
+                details=(
+                    f"Very small value: {row[field]} < {low}"
+                    if row[field] < low
+                    else f"Very large value: {row[field]} > {high}"
+                ),
+            )
+            for row in outlier_rows
+        ])
+
+        return items
+
+    def _find_dimensional_outliers_with_rotation(
+        self, df: pl.DataFrame
+    ) -> list[DQListItem]:
+        """Find dimensional outliers using rotation-aware carrier fit check.
+
+        An item is a suspect outlier only if it cannot fit in ANY active
+        carrier with ANY of the 6 possible rotations.
+        """
+        items: list[DQListItem] = []
+
+        required_cols = ["sku", "length_mm", "width_mm", "height_mm"]
+        if not all(c in df.columns for c in required_cols):
+            return items
+
+        # Filter rows with valid positive dimensions
+        valid_df = df.filter(
+            (pl.col("length_mm") > 0)
+            & (pl.col("width_mm") > 0)
+            & (pl.col("height_mm") > 0)
+        )
+
+        # Track SKUs that are dimensional outliers
+        checked_skus: set[str] = set()
+
+        for row in valid_df.select(required_cols).to_dicts():
+            sku = str(row["sku"])
+            if sku in checked_skus:
                 continue
 
-            low, high = thresholds["low"], thresholds["high"]
-            # Values outside range (but > 0)
-            outlier_mask = (
-                (pl.col(field) > 0) &
-                ((pl.col(field) < low) | (pl.col(field) > high))
-            )
-            outlier_rows = df.filter(outlier_mask).select(["sku", field]).to_dicts()
+            length = row["length_mm"]
+            width = row["width_mm"]
+            height = row["height_mm"]
 
-            items.extend([
-                DQListItem(
-                    sku=str(row["sku"]),
-                    issue_type="suspect_outlier",
-                    field=field,
-                    value=str(row[field]),
-                    details=(
-                        f"Very small value: {row[field]} < {low}"
-                        if row[field] < low
-                        else f"Very large value: {row[field]} > {high}"
-                    ),
+            # Check if cannot fit any carrier with rotation
+            if not DimensionChecker.can_fit_any_carrier(
+                length, width, height, self.carriers
+            ):
+                max_carrier_dim = DimensionChecker.get_max_allowed_dimension(
+                    self.carriers
                 )
-                for row in outlier_rows
-            ])
+                max_item_dim = max(length, width, height)
+
+                items.append(
+                    DQListItem(
+                        sku=sku,
+                        issue_type="suspect_outlier",
+                        field="dimensions",
+                        value=f"L={length}, W={width}, H={height}",
+                        details=(
+                            f"Cannot fit any carrier with rotation "
+                            f"(max dimension {max_item_dim}mm > "
+                            f"max carrier axis {max_carrier_dim}mm)"
+                        ),
+                    )
+                )
+                checked_skus.add(sku)
 
         return items
 

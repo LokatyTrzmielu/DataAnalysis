@@ -25,6 +25,7 @@ def render_validation_view(show_header: bool = True) -> None:
             try:
                 from src.quality import run_quality_pipeline
                 from src.quality.impute import ImputationMethod
+                from src.core.carriers import load_carriers
 
                 # Build outlier thresholds from session state
                 outlier_thresholds = {
@@ -53,12 +54,17 @@ def render_validation_view(show_header: bool = True) -> None:
                     else ImputationMethod.MEDIAN
                 )
 
+                # Load active carriers for rotation-aware dimensional outlier detection
+                all_carriers = load_carriers()
+                active_carriers = [c for c in all_carriers if c.is_active]
+
                 result = run_quality_pipeline(
                     st.session_state.masterdata_df,
                     enable_imputation=st.session_state.get("imputation_enabled", True),
                     imputation_method=imputation_method,
                     enable_outlier_validation=st.session_state.get("outlier_validation_enabled", True),
                     outlier_thresholds=outlier_thresholds,
+                    carriers=active_carriers,
                 )
                 st.session_state.quality_result = result
                 st.session_state.masterdata_df = result.df

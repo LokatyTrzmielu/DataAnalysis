@@ -266,7 +266,7 @@ class TestDQListBuilder:
         """Test znajdowania outlierow."""
         df = pl.DataFrame({
             "sku": ["SKU1", "SKU2", "SKU3"],
-            "length_mm": [100.0, 0.005, 3000.0],  # 0.005 < 0.01 (too small), 3000 > 864 (too large)
+            "length_mm": [100.0, 0.005, 4000.0],  # 0.005 < 0.01 (too small), 4000 > 3650 (too large)
             "width_mm": [50.0, 100.0, 150.0],
             "height_mm": [30.0, 60.0, 90.0],
             "weight_kg": [1.5, 3.0, 4.5],
@@ -349,7 +349,7 @@ class TestDQListBuilder:
         """Test that outliers are not detected when flag is False."""
         df = pl.DataFrame({
             "sku": ["SKU1", "SKU2", "SKU3"],
-            "length_mm": [100.0, 0.005, 3000.0],  # 0.005 < 0.01 (too small), 3000 > 864 (too large)
+            "length_mm": [100.0, 0.005, 4000.0],  # 0.005 < 0.01 (too small), 4000 > 3650 (too large)
             "width_mm": [50.0, 100.0, 150.0],
             "height_mm": [30.0, 60.0, 90.0],
             "weight_kg": [1.5, 3.0, 4.5],

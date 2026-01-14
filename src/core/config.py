@@ -32,12 +32,18 @@ BORDERLINE_THRESHOLD_MM: Final[float] = 2.0  # mm - threshold for BORDERLINE fit
 # Outlier Detection - Unified thresholds
 # ============================================================================
 
-# Single source of truth for outlier detection across all modules
-# Used by: validators.py, dq_lists.py
+# Fallback thresholds used when no carriers are configured.
+# When carriers are configured, dimensional outliers (length, width, height)
+# are detected using rotation-aware checking - an item is only an outlier
+# if it cannot fit in ANY active carrier with ANY of 6 possible rotations.
+#
+# Note: All dimension max values set to largest carrier dimension (3650mm)
+# because with rotation, any single dimension could potentially fit along
+# the largest carrier axis.
 OUTLIER_THRESHOLDS: Final[dict[str, dict[str, float]]] = {
-    "length_mm": {"min": 0.01, "max": 864.0},
+    "length_mm": {"min": 0.01, "max": 3650.0},
     "width_mm": {"min": 0.01, "max": 3650.0},
-    "height_mm": {"min": 0.01, "max": 210.0},
+    "height_mm": {"min": 0.01, "max": 3650.0},
     "weight_kg": {"min": 0.01, "max": 500.0},
     "stock_qty": {"min": 0.0, "max": 1_000_000.0},
 }
