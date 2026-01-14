@@ -39,7 +39,9 @@
       "Skill(frontend-design:frontend-design)",
       "Bash(git stash:*)",
       "WebSearch",
-      "WebFetch(domain:docs.streamlit.io)"
+      "WebFetch(domain:docs.streamlit.io)",
+      "WebFetch(domain:github.com)",
+      "Bash(streamlit cache:*)"
     ]
   },
   "outputStyle": "default"
