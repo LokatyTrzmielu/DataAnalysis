@@ -8,9 +8,3 @@ backgroundColor = "#323232"           # graphite tło
 secondaryBackgroundColor = "#20100e"  # coffee-bean tło paneli
 textColor = "#F5F0E8"                 # ciepła biel
 font = "sans serif"
-
-[theme.sidebar]
-backgroundColor = "#20100e"           # coffee-bean (surface)
-secondaryBackgroundColor = "#323232"  # graphite (swap dla kontrastu)
-primaryColor = "#b7622c"              # burnt-caramel
-textColor = "#F5F0E8"                 # ciepła biel
