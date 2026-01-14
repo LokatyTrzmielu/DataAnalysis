@@ -304,34 +304,34 @@ def _render_capacity_validation() -> None:
                 st.session_state.outlier_length_min = st.number_input(
                     "Length min (mm)",
                     value=float(st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"])),
-                    min_value=0.0, step=0.01, format="%.2f", key="cv_ol_len_min"
+                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_len_min"
                 )
                 st.session_state.outlier_length_max = st.number_input(
                     "Length max (mm)",
                     value=float(st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"])),
-                    min_value=0.01, step=100.0, format="%.1f", key="cv_ol_len_max"
+                    min_value=0.001, step=100.0, format="%.1f", key="cv_ol_len_max"
                 )
             with col2:
                 st.session_state.outlier_width_min = st.number_input(
                     "Width min (mm)",
                     value=float(st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"])),
-                    min_value=0.0, step=0.01, format="%.2f", key="cv_ol_wid_min"
+                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_wid_min"
                 )
                 st.session_state.outlier_width_max = st.number_input(
                     "Width max (mm)",
                     value=float(st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"])),
-                    min_value=0.01, step=100.0, format="%.1f", key="cv_ol_wid_max"
+                    min_value=0.001, step=100.0, format="%.1f", key="cv_ol_wid_max"
                 )
             with col3:
                 st.session_state.outlier_height_min = st.number_input(
                     "Height min (mm)",
                     value=float(st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"])),
-                    min_value=0.0, step=0.01, format="%.2f", key="cv_ol_hgt_min"
+                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_hgt_min"
                 )
                 st.session_state.outlier_height_max = st.number_input(
                     "Height max (mm)",
                     value=float(st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"])),
-                    min_value=0.01, step=100.0, format="%.1f", key="cv_ol_hgt_max"
+                    min_value=0.001, step=100.0, format="%.1f", key="cv_ol_hgt_max"
                 )
             with col4:
                 st.session_state.outlier_weight_min = st.number_input(
@@ -342,7 +342,7 @@ def _render_capacity_validation() -> None:
                 st.session_state.outlier_weight_max = st.number_input(
                     "Weight max (kg)",
                     value=float(st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"])),
-                    min_value=0.01, step=10.0, format="%.1f", key="cv_ol_wgt_max"
+                    min_value=0.001, step=10.0, format="%.1f", key="cv_ol_wgt_max"
                 )
 
     render_divider()
