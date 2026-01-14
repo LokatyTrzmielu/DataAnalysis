@@ -110,14 +110,14 @@ def _render_validation_results() -> None:
     col1, col2 = st.columns(2)
 
     with col1:
-        st.write("**Before imputation:**")
+        render_bold_label("Before imputation:", "⬅️")
         st.progress(result.metrics_before.dimensions_coverage_pct / 100,
                    text=f"Dimensions: {result.metrics_before.dimensions_coverage_pct:.1f}%")
         st.progress(result.metrics_before.weight_coverage_pct / 100,
                    text=f"Weight: {result.metrics_before.weight_coverage_pct:.1f}%")
 
     with col2:
-        st.write("**After imputation:**")
+        render_bold_label("After imputation:", "➡️")
         st.progress(result.metrics_after.dimensions_coverage_pct / 100,
                    text=f"Dimensions: {result.metrics_after.dimensions_coverage_pct:.1f}%")
         st.progress(result.metrics_after.weight_coverage_pct / 100,

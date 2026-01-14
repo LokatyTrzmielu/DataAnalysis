@@ -8,6 +8,7 @@ from pathlib import Path
 import streamlit as st
 
 from src.ui.layout import (
+    render_bold_label,
     render_divider,
     render_kpi_section,
     render_section_header,
@@ -422,7 +423,7 @@ def _render_quality_preview() -> None:
             )
 
         render_divider()
-        st.markdown("**Data coverage after imputation:**")
+        render_bold_label("Data coverage after imputation:", "📊")
         col1, col2 = st.columns(2)
         with col1:
             st.metric(
@@ -458,7 +459,7 @@ def _render_capacity_preview() -> None:
         )
 
         render_divider()
-        st.markdown("**Results per carrier:**")
+        render_bold_label("Results per carrier:", "📦")
 
         for carrier_id in cr.carriers_analyzed:
             stats = cr.carrier_stats.get(carrier_id)

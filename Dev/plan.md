@@ -44,6 +44,7 @@
 | 13 | Modernizacja UI | ✅ |
 | 14 | Paleta kolorów i przyciski statusu | ✅ |
 | 15 | Restrukturyzacja nawigacji | ✅ |
+| 16 | UI Audit Priority 3 | ✅ |
 
 ---
 

@@ -25,6 +25,7 @@
 | 12 | Code review | weryfikacja volume_m3, naprawa testów | ✅ |
 | 13 | Modernizacja UI | dark theme, komponenty, Plotly | ✅ |
 | 14 | Poprawki bugów | timestamp conversion, null handling | ✅ |
+| 15 | UI Audit Priority 3 | render_bold_label, render_data_table, DEPRECATED | ✅ |
 
 ---
 
@@ -53,6 +54,24 @@
 | `InvalidOperationError` na `.dt.weekday()` | Defensywna konwersja timestamp | `performance.py:123-136` |
 | `NoneType - int` w heatmapie | Filtr null timestamps | `performance_view.py:324` |
 | `use_container_width` deprecated | Zamiana na `width="stretch"` | 6 plików UI |
+
+---
+
+## UI Audit Priority 3 (Faza 15) - ZAKOŃCZONA
+
+**Nowe komponenty w layout.py:**
+- `render_bold_label(text, icon, size)` - stylizowane etykiety bold
+- `render_data_table(df, height, title)` - wrapper dla dataframe
+
+**Zmiany w plikach:**
+| Plik | Zakres zmian |
+|------|--------------|
+| capacity_view.py | 8 zamian bold labels na render_bold_label() |
+| validation_view.py | 2 zamiany st.write("**...**") |
+| performance_view.py | 2 zamiany st.markdown("**...**") |
+| app.py | 1 zamiana (Outlier validation) |
+| reports_view.py | 2 zamiany bold labels |
+| layout.py | Dodano DEPRECATED do legacy status functions |
 
 ---
 

@@ -35,7 +35,7 @@ from src.ui.views import (
     render_reports_view,
 )
 from src.ui.theme import apply_theme
-from src.ui.layout import render_divider
+from src.ui.layout import render_bold_label, render_divider
 
 # Navigation constants
 SECTIONS = {
@@ -288,7 +288,7 @@ def _render_capacity_validation() -> None:
                 )
 
         # Outlier validation
-        st.markdown("**Outlier validation**")
+        render_bold_label("Outlier validation", "⚠️")
         st.session_state.outlier_validation_enabled = st.checkbox(
             "Enable outlier detection",
             value=st.session_state.get("outlier_validation_enabled", True),

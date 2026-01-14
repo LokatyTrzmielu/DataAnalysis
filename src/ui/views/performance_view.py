@@ -12,6 +12,7 @@ import streamlit as st
 
 from src.ui.layout import (
     apply_plotly_dark_theme,
+    render_bold_label,
     render_divider,
     render_kpi_section,
     render_section_header,
@@ -28,7 +29,7 @@ def render_performance_view() -> None:
         return
 
     # Shift configuration
-    st.markdown("**Shift configuration:**")
+    render_bold_label("Shift configuration:", "⏰")
     shift_config = st.selectbox(
         "Shift schedule",
         options=["Default (2 shifts, Mon-Fri)", "Custom schedule", "From YAML file", "None"],
@@ -40,7 +41,7 @@ def render_performance_view() -> None:
 
     # Custom schedule option
     if shift_config == "Custom schedule":
-        st.markdown("**Enter schedule parameters:**")
+        render_bold_label("Enter schedule parameters:", "📝")
         col_days, col_hours, col_shifts = st.columns(3)
         with col_days:
             custom_days = st.number_input(

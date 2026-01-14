@@ -268,12 +268,13 @@ else:
 4. ✅ **ZREALIZOWANE (2026-01-13)** Dodaj ikony do wszystkich expanderów (14 expanderów: 2 w app.py, 6 w capacity_view.py, 5 w import_view.py, 1 w validation_view.py)
 
 ### Priorytet 3: Nowe komponenty (1-2 godziny)
-1. Utwórz `render_bold_label(text, icon=None)` w layout.py
-2. Utwórz `render_data_table(df, height=400)` wrapper
+1. ✅ **ZREALIZOWANE (2026-01-14)** Utwórz `render_bold_label(text, icon=None)` w layout.py
+2. ✅ **ZREALIZOWANE (2026-01-14)** Utwórz `render_data_table(df, height=400)` wrapper
+3. ✅ **ZREALIZOWANE (2026-01-14)** Zamień `st.markdown("**...**")` na `render_bold_label()` w 5 plikach (app.py, capacity_view.py, validation_view.py, performance_view.py, reports_view.py)
 
 ### Priorytet 4: System statusów (2-3 godziny)
-1. Dodaj `# DEPRECATED - use render_status_button()` do legacy funkcji
-2. Zmigruj użycia w reports_view.py
+1. ✅ **ZREALIZOWANE (2026-01-14)** Dodaj `# DEPRECATED - use render_status_button()` do legacy funkcji
+2. Zmigruj użycia w reports_view.py (legacy imports pozostawione dla wstecznej kompatybilności)
 3. Usuń legacy imports po weryfikacji
 
 ---
@@ -283,10 +284,10 @@ else:
 ### app.py
 - [x] L130, L150, L336, L389: `st.markdown("---")` → `render_divider()` ✅ DONE
 - [x] L251, L371: Dodaj ikony do expanderów ✅ DONE (2026-01-13)
-- [ ] L290: `st.markdown("**Outlier validation**")` → `render_section_header("Outlier validation", "⚠️")`
+- [x] L290: `st.markdown("**Outlier validation**")` → `render_bold_label("Outlier validation", "⚠️")` ✅ DONE (2026-01-14)
 
 ### capacity_view.py
-- [ ] L20, L23, L140, L145-155: Zamień `st.markdown("**...**")` na styled component
+- [x] L20, L23, L140, L145-155: Zamień `st.markdown("**...**")` na `render_bold_label()` ✅ DONE (2026-01-14)
 - [x] L184-187: Zamień `:blue[Predef.]`/`:green[Custom]` na `render_status_button()` ✅ DONE (2026-01-13)
 - [x] L236, L249, L621, L626, L631, L636: `st.markdown("---")` → `render_divider()` ✅ DONE
 - [x] L292: Dodaj `type="primary"` do przycisku ✅ DONE (2026-01-13)
@@ -305,23 +306,25 @@ else:
 - [x] L92: `st.markdown("---")` → `render_divider()` ✅ DONE
 - [x] L95, L113: `st.subheader()` → `render_section_header()` ✅ DONE (2026-01-13)
 - [x] L141: Dodaj ikonę do expandera ✅ DONE (2026-01-13)
-- [ ] L99, L106: Zamień `st.write("**...**")` na styled component
+- [x] L99, L106: Zamień `st.write("**...**")` na `render_bold_label()` ✅ DONE (2026-01-14)
 
 ### performance_view.py
-- [ ] L29, L41: Zamień `st.markdown("**...**")` na styled component
+- [x] L29, L41: Zamień `st.markdown("**...**")` na `render_bold_label()` ✅ DONE (2026-01-14)
 - [x] L94: Dodaj `type="primary"` do przycisku ✅ DONE (2026-01-13)
 - [x] L187, L192, L197: `st.markdown("---")` → `render_divider()` ✅ DONE
 - [x] L200, L228, L392: `st.subheader()` → `render_section_header()` ✅ DONE (2026-01-13)
 - [x] L204-210: Dodaj help text do metryk ✅ DONE (2026-01-13)
 
 ### reports_view.py
-- [ ] L10-17: Usuń import legacy status functions (jeśli nieużywane)
+- [ ] L10-17: Legacy status functions pozostawione dla wstecznej kompatybilności
 - [x] L123, L128, L133, L423, L451: `st.markdown("---")` → `render_divider()` ✅ DONE (5 miejsc)
 - [x] L427, L429, L467: Dodaj help text do metryk ✅ DONE (2026-01-13)
+- [x] L425, L461: Zamień `st.markdown("**...**")` na `render_bold_label()` ✅ DONE (2026-01-14)
 
 ### layout.py (nowe komponenty)
-- [ ] Dodaj `render_bold_label(text: str, icon: str | None = None)`
-- [ ] Dodaj komentarz `# DEPRECATED` do `render_status_badge()` i `render_status_badges_inline()`
+- [x] Dodaj `render_bold_label(text: str, icon: str | None = None)` ✅ DONE (2026-01-14)
+- [x] Dodaj `render_data_table(df, height=400)` wrapper ✅ DONE (2026-01-14)
+- [x] Dodaj komentarz `# DEPRECATED` do `render_status_badge()` i `render_status_badges_inline()` ✅ DONE (2026-01-14)
 
 ---
 
