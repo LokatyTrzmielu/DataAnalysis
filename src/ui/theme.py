@@ -731,6 +731,20 @@ def get_custom_css() -> str:
         box-shadow: none !important;
         outline: none !important;
     }}
+
+    /* Wildcard - usuń border ze WSZYSTKICH elementów wewnątrz alertów w sidebarze */
+    [data-testid="stSidebar"] .stAlert,
+    [data-testid="stSidebar"] .stAlert *,
+    [data-testid="stSidebar"] .stAlertContainer,
+    [data-testid="stSidebar"] .stAlertContainer * {{
+        border: none !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-top: none !important;
+        border-bottom: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }}
     </style>
     """
 
