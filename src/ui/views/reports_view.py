@@ -12,8 +12,6 @@ from src.ui.layout import (
     render_divider,
     render_kpi_section,
     render_section_header,
-    render_status_badge,
-    render_status_badges_inline,
     render_status_button,
     render_status_buttons_inline,
 )

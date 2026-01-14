@@ -72,6 +72,7 @@
 | app.py | 1 zamiana (Outlier validation) |
 | reports_view.py | 2 zamiany bold labels |
 | layout.py | Dodano DEPRECATED do legacy status functions |
+| reports_view.py | Usunięto nieużywane legacy imports |
 
 ---
 

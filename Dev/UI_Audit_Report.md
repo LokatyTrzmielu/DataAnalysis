@@ -274,8 +274,9 @@ else:
 
 ### Priorytet 4: System statusów (2-3 godziny)
 1. ✅ **ZREALIZOWANE (2026-01-14)** Dodaj `# DEPRECATED - use render_status_button()` do legacy funkcji
-2. Zmigruj użycia w reports_view.py (legacy imports pozostawione dla wstecznej kompatybilności)
-3. Usuń legacy imports po weryfikacji
+2. ✅ **ZREALIZOWANE (2026-01-14)** Usunięto nieużywane legacy imports z reports_view.py
+3. ✅ Legacy functions zachowane w layout.py i __init__.py dla wstecznej kompatybilności
+4. ✅ components_demo.py używa legacy functions celowo (demonstracja systemu)
 
 ---
 
@@ -316,7 +317,7 @@ else:
 - [x] L204-210: Dodaj help text do metryk ✅ DONE (2026-01-13)
 
 ### reports_view.py
-- [ ] L10-17: Legacy status functions pozostawione dla wstecznej kompatybilności
+- [x] L10-17: Usunięto nieużywane legacy imports ✅ DONE (2026-01-14)
 - [x] L123, L128, L133, L423, L451: `st.markdown("---")` → `render_divider()` ✅ DONE (5 miejsc)
 - [x] L427, L429, L467: Dodaj help text do metryk ✅ DONE (2026-01-13)
 - [x] L425, L461: Zamień `st.markdown("**...**")` na `render_bold_label()` ✅ DONE (2026-01-14)
