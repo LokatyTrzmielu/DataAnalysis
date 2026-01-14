@@ -207,7 +207,7 @@ def render_carriers_table() -> None:
 
 def render_capacity_view() -> None:
     """Render the Capacity Analysis tab content."""
-    st.header("Capacity analysis")
+    st.header("📊 Capacity Analysis")
 
     if st.session_state.masterdata_df is None:
         st.info("Import Masterdata in the Import tab first")

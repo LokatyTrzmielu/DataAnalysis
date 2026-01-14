@@ -7,9 +7,14 @@ import streamlit as st
 from src.ui.layout import render_bold_label, render_divider, render_section_header
 
 
-def render_validation_view() -> None:
-    """Render the Validation tab content."""
-    st.header("Validation and data quality")
+def render_validation_view(show_header: bool = True) -> None:
+    """Render the Validation tab content.
+
+    Args:
+        show_header: Whether to display the header. Set to False when embedded in another view.
+    """
+    if show_header:
+        st.header("✅ Validation")
 
     if st.session_state.masterdata_df is None:
         st.info("First import Masterdata in the Import tab")

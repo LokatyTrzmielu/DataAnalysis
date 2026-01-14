@@ -257,7 +257,7 @@ def render_masterdata_import() -> None:
 
     history_service = st.session_state.mapping_history_service
 
-    render_section_header("Masterdata", "📁")
+    st.header("📁 Masterdata Import")
 
     step = st.session_state.get("masterdata_mapping_step", "upload")
 
@@ -425,7 +425,7 @@ def render_orders_import() -> None:
 
     history_service = st.session_state.mapping_history_service
 
-    render_section_header("Orders", "📝")
+    st.header("📝 Orders Import")
 
     step = st.session_state.get("orders_mapping_step", "upload")
 

@@ -22,7 +22,7 @@ from src.ui.theme import COLORS
 
 def render_performance_view() -> None:
     """Render the Performance Analysis tab content."""
-    st.header("Performance analysis")
+    st.header("📈 Performance Analysis")
 
     if st.session_state.orders_df is None:
         st.info("Import Orders in the Import tab first")

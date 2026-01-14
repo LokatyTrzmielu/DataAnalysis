@@ -244,6 +244,8 @@ def _render_capacity_validation() -> None:
     from src.core.config import OUTLIER_THRESHOLDS
     from src.ui.layout import render_message_box
 
+    st.header("✅ Validation")
+
     if st.session_state.masterdata_df is None:
         render_message_box("Please import Masterdata first in the Import tab.", "info")
         return
@@ -336,8 +338,8 @@ def _render_capacity_validation() -> None:
 
     render_divider()
 
-    # Use existing validation view
-    render_validation_view()
+    # Use existing validation view (without header, already shown above)
+    render_validation_view(show_header=False)
 
 
 def _render_performance_section() -> None:
@@ -364,6 +366,8 @@ def _render_performance_validation() -> None:
     """Render Performance Validation sub-tab with settings."""
     from src.ui.layout import render_message_box
 
+    st.header("✅ Validation")
+
     if st.session_state.orders_df is None:
         render_message_box("Please import Orders first in the Import tab.", "info")
         return
@@ -389,8 +393,8 @@ def _render_performance_validation() -> None:
 
     render_divider()
 
-    # Use existing validation view
-    render_validation_view()
+    # Use existing validation view (without header, already shown above)
+    render_validation_view(show_header=False)
 
 
 def _render_reports_section() -> None:
