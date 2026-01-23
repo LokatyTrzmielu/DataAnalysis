@@ -116,6 +116,7 @@ def render_carrier_form() -> None:
                     "max_weight_kg": float(max_weight),
                     "is_predefined": False,
                     "is_active": True,
+                    "priority": None,  # No priority by default - excluded from Prioritized mode
                 }
                 st.session_state.custom_carriers.append(new_carrier)
 
@@ -145,24 +146,27 @@ def render_carriers_table() -> None:
     render_bold_label("Defined carriers:", "📦")
 
     # Header row
-    header_cols = st.columns([1, 3, 3, 2, 1, 1])
+    header_cols = st.columns([1, 1, 3, 3, 2, 1, 1])
     with header_cols[0]:
         render_bold_label("Active", size="small")
     with header_cols[1]:
-        render_bold_label("Carrier", size="small")
+        render_bold_label("Priority", size="small")
     with header_cols[2]:
-        render_bold_label("Dimensions (L×W×H)", size="small")
+        render_bold_label("Carrier", size="small")
     with header_cols[3]:
-        render_bold_label("Max weight", size="small")
+        render_bold_label("Dimensions (L×W×H)", size="small")
     with header_cols[4]:
-        render_bold_label("Type", size="small")
+        render_bold_label("Max weight", size="small")
     with header_cols[5]:
+        render_bold_label("Type", size="small")
+    with header_cols[6]:
         st.markdown("")
 
     for i, carrier in enumerate(carriers):
         is_predefined = carrier.get("is_predefined", False)
         is_active = carrier.get("is_active", True)
-        cols = st.columns([1, 3, 3, 2, 1, 1])
+        current_priority = carrier.get("priority")
+        cols = st.columns([1, 1, 3, 3, 2, 1, 1])
 
         with cols[0]:
             # Checkbox for activation/deactivation
@@ -178,19 +182,36 @@ def render_carriers_table() -> None:
                 st.rerun()
 
         with cols[1]:
+            # Priority input (0 or empty = no priority = excluded from Prioritized mode)
+            new_priority = st.number_input(
+                "Priority",
+                min_value=0,
+                max_value=99,
+                value=current_priority if current_priority is not None else 0,
+                key=f"carrier_priority_{i}",
+                label_visibility="collapsed",
+                help="Priority for Prioritized mode (1=first, 0=excluded)",
+            )
+            # Convert 0 to None (no priority)
+            new_priority_value = new_priority if new_priority > 0 else None
+            if new_priority_value != current_priority:
+                st.session_state.custom_carriers[i]["priority"] = new_priority_value
+                st.rerun()
+
+        with cols[2]:
             st.text(f"{carrier['carrier_id']}")
             st.caption(carrier["name"])
-        with cols[2]:
+        with cols[3]:
             dims = f"{int(carrier['inner_length_mm'])}×{int(carrier['inner_width_mm'])}×{int(carrier['inner_height_mm'])} mm"
             st.text(dims)
-        with cols[3]:
-            st.text(f"{carrier['max_weight_kg']:.1f} kg")
         with cols[4]:
+            st.text(f"{carrier['max_weight_kg']:.1f} kg")
+        with cols[5]:
             if is_predefined:
                 render_status_button("Predef.", "in_progress", show_icon=False)
             else:
                 render_status_button("Custom", "success", show_icon=False)
-        with cols[5]:
+        with cols[6]:
             if is_predefined:
                 # Cannot delete predefined carriers
                 st.button(
@@ -254,21 +275,35 @@ def render_capacity_view() -> None:
     render_divider()
     analysis_mode = st.radio(
         "Analysis mode",
-        options=["Independent (all carriers)", "Prioritized (smallest first)"],
+        options=["Independent (all carriers)", "Prioritized (by priority)"],
         index=0,
         key="capacity_analysis_mode",
         help="Independent: SKU tested vs all active carriers separately. "
-             "Prioritized: SKU assigned to smallest fitting carrier (by volume).",
+             "Prioritized: SKU assigned to first fitting carrier by priority (1=first). "
+             "Carriers with priority=0 are excluded from Prioritized mode.",
         horizontal=True,
     )
-    prioritization_mode = analysis_mode == "Prioritized (smallest first)"
+    prioritization_mode = analysis_mode == "Prioritized (by priority)"
 
     if prioritization_mode:
-        st.info(
-            "Prioritized mode: Each SKU will be assigned to the first fitting carrier "
-            "based on defined priority (priority field in carriers.yml). "
-            "Carriers without priority are excluded."
-        )
+        # Count carriers with priority set
+        carriers_with_priority = [
+            c for c in st.session_state.custom_carriers
+            if c.get("is_active", True) and c.get("priority") is not None and c.get("priority", 0) > 0
+        ]
+        priority_count = len(carriers_with_priority)
+
+        if priority_count == 0:
+            st.warning(
+                "No carriers have priority set. Set priority > 0 for carriers to include them "
+                "in Prioritized analysis. Carriers with priority=0 are excluded."
+            )
+        else:
+            st.info(
+                f"Prioritized mode: {priority_count} carrier(s) with priority will be used. "
+                "Each SKU assigned to first fitting carrier by priority (1=first, 2=second, ...). "
+                "Set priority in the table above."
+            )
 
     # Exclusion settings
     outlier_count = 0

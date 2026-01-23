@@ -118,6 +118,7 @@ def init_session_state() -> None:
                 "max_weight_kg": c.max_weight_kg,
                 "is_predefined": c.is_predefined,
                 "is_active": c.is_active,
+                "priority": c.priority,
             }
             for c in carriers
         ]

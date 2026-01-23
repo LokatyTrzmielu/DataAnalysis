@@ -137,24 +137,34 @@
 | `carriers.py` | Obsługa priority przy zapisie custom carriers |
 | `capacity.py` | Filtrowanie i sortowanie po priority w trybie Prioritized |
 | `carriers.yml` | Dodano priority: 1, 2, 3 do predefined carriers |
-| `capacity_view.py` | Zaktualizowany komunikat informacyjny |
+| `app.py` | Ładowanie priority do session state przy starcie |
+| `capacity_view.py` | Kolumna Priority w tabeli nośników z edycją |
+| `capacity_view.py` | Zaktualizowane komunikaty i etykiety |
+
+**UI - Tabela nośników:**
+- Nowa kolumna "Priority" z number_input
+- Wartość 0 = brak priorytetu (excluded from Prioritized)
+- Wartość 1-99 = priorytet (1 = pierwszy w kolejności)
 
 **Logika:**
 - `priority: 1` = najwyższy priorytet (pierwszy w kolejności)
-- `priority: None` = nośnik pomijany w trybie Prioritized
+- `priority: 0` lub `None` = nośnik pomijany w trybie Prioritized
 - W trybie Independent priorytet nie ma wpływu
 
 **Przepływ danych:**
 ```
-carriers.yml: priority: 1, 2, 3 lub brak
+UI: Priority input (0=excluded, 1-99=priority)
     ↓
-CarrierConfig.priority = 1, 2, 3 lub None
+session_state.custom_carriers[i]["priority"] = int lub None
     ↓
 capacity.py (prioritization_mode=True):
     1. Filter: carriers where priority is not None
     2. Sort: by priority ascending (1 first, 2 second, ...)
     3. Assign SKU to first fitting carrier
 ```
+
+**UWAGA:** Po aktualizacji kodu należy zrestartować aplikację Streamlit,
+aby załadować nośniki z polem priority.
 
 ---
 
