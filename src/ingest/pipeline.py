@@ -117,6 +117,10 @@ class MasterdataIngestPipeline:
             df = df.rename({"weight": "weight_kg"})
 
         if "stock" in df.columns:
+            # Cast to Int64 to handle string columns
+            df = df.with_columns([
+                pl.col("stock").cast(pl.Int64, strict=False).alias("stock")
+            ])
             df = df.rename({"stock": "stock_qty"})
 
         # 4. SKU normalization

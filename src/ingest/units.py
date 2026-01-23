@@ -254,14 +254,11 @@ class UnitConverter:
 
         factor = LENGTH_TO_MM[source_unit]
 
-        if factor == 1.0:
-            return df
-
-        # Convert all dimension columns
+        # Always cast to Float64 to handle string columns, then apply conversion
         return df.with_columns([
-            (pl.col(length_col) * factor).alias(length_col),
-            (pl.col(width_col) * factor).alias(width_col),
-            (pl.col(height_col) * factor).alias(height_col),
+            (pl.col(length_col).cast(pl.Float64, strict=False) * factor).alias(length_col),
+            (pl.col(width_col).cast(pl.Float64, strict=False) * factor).alias(width_col),
+            (pl.col(height_col).cast(pl.Float64, strict=False) * factor).alias(height_col),
         ])
 
     def convert_weight_to_kg(
@@ -292,9 +289,7 @@ class UnitConverter:
 
         factor = WEIGHT_TO_KG[source_unit]
 
-        if factor == 1.0:
-            return df
-
+        # Always cast to Float64 to handle string columns, then apply conversion
         return df.with_columns([
-            (pl.col(weight_col) * factor).alias(weight_col),
+            (pl.col(weight_col).cast(pl.Float64, strict=False) * factor).alias(weight_col),
         ])
