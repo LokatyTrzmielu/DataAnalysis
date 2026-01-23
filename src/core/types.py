@@ -201,6 +201,10 @@ class CarrierConfig(BaseModel):
     # Whether this is a predefined carrier (cannot be deleted)
     is_predefined: bool = Field(default=False)
 
+    # Priority for prioritization mode (lower = higher priority)
+    # Carriers without priority are excluded from prioritized analysis
+    priority: Optional[int] = Field(default=None, ge=1)
+
     @property
     def inner_volume_m3(self) -> float:
         """Internal volume in m3."""

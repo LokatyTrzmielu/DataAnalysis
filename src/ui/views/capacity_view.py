@@ -265,8 +265,9 @@ def render_capacity_view() -> None:
 
     if prioritization_mode:
         st.info(
-            "Prioritized mode: Each SKU will be assigned to the smallest carrier "
-            "it fits into. Carriers are sorted by internal volume (smallest first)."
+            "Prioritized mode: Each SKU will be assigned to the first fitting carrier "
+            "based on defined priority (priority field in carriers.yml). "
+            "Carriers without priority are excluded."
         )
 
     # Exclusion settings

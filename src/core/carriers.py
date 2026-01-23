@@ -86,6 +86,7 @@ class CarrierService:
                 "inner_height_mm": c.inner_height_mm,
                 "max_weight_kg": c.max_weight_kg,
                 "is_active": c.is_active,
+                "priority": c.priority,
             }
             for c in custom_to_save
         ]

@@ -9,6 +9,7 @@ carriers:
     inner_height_mm: 200
     max_weight_kg: 35
     is_active: true
+    priority: 1
 
   - carrier_id: "2"
     name: "640x440x238"
@@ -17,6 +18,7 @@ carriers:
     inner_height_mm: 210
     max_weight_kg: 35
     is_active: true
+    priority: 2
 
   - carrier_id: "3"
     name: "3650x864x200"
@@ -25,6 +27,7 @@ carriers:
     inner_height_mm: 200
     max_weight_kg: 440
     is_active: true
+    priority: 3
 
 # User-saved custom carriers will be appended here
 custom_carriers: []

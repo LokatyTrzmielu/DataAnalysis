@@ -240,11 +240,14 @@ class CapacityAnalyzer:
         if carrier_id:
             carriers_to_analyze = [c for c in carriers_to_analyze if c.carrier_id == carrier_id]
 
-        # In prioritization mode, sort carriers by volume (smallest first)
+        # In prioritization mode, use carriers with defined priority
         if prioritization_mode:
+            # Filter only carriers with priority defined
+            carriers_to_analyze = [c for c in carriers_to_analyze if c.priority is not None]
+            # Sort by priority (1 = first, 2 = second, ...)
             carriers_to_analyze = sorted(
                 carriers_to_analyze,
-                key=lambda c: c.inner_volume_m3
+                key=lambda c: c.priority
             )
 
         results = []
