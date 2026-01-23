@@ -27,6 +27,7 @@
 | 14 | Poprawki bugów | timestamp conversion, null handling | ✅ |
 | 15 | UI Audit Priority 3 | render_bold_label, render_data_table, DEPRECATED | ✅ |
 | 16 | UI Fixes - Sidebar & Titles | nawigacja, statusy, tytuły sekcji | ✅ |
+| 17 | Naprawa Stock Volume | konwersja stock z przecinkami | ✅ |
 
 ---
 
@@ -55,6 +56,24 @@
 | `InvalidOperationError` na `.dt.weekday()` | Defensywna konwersja timestamp | `performance.py:123-136` |
 | `NoneType - int` w heatmapie | Filtr null timestamps | `performance_view.py:324` |
 | `use_container_width` deprecated | Zamiana na `width="stretch"` | 6 plików UI |
+
+---
+
+## Naprawa Stock Volume (Faza 17) - ZAKOŃCZONA
+
+**Problem:** Po Capacity Analysis wartości Stock volume = 0
+
+**Przyczyna:** W `pipeline.py` wartości stock z przecinkiem/kropką dziesiętną (np. "100,5") były konwertowane na NULL przy `cast(Int64)`, co skutkowało `stock_qty = 0`.
+
+| Zmiana | Plik | Szczegóły |
+|--------|------|-----------|
+| Nowa konwersja stock | pipeline.py:119-136 | string → replace comma → float → round → int |
+| Ostrzeżenie o NULL | pipeline.py:133-136 | Informacja gdy wartości nie mogą być przekonwertowane |
+
+**Przepływ konwersji:**
+```
+"100,5" → "100.5" → 100.5 → 101.0 → 101
+```
 
 ---
 
