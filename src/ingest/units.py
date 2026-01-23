@@ -245,7 +245,7 @@ class UnitConverter:
         """
         if source_unit is None and auto_detect:
             # Detect unit based on first column
-            sample = df[length_col].drop_nulls().to_list()[:100]
+            sample = df[length_col].cast(pl.Float64, strict=False).drop_nulls().to_list()[:100]
             detection = self.detector.detect_length_unit(sample, length_col)
             source_unit = detection.detected_unit
 
@@ -283,7 +283,7 @@ class UnitConverter:
             DataFrame with weight in kg
         """
         if source_unit is None and auto_detect:
-            sample = df[weight_col].drop_nulls().to_list()[:100]
+            sample = df[weight_col].cast(pl.Float64, strict=False).drop_nulls().to_list()[:100]
             detection = self.detector.detect_weight_unit(sample, weight_col)
             source_unit = detection.detected_unit
 
