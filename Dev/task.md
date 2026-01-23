@@ -29,6 +29,7 @@
 | 16 | UI Fixes - Sidebar & Titles | nawigacja, statusy, tytuły sekcji | ✅ |
 | 17 | Naprawa Stock Volume | konwersja stock z przecinkami | ✅ |
 | 18 | Priorytet nośników | ręczny priorytet w trybie Prioritized | ✅ |
+| 19 | Import string columns | obsługa kolumn stringowych przy imporcie | ✅ |
 
 ---
 
@@ -165,6 +166,24 @@ capacity.py (prioritization_mode=True):
 
 **UWAGA:** Po aktualizacji kodu należy zrestartować aplikację Streamlit,
 aby załadować nośniki z polem priority.
+
+---
+
+## Import String Columns (Faza 19) - ZAKOŃCZONA
+
+**Problem:** Błędy konwersji gdy kolumny wymiarów, wag lub stock w pliku źródłowym były typu string.
+
+**Rozwiązanie:** Defensywne castowanie `cast(pl.Float64, strict=False)` przed operacjami numerycznymi.
+
+| Plik | Zmiana |
+|------|--------|
+| `units.py:248` | Cast przy auto-detect length unit |
+| `units.py:286` | Cast przy auto-detect weight unit |
+| `units.py:257-261` | Cast przy konwersji L/W/H do mm |
+| `units.py:293` | Cast przy konwersji weight do kg |
+| `pipeline.py:120-123` | Cast stock do Int64 |
+
+**Parametr `strict=False`** powoduje, że nieparsowalne wartości stają się `null` zamiast wyrzucać błąd.
 
 ---
 

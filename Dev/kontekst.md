@@ -282,7 +282,32 @@ python -m pytest tests/ -v
 
 ---
 
+## Poprawki Import Masterdata (2026-01-23)
+
+### Obsługa Kolumn Stringowych
+
+**Problem:** Błędy konwersji gdy kolumny wymiarów, wag lub stock były typu string zamiast numeric.
+
+**Rozwiązanie:** Dodano defensywne castowanie do Float64/Int64 we wszystkich operacjach na danych numerycznych.
+
+| Plik | Zmiana |
+|------|--------|
+| `units.py:248,286` | Cast do Float64 przy auto-detect jednostek (sample) |
+| `units.py:257-261` | Cast do Float64 przy konwersji wymiarów (L/W/H) |
+| `units.py:293` | Cast do Float64 przy konwersji wagi |
+| `pipeline.py:120-123` | Cast stock do Int64 przed rename |
+
+**Wzorzec:**
+```python
+# Przed:
+pl.col("length") * factor
+# Po:
+pl.col("length").cast(pl.Float64, strict=False) * factor
+```
+
+---
+
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-01-10
-**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + styling consistency
+**Data:** 2026-01-23
+**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + priorytet nośników
