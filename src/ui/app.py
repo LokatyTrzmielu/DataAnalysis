@@ -249,7 +249,7 @@ def _render_capacity_validation() -> None:
     st.header("✅ Validation")
 
     if st.session_state.masterdata_df is None:
-        render_message_box("Please import Masterdata first in the Import tab.", "info")
+        st.info("Import Masterdata in the Import tab first")
         return
 
     # Capacity Settings section
@@ -380,7 +380,7 @@ def _render_performance_validation() -> None:
     st.header("✅ Validation")
 
     if st.session_state.orders_df is None:
-        render_message_box("Please import Orders first in the Import tab.", "info")
+        st.info("Import Orders in the Import tab first")
         return
 
     # Performance Settings section
