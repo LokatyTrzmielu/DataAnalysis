@@ -1,0 +1,11 @@
+version: '1.0'
+last_updated: '2026-02-01T22:17:45.571980'
+masterdata_mappings:
+- source_column: nazwa_indeksu
+  target_field: sku
+  client_pattern: ''
+  use_count: 1
+  last_used: '2026-02-01T21:25:11.892353'
+  is_user_correction: true
+orders_mappings: []
+blacklist: []
