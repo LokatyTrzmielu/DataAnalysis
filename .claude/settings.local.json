@@ -54,7 +54,16 @@
       "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' label create ''bug'' --color ''D73A4A'' --description ''Naprawa błędu'' --force\")",
       "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' issue create --title ''[feature] Test GitHub Issues Workflow'' --body ''Testowe issue do weryfikacji działania workflow. Można zamknąć po sprawdzeniu.'' --label ''feature''\")",
       "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' issue list --state open\")",
-      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' label list\")"
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' label list\")",
+      "Bash(git checkout:*)",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' issue create --title ''[refactor] Ograniczenie szerokości layoutu na desktopie'' --body ''Aplikacja rozciąga się na całą szerokość okna, co wygląda nieprofesjonalnie na szerokich monitorach.\n\n## Do zrobienia\n- Dodać max-width 1400px na główny kontener\n- Ograniczyć szerokość komponentów formularzy \\(file uploader, selectbox\\)\n- Zachować responsywność na mniejszych ekranach'' --label ''refactor''\")",
+      "Bash(tasklist:*)",
+      "Bash(Get-ChildItem -Path \"D:\\\\VS\\\\DataAnalysis\\\\src\" -Recurse -Include \"__pycache__\" -Directory)",
+      "Bash(Remove-Item -Recurse -Force)",
+      "Bash(cmd /c \"for /d /r src %d in \\(__pycache__\\) do @if exist \"%d\" rd /s /q \"%d\"\")",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh.exe pr create --title \"Refactor Import section layout and unify info messages\" --body \"$\\(cat <<''EOF''\n## Summary\n\n- **Import view**: Two-column layout \\(50/50\\) for column mapping\n  - Left column: progress bar + status dropdowns \\(narrower ratio\\)\n  - Right column: Mapping summary + Unmapped columns \\(always visible, no expanders\\)\n- **Data preview**: Constrained width \\(max 600px\\)\n- **Progress bar**: Constrained width \\(max 400px\\)\n- **Import button**: Aligned to right edge of right column\n- **Info messages**: Unified style across Validation and Performance sections to match Capacity Analysis \\(`st.info` instead of `render_message_box`\\)\n\n## Test plan\n\n- [ ] Navigate to Import tab, upload a file, verify two-column layout\n- [ ] Check Mapping summary and Unmapped columns are visible without clicking\n- [ ] Verify Import button is aligned to right edge\n- [ ] Check Validation tab shows unified info message style\n- [ ] Check Performance tab shows unified info message style\n\n🤖 Generated with [Claude Code]\\(https://claude.ai/code\\)\nEOF\n\\)\")"
     ]
   },
   "outputStyle": "default"

@@ -140,8 +140,8 @@ def render_mapping_ui(
 
     total_required = len(required_fields)
 
-    # Two-column layout: mapping (50%) | summary (50%)
-    col_mapping, col_summary = st.columns(2)
+    # Two-column layout: mapping (60%) | summary (40%)
+    col_mapping, col_summary = st.columns([3, 2])
 
     with col_mapping:
         # Progress bar (constrained width via CSS class)
@@ -355,68 +355,65 @@ def render_masterdata_import() -> None:
                 help="Select unit if auto-detection fails for light items",
             )
 
-        # Action buttons - Back on left, Import aligned to right edge of right column
-        btn_col_left, btn_col_right = st.columns(2)
+        # Action buttons - aligned with Weight unit selectbox width
+        btn_col_back, btn_col_import = st.columns([1, 1])
 
-        with btn_col_left:
+        with btn_col_back:
             if st.button("Back", key="md_back_to_upload"):
                 st.session_state.masterdata_mapping_step = "upload"
                 st.session_state.masterdata_file_columns = None
                 st.session_state.masterdata_mapping_result = None
                 st.rerun()
 
-        with btn_col_right:
-            # Inner columns to push button to right edge
-            _, btn_import = st.columns([2, 1])
-            with btn_import:
-                import_disabled = not updated_mapping.is_complete or has_mapping_errors
-                if st.button(
-                    "Import Masterdata",
-                    key="md_do_import",
-                    disabled=import_disabled,
-                    type="primary",
-                ):
-                    with st.spinner("Importing..."):
-                        try:
-                            # Map weight unit selection
-                            weight_unit_map = {
-                                "Auto-detect": None,
-                                "Grams (g)": WeightUnit.G,
-                                "Kilograms (kg)": WeightUnit.KG,
-                            }
-                            selected_weight_unit = weight_unit_map.get(weight_unit_option)
+        with btn_col_import:
+            import_disabled = not updated_mapping.is_complete or has_mapping_errors
+            if st.button(
+                "Import Masterdata",
+                key="md_do_import",
+                disabled=import_disabled,
+                type="primary",
+            ):
+                with st.spinner("Importing..."):
+                    try:
+                        # Map weight unit selection
+                        weight_unit_map = {
+                            "Auto-detect": None,
+                            "Grams (g)": WeightUnit.G,
+                            "Kilograms (kg)": WeightUnit.KG,
+                        }
+                        selected_weight_unit = weight_unit_map.get(weight_unit_option)
 
-                            pipeline = MasterdataIngestPipeline(
-                                weight_unit=selected_weight_unit,
+                        pipeline = MasterdataIngestPipeline(
+                            weight_unit=selected_weight_unit,
+                        )
+                        result = pipeline.run(
+                            st.session_state.masterdata_temp_path,
+                            mapping=updated_mapping,
+                        )
+
+                        st.session_state.masterdata_df = result.df
+                        st.session_state.masterdata_mapping_step = "complete"
+
+                        # Record user corrections to history
+                        original = st.session_state.masterdata_original_mapping
+                        if original is not None and history_service is not None:
+                            wizard = create_masterdata_wizard(history_service)
+                            client_name = st.session_state.get("client_name", "")
+                            wizard.record_user_corrections(
+                                original, updated_mapping, client_name
                             )
-                            result = pipeline.run(
-                                st.session_state.masterdata_temp_path,
-                                mapping=updated_mapping,
-                            )
+                            history_service.save_history()
 
-                            st.session_state.masterdata_df = result.df
-                            st.session_state.masterdata_mapping_step = "complete"
+                        st.success(f"Imported {result.rows_imported} rows")
 
-                            # Record user corrections to history
-                            original = st.session_state.masterdata_original_mapping
-                            if original is not None and history_service is not None:
-                                wizard = create_masterdata_wizard(history_service)
-                                client_name = st.session_state.get("client_name", "")
-                                wizard.record_user_corrections(
-                                    original, updated_mapping, client_name
-                                )
-                                history_service.save_history()
+                        if result.warnings:
+                            for warning in result.warnings:
+                                st.warning(warning)
 
-                            st.success(f"Imported {result.rows_imported} rows")
+                        st.rerun()
 
-                            if result.warnings:
-                                for warning in result.warnings:
-                                    st.warning(warning)
-
-                            st.rerun()
-
-                        except Exception as e:
-                            st.error(f"Import error: {e}")
+                    except Exception as e:
+                        st.error(f"Import error: {e}")
 
     # Step 3: Import complete
     elif step == "complete":
@@ -524,58 +521,55 @@ def render_orders_import() -> None:
 
         render_spacer(12)
 
-        # Action buttons - Back on left, Import aligned to right edge of right column
-        btn_col_left, btn_col_right = st.columns(2)
+        # Action buttons - simplified layout
+        btn_col_back, btn_col_import = st.columns([1, 1])
 
-        with btn_col_left:
+        with btn_col_back:
             if st.button("Back", key="orders_back_to_upload"):
                 st.session_state.orders_mapping_step = "upload"
                 st.session_state.orders_file_columns = None
                 st.session_state.orders_mapping_result = None
                 st.rerun()
 
-        with btn_col_right:
-            # Inner columns to push button to right edge
-            _, btn_import = st.columns([2, 1])
-            with btn_import:
-                import_disabled = not updated_mapping.is_complete or has_mapping_errors
-                if st.button(
-                    "Import Orders",
-                    key="orders_do_import",
-                    disabled=import_disabled,
-                    type="primary",
-                ):
-                    with st.spinner("Importing..."):
-                        try:
-                            pipeline = OrdersIngestPipeline()
-                            result = pipeline.run(
-                                st.session_state.orders_temp_path,
-                                mapping=updated_mapping,
+        with btn_col_import:
+            import_disabled = not updated_mapping.is_complete or has_mapping_errors
+            if st.button(
+                "Import Orders",
+                key="orders_do_import",
+                disabled=import_disabled,
+                type="primary",
+            ):
+                with st.spinner("Importing..."):
+                    try:
+                        pipeline = OrdersIngestPipeline()
+                        result = pipeline.run(
+                            st.session_state.orders_temp_path,
+                            mapping=updated_mapping,
+                        )
+
+                        st.session_state.orders_df = result.df
+                        st.session_state.orders_mapping_step = "complete"
+
+                        # Record user corrections to history
+                        original = st.session_state.orders_original_mapping
+                        if original is not None and history_service is not None:
+                            wizard = create_orders_wizard(history_service)
+                            client_name = st.session_state.get("client_name", "")
+                            wizard.record_user_corrections(
+                                original, updated_mapping, client_name
                             )
+                            history_service.save_history()
 
-                            st.session_state.orders_df = result.df
-                            st.session_state.orders_mapping_step = "complete"
+                        st.success(f"Imported {result.rows_imported} rows")
 
-                            # Record user corrections to history
-                            original = st.session_state.orders_original_mapping
-                            if original is not None and history_service is not None:
-                                wizard = create_orders_wizard(history_service)
-                                client_name = st.session_state.get("client_name", "")
-                                wizard.record_user_corrections(
-                                    original, updated_mapping, client_name
-                                )
-                                history_service.save_history()
+                        if result.warnings:
+                            for warning in result.warnings:
+                                st.warning(warning)
 
-                            st.success(f"Imported {result.rows_imported} rows")
+                        st.rerun()
 
-                            if result.warnings:
-                                for warning in result.warnings:
-                                    st.warning(warning)
-
-                            st.rerun()
-
-                        except Exception as e:
-                            st.error(f"Import error: {e}")
+                    except Exception as e:
+                        st.error(f"Import error: {e}")
 
     # Step 3: Import complete
     elif step == "complete":
