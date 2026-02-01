@@ -288,7 +288,15 @@ def _render_capacity_validation() -> None:
                     options=["Median", "Average"],
                     index=0 if st.session_state.get("imputation_method", "Median") == "Median" else 1,
                     key="capacity_imputation_method_select",
-                    help="Median is more robust to outliers",
+                    help=(
+                        "Median: Each field (length, width, height, weight, quantity) gets its own "
+                        "global median calculated from all valid values in the dataset. "
+                        "Values ≤0 and null are treated as missing and replaced with this median. "
+                        "More robust to outliers.\n\n"
+                        "Average: Each field gets its own global mean calculated from all valid values. "
+                        "Values ≤0 and null are treated as missing and replaced with this average. "
+                        "More sensitive to extreme values."
+                    ),
                 )
 
         # Outlier validation
