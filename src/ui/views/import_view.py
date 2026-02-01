@@ -106,7 +106,7 @@ def render_mapping_ui(
     schema: dict,
     key_prefix: str = "md",
 ) -> "MappingResult":
-    """Render column mapping UI.
+    """Render column mapping UI with two-column layout.
 
     Args:
         file_columns: Columns from loaded file
@@ -127,8 +127,7 @@ def render_mapping_ui(
 
     user_mappings = {}
 
-    # Progress bar for required fields mapping
-    # Calculate based on CURRENT session state widget values for accurate real-time update
+    # Calculate mapped count for progress bar
     mapped_required = 0
     for field_name in required_fields:
         widget_key = f"{key_prefix}_map_{field_name}"
@@ -136,65 +135,106 @@ def render_mapping_ui(
         if current_selection is not None and current_selection != "-- Don't map --":
             mapped_required += 1
         elif current_selection is None:
-            # Fallback to auto-mapping if widget not yet rendered
             if mapping_result.mappings.get(field_name):
                 mapped_required += 1
 
     total_required = len(required_fields)
-    st.progress(
-        mapped_required / total_required if total_required > 0 else 0,
-        text=f"Required: {mapped_required}/{total_required} mapped",
-    )
 
-    # Required fields section - vertical layout
-    for field_name in required_fields:
-        field_cfg = schema[field_name]
-        widget_key = f"{key_prefix}_map_{field_name}"
+    # Two-column layout: mapping (50%) | summary (50%)
+    col_mapping, col_summary = st.columns(2)
 
-        # Get current mapping from auto-mapping result
-        current_mapping = mapping_result.mappings.get(field_name)
-        current_value = current_mapping.source_column if current_mapping else None
+    with col_mapping:
+        # Progress bar (constrained width via CSS class)
+        st.markdown('<div class="mapping-progress">', unsafe_allow_html=True)
+        st.progress(
+            mapped_required / total_required if total_required > 0 else 0,
+            text=f"Required: {mapped_required}/{total_required} mapped",
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        # Find index for default selection
-        if current_value and current_value in file_columns:
-            default_idx = file_columns.index(current_value) + 1
-        else:
-            default_idx = 0
+        # Required fields section - narrower status column
+        for field_name in required_fields:
+            field_cfg = schema[field_name]
+            widget_key = f"{key_prefix}_map_{field_name}"
 
-        # Check if field is currently mapped (from session state if available)
-        current_selection = st.session_state.get(widget_key)
-        is_mapped = current_selection is not None and current_selection != "-- Don't map --"
-        # Fallback to auto-mapping if no session state yet
-        if current_selection is None:
-            is_mapped = current_value is not None
+            current_mapping = mapping_result.mappings.get(field_name)
+            current_value = current_mapping.source_column if current_mapping else None
 
-        # Row layout: status | field name | dropdown
-        col_status, col_dropdown = st.columns([1, 4])
+            if current_value and current_value in file_columns:
+                default_idx = file_columns.index(current_value) + 1
+            else:
+                default_idx = 0
 
-        with col_status:
+            current_selection = st.session_state.get(widget_key)
+            is_mapped = current_selection is not None and current_selection != "-- Don't map --"
+            if current_selection is None:
+                is_mapped = current_value is not None
+
+            # Row layout: narrower status | dropdown (was [1, 4], now [1, 3])
+            col_status, col_dropdown = st.columns([1, 3])
+
+            with col_status:
+                st.markdown(
+                    _get_field_status_html(is_mapped),
+                    unsafe_allow_html=True,
+                )
+
+            with col_dropdown:
+                selected = st.selectbox(
+                    field_name,
+                    options=dropdown_options,
+                    index=default_idx,
+                    key=widget_key,
+                    help=field_cfg["description"],
+                )
+
+                if selected != "-- Don't map --":
+                    user_mappings[field_name] = selected
+
+    with col_summary:
+        # Mapping summary - always visible (no expander)
+        st.markdown(
+            f'<div class="mapping-summary-panel">'
+            f'<p style="font-weight: 600; margin-bottom: 0.75rem; color: {COLORS["text"]};">📋 Mapping summary</p>',
+            unsafe_allow_html=True,
+        )
+        for field_name, col_map in mapping_result.mappings.items():
+            source = col_map.source_column
+            badge_color = COLORS["primary"] if col_map.is_auto else COLORS["info"]
+            badge_text = "auto" if col_map.is_auto else "manual"
             st.markdown(
-                _get_field_status_html(is_mapped),
+                f'<div style="padding: 3px 0; color: {COLORS["text"]}; font-size: 0.85rem;">'
+                f'<strong>{field_name}</strong> ← <code style="background: {COLORS["surface_light"]}; '
+                f'padding: 2px 5px; border-radius: 3px; font-size: 0.8rem;">{source}</code> '
+                f'<span style="color: {badge_color}; font-size: 0.75rem;">({badge_text})</span>'
+                f'</div>',
                 unsafe_allow_html=True,
             )
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        with col_dropdown:
-            selected = st.selectbox(
-                field_name,
-                options=dropdown_options,
-                index=default_idx,
-                key=widget_key,
-                help=field_cfg["description"],
+        render_spacer(8)
+
+        # Unmapped columns - always visible below summary
+        # Build from user_mappings to get current state
+        used_columns = set(user_mappings.values())
+        unmapped = [c for c in file_columns if c not in used_columns]
+        if unmapped:
+            st.markdown(
+                f'<div class="mapping-summary-panel">'
+                f'<p style="font-weight: 600; margin-bottom: 0.5rem; color: {COLORS["text"]};">'
+                f'📁 Unmapped columns ({len(unmapped)})</p>'
+                f'<p style="color: {COLORS["text_secondary"]}; font-size: 0.8rem; line-height: 1.4;">'
+                f'{", ".join(unmapped)}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
             )
-
-            if selected != "-- Don't map --":
-                user_mappings[field_name] = selected
 
     # Build updated MappingResult
     return build_mapping_result_from_selections(user_mappings, file_columns, schema, mapping_result)
 
 
 def render_mapping_status(mapping_result: "MappingResult") -> bool:
-    """Display mapping status and validation messages.
+    """Display mapping validation errors (duplicates, missing required).
 
     Args:
         mapping_result: Current mapping result
@@ -216,31 +256,6 @@ def render_mapping_status(mapping_result: "MappingResult") -> bool:
         dup_list = " • ".join(dup_fields)
         render_error_box(f"Duplicate column mappings: {dup_list}")
         has_errors = True
-
-    # Mapping summary with styled content
-    with st.expander("📋 Mapping summary", expanded=False):
-        for field_name, col_mapping in mapping_result.mappings.items():
-            source = col_mapping.source_column
-            badge_color = COLORS["primary"] if col_mapping.is_auto else COLORS["info"]
-            badge_text = "auto" if col_mapping.is_auto else "manual"
-            st.markdown(
-                f'<div style="padding: 4px 0; color: {COLORS["text"]};">'
-                f'<strong>{field_name}</strong> ← <code style="background: {COLORS["surface_light"]}; '
-                f'padding: 2px 6px; border-radius: 4px;">{source}</code> '
-                f'<span style="color: {badge_color}; font-size: 0.8rem;">({badge_text})</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-
-    # Unmapped columns in separate expander for cleaner display
-    if mapping_result.unmapped_columns:
-        count = len(mapping_result.unmapped_columns)
-        with st.expander(f"📁 {count} unmapped columns from file"):
-            cols_text = ", ".join(mapping_result.unmapped_columns)
-            st.markdown(
-                f'<p style="color: {COLORS["text_secondary"]}; font-size: 0.9rem;">{cols_text}</p>',
-                unsafe_allow_html=True,
-            )
 
     return has_errors
 
@@ -303,13 +318,17 @@ def render_masterdata_import() -> None:
         columns = st.session_state.masterdata_file_columns
         mapping = st.session_state.masterdata_mapping_result
 
-        # Data preview
+        # Data preview - constrained width at top
+        st.markdown('<div class="data-preview-container">', unsafe_allow_html=True)
         with st.expander("👁️ Data preview", expanded=False):
             reader = FileReader(st.session_state.masterdata_temp_path)
             preview_df = reader.get_preview(n_rows=5)
-            st.dataframe(preview_df.to_pandas(), width="stretch")
+            st.dataframe(preview_df.to_pandas(), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        # Mapping UI
+        render_spacer(8)
+
+        # Mapping UI (two-column layout with summary on right)
         updated_mapping = render_mapping_ui(
             file_columns=columns,
             mapping_result=mapping,
@@ -320,77 +339,84 @@ def render_masterdata_import() -> None:
         # Save updated mapping
         st.session_state.masterdata_mapping_result = updated_mapping
 
-        # Status
+        # Validation errors
         has_mapping_errors = render_mapping_status(updated_mapping)
 
-        # Weight unit selection
-        weight_unit_option = st.selectbox(
-            "Weight unit in source file",
-            options=["Auto-detect", "Grams (g)", "Kilograms (kg)"],
-            index=0,
-            key="md_weight_unit",
-            help="Select unit if auto-detection fails for light items",
-        )
+        render_spacer(12)
 
-        # Action buttons - Back on left, Import on right
-        btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
+        # Weight unit selection - constrained width
+        weight_col, _ = st.columns([2, 3])
+        with weight_col:
+            weight_unit_option = st.selectbox(
+                "Weight unit in source file",
+                options=["Auto-detect", "Grams (g)", "Kilograms (kg)"],
+                index=0,
+                key="md_weight_unit",
+                help="Select unit if auto-detection fails for light items",
+            )
 
-        with btn_col1:
+        # Action buttons - Back on left, Import aligned to right edge of right column
+        btn_col_left, btn_col_right = st.columns(2)
+
+        with btn_col_left:
             if st.button("Back", key="md_back_to_upload"):
                 st.session_state.masterdata_mapping_step = "upload"
                 st.session_state.masterdata_file_columns = None
                 st.session_state.masterdata_mapping_result = None
                 st.rerun()
 
-        with btn_col3:
-            import_disabled = not updated_mapping.is_complete or has_mapping_errors
-            if st.button(
-                "Import Masterdata",
-                key="md_do_import",
-                disabled=import_disabled,
-                type="primary",
-            ):
-                with st.spinner("Importing..."):
-                    try:
-                        # Map weight unit selection
-                        weight_unit_map = {
-                            "Auto-detect": None,
-                            "Grams (g)": WeightUnit.G,
-                            "Kilograms (kg)": WeightUnit.KG,
-                        }
-                        selected_weight_unit = weight_unit_map.get(weight_unit_option)
+        with btn_col_right:
+            # Inner columns to push button to right edge
+            _, btn_import = st.columns([2, 1])
+            with btn_import:
+                import_disabled = not updated_mapping.is_complete or has_mapping_errors
+                if st.button(
+                    "Import Masterdata",
+                    key="md_do_import",
+                    disabled=import_disabled,
+                    type="primary",
+                ):
+                    with st.spinner("Importing..."):
+                        try:
+                            # Map weight unit selection
+                            weight_unit_map = {
+                                "Auto-detect": None,
+                                "Grams (g)": WeightUnit.G,
+                                "Kilograms (kg)": WeightUnit.KG,
+                            }
+                            selected_weight_unit = weight_unit_map.get(weight_unit_option)
 
-                        pipeline = MasterdataIngestPipeline(
-                            weight_unit=selected_weight_unit,
-                        )
-                        result = pipeline.run(
-                            st.session_state.masterdata_temp_path,
-                            mapping=updated_mapping,
-                        )
-
-                        st.session_state.masterdata_df = result.df
-                        st.session_state.masterdata_mapping_step = "complete"
-
-                        # Record user corrections to history
-                        original = st.session_state.masterdata_original_mapping
-                        if original is not None and history_service is not None:
-                            wizard = create_masterdata_wizard(history_service)
-                            client_name = st.session_state.get("client_name", "")
-                            wizard.record_user_corrections(
-                                original, updated_mapping, client_name
+                            pipeline = MasterdataIngestPipeline(
+                                weight_unit=selected_weight_unit,
                             )
-                            history_service.save_history()
+                            result = pipeline.run(
+                                st.session_state.masterdata_temp_path,
+                                mapping=updated_mapping,
+                            )
 
-                        st.success(f"Imported {result.rows_imported} rows")
+                            st.session_state.masterdata_df = result.df
+                            st.session_state.masterdata_mapping_step = "complete"
 
-                        if result.warnings:
-                            for warning in result.warnings:
-                                st.warning(warning)
+                            # Record user corrections to history
+                            original = st.session_state.masterdata_original_mapping
+                            if original is not None and history_service is not None:
+                                wizard = create_masterdata_wizard(history_service)
+                                client_name = st.session_state.get("client_name", "")
+                                wizard.record_user_corrections(
+                                    original, updated_mapping, client_name
+                                )
+                                history_service.save_history()
 
-                        st.rerun()
+                            st.success(f"Imported {result.rows_imported} rows")
 
-                    except Exception as e:
-                        st.error(f"Import error: {e}")
+                            if result.warnings:
+                                for warning in result.warnings:
+                                    st.warning(warning)
+
+                            st.rerun()
+
+                        except Exception as e:
+                            st.error(f"Import error: {e}")
 
     # Step 3: Import complete
     elif step == "complete":
@@ -471,14 +497,18 @@ def render_orders_import() -> None:
         columns = st.session_state.orders_file_columns
         mapping = st.session_state.orders_mapping_result
 
-        # Data preview
+        # Data preview - constrained width at top
+        st.markdown('<div class="data-preview-container">', unsafe_allow_html=True)
         with st.expander("👁️ Data preview", expanded=False):
             from src.ingest import FileReader
             reader = FileReader(st.session_state.orders_temp_path)
             preview_df = reader.get_preview(n_rows=5)
-            st.dataframe(preview_df.to_pandas(), width="stretch")
+            st.dataframe(preview_df.to_pandas(), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        # Mapping UI
+        render_spacer(8)
+
+        # Mapping UI (two-column layout with summary on right)
         updated_mapping = render_mapping_ui(
             file_columns=columns,
             mapping_result=mapping,
@@ -489,58 +519,63 @@ def render_orders_import() -> None:
         # Save updated mapping
         st.session_state.orders_mapping_result = updated_mapping
 
-        # Status
+        # Validation errors
         has_mapping_errors = render_mapping_status(updated_mapping)
 
-        # Action buttons - Back on left, Import on right
-        btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
+        render_spacer(12)
 
-        with btn_col1:
+        # Action buttons - Back on left, Import aligned to right edge of right column
+        btn_col_left, btn_col_right = st.columns(2)
+
+        with btn_col_left:
             if st.button("Back", key="orders_back_to_upload"):
                 st.session_state.orders_mapping_step = "upload"
                 st.session_state.orders_file_columns = None
                 st.session_state.orders_mapping_result = None
                 st.rerun()
 
-        with btn_col3:
-            import_disabled = not updated_mapping.is_complete or has_mapping_errors
-            if st.button(
-                "Import Orders",
-                key="orders_do_import",
-                disabled=import_disabled,
-                type="primary",
-            ):
-                with st.spinner("Importing..."):
-                    try:
-                        pipeline = OrdersIngestPipeline()
-                        result = pipeline.run(
-                            st.session_state.orders_temp_path,
-                            mapping=updated_mapping,
-                        )
-
-                        st.session_state.orders_df = result.df
-                        st.session_state.orders_mapping_step = "complete"
-
-                        # Record user corrections to history
-                        original = st.session_state.orders_original_mapping
-                        if original is not None and history_service is not None:
-                            wizard = create_orders_wizard(history_service)
-                            client_name = st.session_state.get("client_name", "")
-                            wizard.record_user_corrections(
-                                original, updated_mapping, client_name
+        with btn_col_right:
+            # Inner columns to push button to right edge
+            _, btn_import = st.columns([2, 1])
+            with btn_import:
+                import_disabled = not updated_mapping.is_complete or has_mapping_errors
+                if st.button(
+                    "Import Orders",
+                    key="orders_do_import",
+                    disabled=import_disabled,
+                    type="primary",
+                ):
+                    with st.spinner("Importing..."):
+                        try:
+                            pipeline = OrdersIngestPipeline()
+                            result = pipeline.run(
+                                st.session_state.orders_temp_path,
+                                mapping=updated_mapping,
                             )
-                            history_service.save_history()
 
-                        st.success(f"Imported {result.rows_imported} rows")
+                            st.session_state.orders_df = result.df
+                            st.session_state.orders_mapping_step = "complete"
 
-                        if result.warnings:
-                            for warning in result.warnings:
-                                st.warning(warning)
+                            # Record user corrections to history
+                            original = st.session_state.orders_original_mapping
+                            if original is not None and history_service is not None:
+                                wizard = create_orders_wizard(history_service)
+                                client_name = st.session_state.get("client_name", "")
+                                wizard.record_user_corrections(
+                                    original, updated_mapping, client_name
+                                )
+                                history_service.save_history()
 
-                        st.rerun()
+                            st.success(f"Imported {result.rows_imported} rows")
 
-                    except Exception as e:
-                        st.error(f"Import error: {e}")
+                            if result.warnings:
+                                for warning in result.warnings:
+                                    st.warning(warning)
+
+                            st.rerun()
+
+                        except Exception as e:
+                            st.error(f"Import error: {e}")
 
     # Step 3: Import complete
     elif step == "complete":

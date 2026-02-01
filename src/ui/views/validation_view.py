@@ -17,7 +17,7 @@ def render_validation_view(show_header: bool = True) -> None:
         st.header("✅ Validation")
 
     if st.session_state.masterdata_df is None:
-        st.info("First import Masterdata in the Import tab")
+        st.info("Import Masterdata in the Import tab first")
         return
 
     if st.button("Run validation", key="run_validation", type="primary"):

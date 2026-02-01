@@ -746,6 +746,101 @@ def get_custom_css() -> str:
         box-shadow: none !important;
         outline: none !important;
     }}
+
+    /* ===== Desktop Layout Constraint ===== */
+
+    /* 1. Główny kontener - ograniczenie i centrowanie */
+    [data-testid="block-container"],
+    .block-container {{
+        max-width: 1400px !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+        margin: 0 auto !important;
+    }}
+
+    /* 2. Komponenty formularzy - max szerokość */
+    [data-testid="stFileUploader"] {{
+        max-width: 600px !important;
+    }}
+
+    .stSelectbox {{
+        max-width: 400px !important;
+    }}
+
+    .stNumberInput {{
+        max-width: 200px !important;
+    }}
+
+    .stTextInput {{
+        max-width: 400px !important;
+    }}
+
+    /* 3. Przyciski - naturalna szerokość (bez stretch) */
+    .stButton > button {{
+        width: auto !important;
+        min-width: 120px !important;
+    }}
+
+    /* 4. Wykresy i tabele - pełna szerokość w obrębie kontenera */
+    [data-testid="stDataFrame"],
+    [data-testid="stPlotlyChart"],
+    .stDataFrame {{
+        width: 100% !important;
+    }}
+
+    /* 5. Responsywność - na mniejszych ekranach pełna szerokość */
+    @media (max-width: 1500px) {{
+        [data-testid="block-container"],
+        .block-container {{
+            max-width: 100% !important;
+            padding-left: 1.5rem !important;
+            padding-right: 1.5rem !important;
+        }}
+    }}
+
+    @media (max-width: 768px) {{
+        [data-testid="stFileUploader"],
+        .stSelectbox,
+        .stNumberInput,
+        .stTextInput {{
+            max-width: 100% !important;
+        }}
+    }}
+
+    /* ===== Import Section Layout ===== */
+
+    /* Data preview container - constrained width */
+    .data-preview-container {{
+        max-width: 600px !important;
+    }}
+
+    .data-preview-container .streamlit-expanderHeader {{
+        max-width: 100% !important;
+    }}
+
+    /* Progress bar in mapping section - shorter */
+    .mapping-progress {{
+        max-width: 400px !important;
+    }}
+
+    .mapping-progress .stProgress {{
+        max-width: 100% !important;
+    }}
+
+    /* Mapping summary panel - right column styling */
+    .mapping-summary-panel {{
+        background-color: {COLORS["surface_elevated"]};
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        border: 1px solid {COLORS["border"]};
+        margin-bottom: 0.5rem;
+    }}
+
+    /* Compact field status badges */
+    .mapping-progress + div .stColumns > div:first-child {{
+        max-width: 90px !important;
+        min-width: 70px !important;
+    }}
     </style>
     """
 
