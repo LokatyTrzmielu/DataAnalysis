@@ -14,4 +14,13 @@
 
 6. **No Speculation**: Never speculate about code you have not opened. If the user references a specific file, read it first before answering. Investigate and read relevant files BEFORE answering questions about the codebase. Never make claims about code before investigating - give grounded and hallucination-free answers.
 
-7. **Update files**: After every changes, update the files in folder @Dev to keep track of progress.
+7. **Your context windows**: Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, do not stop tasks early due to token budget concerns. As you approach your token budget limit, save your current progress and state to memory before the context window refreshes. Always be as persistent and autonomous as possible and complete tasks fully, even if the end of your budget is approaching. Never artificially stop any task early regardless of the context remaining.
+
+8. **Update files**: After every changes, update the files in folder @Dev to keep track of progress.
+
+9. **Session Type First**: At the beginning of each session, determine the type of work to be done and create appropriate branch:
+   - **Feature** (new functionality) → branch `feature/nazwa`
+   - **Fix** (bug fix) → branch `fix/nazwa`
+   - **Refactor** (refactoring) → branch `refactor/nazwa`
+   - **Experiment** (experiment) → branch `exp/nazwa`
+   - **Minor** (small changes) → directly on `main`
