@@ -42,7 +42,19 @@
       "WebFetch(domain:docs.streamlit.io)",
       "WebFetch(domain:github.com)",
       "Bash(streamlit cache:*)",
-      "WebFetch(domain:discuss.streamlit.io)"
+      "WebFetch(domain:discuss.streamlit.io)",
+      "Bash(npx claude-plugins install:*)",
+      "Bash(gh label create:*)",
+      "Bash(powershell.exe -Command \"gh --version\")",
+      "Bash(powershell.exe -Command \"winget install GitHub.cli --accept-package-agreements --accept-source-agreements\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' auth status\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' label create ''feature'' --color ''0E8A16'' --description ''Nowa funkcjonalność''\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' label create ''bug'' --color ''D73A4A'' --description ''Naprawa błędu''\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' label create ''refactor'' --color ''0366D6'' --description ''Refaktoryzacja kodu''\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' label create ''bug'' --color ''D73A4A'' --description ''Naprawa błędu'' --force\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' issue create --title ''[feature] Test GitHub Issues Workflow'' --body ''Testowe issue do weryfikacji działania workflow. Można zamknąć po sprawdzeniu.'' --label ''feature''\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' issue list --state open\")",
+      "Bash(powershell.exe -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' label list\")"
     ]
   },
   "outputStyle": "default"
