@@ -172,7 +172,8 @@ def render_performance_view() -> None:
                 st.session_state.performance_result = result
                 st.session_state.analysis_complete = True
 
-                st.success("Performance analysis complete")
+                st.toast("Performance analysis complete", icon="✅")
+                st.rerun()
 
             except Exception as e:
                 st.error(f"Error: {e}")

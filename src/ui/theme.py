@@ -841,6 +841,145 @@ def get_custom_css() -> str:
         max-width: 90px !important;
         min-width: 70px !important;
     }}
+
+    /* ===== Sidebar Pipeline Status Styling ===== */
+
+    /* Status section container */
+    .sidebar-status-section {{
+        background-color: {COLORS["background"]};
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+    }}
+
+    .sidebar-status-section .section-title {{
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: {COLORS["text"]};
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.75rem;
+    }}
+
+    .sidebar-status-section .section-icon {{
+        font-size: 0.9rem;
+    }}
+
+    /* Pipeline container */
+    .sidebar-pipeline {{
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding-left: 0.25rem;
+    }}
+
+    /* Pipeline step */
+    .pipeline-step {{
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        position: relative;
+        padding-bottom: 0.5rem;
+    }}
+
+    .pipeline-step:last-child {{
+        padding-bottom: 0;
+    }}
+
+    /* Vertical connector line */
+    .pipeline-step:not(:last-child)::before {{
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 16px;
+        width: 2px;
+        height: calc(100% - 4px);
+        background-color: {COLORS["border"]};
+        transition: background-color 0.3s ease;
+    }}
+
+    .pipeline-step.connector-success:not(:last-child)::before {{
+        background-color: {STATUS_COLORS["success"]};
+    }}
+
+    /* Pipeline indicator (circle) */
+    .pipeline-indicator {{
+        width: 14px;
+        height: 14px;
+        min-width: 14px;
+        border-radius: 50%;
+        border: 2px solid;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 2px;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }}
+
+    .pipeline-indicator.pending {{
+        border-color: {STATUS_COLORS["pending"]};
+        background-color: transparent;
+    }}
+
+    .pipeline-indicator.success {{
+        border-color: {STATUS_COLORS["success"]};
+        background-color: {STATUS_COLORS["success"]};
+    }}
+
+    .pipeline-indicator.in_progress {{
+        border-color: {STATUS_COLORS["in_progress"]};
+        background-color: {STATUS_COLORS["in_progress"]};
+        animation: pulse-status 1.5s ease-in-out infinite;
+    }}
+
+    .pipeline-indicator.failed {{
+        border-color: {STATUS_COLORS["failed"]};
+        background-color: {STATUS_COLORS["failed"]};
+    }}
+
+    /* Checkmark inside success indicator */
+    .pipeline-indicator.success::after {{
+        content: '✓';
+        font-size: 8px;
+        color: {COLORS["background"]};
+        font-weight: bold;
+    }}
+
+    /* Step content */
+    .pipeline-step-content {{
+        flex: 1;
+        min-width: 0;
+    }}
+
+    .pipeline-step-name {{
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: {COLORS["text"]};
+        line-height: 1.2;
+    }}
+
+    .pipeline-step-detail {{
+        font-size: 0.7rem;
+        color: {COLORS["text_secondary"]};
+        margin-top: 0.15rem;
+        line-height: 1.2;
+    }}
+
+    /* Pulse animation for in_progress state */
+    @keyframes pulse-status {{
+        0%, 100% {{
+            opacity: 1;
+            transform: scale(1);
+        }}
+        50% {{
+            opacity: 0.6;
+            transform: scale(0.9);
+        }}
+    }}
     </style>
     """
 

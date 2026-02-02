@@ -70,7 +70,8 @@ def render_validation_view(show_header: bool = True) -> None:
                 st.session_state.quality_result = result
                 st.session_state.masterdata_df = result.df
 
-                st.success("Validation complete")
+                st.toast("Validation complete", icon="✅")
+                st.rerun()
 
             except Exception as e:
                 st.error(f"Validation error: {e}")

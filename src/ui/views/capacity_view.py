@@ -373,7 +373,8 @@ def render_capacity_view() -> None:
                 st.session_state.capacity_prioritization_mode = prioritization_mode
                 st.session_state.capacity_threshold_used = borderline_threshold
 
-                st.success("Capacity analysis complete")
+                st.toast("Capacity analysis complete", icon="✅")
+                st.rerun()
 
             except Exception as e:
                 st.error(f"Error: {e}")
