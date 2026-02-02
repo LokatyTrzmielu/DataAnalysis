@@ -11,6 +11,18 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-02 15:00] - Fix
+- Naprawa wyświetlania Borderline count w Validation view:
+  - Zmiana domyślnej wartości `borderline_threshold` z 0 na 2.0 w session_state.get()
+  - Niespójność powodowała pokazywanie 0 borderline issues mimo wykrycia
+  - Teraz zgodna z wartościami domyślnymi w capacity_view.py (2.0) i app.py (2.0)
+- Weryfikacja przepływu outlier validation → capacity analysis:
+  - Rotation-aware detection działa poprawnie (6 rotacji)
+  - Outlier SKUs są poprawnie wykluczane z capacity analysis
+  - Quality Score penalty (0.5/issue, max 30) działa poprawnie
+- Plik: src/ui/views/validation_view.py:150
+- Branch: main (minor)
+
 ### [2026-02-02 13:30] - Feature
 - Rozszerzenie Pipeline Sidebar o status "in_progress" (pulsujące niebieskie kółko):
   - CAPACITY: Masterdata (mapping...), Validation (configuring...), Analysis (configuring...)

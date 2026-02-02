@@ -147,7 +147,7 @@ def _render_validation_results() -> None:
     )
     borderline_count = (
         len(dq.high_risk_borderline)
-        if st.session_state.get("borderline_threshold", 0) > 0
+        if st.session_state.get("borderline_threshold", 2.0) > 0
         else 0
     )
     problems = {
