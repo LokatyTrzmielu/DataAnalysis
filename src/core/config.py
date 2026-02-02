@@ -37,13 +37,12 @@ BORDERLINE_THRESHOLD_MM: Final[float] = 2.0  # mm - threshold for BORDERLINE fit
 # are detected using rotation-aware checking - an item is only an outlier
 # if it cannot fit in ANY active carrier with ANY of 6 possible rotations.
 #
-# Note: All dimension max values set to largest carrier dimension (3650mm)
-# because with rotation, any single dimension could potentially fit along
-# the largest carrier axis.
+# Note: Width and height max values are set to typical carrier constraints,
+# while length max remains at largest carrier dimension (3650mm).
 OUTLIER_THRESHOLDS: Final[dict[str, dict[str, float]]] = {
     "length_mm": {"min": 0.001, "max": 3650.0},
-    "width_mm": {"min": 0.001, "max": 3650.0},
-    "height_mm": {"min": 0.001, "max": 3650.0},
+    "width_mm": {"min": 0.001, "max": 864.0},
+    "height_mm": {"min": 0.001, "max": 500.0},
     "weight_kg": {"min": 0.001, "max": 500.0},
     "stock_qty": {"min": 0.0, "max": 1_000_000.0},
 }

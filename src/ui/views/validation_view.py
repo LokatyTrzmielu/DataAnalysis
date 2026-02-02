@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.core.config import OUTLIER_THRESHOLDS
 from src.ui.layout import render_bold_label, render_divider, render_section_header
 
 
@@ -27,23 +28,23 @@ def render_validation_view(show_header: bool = True) -> None:
                 from src.quality.impute import ImputationMethod
                 from src.core.carriers import load_carriers
 
-                # Build outlier thresholds from session state
+                # Build outlier thresholds from session state (with config defaults as fallback)
                 outlier_thresholds = {
                     "length_mm": {
-                        "min": st.session_state.get("outlier_length_min", 1),
-                        "max": st.session_state.get("outlier_length_max", 3000),
+                        "min": st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"]),
+                        "max": st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"]),
                     },
                     "width_mm": {
-                        "min": st.session_state.get("outlier_width_min", 1),
-                        "max": st.session_state.get("outlier_width_max", 3000),
+                        "min": st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"]),
+                        "max": st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"]),
                     },
                     "height_mm": {
-                        "min": st.session_state.get("outlier_height_min", 1),
-                        "max": st.session_state.get("outlier_height_max", 2000),
+                        "min": st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"]),
+                        "max": st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"]),
                     },
                     "weight_kg": {
-                        "min": st.session_state.get("outlier_weight_min", 0.001),
-                        "max": st.session_state.get("outlier_weight_max", 500.0),
+                        "min": st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"]),
+                        "max": st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"]),
                     },
                 }
 
