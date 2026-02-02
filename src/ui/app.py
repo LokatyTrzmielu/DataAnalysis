@@ -265,14 +265,23 @@ def _render_capacity_validation() -> None:
             )
 
             # Borderline threshold
-            st.session_state.borderline_threshold = st.slider(
+            current_threshold = st.session_state.get("borderline_threshold", 2.0)
+            new_threshold = st.slider(
                 "Borderline threshold (mm)",
                 min_value=0.5,
                 max_value=10.0,
-                value=st.session_state.get("borderline_threshold", 2.0),
+                value=current_threshold,
                 step=0.5,
                 help="Threshold for marking SKU as BORDERLINE (close to carrier limit)",
+                key="borderline_threshold_slider",
             )
+
+            # Invalidate cache if threshold changed
+            if new_threshold != current_threshold:
+                st.session_state.borderline_threshold = new_threshold
+                st.session_state.capacity_result = None
+            elif "borderline_threshold" not in st.session_state:
+                st.session_state.borderline_threshold = new_threshold
 
         with col2:
             # Imputation

@@ -371,6 +371,7 @@ def render_capacity_view() -> None:
                 st.session_state.capacity_result = result
                 st.session_state.capacity_excluded_outliers = excluded_outliers_count
                 st.session_state.capacity_prioritization_mode = prioritization_mode
+                st.session_state.capacity_threshold_used = borderline_threshold
 
                 st.success("Capacity analysis complete")
 
@@ -658,6 +659,16 @@ def _render_capacity_results() -> None:
     """Display capacity analysis results."""
     result = st.session_state.capacity_result
     is_prioritized = st.session_state.get("capacity_prioritization_mode", False)
+
+    # Check if settings changed since last analysis
+    threshold_used = st.session_state.get("capacity_threshold_used", 2.0)
+    current_threshold = st.session_state.get("borderline_threshold", 2.0)
+
+    if threshold_used != current_threshold:
+        st.warning(
+            f"Settings changed. Results calculated with threshold {threshold_used} mm, "
+            f"current setting is {current_threshold} mm. Re-run analysis to update."
+        )
 
     render_divider()
 
