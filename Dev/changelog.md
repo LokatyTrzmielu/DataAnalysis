@@ -11,6 +11,14 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-02 10:15] - Minor
+- Aktualizacja progów walidacji outlierów w sekcji Capacity - Validation:
+  - Width max: 3650mm → 864mm
+  - Height max: 3650mm → 500mm
+- Naprawa validation_view.py - użycie OUTLIER_THRESHOLDS z config jako fallback zamiast zahardkodowanych wartości
+- Pliki: src/core/config.py, src/ui/views/validation_view.py
+- Commit: 0bbd52b
+
 ### [2026-02-01 15:30] - Refactor
 - Poprawki layoutu sekcji Import (Column Mapping):
   - Data preview: expander na górze z ograniczoną szerokością (max 600px)
