@@ -308,7 +308,7 @@ def render_capacity_view() -> None:
     # Exclusion settings
     outlier_count = 0
     if st.session_state.quality_result is not None:
-        outlier_count = len(st.session_state.quality_result.dq_lists.suspect_outliers)
+        outlier_count = len({item.sku for item in st.session_state.quality_result.dq_lists.suspect_outliers})
 
     with st.expander(
         f"⚠️ Exclusion settings ({outlier_count} outliers)" if outlier_count > 0 else "⚠️ Exclusion settings",

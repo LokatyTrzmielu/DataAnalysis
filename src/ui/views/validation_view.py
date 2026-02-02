@@ -141,7 +141,7 @@ def _render_validation_results() -> None:
     dq = result.dq_lists
     # Show 0 for Outliers/Borderline when validation is disabled
     outliers_count = (
-        len(dq.suspect_outliers)
+        len({item.sku for item in dq.suspect_outliers})
         if st.session_state.get("outlier_validation_enabled", True)
         else 0
     )
