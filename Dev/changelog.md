@@ -11,6 +11,28 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-02 13:30] - Feature
+- Rozszerzenie Pipeline Sidebar o status "in_progress" (pulsujące niebieskie kółko):
+  - CAPACITY: Masterdata (mapping...), Validation (configuring...), Analysis (configuring...)
+  - PERFORMANCE: Orders (mapping...), Validation (configuring...), Analysis (configuring...)
+  - Warunki in_progress:
+    - Masterdata/Orders: gdy `mapping_step == "mapping"` (użytkownik mapuje kolumny)
+    - Validation: gdy użytkownik jest w zakładce Validation i nie ma jeszcze wyniku
+    - Analysis: gdy użytkownik jest w zakładce Analysis i nie ma jeszcze wyniku
+  - Dodano tracking aktywnej zakładki: `capacity_active_tab`, `performance_active_tab`
+- Pliki: src/ui/app.py
+- Branch: main (minor)
+
+### [2026-02-02 11:45] - Feature
+- Sidebar Status Pipeline - hierarchiczny widok statusu w sidebarze z wizualną timeline:
+  - CAPACITY: Masterdata → Validation → Analysis
+  - PERFORMANCE: Orders → Validation → Analysis
+  - Wskaźniki statusu: zielone wypełnione (success), żółte puste (pending), pulsujące niebieskie (in_progress)
+  - Pionowe linie łączące (zielone gdy krok powyżej ukończony)
+  - Szczegóły kroków (np. "1,234 SKU loaded", "complete", "pending")
+- Pliki: src/ui/theme.py (CSS ~60 linii), src/ui/layout.py (3 funkcje), src/ui/app.py (status functions + sidebar update)
+- Branch: main (minor)
+
 ### [2026-02-02 10:15] - Minor
 - Aktualizacja progów walidacji outlierów w sekcji Capacity - Validation:
   - Width max: 3650mm → 864mm

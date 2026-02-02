@@ -35,7 +35,7 @@ from src.ui.views import (
     render_reports_view,
 )
 from src.ui.theme import apply_theme
-from src.ui.layout import render_bold_label, render_divider
+from src.ui.layout import render_bold_label, render_divider, render_sidebar_status_section
 
 # Navigation constants
 SECTIONS = {
@@ -77,6 +77,9 @@ def init_session_state() -> None:
         "orders_original_mapping": None,
         "orders_temp_path": None,
         "orders_mapping_step": "upload",
+        # Active tab tracking for in_progress status
+        "capacity_active_tab": "import",
+        "performance_active_tab": "import",
         # Mapping history service (singleton)
         "mapping_history_service": None,
         # Custom carriers for capacity analysis
@@ -125,6 +128,192 @@ def init_session_state() -> None:
         st.session_state.carriers_loaded = True
 
 
+def get_capacity_status() -> list[dict]:
+    """Calculate capacity pipeline status from session_state.
+
+    Returns:
+        List of step dicts with name, status, and detail fields.
+        Status can be: "success", "in_progress", or "pending".
+    """
+    steps = []
+    masterdata_df = st.session_state.get("masterdata_df")
+    quality_result = st.session_state.get("quality_result")
+    capacity_result = st.session_state.get("capacity_result")
+    mapping_step = st.session_state.get("masterdata_mapping_step", "upload")
+    active_tab = st.session_state.get("capacity_active_tab", "import")
+
+    # Step 1: Masterdata
+    if masterdata_df is not None:
+        count = len(masterdata_df)
+        steps.append({
+            "name": "Masterdata",
+            "status": "success",
+            "detail": f"{count:,} SKU loaded",
+        })
+    elif mapping_step == "mapping":
+        steps.append({
+            "name": "Masterdata",
+            "status": "in_progress",
+            "detail": "mapping...",
+        })
+    else:
+        steps.append({
+            "name": "Masterdata",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    # Step 2: Validation
+    if quality_result is not None:
+        steps.append({
+            "name": "Validation",
+            "status": "success",
+            "detail": "complete",
+        })
+    elif masterdata_df is not None and active_tab == "validation":
+        steps.append({
+            "name": "Validation",
+            "status": "in_progress",
+            "detail": "configuring...",
+        })
+    elif masterdata_df is not None:
+        steps.append({
+            "name": "Validation",
+            "status": "pending",
+            "detail": "ready",
+        })
+    else:
+        steps.append({
+            "name": "Validation",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    # Step 3: Analysis
+    if capacity_result is not None:
+        steps.append({
+            "name": "Analysis",
+            "status": "success",
+            "detail": "complete",
+        })
+    elif quality_result is not None and active_tab == "analysis":
+        steps.append({
+            "name": "Analysis",
+            "status": "in_progress",
+            "detail": "configuring...",
+        })
+    elif quality_result is not None:
+        steps.append({
+            "name": "Analysis",
+            "status": "pending",
+            "detail": "ready",
+        })
+    else:
+        steps.append({
+            "name": "Analysis",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    return steps
+
+
+def get_performance_status() -> list[dict]:
+    """Calculate performance pipeline status from session_state.
+
+    Performance has its own independent pipeline, separate from Capacity.
+
+    Returns:
+        List of step dicts with name, status, and detail fields.
+        Status can be: "success", "in_progress", or "pending".
+    """
+    steps = []
+    orders_df = st.session_state.get("orders_df")
+    performance_result = st.session_state.get("performance_result")
+    mapping_step = st.session_state.get("orders_mapping_step", "upload")
+    active_tab = st.session_state.get("performance_active_tab", "import")
+
+    # Step 1: Orders
+    if orders_df is not None:
+        count = len(orders_df)
+        steps.append({
+            "name": "Orders",
+            "status": "success",
+            "detail": f"{count:,} lines loaded",
+        })
+    elif mapping_step == "mapping":
+        steps.append({
+            "name": "Orders",
+            "status": "in_progress",
+            "detail": "mapping...",
+        })
+    else:
+        steps.append({
+            "name": "Orders",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    # Step 2: Validation
+    if orders_df is not None and active_tab == "validation":
+        steps.append({
+            "name": "Validation",
+            "status": "in_progress",
+            "detail": "configuring...",
+        })
+    elif orders_df is not None:
+        steps.append({
+            "name": "Validation",
+            "status": "success",
+            "detail": "ready",
+        })
+    else:
+        steps.append({
+            "name": "Validation",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    # Step 3: Analysis
+    if performance_result is not None:
+        steps.append({
+            "name": "Analysis",
+            "status": "success",
+            "detail": "complete",
+        })
+    elif orders_df is not None and active_tab == "analysis":
+        steps.append({
+            "name": "Analysis",
+            "status": "in_progress",
+            "detail": "configuring...",
+        })
+    elif orders_df is not None:
+        steps.append({
+            "name": "Analysis",
+            "status": "pending",
+            "detail": "ready",
+        })
+    else:
+        steps.append({
+            "name": "Analysis",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    return steps
+
+
+def render_sidebar_status() -> None:
+    """Render both Capacity and Performance pipeline status sections."""
+    # Capacity pipeline
+    capacity_steps = get_capacity_status()
+    render_sidebar_status_section("CAPACITY", capacity_steps, icon="📦")
+
+    # Performance pipeline
+    performance_steps = get_performance_status()
+    render_sidebar_status_section("PERFORMANCE", performance_steps, icon="📈")
+
+
 def render_sidebar() -> None:
     """Render sidebar with navigation."""
     with st.sidebar:
@@ -151,18 +340,9 @@ def render_sidebar() -> None:
 
         render_divider()
 
-        # Status badges (always visible)
+        # Pipeline status sections
         st.markdown("### Status")
-        if st.session_state.masterdata_df is not None:
-            st.markdown(f"✅ Masterdata: {len(st.session_state.masterdata_df)} SKU")
-        else:
-            st.markdown("ℹ️ Masterdata: Not loaded")
-        if st.session_state.orders_df is not None:
-            st.markdown(f"✅ Orders: {len(st.session_state.orders_df)} lines")
-        else:
-            st.markdown("ℹ️ Orders: Not loaded")
-        if st.session_state.analysis_complete:
-            st.markdown("✅ Analysis complete")
+        render_sidebar_status()
 
 
 def render_main_content() -> None:
@@ -222,16 +402,15 @@ def _render_capacity_section() -> None:
     tabs = st.tabs(["Import", "Validation", "Analysis"])
 
     with tabs[0]:
-        # For now, render masterdata part of import view
-        # Will be split in Etap 2
+        st.session_state.capacity_active_tab = "import"
         _render_capacity_import()
 
     with tabs[1]:
-        # For now, render masterdata validation
-        # Will be split in Etap 2
+        st.session_state.capacity_active_tab = "validation"
         _render_capacity_validation()
 
     with tabs[2]:
+        st.session_state.capacity_active_tab = "analysis"
         render_capacity_view()
 
 
@@ -375,12 +554,15 @@ def _render_performance_section() -> None:
     tabs = st.tabs(["Import", "Validation", "Analysis"])
 
     with tabs[0]:
+        st.session_state.performance_active_tab = "import"
         _render_performance_import()
 
     with tabs[1]:
+        st.session_state.performance_active_tab = "validation"
         _render_performance_validation()
 
     with tabs[2]:
+        st.session_state.performance_active_tab = "analysis"
         render_performance_view()
 
 
