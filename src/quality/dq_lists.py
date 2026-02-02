@@ -127,34 +127,27 @@ class DQListBuilder:
     def _find_suspect_outliers(self, df: pl.DataFrame) -> list[DQListItem]:
         """Find SKUs with suspicious values (outliers).
 
-        For dimensional fields, uses rotation-aware checking if carriers are
-        configured - an item is only a suspect outlier if it cannot fit in
-        ANY active carrier with ANY rotation.
+        Uses two complementary detection methods:
+        1. Static thresholds - ALWAYS applied for ALL fields (dimensions + weight)
+        2. Rotation-aware carrier fit - ADDITIONALLY applied if carriers configured
 
-        For non-dimensional fields (weight_kg), uses static thresholds.
+        This ensures static thresholds are never bypassed, while still providing
+        the rotation-aware check for items that don't fit any carrier.
         """
         items: list[DQListItem] = []
 
         if not self.enable_outlier_detection:
             return items
 
-        dimension_fields = ["length_mm", "width_mm", "height_mm"]
+        # ALWAYS apply static thresholds for ALL fields
+        for field, thresholds in self.outlier_thresholds.items():
+            if field not in df.columns:
+                continue
+            items.extend(self._find_static_outliers(df, field, thresholds))
 
-        # If carriers configured, use rotation-aware check for dimensions
+        # ADDITIONALLY check rotation-aware for dimensions (if carriers configured)
         if self.carriers:
             items.extend(self._find_dimensional_outliers_with_rotation(df))
-
-            # For non-dimensional fields (weight), use static thresholds
-            for field, thresholds in self.outlier_thresholds.items():
-                if field in dimension_fields or field not in df.columns:
-                    continue
-                items.extend(self._find_static_outliers(df, field, thresholds))
-        else:
-            # Fallback: use static thresholds for all fields
-            for field, thresholds in self.outlier_thresholds.items():
-                if field not in df.columns:
-                    continue
-                items.extend(self._find_static_outliers(df, field, thresholds))
 
         return items
 

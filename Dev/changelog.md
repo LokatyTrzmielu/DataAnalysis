@@ -11,6 +11,15 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-02 16:00] - Fix
+- Naprawa ignorowania statycznych progów outlier dla wymiarów gdy skonfigurowane są carriery:
+  - Problem: Zmiana progów (np. Width max = 1mm) nie miała efektu przy aktywnych carrierach
+  - Przyczyna: Logika `if/else` pomijała static thresholds dla dimension_fields gdy carriers istniały
+  - Rozwiązanie: Zmiana logiki na **ZAWSZE static thresholds + opcjonalnie rotation-aware**
+  - Teraz static thresholds zawsze działają, a rotation-aware jest dodatkowym sprawdzeniem
+- Pliki: src/quality/dq_lists.py:127-159, src/quality/validators.py:251-283
+- Branch: main (minor fix)
+
 ### [2026-02-02 15:00] - Fix
 - Naprawa wyświetlania Borderline count w Validation view:
   - Zmiana domyślnej wartości `borderline_threshold` z 0 na 2.0 w session_state.get()
