@@ -98,6 +98,53 @@ class DQListBuilder:
             collisions=[],  # Collisions are detected in the ingest module
         )
 
+    def build_validation_lists(self, df: pl.DataFrame) -> DQLists:
+        """Build DQ lists for validation step (no outliers/borderline).
+
+        This method is used in the validation pipeline where outlier and
+        borderline detection is not performed (moved to capacity analysis).
+
+        Args:
+            df: DataFrame with Masterdata
+
+        Returns:
+            DQLists with missing_critical, duplicates, conflicts only
+        """
+        return DQLists(
+            missing_critical=self._find_missing_critical(df),
+            suspect_outliers=[],  # Handled in capacity analysis
+            high_risk_borderline=[],  # Handled in capacity analysis
+            duplicates=self._find_duplicates(df),
+            conflicts=self._find_conflicts(df),
+            collisions=[],
+        )
+
+    def build_capacity_lists(
+        self,
+        df: pl.DataFrame,
+        carrier_limits: Optional[dict[str, float]] = None,
+    ) -> DQLists:
+        """Build DQ lists for capacity step (outliers and borderline only).
+
+        This method is used in capacity analysis where outlier detection
+        uses rotation-aware fitting with configured carriers.
+
+        Args:
+            df: DataFrame with Masterdata
+            carrier_limits: Carrier limits for borderline detection
+
+        Returns:
+            DQLists with suspect_outliers and high_risk_borderline only
+        """
+        return DQLists(
+            missing_critical=[],  # Handled in validation
+            suspect_outliers=self._find_suspect_outliers(df),
+            high_risk_borderline=self._find_high_risk_borderline(df, carrier_limits),
+            duplicates=[],  # Handled in validation
+            conflicts=[],  # Handled in validation
+            collisions=[],
+        )
+
     def _find_missing_critical(self, df: pl.DataFrame) -> list[DQListItem]:
         """Find SKUs with missing critical data."""
         items: list[DQListItem] = []

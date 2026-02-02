@@ -103,11 +103,15 @@ class TestMasterdataValidator:
         assert len(negative_issues) == 1
         assert negative_issues[0].original_value == "-50.0"
 
-    def test_validate_outliers(self):
-        """Test walidacji outlierow."""
+    def test_validate_no_outliers_in_validator(self):
+        """Test that outlier validation is NOT done in MasterdataValidator.
+
+        Outlier detection has been moved to Capacity Analysis (DQListBuilder)
+        where it uses rotation-aware carrier fitting for more accurate detection.
+        """
         df = pl.DataFrame({
             "sku": ["SKU1", "SKU2"],
-            "length_mm": [100.0, 5000.0],  # 5000 jest outlierem
+            "length_mm": [100.0, 5000.0],  # 5000 would be outlier, but not checked here
             "width_mm": [50.0, 100.0],
             "height_mm": [30.0, 60.0],
             "weight_kg": [1.5, 3.0],
@@ -116,9 +120,9 @@ class TestMasterdataValidator:
         validator = MasterdataValidator()
         result = validator.validate(df)
 
+        # MasterdataValidator no longer checks outliers - moved to Capacity Analysis
         outlier_issues = [i for i in result.issues if i.issue_type == ValidationIssueType.OUTLIER]
-        assert len(outlier_issues) == 1
-        assert outlier_issues[0].field == "length_mm"
+        assert len(outlier_issues) == 0
 
     def test_mark_as_missing_zero(self):
         """Test zamiany zer na NULL."""

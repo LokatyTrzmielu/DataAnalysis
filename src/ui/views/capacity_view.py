@@ -7,6 +7,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.core.config import OUTLIER_THRESHOLDS
 from src.core.types import CarrierConfig
 from src.ui.layout import (
     apply_plotly_dark_theme,
@@ -18,6 +19,182 @@ from src.ui.layout import (
     render_status_button,
 )
 from src.ui.theme import COLORS
+
+
+def render_data_quality_settings() -> None:
+    """Render Data Quality Settings section with outlier and borderline configuration."""
+    # Get current outlier count from capacity_dq_result
+    outlier_count = 0
+    borderline_count = 0
+    if st.session_state.get("capacity_dq_result") is not None:
+        dq = st.session_state.capacity_dq_result
+        outlier_count = len({item.sku for item in dq.suspect_outliers})
+        borderline_count = len(dq.high_risk_borderline)
+
+    # Build expander title with counts
+    title_parts = ["🔍 Data Quality Settings"]
+    if outlier_count > 0 or borderline_count > 0:
+        title_parts.append(f"({outlier_count} outliers, {borderline_count} borderline)")
+
+    with st.expander(" ".join(title_parts), expanded=outlier_count > 0):
+        # Outlier validation toggle
+        st.session_state.outlier_validation_enabled = st.checkbox(
+            "Enable outlier detection",
+            value=st.session_state.get("outlier_validation_enabled", True),
+            help="Detect SKUs with values outside acceptable ranges using configured carriers",
+        )
+
+        if st.session_state.outlier_validation_enabled:
+            # Static thresholds in collapsible section
+            with st.expander("📏 Static thresholds", expanded=False):
+                st.caption("Values outside these ranges are flagged as outliers")
+                col1, col2, col3, col4 = st.columns(4)
+
+                with col1:
+                    st.session_state.outlier_length_min = st.number_input(
+                        "Length min (mm)",
+                        value=float(st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"])),
+                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_len_min"
+                    )
+                    st.session_state.outlier_length_max = st.number_input(
+                        "Length max (mm)",
+                        value=float(st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"])),
+                        min_value=0.001, step=100.0, format="%.1f", key="cap_ol_len_max"
+                    )
+
+                with col2:
+                    st.session_state.outlier_width_min = st.number_input(
+                        "Width min (mm)",
+                        value=float(st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"])),
+                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_wid_min"
+                    )
+                    st.session_state.outlier_width_max = st.number_input(
+                        "Width max (mm)",
+                        value=float(st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"])),
+                        min_value=0.001, step=100.0, format="%.1f", key="cap_ol_wid_max"
+                    )
+
+                with col3:
+                    st.session_state.outlier_height_min = st.number_input(
+                        "Height min (mm)",
+                        value=float(st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"])),
+                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_hgt_min"
+                    )
+                    st.session_state.outlier_height_max = st.number_input(
+                        "Height max (mm)",
+                        value=float(st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"])),
+                        min_value=0.001, step=100.0, format="%.1f", key="cap_ol_hgt_max"
+                    )
+
+                with col4:
+                    st.session_state.outlier_weight_min = st.number_input(
+                        "Weight min (kg)",
+                        value=float(st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"])),
+                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_wgt_min"
+                    )
+                    st.session_state.outlier_weight_max = st.number_input(
+                        "Weight max (kg)",
+                        value=float(st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"])),
+                        min_value=0.001, step=10.0, format="%.1f", key="cap_ol_wgt_max"
+                    )
+
+            st.caption("Additionally, SKUs that cannot fit ANY active carrier (with rotation) are flagged as outliers")
+
+        # Borderline threshold
+        render_divider()
+        current_threshold = st.session_state.get("borderline_threshold", 2.0)
+        new_threshold = st.slider(
+            "Borderline threshold (mm)",
+            min_value=0.5,
+            max_value=10.0,
+            value=current_threshold,
+            step=0.5,
+            help="SKUs with dimensions within this margin of carrier limits are marked as BORDERLINE",
+            key="cap_borderline_threshold_slider",
+        )
+
+        if new_threshold != current_threshold:
+            st.session_state.borderline_threshold = new_threshold
+            st.session_state.capacity_result = None  # Invalidate cache
+            st.session_state.capacity_dq_result = None
+        elif "borderline_threshold" not in st.session_state:
+            st.session_state.borderline_threshold = new_threshold
+
+        # Run detection button
+        render_divider()
+        active_carriers = [c for c in st.session_state.custom_carriers if c.get("is_active", True)]
+
+        if not active_carriers:
+            st.warning("Configure at least one active carrier to detect outliers")
+        else:
+            if st.button("🔍 Detect outliers & borderline", key="detect_dq_btn"):
+                _run_data_quality_detection()
+
+
+def _run_data_quality_detection() -> None:
+    """Run outlier and borderline detection using active carriers."""
+    from src.quality.dq_lists import DQListBuilder
+
+    df = st.session_state.masterdata_df
+    if df is None:
+        st.error("No masterdata loaded")
+        return
+
+    # Get active carriers
+    active_carriers = [
+        CarrierConfig(**c)
+        for c in st.session_state.custom_carriers
+        if c.get("is_active", True)
+    ]
+
+    if not active_carriers:
+        st.error("No active carriers configured")
+        return
+
+    # Build outlier thresholds from session state
+    outlier_thresholds = {
+        "length_mm": {
+            "low": st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"]),
+            "high": st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"]),
+        },
+        "width_mm": {
+            "low": st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"]),
+            "high": st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"]),
+        },
+        "height_mm": {
+            "low": st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"]),
+            "high": st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"]),
+        },
+        "weight_kg": {
+            "low": st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"]),
+            "high": st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"]),
+        },
+    }
+
+    # Calculate carrier limits for borderline detection (max across all active carriers)
+    carrier_limits = {
+        "length_mm": max(c.inner_length_mm for c in active_carriers),
+        "width_mm": max(c.inner_width_mm for c in active_carriers),
+        "height_mm": max(c.inner_height_mm for c in active_carriers),
+    }
+
+    # Build DQ lists for capacity analysis
+    builder = DQListBuilder(
+        borderline_threshold_mm=st.session_state.get("borderline_threshold", 2.0),
+        outlier_thresholds=outlier_thresholds,
+        enable_outlier_detection=st.session_state.get("outlier_validation_enabled", True),
+        carriers=active_carriers,
+    )
+
+    dq_result = builder.build_capacity_lists(df, carrier_limits)
+    st.session_state.capacity_dq_result = dq_result
+
+    # Show results
+    outlier_count = len({item.sku for item in dq_result.suspect_outliers})
+    borderline_count = len(dq_result.high_risk_borderline)
+
+    st.toast(f"Detected {outlier_count} outliers, {borderline_count} borderline", icon="🔍")
+    st.rerun()
 
 
 def render_carrier_form() -> None:
@@ -265,6 +442,11 @@ def render_capacity_view() -> None:
     with st.expander("➕ Add carrier", expanded=len(st.session_state.custom_carriers) == 0):
         render_carrier_form()
 
+    render_divider()
+
+    # Data Quality Settings (outlier & borderline detection)
+    render_data_quality_settings()
+
     # Analysis button
     carriers_defined = len(st.session_state.custom_carriers) > 0
 
@@ -305,10 +487,10 @@ def render_capacity_view() -> None:
                 "Set priority in the table above."
             )
 
-    # Exclusion settings
+    # Exclusion settings - use capacity_dq_result (detected in this view)
     outlier_count = 0
-    if st.session_state.quality_result is not None:
-        outlier_count = len({item.sku for item in st.session_state.quality_result.dq_lists.suspect_outliers})
+    if st.session_state.get("capacity_dq_result") is not None:
+        outlier_count = len({item.sku for item in st.session_state.capacity_dq_result.suspect_outliers})
 
     with st.expander(
         f"⚠️ Exclusion settings ({outlier_count} outliers)" if outlier_count > 0 else "⚠️ Exclusion settings",
@@ -326,7 +508,7 @@ def render_capacity_view() -> None:
         )
 
         if outlier_count == 0:
-            st.caption("No outliers detected - all SKU will be included in analysis")
+            st.caption("Run 'Detect outliers & borderline' above to identify problematic SKUs")
         else:
             st.caption("Borderline filters will be available after running analysis")
 
@@ -348,8 +530,9 @@ def render_capacity_view() -> None:
                 df_to_analyze = st.session_state.masterdata_df
                 excluded_outliers_count = 0
 
-                if st.session_state.quality_result is not None:
-                    dq = st.session_state.quality_result.dq_lists
+                # Use capacity_dq_result (detected in this view with active carriers)
+                if st.session_state.get("capacity_dq_result") is not None:
+                    dq = st.session_state.capacity_dq_result
 
                     # Exclude outliers if checkbox is checked
                     if st.session_state.get("exclude_outliers_checkbox", True):
