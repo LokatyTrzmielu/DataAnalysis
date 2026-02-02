@@ -11,6 +11,33 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-02 18:00] - Refactor
+- Przeniesienie Outlier/Borderline detection z Validation do Capacity Analysis:
+  - **Problem architektoniczny:** Validation używał carrierów z Capacity Analysis, co łamało zasadę niezależności kroków
+  - **Błędny komunikat:** "max dimension 2740mm > max carrier axis 3650mm" był matematycznie fałszywy
+  - **Rozwiązanie:** Outliers i Borderline są teraz wykrywane w Capacity Analysis z użyciem aktywnych carrierów
+- Zmiany w plikach:
+  - `src/quality/dq_lists.py`: Dodano `build_validation_lists()` i `build_capacity_lists()`
+  - `src/quality/pipeline.py`: Usunięto parametry outlier/carriers, używa `build_validation_lists()`
+  - `src/quality/validators.py`: Usunięto logikę outlier validation
+  - `src/ui/views/validation_view.py`: Uproszczono - pokazuje tylko Missing/Duplicates/Conflicts
+  - `src/ui/views/capacity_view.py`: Dodano sekcję "Data Quality Settings" z outlier/borderline detection
+  - `src/ui/app.py`: Przeniesiono outlier settings, dodano `capacity_dq_result`
+- Korzyści:
+  - Czysta separacja - Validation nie zależy od carrierów
+  - Logiczny przepływ - Outliers wykrywane w kontekście rzeczywistych carrierów
+  - Rotation-aware check ma sens tylko z carrierami
+- Branch: refactor/move-outlier-detection-to-capacity
+- Issue: #8
+
+### [2026-02-02 16:30] - Fix
+- Naprawa wyświetlania Outliers count - pokazywanie unikalnych SKU zamiast wpisów:
+  - Problem: Count pokazywał 22142 przy 17238 rekordach (każdy SKU może mieć wiele wpisów outlier)
+  - Przyczyna: `len(dq.suspect_outliers)` liczył wpisy (items), nie unikalne SKU
+  - Rozwiązanie: Zmiana na `len({item.sku for item in dq.suspect_outliers})`
+- Pliki: src/ui/views/validation_view.py:144, src/ui/views/capacity_view.py:311
+- Branch: main (minor fix)
+
 ### [2026-02-02 16:00] - Fix
 - Naprawa ignorowania statycznych progów outlier dla wymiarów gdy skonfigurowane są carriery:
   - Problem: Zmiana progów (np. Width max = 1mm) nie miała efektu przy aktywnych carrierach

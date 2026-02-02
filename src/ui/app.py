@@ -35,7 +35,7 @@ from src.ui.views import (
     render_reports_view,
 )
 from src.ui.theme import apply_theme
-from src.ui.layout import render_bold_label, render_divider, render_sidebar_status_section
+from src.ui.layout import render_divider, render_sidebar_status_section
 
 # Navigation constants
 SECTIONS = {
@@ -84,7 +84,7 @@ def init_session_state() -> None:
         "mapping_history_service": None,
         # Custom carriers for capacity analysis
         "custom_carriers": [],
-        # Outlier validation settings
+        # Outlier validation settings (used in Capacity Analysis)
         "outlier_validation_enabled": True,
         "outlier_length_min": OUTLIER_THRESHOLDS["length_mm"]["min"],
         "outlier_length_max": OUTLIER_THRESHOLDS["length_mm"]["max"],
@@ -94,6 +94,10 @@ def init_session_state() -> None:
         "outlier_height_max": OUTLIER_THRESHOLDS["height_mm"]["max"],
         "outlier_weight_min": OUTLIER_THRESHOLDS["weight_kg"]["min"],
         "outlier_weight_max": OUTLIER_THRESHOLDS["weight_kg"]["max"],
+        # Borderline threshold (used in Capacity Analysis)
+        "borderline_threshold": 2.0,
+        # Capacity DQ result (outliers/borderline detected in Capacity Analysis)
+        "capacity_dq_result": None,
         # Carriers loaded flag
         "carriers_loaded": False,
     }
@@ -422,17 +426,14 @@ def _render_capacity_import() -> None:
 
 def _render_capacity_validation() -> None:
     """Render Capacity Validation sub-tab with settings."""
-    from src.core.config import OUTLIER_THRESHOLDS
-    from src.ui.layout import render_message_box
-
     st.header("✅ Validation")
 
     if st.session_state.masterdata_df is None:
         st.info("Import Masterdata in the Import tab first")
         return
 
-    # Capacity Settings section
-    with st.expander("⚙️ Capacity Settings", expanded=False):
+    # Validation Settings section (simplified - outliers moved to Capacity Analysis)
+    with st.expander("⚙️ Validation Settings", expanded=False):
         col1, col2 = st.columns(2)
 
         with col1:
@@ -442,25 +443,6 @@ def _render_capacity_validation() -> None:
                 value=st.session_state.client_name,
                 placeholder="e.g. Client_ABC",
             )
-
-            # Borderline threshold
-            current_threshold = st.session_state.get("borderline_threshold", 2.0)
-            new_threshold = st.slider(
-                "Borderline threshold (mm)",
-                min_value=0.5,
-                max_value=10.0,
-                value=current_threshold,
-                step=0.5,
-                help="Threshold for marking SKU as BORDERLINE (close to carrier limit)",
-                key="borderline_threshold_slider",
-            )
-
-            # Invalidate cache if threshold changed
-            if new_threshold != current_threshold:
-                st.session_state.borderline_threshold = new_threshold
-                st.session_state.capacity_result = None
-            elif "borderline_threshold" not in st.session_state:
-                st.session_state.borderline_threshold = new_threshold
 
         with col2:
             # Imputation
@@ -487,60 +469,7 @@ def _render_capacity_validation() -> None:
                     ),
                 )
 
-        # Outlier validation
-        render_bold_label("Outlier validation", "⚠️")
-        st.session_state.outlier_validation_enabled = st.checkbox(
-            "Enable outlier detection",
-            value=st.session_state.get("outlier_validation_enabled", True),
-            help="Flag values outside acceptable ranges",
-        )
-
-        if st.session_state.outlier_validation_enabled:
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.session_state.outlier_length_min = st.number_input(
-                    "Length min (mm)",
-                    value=float(st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"])),
-                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_len_min"
-                )
-                st.session_state.outlier_length_max = st.number_input(
-                    "Length max (mm)",
-                    value=float(st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"])),
-                    min_value=0.001, step=100.0, format="%.1f", key="cv_ol_len_max"
-                )
-            with col2:
-                st.session_state.outlier_width_min = st.number_input(
-                    "Width min (mm)",
-                    value=float(st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"])),
-                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_wid_min"
-                )
-                st.session_state.outlier_width_max = st.number_input(
-                    "Width max (mm)",
-                    value=float(st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"])),
-                    min_value=0.001, step=100.0, format="%.1f", key="cv_ol_wid_max"
-                )
-            with col3:
-                st.session_state.outlier_height_min = st.number_input(
-                    "Height min (mm)",
-                    value=float(st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"])),
-                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_hgt_min"
-                )
-                st.session_state.outlier_height_max = st.number_input(
-                    "Height max (mm)",
-                    value=float(st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"])),
-                    min_value=0.001, step=100.0, format="%.1f", key="cv_ol_hgt_max"
-                )
-            with col4:
-                st.session_state.outlier_weight_min = st.number_input(
-                    "Weight min (kg)",
-                    value=float(st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"])),
-                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_wgt_min"
-                )
-                st.session_state.outlier_weight_max = st.number_input(
-                    "Weight max (kg)",
-                    value=float(st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"])),
-                    min_value=0.001, step=10.0, format="%.1f", key="cv_ol_wgt_max"
-                )
+        st.caption("Outlier and Borderline detection is now configured in Analysis tab")
 
     render_divider()
 
