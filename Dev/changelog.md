@@ -11,6 +11,26 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-04 12:00] - Refactor
+- Naprawa 110 błędów pyright type errors w całym codebase:
+  - `src/core/types.py`: ShiftConfig akceptuje `str | time` dla start/end
+  - `src/ingest/units.py`: `Sequence[float]` zamiast `list[float]` (covariance)
+  - `src/ingest/sku_normalize.py`: `normalize_sku()` akceptuje `str | None`
+  - `src/ingest/readers.py`: Poprawiony `max()` key, type narrowing dla file_type
+  - `src/ingest/mapping_history.py`: Null guard dla `_cache`
+  - `src/analytics/capacity.py`: Explicit ORIENTATIONS type, assert dla best_orientation, sorted key
+  - `src/analytics/performance.py`: Bezpieczne wyciąganie dat z timestamp, int cast
+  - `src/analytics/shifts.py`: Konwersja str→time dla ShiftInstance
+  - `src/quality/dq_metrics.py`: int cast dla zero_count, negative_count, valid_count
+  - `src/quality/dq_lists.py`: Null guard dla carriers
+  - `src/quality/impute.py`: Bezpieczna konwersja do float z polars scalars
+  - `src/model/orders.py`: Optional datetime dla date_from/date_to
+  - `src/ui/views/performance_view.py`: Inicjalizacja zmiennych, explicit WeeklySchedule
+- Dodano `pyrightconfig.json` z exclude dla `DataAnalysis_docs/`
+- Wynik: 110 błędów → 0 błędów, wszystkie testy przechodzą (126 passed)
+- Branch: refactor/move-outlier-detection-to-capacity → main
+- Commit: c0073a8
+
 ### [2026-02-02 18:00] - Refactor
 - Przeniesienie Outlier/Borderline detection z Validation do Capacity Analysis:
   - **Problem architektoniczny:** Validation używał carrierów z Capacity Analysis, co łamało zasadę niezależności kroków
