@@ -11,6 +11,16 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-04 15:30] - Fix
+- Poprawa kontrastu file uploadera:
+  - Zmiana border z `1px dashed` na `2px dashed` z kolorem `accent_muted` (#5e3123)
+  - Dodanie efektu hover z kolorem `accent` (#b7622c) i jaśniejszym tłem
+- Konfiguracja motywu sidebara w `.streamlit/config.toml`:
+  - Zachowana sekcja `[theme.sidebar]` z oficjalnie wspieranymi opcjami
+  - Ostrzeżenia konsoli "Invalid color passed for widgetBackgroundColor..." to znany wewnętrzny problem Streamlit (zdeprecjonowane opcje, PR #10332), nie wpływają na funkcjonalność
+- Pliki: `.streamlit/config.toml`, `src/ui/theme.py`
+- Branch: main (fix)
+
 ### [2026-02-04 12:00] - Refactor
 - Naprawa 110 błędów pyright type errors w całym codebase:
   - `src/core/types.py`: ShiftConfig akceptuje `str | time` dla start/end

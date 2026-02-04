@@ -267,11 +267,16 @@ def get_custom_css() -> str:
         color: {COLORS["text"]};
     }}
 
-    /* File uploader */
+    /* File uploader - improved contrast */
     [data-testid="stFileUploader"] {{
         background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
-        border: 1px dashed {COLORS["border"]};
+        border: 2px dashed {COLORS["accent_muted"]};
+    }}
+
+    [data-testid="stFileUploader"]:hover {{
+        border-color: {COLORS["accent"]};
+        background-color: rgba(66, 66, 66, 0.8);
     }}
 
     /* Selectbox */
