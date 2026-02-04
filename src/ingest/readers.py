@@ -64,7 +64,7 @@ class FileReader:
                 separator_counts[sep] += line.count(sep)
 
         # Select separator with most occurrences
-        best_separator = max(separator_counts, key=separator_counts.get)
+        best_separator = max(separator_counts, key=lambda k: separator_counts[k])
 
         # If no separators found, default to comma
         if separator_counts[best_separator] == 0:
@@ -113,9 +113,11 @@ class FileReader:
             Polars DataFrame with data
         """
         if file_type == "auto":
-            file_type = self.detect_file_type()
+            detected_type = self.detect_file_type()
+        else:
+            detected_type = file_type
 
-        if file_type == "xlsx":
+        if detected_type == "xlsx":
             return self._read_xlsx(sheet_id, sheet_name, skip_rows, n_rows)
         else:
             return self._read_csv(separator, skip_rows, n_rows)

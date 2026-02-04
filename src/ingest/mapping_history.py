@@ -63,11 +63,12 @@ class MappingHistoryService:
             self._cache = yaml.safe_load(f) or {}
 
         # Ensure required keys exist
-        for key in ["masterdata_mappings", "orders_mappings", "blacklist"]:
-            if key not in self._cache:
-                self._cache[key] = []
+        if self._cache is not None:
+            for key in ["masterdata_mappings", "orders_mappings", "blacklist"]:
+                if key not in self._cache:
+                    self._cache[key] = []
 
-        return self._cache
+        return self._cache or {}
 
     def save_history(self) -> None:
         """Save mapping history to YAML file."""

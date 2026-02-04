@@ -1,0 +1,5 @@
+{
+  "exclude": [
+    "DataAnalysis_docs/**"
+  ]
+}

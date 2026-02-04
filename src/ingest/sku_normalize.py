@@ -47,7 +47,7 @@ class SKUNormalizer:
         self.remove_special_chars = remove_special_chars
         self.replace_chars = replace_chars or {}
 
-    def normalize_sku(self, sku: str) -> str:
+    def normalize_sku(self, sku: str | None) -> str:
         """Normalize single SKU.
 
         Args:

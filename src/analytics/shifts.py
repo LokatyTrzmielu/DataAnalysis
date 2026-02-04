@@ -45,11 +45,14 @@ class ShiftSchedule:
         # Convert to ShiftInstance
         instances = []
         for shift in base_shifts:
+            # Convert start/end to time if they are strings
+            start_time = shift.start if isinstance(shift.start, time) else self._parse_time(shift.start)
+            end_time = shift.end if isinstance(shift.end, time) else self._parse_time(shift.end)
             instances.append(ShiftInstance(
                 date=dt,
                 name=shift.name,
-                start=shift.start,
-                end=shift.end,
+                start=start_time,
+                end=end_time,
                 shift_type=shift.shift_type,
                 productive_hours=self.weekly_schedule.productive_hours_per_shift,
             ))

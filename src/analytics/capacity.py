@@ -46,7 +46,10 @@ class CapacityAnalyzer:
     """Capacity analyzer - matching SKU to carriers."""
 
     # 6 possible orientations (permutations of L, W, H)
-    ORIENTATIONS = list(permutations(["L", "W", "H"]))
+    ORIENTATIONS: list[tuple[str, str, str]] = [
+        ("L", "W", "H"), ("L", "H", "W"), ("W", "L", "H"),
+        ("W", "H", "L"), ("H", "L", "W"), ("H", "W", "L"),
+    ]
 
     def __init__(
         self,
@@ -161,7 +164,8 @@ class CapacityAnalyzer:
                 limiting_factor=LimitingFactor.WEIGHT,
             )
 
-        # Calculate how many units per carrier
+        # Calculate how many units per carrier (best_orientation guaranteed non-None here)
+        assert best_orientation is not None
         units_per_carrier = self._calculate_units_per_carrier(
             dims[best_orientation[0]],
             dims[best_orientation[1]],
@@ -247,7 +251,7 @@ class CapacityAnalyzer:
             # Sort by priority (1 = first, 2 = second, ...)
             carriers_to_analyze = sorted(
                 carriers_to_analyze,
-                key=lambda c: c.priority
+                key=lambda c: c.priority if c.priority is not None else float('inf')
             )
 
         results = []
