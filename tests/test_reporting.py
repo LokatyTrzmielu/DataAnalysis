@@ -281,6 +281,92 @@ class TestDQReportGenerator:
 
             assert "SKU5" in content
 
+    def test_generate_imputed_skus(self):
+        """Test generowania DQ_ImputedSKUs.csv."""
+        generator = DQReportGenerator()
+
+        # DataFrame z flagami ESTIMATED
+        df = pl.DataFrame({
+            "sku": ["SKU1", "SKU2", "SKU3"],
+            "length_mm": [100.0, 200.0, 300.0],
+            "width_mm": [50.0, 60.0, 70.0],
+            "height_mm": [30.0, 40.0, 50.0],
+            "weight_kg": [1.5, 2.5, 3.5],
+            "stock_qty": [10, 20, 30],
+            "length_flag": ["MEASURED", "ESTIMATED", "MEASURED"],
+            "width_flag": ["MEASURED", "MEASURED", "MEASURED"],
+            "height_flag": ["ESTIMATED", "MEASURED", "MEASURED"],
+            "weight_flag": ["MEASURED", "ESTIMATED", "MEASURED"],
+            "stock_flag": ["MEASURED", "MEASURED", "MEASURED"],
+        })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "DQ_ImputedSKUs.csv"
+            result_path = generator.generate_imputed_skus(output_path, df)
+
+            assert result_path.exists()
+
+            with open(result_path, "r", encoding="utf-8-sig") as f:
+                content = f.read()
+
+            # SKU1 ma ESTIMATED dla height
+            assert "SKU1" in content
+            assert "height_mm" in content
+
+            # SKU2 ma ESTIMATED dla length i weight
+            assert "SKU2" in content
+            assert "length_mm" in content
+            assert "weight_kg" in content
+
+            # SKU3 nie ma ESTIMATED - nie powinno byc w raporcie
+            lines = content.strip().split("\n")
+            assert len(lines) == 3  # header + 2 SKU (SKU1, SKU2)
+
+    def test_generate_imputed_skus_empty(self):
+        """Test pustego raportu gdy brak imputowanych wartosci."""
+        generator = DQReportGenerator()
+
+        # DataFrame bez flag ESTIMATED
+        df = pl.DataFrame({
+            "sku": ["SKU1", "SKU2"],
+            "length_mm": [100.0, 200.0],
+            "length_flag": ["MEASURED", "MEASURED"],
+        })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "DQ_ImputedSKUs.csv"
+            result_path = generator.generate_imputed_skus(output_path, df)
+
+            assert result_path.exists()
+
+            with open(result_path, "r", encoding="utf-8-sig") as f:
+                lines = f.readlines()
+
+            # Tylko naglowek
+            assert len(lines) == 1
+
+    def test_generate_imputed_skus_no_flags(self):
+        """Test gdy DataFrame nie ma kolumn flag."""
+        generator = DQReportGenerator()
+
+        # DataFrame bez kolumn flag
+        df = pl.DataFrame({
+            "sku": ["SKU1", "SKU2"],
+            "length_mm": [100.0, 200.0],
+        })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "DQ_ImputedSKUs.csv"
+            result_path = generator.generate_imputed_skus(output_path, df)
+
+            assert result_path.exists()
+
+            with open(result_path, "r", encoding="utf-8-sig") as f:
+                lines = f.readlines()
+
+            # Tylko naglowek - pusty raport
+            assert len(lines) == 1
+
     def test_generate_all(self):
         """Test generowania wszystkich raportow DQ."""
         generator = DQReportGenerator()
@@ -291,6 +377,7 @@ class TestDQReportGenerator:
             output_dir = Path(tmpdir)
             paths = generator.generate_all(output_dir, metrics, dq_lists)
 
+            # Bez df - 7 raportow
             assert len(paths) == 7
             assert all(p.exists() for p in paths)
 
@@ -299,6 +386,40 @@ class TestDQReportGenerator:
             assert "DQ_Summary.csv" in filenames
             assert "DQ_MissingCritical.csv" in filenames
             assert "DQ_SuspectOutliers.csv" in filenames
+
+    def test_generate_all_with_df(self):
+        """Test generowania wszystkich raportow DQ z raportem ImputedSKUs."""
+        generator = DQReportGenerator()
+        metrics = self.get_test_metrics()
+        dq_lists = self.get_test_dq_lists()
+
+        # DataFrame z flagami
+        df = pl.DataFrame({
+            "sku": ["SKU1", "SKU2"],
+            "length_mm": [100.0, 200.0],
+            "width_mm": [50.0, 60.0],
+            "height_mm": [30.0, 40.0],
+            "weight_kg": [1.5, 2.5],
+            "stock_qty": [10, 20],
+            "length_flag": ["MEASURED", "ESTIMATED"],
+            "width_flag": ["MEASURED", "MEASURED"],
+            "height_flag": ["MEASURED", "MEASURED"],
+            "weight_flag": ["MEASURED", "MEASURED"],
+            "stock_flag": ["MEASURED", "MEASURED"],
+        })
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            paths = generator.generate_all(output_dir, metrics, dq_lists, df=df)
+
+            # Z df - 8 raportow
+            assert len(paths) == 8
+            assert all(p.exists() for p in paths)
+
+            # Sprawdz nazwy plikow
+            filenames = [p.name for p in paths]
+            assert "DQ_Summary.csv" in filenames
+            assert "DQ_ImputedSKUs.csv" in filenames
 
 
 # ============================================================================
