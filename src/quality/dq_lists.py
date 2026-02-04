@@ -263,7 +263,7 @@ class DQListBuilder:
             height = row["height_mm"]
 
             # Check if cannot fit any carrier with rotation
-            if not DimensionChecker.can_fit_any_carrier(
+            if self.carriers and not DimensionChecker.can_fit_any_carrier(
                 length, width, height, self.carriers
             ):
                 max_carrier_dim = DimensionChecker.get_max_allowed_dimension(

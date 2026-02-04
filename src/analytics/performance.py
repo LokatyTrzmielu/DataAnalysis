@@ -136,8 +136,18 @@ class PerformanceAnalyzer:
                 raise ValueError(f"Cannot convert timestamp column of type {ts_dtype} to datetime")
 
         # Date range
-        date_from = df["timestamp"].min().date()
-        date_to = df["timestamp"].max().date()
+        ts_min = df["timestamp"].min()
+        ts_max = df["timestamp"].max()
+        if ts_min is None or ts_max is None:
+            raise ValueError("DataFrame has no valid timestamps")
+        if isinstance(ts_min, datetime):
+            date_from = ts_min.date()
+        else:
+            raise ValueError(f"Cannot extract date from timestamp min: {type(ts_min)}")
+        if isinstance(ts_max, datetime):
+            date_to = ts_max.date()
+        else:
+            raise ValueError(f"Cannot extract date from timestamp max: {type(ts_max)}")
 
         # 1. Calculate hourly metrics
         hourly = self._calculate_hourly_metrics(df)
@@ -216,7 +226,7 @@ class PerformanceAnalyzer:
         """Calculate KPI."""
         total_lines = len(df)
         total_orders = df["order_id"].n_unique()
-        total_units = df["quantity"].sum()
+        total_units = int(df["quantity"].sum() or 0)
         unique_sku = df["sku"].n_unique()
 
         # Averages per order/line
