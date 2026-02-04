@@ -1,5 +1,5 @@
 version: '1.0'
-last_updated: '2026-02-01T22:17:45.571980'
+last_updated: '2026-02-04T16:16:10.589587'
 masterdata_mappings:
 - source_column: nazwa_indeksu
   target_field: sku
@@ -7,5 +7,23 @@ masterdata_mappings:
   use_count: 1
   last_used: '2026-02-01T21:25:11.892353'
   is_user_correction: true
-orders_mappings: []
+- source_column: stock_quantity__max
+  target_field: stock
+  client_pattern: ''
+  use_count: 1
+  last_used: '2026-02-02T10:02:16.685737'
+  is_user_correction: true
+orders_mappings:
+- source_column: item_kardex
+  target_field: sku
+  client_pattern: ''
+  use_count: 1
+  last_used: '2026-02-02T11:56:32.498987'
+  is_user_correction: true
+- source_column: order_picking_date
+  target_field: timestamp
+  client_pattern: ''
+  use_count: 1
+  last_used: '2026-02-02T11:56:32.498998'
+  is_user_correction: true
 blacklist: []
