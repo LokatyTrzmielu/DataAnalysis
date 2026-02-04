@@ -29,6 +29,7 @@ DQ_HighRiskBorderline.csv- SKUs close to carrier limits (within {borderline_mm}m
 DQ_Masterdata_Duplicates.csv - Duplicate SKU entries
 DQ_Masterdata_Conflicts.csv  - SKUs with conflicting values
 DQ_SKU_Collisions.csv    - SKU collisions after normalization
+DQ_ImputedSKUs.csv       - SKUs with imputed (estimated) values
 Manifest.json            - File checksums (SHA256)
 
 CSV Format

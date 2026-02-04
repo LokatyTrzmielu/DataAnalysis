@@ -182,11 +182,92 @@ class DQReportGenerator:
 
         return self.writer.write(df, output_path)
 
+    def generate_imputed_skus(
+        self,
+        output_path: Path,
+        df: pl.DataFrame,
+    ) -> Path:
+        """Generuj DQ_ImputedSKUs.csv.
+
+        Lista SKU z imputowanymi (uzupełnionymi) wartościami.
+
+        Args:
+            output_path: Output file path
+            df: DataFrame with flag columns
+
+        Returns:
+            Path to generated file
+        """
+        flag_columns = {
+            "length_flag": "length_mm",
+            "width_flag": "width_mm",
+            "height_flag": "height_mm",
+            "weight_flag": "weight_kg",
+            "stock_flag": "stock_qty",
+        }
+
+        # Check if flag columns exist
+        existing_flags = [col for col in flag_columns if col in df.columns]
+
+        if not existing_flags:
+            # No flag columns - empty report
+            result_df = pl.DataFrame({
+                "sku": [],
+                "imputed_fields": [],
+                "length_mm": [],
+                "width_mm": [],
+                "height_mm": [],
+                "weight_kg": [],
+                "stock_qty": [],
+            })
+            return self.writer.write(result_df, output_path)
+
+        # Build filter: any flag = "ESTIMATED"
+        filter_expr = pl.lit(False)
+        for flag_col in existing_flags:
+            filter_expr = filter_expr | (pl.col(flag_col) == "ESTIMATED")
+
+        imputed_df = df.filter(filter_expr)
+
+        if imputed_df.is_empty():
+            result_df = pl.DataFrame({
+                "sku": [],
+                "imputed_fields": [],
+                "length_mm": [],
+                "width_mm": [],
+                "height_mm": [],
+                "weight_kg": [],
+                "stock_qty": [],
+            })
+            return self.writer.write(result_df, output_path)
+
+        # Build imputed_fields string for each row
+        rows = []
+        for row in imputed_df.iter_rows(named=True):
+            imputed_fields = []
+            for flag_col, value_col in flag_columns.items():
+                if flag_col in row and row[flag_col] == "ESTIMATED":
+                    imputed_fields.append(value_col)
+
+            rows.append({
+                "sku": row.get("sku", ""),
+                "imputed_fields": ", ".join(imputed_fields),
+                "length_mm": row.get("length_mm"),
+                "width_mm": row.get("width_mm"),
+                "height_mm": row.get("height_mm"),
+                "weight_kg": row.get("weight_kg"),
+                "stock_qty": row.get("stock_qty"),
+            })
+
+        result_df = pl.DataFrame(rows)
+        return self.writer.write(result_df, output_path)
+
     def generate_all(
         self,
         output_dir: Path,
         metrics: DataQualityMetrics,
         dq_lists: DQLists,
+        df: pl.DataFrame | None = None,
     ) -> list[Path]:
         """Generate all DQ reports.
 
@@ -194,6 +275,7 @@ class DQReportGenerator:
             output_dir: Output directory
             metrics: Quality metrics
             dq_lists: Issue lists
+            df: DataFrame with flag columns (for imputed SKUs report)
 
         Returns:
             List of paths to generated files
@@ -209,5 +291,11 @@ class DQReportGenerator:
             self.generate_conflicts(output_dir / "DQ_Masterdata_Conflicts.csv", dq_lists),
             self.generate_collisions(output_dir / "DQ_SKU_Collisions.csv", dq_lists),
         ]
+
+        # Add imputed SKUs report if DataFrame provided
+        if df is not None:
+            paths.append(
+                self.generate_imputed_skus(output_dir / "DQ_ImputedSKUs.csv", df)
+            )
 
         return paths

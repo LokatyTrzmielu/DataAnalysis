@@ -75,6 +75,7 @@ class ZipExporter:
                 reports_dir,
                 quality_result.metrics_after,
                 quality_result.dq_lists,
+                df=quality_result.df,
             )
             generated_files.extend(dq_paths)
 
