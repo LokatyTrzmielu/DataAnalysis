@@ -11,6 +11,23 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-04 17:00] - Feature
+- Ulepszenie obliczeń pojemności zgodnie z metodologią arkusza Excel:
+  - **Nowa metryka: `locations_required`** - ile lokalizacji/nośników potrzeba dla danego SKU
+    - Formuła: `ceil(stock_qty / units_per_carrier)`
+  - **Nowa metryka: `filling_rate`** - współczynnik wypełnienia przestrzeni (0-1)
+    - Formuła: `(stock_qty × sku_volume) / (locations_required × carrier_volume)`
+    - Bliski 1.0 = optymalne wykorzystanie, < 0.5 = marnowanie miejsca
+  - **Nowy tryb: "Best Fit"** - automatyczny wybór optymalnej lokalizacji
+    - SKU przypisywany do nośnika z najwyższym filling rate
+    - Minimalizacja marnowanej przestrzeni
+- Zmiany w plikach:
+  - `src/core/types.py`: Rozszerzenie `CarrierFitResult` o pola: `locations_required`, `filling_rate`, `stored_volume_L`, `carrier_volume_L`
+  - `src/analytics/capacity.py`: Nowa metoda `_calculate_location_metrics()`, rozszerzenie `CarrierStats` o `total_locations_required` i `avg_filling_rate`, obsługa trybu `best_fit_mode`
+  - `src/ui/views/capacity_view.py`: Nowy tryb analizy "Best Fit", nowe kolumny w tabeli wyników ("Locations Req.", "Filling Rate (%)"), rozszerzone statystyki per carrier
+- Weryfikacja: Test jednostkowy potwierdza zgodność obliczeń z arkuszem Excel (SKU 100×80×60mm, stock 500szt → 14 lokalizacji, filling rate 71.4%)
+- Branch: feature/capacity-location-metrics
+
 ### [2026-02-04 15:30] - Fix
 - Poprawa kontrastu file uploadera:
   - Zmiana border z `1px dashed` na `2px dashed` z kolorem `accent_muted` (#5e3123)
