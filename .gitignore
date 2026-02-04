@@ -1,2 +1,9 @@
 nul
 tmpclaude-*-cwd
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Local Claude settings
+.claude/settings.local.json
