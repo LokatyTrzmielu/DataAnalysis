@@ -85,6 +85,8 @@ def init_session_state() -> None:
         "custom_carriers": [],
         # Borderline threshold (used in Capacity Analysis)
         "borderline_threshold": 2.0,
+        # Capacity DQ result (generated during analysis for reports)
+        "capacity_dq_result": None,
         # Carriers loaded flag
         "carriers_loaded": False,
     }

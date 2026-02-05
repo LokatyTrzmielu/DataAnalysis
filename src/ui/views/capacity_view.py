@@ -355,12 +355,14 @@ def render_capacity_view() -> None:
         with st.spinner("Analysis in progress..."):
             try:
                 from src.analytics import CapacityAnalyzer
+                from src.quality.dq_lists import DQListBuilder
 
                 # Convert dictionaries to CarrierConfig
                 carriers = [
                     CarrierConfig(**c)
                     for c in st.session_state.custom_carriers
                 ]
+                active_carriers = [c for c in carriers if c.is_active]
 
                 # Use borderline threshold from session state
                 borderline_threshold = st.session_state.get("borderline_threshold", 2.0)
@@ -379,6 +381,21 @@ def render_capacity_view() -> None:
                 st.session_state.capacity_prioritization_mode = prioritization_mode
                 st.session_state.capacity_best_fit_mode = best_fit_mode
                 st.session_state.capacity_threshold_used = borderline_threshold
+
+                # Generate DQ lists for reports (outliers/borderline details)
+                if active_carriers:
+                    carrier_limits = {
+                        "length_mm": max(c.inner_length_mm for c in active_carriers),
+                        "width_mm": max(c.inner_width_mm for c in active_carriers),
+                        "height_mm": max(c.inner_height_mm for c in active_carriers),
+                    }
+                    dq_builder = DQListBuilder(
+                        borderline_threshold_mm=borderline_threshold,
+                        carriers=active_carriers,
+                    )
+                    st.session_state.capacity_dq_result = dq_builder.build_capacity_lists(
+                        st.session_state.masterdata_df, carrier_limits
+                    )
 
                 st.toast("Capacity analysis complete", icon="✅")
                 st.rerun()
