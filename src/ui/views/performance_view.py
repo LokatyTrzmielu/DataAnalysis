@@ -39,6 +39,11 @@ def render_performance_view() -> None:
 
     shift_schedule = None
 
+    # Initialize custom schedule variables with defaults
+    custom_days = 5
+    custom_hours = 8
+    custom_shifts = 2
+
     # Custom schedule option
     if shift_config == "Custom schedule":
         render_bold_label("Enter schedule parameters:", "📝")
@@ -124,16 +129,22 @@ def render_performance_view() -> None:
                         )
                         start_hour = end_hour
 
-                    # Assign shifts to days of the week
-                    days_map = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-                    weekly_kwargs = {"productive_hours_per_shift": productive_hours}
-                    for i, day in enumerate(days_map):
-                        if i < custom_days:
-                            weekly_kwargs[day] = shift_configs
-                        else:
-                            weekly_kwargs[day] = []
+                    # Assign shifts to days of the week based on custom_days
+                    days_shifts: list[list[ShiftConfig]] = [
+                        shift_configs if i < custom_days else []
+                        for i in range(7)
+                    ]
 
-                    weekly = WeeklySchedule(**weekly_kwargs)
+                    weekly = WeeklySchedule(
+                        productive_hours_per_shift=productive_hours,
+                        mon=days_shifts[0],
+                        tue=days_shifts[1],
+                        wed=days_shifts[2],
+                        thu=days_shifts[3],
+                        fri=days_shifts[4],
+                        sat=days_shifts[5],
+                        sun=days_shifts[6],
+                    )
                     shift_schedule = ShiftSchedule(weekly_schedule=weekly)
 
                 elif shift_config == "Default (2 shifts, Mon-Fri)":
@@ -172,7 +183,8 @@ def render_performance_view() -> None:
                 st.session_state.performance_result = result
                 st.session_state.analysis_complete = True
 
-                st.success("Performance analysis complete")
+                st.toast("Performance analysis complete", icon="✅")
+                st.rerun()
 
             except Exception as e:
                 st.error(f"Error: {e}")

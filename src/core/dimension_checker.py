@@ -21,14 +21,16 @@ class DimensionChecker:
         width_mm: float,
         height_mm: float,
         carriers: list[CarrierConfig],
+        weight_kg: float | None = None,
     ) -> bool:
-        """Check if item can fit in ANY carrier with ANY rotation.
+        """Check if item can fit in ANY carrier with ANY rotation AND weight.
 
         Args:
             length_mm: Item length in mm
             width_mm: Item width in mm
             height_mm: Item height in mm
             carriers: List of carrier configurations
+            weight_kg: Item weight in kg (if None, weight check skipped)
 
         Returns:
             True if item fits in at least one active carrier with some orientation
@@ -40,6 +42,10 @@ class DimensionChecker:
 
         for carrier in carriers:
             if not carrier.is_active:
+                continue
+
+            # Check weight first (quick reject)
+            if weight_kg is not None and weight_kg > carrier.max_weight_kg:
                 continue
 
             for orientation in DimensionChecker.ORIENTATIONS:

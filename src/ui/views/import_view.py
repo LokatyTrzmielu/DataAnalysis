@@ -434,6 +434,9 @@ def render_masterdata_import() -> None:
             st.session_state.masterdata_mapping_result = None
             st.session_state.masterdata_temp_path = None
             st.session_state.masterdata_df = None
+            # Reset Capacity pipeline statuses
+            st.session_state.quality_result = None
+            st.session_state.capacity_result = None
             st.rerun()
 
 
@@ -590,6 +593,8 @@ def render_orders_import() -> None:
             st.session_state.orders_mapping_result = None
             st.session_state.orders_temp_path = None
             st.session_state.orders_df = None
+            # Reset Performance pipeline status
+            st.session_state.performance_result = None
             st.rerun()
 
 

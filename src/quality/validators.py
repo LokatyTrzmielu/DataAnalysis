@@ -11,10 +11,7 @@ from src.core.config import (
     TREAT_ZERO_AS_MISSING_WEIGHT,
     TREAT_ZERO_AS_MISSING_QUANTITIES,
     TREAT_NEGATIVE_AS_MISSING,
-    OUTLIER_THRESHOLDS,
 )
-from src.core.types import CarrierConfig
-from src.core.dimension_checker import DimensionChecker
 
 
 class ValidationSeverity(str, Enum):
@@ -59,10 +56,11 @@ class ValidationResult:
 
 
 class MasterdataValidator:
-    """Masterdata validator."""
+    """Masterdata validator.
 
-    # IQR multiplier for dynamic outliers
-    IQR_MULTIPLIER = 3.0
+    Note: Outlier validation has been moved to Capacity Analysis.
+    This validator handles missing values, zeros, and negatives only.
+    """
 
     def __init__(
         self,
@@ -70,35 +68,24 @@ class MasterdataValidator:
         treat_zero_as_missing_weight: bool = TREAT_ZERO_AS_MISSING_WEIGHT,
         treat_zero_as_missing_quantities: bool = TREAT_ZERO_AS_MISSING_QUANTITIES,
         treat_negative_as_missing: bool = TREAT_NEGATIVE_AS_MISSING,
-        enable_outlier_validation: bool = True,
-        outlier_thresholds: dict | None = None,
-        carriers: list[CarrierConfig] | None = None,
     ) -> None:
         """Initialize validator.
 
         Args:
-            enable_outlier_validation: Whether to validate outliers
-            outlier_thresholds: Custom thresholds dict, e.g.:
-                {"length_mm": {"min": 1, "max": 3000}, ...}
-            carriers: List of carrier configurations for rotation-aware
-                dimensional outlier detection
+            treat_zero_as_missing_dimensions: Treat 0 dimensions as missing
+            treat_zero_as_missing_weight: Treat 0 weight as missing
+            treat_zero_as_missing_quantities: Treat 0 quantities as missing
+            treat_negative_as_missing: Treat negative values as missing
         """
         self.treat_zero_as_missing_dimensions = treat_zero_as_missing_dimensions
         self.treat_zero_as_missing_weight = treat_zero_as_missing_weight
         self.treat_zero_as_missing_quantities = treat_zero_as_missing_quantities
         self.treat_negative_as_missing = treat_negative_as_missing
-        self.enable_outlier_validation = enable_outlier_validation
-        self.carriers = carriers
-
-        # Merge custom thresholds with defaults from config
-        self.outlier_thresholds = {k: v.copy() for k, v in OUTLIER_THRESHOLDS.items()}
-        if outlier_thresholds:
-            for field, bounds in outlier_thresholds.items():
-                if field in self.outlier_thresholds:
-                    self.outlier_thresholds[field].update(bounds)
 
     def validate(self, df: pl.DataFrame) -> ValidationResult:
         """Perform data validation.
+
+        Note: Outlier validation has been moved to Capacity Analysis.
 
         Args:
             df: DataFrame with Masterdata
@@ -117,10 +104,7 @@ class MasterdataValidator:
         # 3. Validate negative values
         issues.extend(self._validate_negatives(df))
 
-        # 4. Validate outliers
-        issues.extend(self._validate_outliers(df))
-
-        # 5. Mark values as missing
+        # 4. Mark values as missing
         df_validated = self._mark_as_missing(df)
 
         # Summary
@@ -245,128 +229,6 @@ class MasterdataValidator:
                 )
                 for row in neg_rows
             ])
-
-        return issues
-
-    def _validate_outliers(self, df: pl.DataFrame) -> list[ValidationIssue]:
-        """Validate outliers (values outside range).
-
-        For dimensional fields (length_mm, width_mm, height_mm), uses rotation-aware
-        checking if carriers are configured - an item is only an outlier if it cannot
-        fit in ANY active carrier with ANY rotation.
-
-        For non-dimensional fields (weight_kg, stock_qty), uses static thresholds.
-        """
-        issues: list[ValidationIssue] = []
-
-        if not self.enable_outlier_validation:
-            return issues
-
-        dimension_fields = ["length_mm", "width_mm", "height_mm"]
-
-        # If carriers configured, use rotation-aware check for dimensions
-        if self.carriers:
-            issues.extend(self._validate_dimensional_outliers_with_rotation(df))
-
-            # For non-dimensional fields, use static thresholds
-            for field, thresholds in self.outlier_thresholds.items():
-                if field in dimension_fields or field not in df.columns:
-                    continue
-                issues.extend(self._validate_static_outliers(df, field, thresholds))
-        else:
-            # Fallback: use static thresholds for all fields
-            for field, thresholds in self.outlier_thresholds.items():
-                if field not in df.columns:
-                    continue
-                issues.extend(self._validate_static_outliers(df, field, thresholds))
-
-        return issues
-
-    def _validate_static_outliers(
-        self, df: pl.DataFrame, field: str, thresholds: dict
-    ) -> list[ValidationIssue]:
-        """Validate outliers using static min/max thresholds."""
-        issues: list[ValidationIssue] = []
-
-        outlier_mask = (
-            (pl.col(field) < thresholds["min"]) |
-            (pl.col(field) > thresholds["max"])
-        ) & pl.col(field).is_not_null() & (pl.col(field) > 0)
-
-        outlier_rows = df.filter(outlier_mask).select(["sku", field]).to_dicts()
-        min_val, max_val = thresholds["min"], thresholds["max"]
-
-        issues.extend([
-            ValidationIssue(
-                sku=str(row["sku"]),
-                field=field,
-                issue_type=ValidationIssueType.OUTLIER,
-                severity=ValidationSeverity.WARNING,
-                original_value=str(row[field]),
-                message=f"Value {row[field]} outside range [{min_val}, {max_val}]",
-            )
-            for row in outlier_rows
-        ])
-
-        return issues
-
-    def _validate_dimensional_outliers_with_rotation(
-        self, df: pl.DataFrame
-    ) -> list[ValidationIssue]:
-        """Validate dimensional outliers using rotation-aware carrier fit check.
-
-        An item is a dimensional outlier only if it cannot fit in ANY active
-        carrier with ANY of the 6 possible rotations.
-        """
-        issues: list[ValidationIssue] = []
-
-        required_cols = ["sku", "length_mm", "width_mm", "height_mm"]
-        if not all(c in df.columns for c in required_cols):
-            return issues
-
-        # Filter rows with valid positive dimensions
-        valid_df = df.filter(
-            (pl.col("length_mm") > 0)
-            & (pl.col("width_mm") > 0)
-            & (pl.col("height_mm") > 0)
-        )
-
-        # Track SKUs that are dimensional outliers
-        checked_skus: set[str] = set()
-
-        for row in valid_df.select(required_cols).to_dicts():
-            sku = str(row["sku"])
-            if sku in checked_skus:
-                continue
-
-            length = row["length_mm"]
-            width = row["width_mm"]
-            height = row["height_mm"]
-
-            # Check if cannot fit any carrier with rotation
-            if not DimensionChecker.can_fit_any_carrier(
-                length, width, height, self.carriers
-            ):
-                max_carrier_dim = DimensionChecker.get_max_allowed_dimension(
-                    self.carriers
-                )
-                max_item_dim = max(length, width, height)
-
-                issues.append(
-                    ValidationIssue(
-                        sku=sku,
-                        field="dimensions",
-                        issue_type=ValidationIssueType.OUTLIER,
-                        severity=ValidationSeverity.WARNING,
-                        original_value=f"L={length}, W={width}, H={height}",
-                        message=(
-                            f"Cannot fit any carrier with rotation "
-                            f"(max dimension {max_item_dim}mm > "
-                            f"max carrier axis {max_carrier_dim}mm)"
-                        ),
-                    )
-                )
-                checked_skus.add(sku)
 
         return issues
 

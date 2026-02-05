@@ -9,7 +9,6 @@ from src.quality.validators import MasterdataValidator, ValidationResult
 from src.quality.dq_metrics import DataQualityCalculator, DataQualityMetrics
 from src.quality.dq_lists import DQListBuilder, DQLists
 from src.quality.impute import Imputer, ImputationResult, ImputationMethod
-from src.core.types import CarrierConfig
 
 
 @dataclass
@@ -40,7 +39,11 @@ class QualityPipelineResult:
 
 
 class QualityPipeline:
-    """Data quality pipeline for Masterdata."""
+    """Data quality pipeline for Masterdata.
+
+    Note: Outlier and borderline detection has been moved to Capacity Analysis.
+    This pipeline now only handles validation (missing critical, duplicates, conflicts).
+    """
 
     def __init__(
         self,
@@ -48,9 +51,6 @@ class QualityPipeline:
         imputation_method: ImputationMethod = ImputationMethod.MEDIAN,
         treat_zero_as_missing: bool = True,
         treat_negative_as_missing: bool = True,
-        enable_outlier_validation: bool = True,
-        outlier_thresholds: dict | None = None,
-        carriers: list[CarrierConfig] | None = None,
     ) -> None:
         """Initialize pipeline.
 
@@ -59,54 +59,34 @@ class QualityPipeline:
             imputation_method: Imputation method
             treat_zero_as_missing: Whether to treat 0 as missing
             treat_negative_as_missing: Whether to treat negative as missing
-            enable_outlier_validation: Whether to validate outliers
-            outlier_thresholds: Custom outlier thresholds dict
-            carriers: List of carrier configurations for rotation-aware
-                dimensional outlier detection
         """
         self.enable_imputation = enable_imputation
         self.imputation_method = imputation_method
-        self.carriers = carriers
 
         self.validator = MasterdataValidator(
             treat_zero_as_missing_dimensions=treat_zero_as_missing,
             treat_zero_as_missing_weight=treat_zero_as_missing,
             treat_negative_as_missing=treat_negative_as_missing,
-            enable_outlier_validation=enable_outlier_validation,
-            outlier_thresholds=outlier_thresholds,
-            carriers=carriers,
         )
         self.metrics_calculator = DataQualityCalculator(
             treat_zero_as_missing=treat_zero_as_missing,
             treat_negative_as_missing=treat_negative_as_missing,
         )
-        # Convert min/max to low/high for DQListBuilder
-        dq_outlier_thresholds = None
-        if outlier_thresholds:
-            dq_outlier_thresholds = {
-                field: {"low": vals["min"], "high": vals["max"]}
-                for field, vals in outlier_thresholds.items()
-            }
-        self.dq_list_builder = DQListBuilder(
-            outlier_thresholds=dq_outlier_thresholds,
-            enable_outlier_detection=enable_outlier_validation,
-            carriers=carriers,
-        )
+        # DQListBuilder for validation only (no outliers/borderline)
+        self.dq_list_builder = DQListBuilder()
         self.imputer = Imputer(
             method=imputation_method,
             treat_zero_as_missing=treat_zero_as_missing,
         )
 
-    def run(
-        self,
-        df: pl.DataFrame,
-        carrier_limits: Optional[dict[str, float]] = None,
-    ) -> QualityPipelineResult:
+    def run(self, df: pl.DataFrame) -> QualityPipelineResult:
         """Run data quality pipeline.
+
+        Note: Outlier and borderline detection is now handled in Capacity Analysis.
+        This pipeline focuses on validation (missing critical, duplicates, conflicts).
 
         Args:
             df: DataFrame with Masterdata
-            carrier_limits: Carrier limits for borderline analysis
 
         Returns:
             QualityPipelineResult with results
@@ -129,8 +109,8 @@ class QualityPipeline:
         # 4. Metrics after imputation
         metrics_after = self.metrics_calculator.calculate(df_imputed)
 
-        # 5. DQ lists
-        dq_lists = self.dq_list_builder.build_all_lists(df_imputed, carrier_limits)
+        # 5. DQ lists (validation only - no outliers/borderline)
+        dq_lists = self.dq_list_builder.build_validation_lists(df_imputed)
 
         # Summary
         total_records = len(df)

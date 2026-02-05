@@ -175,15 +175,30 @@ class Imputer:
 
     def _calculate_imputation_value(self, values: pl.Series) -> float:
         """Calculate value for imputation."""
+
+        def to_float(val: object) -> float:
+            """Convert polars scalar to float safely."""
+            if val is None:
+                return 0.0
+            if isinstance(val, (int, float)):
+                return float(val)
+            # For other numeric types, try conversion
+            try:
+                return float(val)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                return 0.0
+
         if self.method == ImputationMethod.MEDIAN:
-            return values.median()
+            return to_float(values.median())
         elif self.method == ImputationMethod.MEAN:
-            return values.mean()
+            return to_float(values.mean())
         elif self.method == ImputationMethod.MODE:
             mode = values.mode()
-            return mode[0] if len(mode) > 0 else values.median()
+            if len(mode) > 0:
+                return to_float(mode[0])
+            return to_float(values.median())
         else:
-            return values.median()
+            return to_float(values.median())
 
 
 def impute_missing(

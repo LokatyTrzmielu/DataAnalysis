@@ -35,7 +35,7 @@ from src.ui.views import (
     render_reports_view,
 )
 from src.ui.theme import apply_theme
-from src.ui.layout import render_bold_label, render_divider
+from src.ui.layout import render_divider, render_sidebar_status_section
 
 # Navigation constants
 SECTIONS = {
@@ -50,7 +50,6 @@ SUBTAB_ORDER = ["import", "validation", "analysis"]
 def init_session_state() -> None:
     """Initialize session state with default values."""
     from src.core.carriers import CarrierService
-    from src.core.config import OUTLIER_THRESHOLDS
 
     defaults = {
         # Navigation state
@@ -77,20 +76,17 @@ def init_session_state() -> None:
         "orders_original_mapping": None,
         "orders_temp_path": None,
         "orders_mapping_step": "upload",
+        # Active tab tracking for in_progress status
+        "capacity_active_tab": "import",
+        "performance_active_tab": "import",
         # Mapping history service (singleton)
         "mapping_history_service": None,
         # Custom carriers for capacity analysis
         "custom_carriers": [],
-        # Outlier validation settings
-        "outlier_validation_enabled": True,
-        "outlier_length_min": OUTLIER_THRESHOLDS["length_mm"]["min"],
-        "outlier_length_max": OUTLIER_THRESHOLDS["length_mm"]["max"],
-        "outlier_width_min": OUTLIER_THRESHOLDS["width_mm"]["min"],
-        "outlier_width_max": OUTLIER_THRESHOLDS["width_mm"]["max"],
-        "outlier_height_min": OUTLIER_THRESHOLDS["height_mm"]["min"],
-        "outlier_height_max": OUTLIER_THRESHOLDS["height_mm"]["max"],
-        "outlier_weight_min": OUTLIER_THRESHOLDS["weight_kg"]["min"],
-        "outlier_weight_max": OUTLIER_THRESHOLDS["weight_kg"]["max"],
+        # Borderline threshold (used in Capacity Analysis)
+        "borderline_threshold": 2.0,
+        # Capacity DQ result (generated during analysis for reports)
+        "capacity_dq_result": None,
         # Carriers loaded flag
         "carriers_loaded": False,
     }
@@ -125,6 +121,192 @@ def init_session_state() -> None:
         st.session_state.carriers_loaded = True
 
 
+def get_capacity_status() -> list[dict]:
+    """Calculate capacity pipeline status from session_state.
+
+    Returns:
+        List of step dicts with name, status, and detail fields.
+        Status can be: "success", "in_progress", or "pending".
+    """
+    steps = []
+    masterdata_df = st.session_state.get("masterdata_df")
+    quality_result = st.session_state.get("quality_result")
+    capacity_result = st.session_state.get("capacity_result")
+    mapping_step = st.session_state.get("masterdata_mapping_step", "upload")
+    active_tab = st.session_state.get("capacity_active_tab", "import")
+
+    # Step 1: Masterdata
+    if masterdata_df is not None:
+        count = len(masterdata_df)
+        steps.append({
+            "name": "Masterdata",
+            "status": "success",
+            "detail": f"{count:,} SKU loaded",
+        })
+    elif mapping_step == "mapping":
+        steps.append({
+            "name": "Masterdata",
+            "status": "in_progress",
+            "detail": "mapping...",
+        })
+    else:
+        steps.append({
+            "name": "Masterdata",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    # Step 2: Validation
+    if quality_result is not None:
+        steps.append({
+            "name": "Validation",
+            "status": "success",
+            "detail": "complete",
+        })
+    elif masterdata_df is not None and active_tab == "validation":
+        steps.append({
+            "name": "Validation",
+            "status": "in_progress",
+            "detail": "configuring...",
+        })
+    elif masterdata_df is not None:
+        steps.append({
+            "name": "Validation",
+            "status": "pending",
+            "detail": "ready",
+        })
+    else:
+        steps.append({
+            "name": "Validation",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    # Step 3: Analysis
+    if capacity_result is not None:
+        steps.append({
+            "name": "Analysis",
+            "status": "success",
+            "detail": "complete",
+        })
+    elif quality_result is not None and active_tab == "analysis":
+        steps.append({
+            "name": "Analysis",
+            "status": "in_progress",
+            "detail": "configuring...",
+        })
+    elif quality_result is not None:
+        steps.append({
+            "name": "Analysis",
+            "status": "pending",
+            "detail": "ready",
+        })
+    else:
+        steps.append({
+            "name": "Analysis",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    return steps
+
+
+def get_performance_status() -> list[dict]:
+    """Calculate performance pipeline status from session_state.
+
+    Performance has its own independent pipeline, separate from Capacity.
+
+    Returns:
+        List of step dicts with name, status, and detail fields.
+        Status can be: "success", "in_progress", or "pending".
+    """
+    steps = []
+    orders_df = st.session_state.get("orders_df")
+    performance_result = st.session_state.get("performance_result")
+    mapping_step = st.session_state.get("orders_mapping_step", "upload")
+    active_tab = st.session_state.get("performance_active_tab", "import")
+
+    # Step 1: Orders
+    if orders_df is not None:
+        count = len(orders_df)
+        steps.append({
+            "name": "Orders",
+            "status": "success",
+            "detail": f"{count:,} lines loaded",
+        })
+    elif mapping_step == "mapping":
+        steps.append({
+            "name": "Orders",
+            "status": "in_progress",
+            "detail": "mapping...",
+        })
+    else:
+        steps.append({
+            "name": "Orders",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    # Step 2: Validation
+    if orders_df is not None and active_tab == "validation":
+        steps.append({
+            "name": "Validation",
+            "status": "in_progress",
+            "detail": "configuring...",
+        })
+    elif orders_df is not None:
+        steps.append({
+            "name": "Validation",
+            "status": "success",
+            "detail": "ready",
+        })
+    else:
+        steps.append({
+            "name": "Validation",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    # Step 3: Analysis
+    if performance_result is not None:
+        steps.append({
+            "name": "Analysis",
+            "status": "success",
+            "detail": "complete",
+        })
+    elif orders_df is not None and active_tab == "analysis":
+        steps.append({
+            "name": "Analysis",
+            "status": "in_progress",
+            "detail": "configuring...",
+        })
+    elif orders_df is not None:
+        steps.append({
+            "name": "Analysis",
+            "status": "pending",
+            "detail": "ready",
+        })
+    else:
+        steps.append({
+            "name": "Analysis",
+            "status": "pending",
+            "detail": "pending",
+        })
+
+    return steps
+
+
+def render_sidebar_status() -> None:
+    """Render both Capacity and Performance pipeline status sections."""
+    # Capacity pipeline
+    capacity_steps = get_capacity_status()
+    render_sidebar_status_section("CAPACITY", capacity_steps, icon="📦")
+
+    # Performance pipeline
+    performance_steps = get_performance_status()
+    render_sidebar_status_section("PERFORMANCE", performance_steps, icon="📈")
+
+
 def render_sidebar() -> None:
     """Render sidebar with navigation."""
     with st.sidebar:
@@ -151,18 +333,9 @@ def render_sidebar() -> None:
 
         render_divider()
 
-        # Status badges (always visible)
+        # Pipeline status sections
         st.markdown("### Status")
-        if st.session_state.masterdata_df is not None:
-            st.markdown(f"✅ Masterdata: {len(st.session_state.masterdata_df)} SKU")
-        else:
-            st.markdown("ℹ️ Masterdata: Not loaded")
-        if st.session_state.orders_df is not None:
-            st.markdown(f"✅ Orders: {len(st.session_state.orders_df)} lines")
-        else:
-            st.markdown("ℹ️ Orders: Not loaded")
-        if st.session_state.analysis_complete:
-            st.markdown("✅ Analysis complete")
+        render_sidebar_status()
 
 
 def render_main_content() -> None:
@@ -222,16 +395,15 @@ def _render_capacity_section() -> None:
     tabs = st.tabs(["Import", "Validation", "Analysis"])
 
     with tabs[0]:
-        # For now, render masterdata part of import view
-        # Will be split in Etap 2
+        st.session_state.capacity_active_tab = "import"
         _render_capacity_import()
 
     with tabs[1]:
-        # For now, render masterdata validation
-        # Will be split in Etap 2
+        st.session_state.capacity_active_tab = "validation"
         _render_capacity_validation()
 
     with tabs[2]:
+        st.session_state.capacity_active_tab = "analysis"
         render_capacity_view()
 
 
@@ -243,17 +415,14 @@ def _render_capacity_import() -> None:
 
 def _render_capacity_validation() -> None:
     """Render Capacity Validation sub-tab with settings."""
-    from src.core.config import OUTLIER_THRESHOLDS
-    from src.ui.layout import render_message_box
-
     st.header("✅ Validation")
 
     if st.session_state.masterdata_df is None:
         st.info("Import Masterdata in the Import tab first")
         return
 
-    # Capacity Settings section
-    with st.expander("⚙️ Capacity Settings", expanded=False):
+    # Validation Settings section (simplified - outliers moved to Capacity Analysis)
+    with st.expander("⚙️ Validation Settings", expanded=False):
         col1, col2 = st.columns(2)
 
         with col1:
@@ -262,16 +431,6 @@ def _render_capacity_validation() -> None:
                 "Client name",
                 value=st.session_state.client_name,
                 placeholder="e.g. Client_ABC",
-            )
-
-            # Borderline threshold
-            st.session_state.borderline_threshold = st.slider(
-                "Borderline threshold (mm)",
-                min_value=0.5,
-                max_value=10.0,
-                value=st.session_state.get("borderline_threshold", 2.0),
-                step=0.5,
-                help="Threshold for marking SKU as BORDERLINE (close to carrier limit)",
             )
 
         with col2:
@@ -288,63 +447,18 @@ def _render_capacity_validation() -> None:
                     options=["Median", "Average"],
                     index=0 if st.session_state.get("imputation_method", "Median") == "Median" else 1,
                     key="capacity_imputation_method_select",
-                    help="Median is more robust to outliers",
+                    help=(
+                        "Median: Each field (length, width, height, weight, quantity) gets its own "
+                        "global median calculated from all valid values in the dataset. "
+                        "Values ≤0 and null are treated as missing and replaced with this median. "
+                        "More robust to outliers.\n\n"
+                        "Average: Each field gets its own global mean calculated from all valid values. "
+                        "Values ≤0 and null are treated as missing and replaced with this average. "
+                        "More sensitive to extreme values."
+                    ),
                 )
 
-        # Outlier validation
-        render_bold_label("Outlier validation", "⚠️")
-        st.session_state.outlier_validation_enabled = st.checkbox(
-            "Enable outlier detection",
-            value=st.session_state.get("outlier_validation_enabled", True),
-            help="Flag values outside acceptable ranges",
-        )
-
-        if st.session_state.outlier_validation_enabled:
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.session_state.outlier_length_min = st.number_input(
-                    "Length min (mm)",
-                    value=float(st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"])),
-                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_len_min"
-                )
-                st.session_state.outlier_length_max = st.number_input(
-                    "Length max (mm)",
-                    value=float(st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"])),
-                    min_value=0.001, step=100.0, format="%.1f", key="cv_ol_len_max"
-                )
-            with col2:
-                st.session_state.outlier_width_min = st.number_input(
-                    "Width min (mm)",
-                    value=float(st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"])),
-                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_wid_min"
-                )
-                st.session_state.outlier_width_max = st.number_input(
-                    "Width max (mm)",
-                    value=float(st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"])),
-                    min_value=0.001, step=100.0, format="%.1f", key="cv_ol_wid_max"
-                )
-            with col3:
-                st.session_state.outlier_height_min = st.number_input(
-                    "Height min (mm)",
-                    value=float(st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"])),
-                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_hgt_min"
-                )
-                st.session_state.outlier_height_max = st.number_input(
-                    "Height max (mm)",
-                    value=float(st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"])),
-                    min_value=0.001, step=100.0, format="%.1f", key="cv_ol_hgt_max"
-                )
-            with col4:
-                st.session_state.outlier_weight_min = st.number_input(
-                    "Weight min (kg)",
-                    value=float(st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"])),
-                    min_value=0.0, step=0.001, format="%.3f", key="cv_ol_wgt_min"
-                )
-                st.session_state.outlier_weight_max = st.number_input(
-                    "Weight max (kg)",
-                    value=float(st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"])),
-                    min_value=0.001, step=10.0, format="%.1f", key="cv_ol_wgt_max"
-                )
+        st.caption("Outliers (SKUs not fitting any carrier) are detected automatically during analysis")
 
     render_divider()
 
@@ -358,12 +472,15 @@ def _render_performance_section() -> None:
     tabs = st.tabs(["Import", "Validation", "Analysis"])
 
     with tabs[0]:
+        st.session_state.performance_active_tab = "import"
         _render_performance_import()
 
     with tabs[1]:
+        st.session_state.performance_active_tab = "validation"
         _render_performance_validation()
 
     with tabs[2]:
+        st.session_state.performance_active_tab = "analysis"
         render_performance_view()
 
 

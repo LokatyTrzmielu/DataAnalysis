@@ -227,6 +227,19 @@ class CarrierFitResult(BaseModel):
     margin_mm: Optional[float] = Field(
         default=None, description="Margin to limit in mm (for BORDERLINE)"
     )
+    # Location metrics (calculated when stock_qty is available)
+    locations_required: int = Field(
+        default=0, ge=0, description="Number of locations needed for stock"
+    )
+    filling_rate: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Space utilization ratio (0-1)"
+    )
+    stored_volume_L: float = Field(
+        default=0.0, ge=0.0, description="Total stored volume in liters"
+    )
+    carrier_volume_L: float = Field(
+        default=0.0, ge=0.0, description="Carrier internal volume in liters"
+    )
 
 
 # ============================================================================
@@ -238,8 +251,8 @@ class ShiftConfig(BaseModel):
     """Single shift configuration."""
 
     name: str = Field(..., description="Shift name (e.g., S1, S2, OT_N)")
-    start: time = Field(..., description="Start time")
-    end: time = Field(..., description="End time")
+    start: str | time = Field(..., description="Start time")
+    end: str | time = Field(..., description="End time")
     shift_type: ShiftType = Field(default=ShiftType.BASE)
 
     @field_validator("start", "end", mode="before")
@@ -256,8 +269,12 @@ class ShiftConfig(BaseModel):
     @property
     def duration_hours(self) -> float:
         """Shift duration in hours."""
-        start_minutes = self.start.hour * 60 + self.start.minute
-        end_minutes = self.end.hour * 60 + self.end.minute
+        # Get time objects (validator ensures start/end are converted to time)
+        start_time = self.start if isinstance(self.start, time) else datetime.strptime(self.start, "%H:%M").time()
+        end_time = self.end if isinstance(self.end, time) else datetime.strptime(self.end, "%H:%M").time()
+
+        start_minutes = start_time.hour * 60 + start_time.minute
+        end_minutes = end_time.hour * 60 + end_time.minute
 
         # Handle night shift (crosses midnight)
         if end_minutes <= start_minutes:

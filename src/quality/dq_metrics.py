@@ -180,9 +180,9 @@ class DataQualityCalculator:
             total_records=total,
             non_null_count=non_null_count,
             null_count=null_count,
-            zero_count=zero_count,
-            negative_count=negative_count,
-            valid_count=valid_count,
+            zero_count=int(zero_count),
+            negative_count=int(negative_count),
+            valid_count=int(valid_count),
             coverage_pct=coverage_pct,
         )
 

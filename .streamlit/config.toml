@@ -11,7 +11,7 @@ font = "sans serif"
 
 [theme.sidebar]
 backgroundColor = "#20100e"           # coffee-bean
-secondaryBackgroundColor = "#323232"  # graphite
+secondaryBackgroundColor = "#323232"  # graphite (używany jako widget background)
 primaryColor = "#b7622c"              # burnt-caramel
 textColor = "#F5F0E8"                 # ciepła biel
-borderColor = "#4a3c39"               # obramowanie widgetów
+borderColor = "#4a3c39"               # obramowanie

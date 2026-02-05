@@ -1,5 +1,6 @@
 """Capacity analysis - matching SKU to carriers."""
 
+import math
 from dataclasses import dataclass, field
 from itertools import permutations
 from typing import Optional
@@ -27,6 +28,9 @@ class CarrierStats:
     fit_percentage: float
     total_volume_m3: float  # Sum of unit SKU volumes that fit (fit + borderline)
     stock_volume_m3: float = 0.0  # Sum of (unit volume × stock_qty) for fitting SKUs
+    # Location metrics (new)
+    total_locations_required: int = 0  # Total locations needed for all fitting SKUs
+    avg_filling_rate: float = 0.0  # Average filling rate across fitting SKUs
 
 
 @dataclass
@@ -46,7 +50,10 @@ class CapacityAnalyzer:
     """Capacity analyzer - matching SKU to carriers."""
 
     # 6 possible orientations (permutations of L, W, H)
-    ORIENTATIONS = list(permutations(["L", "W", "H"]))
+    ORIENTATIONS: list[tuple[str, str, str]] = [
+        ("L", "W", "H"), ("L", "H", "W"), ("W", "L", "H"),
+        ("W", "H", "L"), ("H", "L", "W"), ("H", "W", "L"),
+    ]
 
     def __init__(
         self,
@@ -161,7 +168,8 @@ class CapacityAnalyzer:
                 limiting_factor=LimitingFactor.WEIGHT,
             )
 
-        # Calculate how many units per carrier
+        # Calculate how many units per carrier (best_orientation guaranteed non-None here)
+        assert best_orientation is not None
         units_per_carrier = self._calculate_units_per_carrier(
             dims[best_orientation[0]],
             dims[best_orientation[1]],
@@ -219,18 +227,58 @@ class CapacityAnalyzer:
 
         return min(volume_based, weight_based)
 
+    def _calculate_location_metrics(
+        self,
+        stock_qty: int,
+        sku_volume_L: float,
+        units_per_carrier: int,
+        carrier_volume_L: float,
+    ) -> tuple[int, float, float]:
+        """Calculate required locations and filling rate.
+
+        Args:
+            stock_qty: Stock quantity (EA)
+            sku_volume_L: Single SKU volume in liters
+            units_per_carrier: How many units fit in one carrier
+            carrier_volume_L: Carrier internal volume in liters
+
+        Returns:
+            Tuple of (locations_required, filling_rate, stored_volume_L)
+        """
+        if units_per_carrier <= 0 or stock_qty <= 0:
+            return 0, 0.0, 0.0
+
+        # How many locations (carriers) needed for entire stock
+        locations_required = math.ceil(stock_qty / units_per_carrier)
+
+        # Total volume of stored goods
+        stored_volume_L = stock_qty * sku_volume_L
+
+        # Total available volume in all allocated locations
+        available_volume_L = locations_required * carrier_volume_L
+
+        # Filling rate (how efficiently space is used)
+        filling_rate = stored_volume_L / available_volume_L if available_volume_L > 0 else 0.0
+
+        # Clamp filling_rate to [0, 1] (can exceed 1 if calculation is off due to rounding)
+        filling_rate = min(1.0, max(0.0, filling_rate))
+
+        return locations_required, filling_rate, stored_volume_L
+
     def analyze_dataframe(
         self,
         df: pl.DataFrame,
         carrier_id: Optional[str] = None,
         prioritization_mode: bool = False,
+        best_fit_mode: bool = False,
     ) -> CapacityAnalysisResult:
         """Analyze entire DataFrame.
 
         Args:
             df: DataFrame with Masterdata
             carrier_id: Specific carrier (None = all)
-            prioritization_mode: If True, assign each SKU to smallest fitting carrier
+            prioritization_mode: If True, assign each SKU to smallest fitting carrier by priority
+            best_fit_mode: If True, assign each SKU to carrier with best filling rate
 
         Returns:
             CapacityAnalysisResult
@@ -247,7 +295,7 @@ class CapacityAnalyzer:
             # Sort by priority (1 = first, 2 = second, ...)
             carriers_to_analyze = sorted(
                 carriers_to_analyze,
-                key=lambda c: c.priority
+                key=lambda c: c.priority if c.priority is not None else float('inf')
             )
 
         results = []
@@ -262,6 +310,12 @@ class CapacityAnalyzer:
 
         rows = df.select(available_cols).to_dicts()
 
+        # Create carrier lookup for volume calculation
+        carrier_volumes_L = {
+            c.carrier_id: (c.inner_length_mm * c.inner_width_mm * c.inner_height_mm) / 1_000_000
+            for c in carriers_to_analyze
+        }
+
         for row in rows:
             sku = row["sku"]
             length = row.get("length_mm", 0) or 0
@@ -272,6 +326,8 @@ class CapacityAnalyzer:
 
             # Calculate volume_m3 for a single SKU unit
             sku_volume_m3 = (length * width * height) / 1_000_000_000
+            # SKU volume in liters (for location metrics)
+            sku_volume_L = (length * width * height) / 1_000_000
             # Stock volume = unit volume × stock quantity
             sku_stock_volume_m3 = sku_volume_m3 * stock_qty
 
@@ -283,41 +339,67 @@ class CapacityAnalyzer:
                     pass
 
             sku_assigned = False
+            # For Best Fit mode: collect all fitting carriers and their metrics
+            fitting_carriers_data: list[dict] = []
+
             for carrier in carriers_to_analyze:
                 fit_result = self._check_fit(
                     sku, length, width, height, weight, carrier, constraint
                 )
 
-                if prioritization_mode:
+                # Calculate location metrics for fitting SKUs
+                locations_required = 0
+                filling_rate = 0.0
+                stored_volume_L = 0.0
+                carrier_volume_L = carrier_volumes_L.get(carrier.carrier_id, 0.0)
+
+                if fit_result.fit_status in [FitResult.FIT, FitResult.BORDERLINE]:
+                    locations_required, filling_rate, stored_volume_L = self._calculate_location_metrics(
+                        stock_qty=stock_qty,
+                        sku_volume_L=sku_volume_L,
+                        units_per_carrier=fit_result.units_per_carrier,
+                        carrier_volume_L=carrier_volume_L,
+                    )
+
+                result_row = {
+                    "sku": sku,
+                    "carrier_id": carrier.carrier_id,
+                    "fit_status": fit_result.fit_status.value,
+                    "units_per_carrier": fit_result.units_per_carrier,
+                    "volume_m3": round(sku_volume_m3, 6),
+                    "stock_volume_m3": round(sku_stock_volume_m3, 6),
+                    "limiting_factor": fit_result.limiting_factor.value,
+                    "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
+                    "locations_required": locations_required,
+                    "filling_rate": round(filling_rate, 4),
+                    "stored_volume_L": round(stored_volume_L, 2),
+                    "carrier_volume_L": round(carrier_volume_L, 2),
+                }
+
+                if best_fit_mode:
+                    # In Best Fit mode: collect all fitting carriers
+                    if fit_result.fit_status in [FitResult.FIT, FitResult.BORDERLINE]:
+                        fitting_carriers_data.append(result_row)
+                elif prioritization_mode:
                     # In prioritization mode: assign SKU to first fitting carrier
                     if fit_result.fit_status in [FitResult.FIT, FitResult.BORDERLINE]:
-                        results.append({
-                            "sku": sku,
-                            "carrier_id": carrier.carrier_id,
-                            "fit_status": fit_result.fit_status.value,
-                            "units_per_carrier": fit_result.units_per_carrier,
-                            "volume_m3": round(sku_volume_m3, 6),
-                            "stock_volume_m3": round(sku_stock_volume_m3, 6),
-                            "limiting_factor": fit_result.limiting_factor.value,
-                            "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
-                        })
+                        results.append(result_row)
                         sku_assigned = True
                         break  # Stop after first fitting carrier
                 else:
                     # Independent mode: add all results
-                    results.append({
-                        "sku": sku,
-                        "carrier_id": carrier.carrier_id,
-                        "fit_status": fit_result.fit_status.value,
-                        "units_per_carrier": fit_result.units_per_carrier,
-                        "volume_m3": round(sku_volume_m3, 6),
-                        "stock_volume_m3": round(sku_stock_volume_m3, 6),
-                        "limiting_factor": fit_result.limiting_factor.value,
-                        "margin_mm": float(fit_result.margin_mm) if fit_result.margin_mm is not None else None,
-                    })
+                    results.append(result_row)
 
-            # In prioritization mode: if SKU doesn't fit any carrier, record as NOT_FIT
-            if prioritization_mode and not sku_assigned and carriers_to_analyze:
+            # Best Fit mode: select carrier with highest filling rate
+            if best_fit_mode:
+                if fitting_carriers_data:
+                    # Sort by filling rate (descending) - highest filling rate = best fit
+                    best_carrier = max(fitting_carriers_data, key=lambda x: x["filling_rate"])
+                    results.append(best_carrier)
+                    sku_assigned = True
+
+            # In prioritization/best_fit mode: if SKU doesn't fit any carrier, record as NOT_FIT
+            if (prioritization_mode or best_fit_mode) and not sku_assigned and carriers_to_analyze:
                 results.append({
                     "sku": sku,
                     "carrier_id": "NONE",  # Special marker - doesn't fit any carrier
@@ -327,6 +409,10 @@ class CapacityAnalyzer:
                     "stock_volume_m3": round(sku_stock_volume_m3, 6),
                     "limiting_factor": LimitingFactor.DIMENSION.value,
                     "margin_mm": None,
+                    "locations_required": 0,
+                    "filling_rate": 0.0,
+                    "stored_volume_L": 0.0,
+                    "carrier_volume_L": 0.0,
                 })
 
         # Create DataFrame with explicit schema for columns with None
@@ -341,6 +427,10 @@ class CapacityAnalyzer:
                 "stock_volume_m3": pl.Float64,
                 "limiting_factor": pl.Utf8,
                 "margin_mm": pl.Float64,
+                "locations_required": pl.Int64,
+                "filling_rate": pl.Float64,
+                "stored_volume_L": pl.Float64,
+                "carrier_volume_L": pl.Float64,
             }
         )
 
@@ -367,6 +457,15 @@ class CapacityAnalyzer:
             c_volume_m3 = fitting_df["volume_m3"].sum() if fitting_df.height > 0 else 0.0
             c_stock_volume_m3 = fitting_df["stock_volume_m3"].sum() if fitting_df.height > 0 else 0.0
 
+            # Location metrics aggregation
+            c_total_locations = int(fitting_df["locations_required"].sum()) if fitting_df.height > 0 else 0
+            # Average filling rate (only for SKUs with locations_required > 0)
+            fitting_with_locations = fitting_df.filter(pl.col("locations_required") > 0)
+            c_avg_filling_rate = (
+                fitting_with_locations["filling_rate"].mean()
+                if fitting_with_locations.height > 0 else 0.0
+            )
+
             carrier_stats[carrier.carrier_id] = CarrierStats(
                 carrier_id=carrier.carrier_id,
                 carrier_name=carrier.name,
@@ -376,10 +475,12 @@ class CapacityAnalyzer:
                 fit_percentage=round(c_fit_pct, 1),
                 total_volume_m3=round(c_volume_m3, 2),
                 stock_volume_m3=round(c_stock_volume_m3, 2),
+                total_locations_required=c_total_locations,
+                avg_filling_rate=round(c_avg_filling_rate, 3) if c_avg_filling_rate else 0.0,
             )
 
-        # In prioritization mode, add stats for SKUs that don't fit any carrier
-        if prioritization_mode:
+        # In prioritization/best_fit mode, add stats for SKUs that don't fit any carrier
+        if prioritization_mode or best_fit_mode:
             none_df = result_df.filter(pl.col("carrier_id") == "NONE")
             if none_df.height > 0:
                 none_volume = none_df["volume_m3"].sum()
@@ -393,11 +494,13 @@ class CapacityAnalyzer:
                     fit_percentage=0.0,
                     total_volume_m3=round(none_volume, 2),
                     stock_volume_m3=round(none_stock_volume, 2),
+                    total_locations_required=0,
+                    avg_filling_rate=0.0,
                 )
 
         # Build list of analyzed carriers
         carriers_analyzed_ids = [c.carrier_id for c in carriers_to_analyze]
-        if prioritization_mode and "NONE" in carrier_stats:
+        if (prioritization_mode or best_fit_mode) and "NONE" in carrier_stats:
             carriers_analyzed_ids.append("NONE")
 
         return CapacityAnalysisResult(

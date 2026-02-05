@@ -9,6 +9,9 @@ import streamlit as st
 
 from src.ui.theme import COLORS, STATUS_COLORS, STATUS_ICONS
 
+# Pipeline status type
+PipelineStatusType = Literal["pending", "success", "in_progress", "failed"]
+
 if TYPE_CHECKING:
     from collections.abc import Generator
 
@@ -551,3 +554,84 @@ def render_data_table(
         hide_index=hide_index,
         use_container_width=True,
     )
+
+
+# ===== Sidebar Pipeline Status Components =====
+
+
+def render_sidebar_status_indicator(status: PipelineStatusType) -> str:
+    """Return HTML for pipeline circle indicator.
+
+    Args:
+        status: One of pending, success, in_progress, failed
+
+    Returns:
+        HTML string for the indicator circle
+    """
+    return f'<div class="pipeline-indicator {status}"></div>'
+
+
+def render_sidebar_pipeline_step(
+    name: str,
+    status: PipelineStatusType,
+    detail: str | None = None,
+    is_last: bool = False,
+) -> str:
+    """Render a single pipeline step with connector line.
+
+    Args:
+        name: Step name (e.g., "Masterdata", "Validation")
+        status: Step status (pending, success, in_progress, failed)
+        detail: Optional detail text (e.g., "1,234 SKU loaded")
+        is_last: Whether this is the last step (no connector line after)
+
+    Returns:
+        HTML string for the pipeline step
+    """
+    connector_class = "connector-success" if status == "success" else ""
+    indicator_html = render_sidebar_status_indicator(status)
+    detail_html = f'<div class="pipeline-step-detail">{detail}</div>' if detail else ""
+
+    return (
+        f'<div class="pipeline-step {connector_class}">'
+        f'{indicator_html}'
+        f'<div class="pipeline-step-content">'
+        f'<div class="pipeline-step-name">{name}</div>'
+        f'{detail_html}'
+        f'</div>'
+        f'</div>'
+    )
+
+
+def render_sidebar_status_section(
+    title: str,
+    steps: list[dict],
+    icon: str | None = None,
+) -> None:
+    """Render a status section (Capacity/Performance) with pipeline steps.
+
+    Args:
+        title: Section title (e.g., "CAPACITY", "PERFORMANCE")
+        steps: List of step dicts with keys: name, status, detail (optional)
+               Example: [{"name": "Masterdata", "status": "success", "detail": "1,234 SKU"}]
+        icon: Optional emoji icon for the section
+    """
+    icon_html = f'<span class="section-icon">{icon}</span>' if icon else ""
+
+    steps_html = ""
+    for i, step in enumerate(steps):
+        is_last = i == len(steps) - 1
+        steps_html += render_sidebar_pipeline_step(
+            name=step["name"],
+            status=step.get("status", "pending"),
+            detail=step.get("detail"),
+            is_last=is_last,
+        )
+
+    html = (
+        f'<div class="sidebar-status-section">'
+        f'<div class="section-title">{icon_html}{title}</div>'
+        f'<div class="sidebar-pipeline">{steps_html}</div>'
+        f'</div>'
+    )
+    st.markdown(html, unsafe_allow_html=True)

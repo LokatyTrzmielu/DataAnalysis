@@ -1,5 +1,6 @@
 """Unit detection and conversion (mm/cm/m, kg/g)."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
@@ -65,7 +66,7 @@ class UnitDetector:
 
     def detect_length_unit(
         self,
-        values: list[float],
+        values: Sequence[float],
         column_name: Optional[str] = None,
     ) -> UnitDetectionResult:
         """Detect length unit.
@@ -90,11 +91,11 @@ class UnitDetector:
         # Check column name
         if column_name:
             unit_from_name = self._detect_unit_from_name(column_name, "length")
-            if unit_from_name:
+            if unit_from_name and isinstance(unit_from_name, LengthUnit):
                 return UnitDetectionResult(
                     detected_unit=unit_from_name,
                     confidence=0.9,
-                    sample_values=clean_values[:10],
+                    sample_values=list(clean_values[:10]),
                     converted_values=[v * LENGTH_TO_MM[unit_from_name] for v in clean_values[:10]],
                 )
 
@@ -124,13 +125,13 @@ class UnitDetector:
         return UnitDetectionResult(
             detected_unit=detected,
             confidence=confidence,
-            sample_values=clean_values[:10],
+            sample_values=list(clean_values[:10]),
             converted_values=[v * LENGTH_TO_MM[detected] for v in clean_values[:10]],
         )
 
     def detect_weight_unit(
         self,
-        values: list[float],
+        values: Sequence[float],
         column_name: Optional[str] = None,
     ) -> UnitDetectionResult:
         """Detect weight unit.
@@ -154,11 +155,11 @@ class UnitDetector:
         # Check column name
         if column_name:
             unit_from_name = self._detect_unit_from_name(column_name, "weight")
-            if unit_from_name:
+            if unit_from_name and isinstance(unit_from_name, WeightUnit):
                 return UnitDetectionResult(
                     detected_unit=unit_from_name,
                     confidence=0.9,
-                    sample_values=clean_values[:10],
+                    sample_values=list(clean_values[:10]),
                     converted_values=[v * WEIGHT_TO_KG[unit_from_name] for v in clean_values[:10]],
                 )
 
@@ -181,7 +182,7 @@ class UnitDetector:
         return UnitDetectionResult(
             detected_unit=detected,
             confidence=confidence,
-            sample_values=clean_values[:10],
+            sample_values=list(clean_values[:10]),
             converted_values=[v * WEIGHT_TO_KG[detected] for v in clean_values[:10]],
         )
 
@@ -247,7 +248,8 @@ class UnitConverter:
             # Detect unit based on first column
             sample = df[length_col].cast(pl.Float64, strict=False).drop_nulls().to_list()[:100]
             detection = self.detector.detect_length_unit(sample, length_col)
-            source_unit = detection.detected_unit
+            if isinstance(detection.detected_unit, LengthUnit):
+                source_unit = detection.detected_unit
 
         if source_unit is None:
             source_unit = LengthUnit.MM
@@ -282,7 +284,8 @@ class UnitConverter:
         if source_unit is None and auto_detect:
             sample = df[weight_col].cast(pl.Float64, strict=False).drop_nulls().to_list()[:100]
             detection = self.detector.detect_weight_unit(sample, weight_col)
-            source_unit = detection.detected_unit
+            if isinstance(detection.detected_unit, WeightUnit):
+                source_unit = detection.detected_unit
 
         if source_unit is None:
             source_unit = WeightUnit.KG

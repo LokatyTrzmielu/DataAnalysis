@@ -15,8 +15,8 @@ class OrdersProcessingResult:
     total_lines: int
     total_units: int
     unique_sku: int
-    date_from: datetime
-    date_to: datetime
+    date_from: Optional[datetime]
+    date_to: Optional[datetime]
     unmatched_sku: list[str]
 
 
