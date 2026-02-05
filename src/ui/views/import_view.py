@@ -393,9 +393,6 @@ def render_masterdata_import() -> None:
 
                         st.session_state.masterdata_df = result.df
                         st.session_state.masterdata_mapping_step = "complete"
-                        # Reset Capacity pipeline statuses (new data invalidates previous results)
-                        st.session_state.quality_result = None
-                        st.session_state.capacity_result = None
 
                         # Record user corrections to history
                         original = st.session_state.masterdata_original_mapping
@@ -555,8 +552,6 @@ def render_orders_import() -> None:
 
                         st.session_state.orders_df = result.df
                         st.session_state.orders_mapping_step = "complete"
-                        # Reset Performance pipeline status (new data invalidates previous results)
-                        st.session_state.performance_result = None
 
                         # Record user corrections to history
                         original = st.session_state.orders_original_mapping
