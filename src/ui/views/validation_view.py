@@ -123,7 +123,7 @@ def _render_validation_results() -> None:
         else:
             st.success(f"{name}: 0")
 
-    st.caption("Outliers and Borderline detection is now in Capacity Analysis → Analysis tab")
+    st.caption("Outliers (SKUs not fitting any carrier) shown in Capacity Analysis results")
 
     # Validation help section
     with st.expander("❓ Validation help", expanded=False):

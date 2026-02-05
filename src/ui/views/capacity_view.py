@@ -741,7 +741,7 @@ def _render_capacity_results() -> None:
     for carrier_id in result.carriers_analyzed:
         stats = result.carrier_stats.get(carrier_id)
         if stats:
-            # Special handling for "NONE" in prioritized mode
+            # "NONE" carrier = SKUs that don't fit any carrier (only in prioritized/best_fit mode)
             if carrier_id == "NONE":
                 with st.expander("❌ Does not fit any carrier", expanded=True):
                     col1, col2, col3 = st.columns(3)

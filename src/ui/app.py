@@ -458,7 +458,7 @@ def _render_capacity_validation() -> None:
                     ),
                 )
 
-        st.caption("Outlier and Borderline detection is now configured in Analysis tab")
+        st.caption("Outliers (SKUs not fitting any carrier) are detected automatically during analysis")
 
     render_divider()
 
