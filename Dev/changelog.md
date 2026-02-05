@@ -11,6 +11,26 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-05 12:00] - Refactor
+- **Uproszczenie outlier detection - tylko rotation-aware z wagą**:
+  - **Problem:** SKU 151×112×1225mm oznaczany jako outlier mimo że mieści się w nośniku po rotacji
+  - **Stara logika:** Dwa mechanizmy: static thresholds + rotation-aware (konfliktujące)
+  - **Nowa logika:** Outlier = SKU który nie mieści się w ŻADNYM aktywnym nośniku pod względem:
+    - Wymiarów (z rotacją) - 6 możliwych orientacji
+    - Wagi - musi być ≤ max_weight_kg nośnika
+  - **Zero konfiguracji thresholds** - nośniki definiują limity
+- Zmiany w plikach:
+  - `src/core/dimension_checker.py`: Rozszerzenie `can_fit_any_carrier()` o parametr `weight_kg`
+  - `src/quality/dq_lists.py`: Usunięcie `outlier_thresholds`, uproszczenie `_find_suspect_outliers()` do tylko rotation+weight check
+  - `src/ui/views/capacity_view.py`: Usunięcie UI "Static thresholds", uproszczone wywołanie DQListBuilder
+  - `src/ui/app.py`: Usunięcie inicjalizacji outlier threshold values z session_state
+  - `tests/test_quality.py`: Zaktualizowane testy dla nowej logiki
+- Korzyści:
+  - Prostota - jeden spójny mechanizm zamiast dwóch
+  - Poprawność - SKU które mieszczą się po rotacji nie są flagowane jako outliers
+  - Pełna kontrola przez nośniki - dodanie wagi do sprawdzenia
+- Branch: feature/capacity-location-metrics
+
 ### [2026-02-04 17:00] - Feature
 - Ulepszenie obliczeń pojemności zgodnie z metodologią arkusza Excel:
   - **Nowa metryka: `locations_required`** - ile lokalizacji/nośników potrzeba dla danego SKU

@@ -50,7 +50,6 @@ SUBTAB_ORDER = ["import", "validation", "analysis"]
 def init_session_state() -> None:
     """Initialize session state with default values."""
     from src.core.carriers import CarrierService
-    from src.core.config import OUTLIER_THRESHOLDS
 
     defaults = {
         # Navigation state
@@ -84,16 +83,8 @@ def init_session_state() -> None:
         "mapping_history_service": None,
         # Custom carriers for capacity analysis
         "custom_carriers": [],
-        # Outlier validation settings (used in Capacity Analysis)
+        # Outlier validation (simplified - carriers define limits)
         "outlier_validation_enabled": True,
-        "outlier_length_min": OUTLIER_THRESHOLDS["length_mm"]["min"],
-        "outlier_length_max": OUTLIER_THRESHOLDS["length_mm"]["max"],
-        "outlier_width_min": OUTLIER_THRESHOLDS["width_mm"]["min"],
-        "outlier_width_max": OUTLIER_THRESHOLDS["width_mm"]["max"],
-        "outlier_height_min": OUTLIER_THRESHOLDS["height_mm"]["min"],
-        "outlier_height_max": OUTLIER_THRESHOLDS["height_mm"]["max"],
-        "outlier_weight_min": OUTLIER_THRESHOLDS["weight_kg"]["min"],
-        "outlier_weight_max": OUTLIER_THRESHOLDS["weight_kg"]["max"],
         # Borderline threshold (used in Capacity Analysis)
         "borderline_threshold": 2.0,
         # Capacity DQ result (outliers/borderline detected in Capacity Analysis)

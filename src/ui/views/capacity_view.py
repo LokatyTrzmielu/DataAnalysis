@@ -7,7 +7,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.core.config import OUTLIER_THRESHOLDS
 from src.core.types import CarrierConfig
 from src.ui.layout import (
     apply_plotly_dark_theme,
@@ -41,64 +40,16 @@ def render_data_quality_settings() -> None:
         st.session_state.outlier_validation_enabled = st.checkbox(
             "Enable outlier detection",
             value=st.session_state.get("outlier_validation_enabled", True),
-            help="Detect SKUs with values outside acceptable ranges using configured carriers",
+            help="Detect SKUs that don't fit any active carrier (dimensions + weight)",
         )
 
         if st.session_state.outlier_validation_enabled:
-            # Static thresholds in collapsible section
-            with st.expander("📏 Static thresholds", expanded=False):
-                st.caption("Values outside these ranges are flagged as outliers")
-                col1, col2, col3, col4 = st.columns(4)
-
-                with col1:
-                    st.session_state.outlier_length_min = st.number_input(
-                        "Length min (mm)",
-                        value=float(st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"])),
-                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_len_min"
-                    )
-                    st.session_state.outlier_length_max = st.number_input(
-                        "Length max (mm)",
-                        value=float(st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"])),
-                        min_value=0.001, step=100.0, format="%.1f", key="cap_ol_len_max"
-                    )
-
-                with col2:
-                    st.session_state.outlier_width_min = st.number_input(
-                        "Width min (mm)",
-                        value=float(st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"])),
-                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_wid_min"
-                    )
-                    st.session_state.outlier_width_max = st.number_input(
-                        "Width max (mm)",
-                        value=float(st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"])),
-                        min_value=0.001, step=100.0, format="%.1f", key="cap_ol_wid_max"
-                    )
-
-                with col3:
-                    st.session_state.outlier_height_min = st.number_input(
-                        "Height min (mm)",
-                        value=float(st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"])),
-                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_hgt_min"
-                    )
-                    st.session_state.outlier_height_max = st.number_input(
-                        "Height max (mm)",
-                        value=float(st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"])),
-                        min_value=0.001, step=100.0, format="%.1f", key="cap_ol_hgt_max"
-                    )
-
-                with col4:
-                    st.session_state.outlier_weight_min = st.number_input(
-                        "Weight min (kg)",
-                        value=float(st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"])),
-                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_wgt_min"
-                    )
-                    st.session_state.outlier_weight_max = st.number_input(
-                        "Weight max (kg)",
-                        value=float(st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"])),
-                        min_value=0.001, step=10.0, format="%.1f", key="cap_ol_wgt_max"
-                    )
-
-            st.caption("Additionally, SKUs that cannot fit ANY active carrier (with rotation) are flagged as outliers")
+            st.caption(
+                "Outlier = SKU that cannot fit ANY active carrier considering:\n"
+                "- Dimensions with all 6 rotations\n"
+                "- Weight <= carrier max weight\n\n"
+                "No manual thresholds - carriers define the limits."
+            )
 
         # Borderline threshold
         render_divider()
@@ -151,26 +102,6 @@ def _run_data_quality_detection() -> None:
         st.error("No active carriers configured")
         return
 
-    # Build outlier thresholds from session state
-    outlier_thresholds = {
-        "length_mm": {
-            "low": st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"]),
-            "high": st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"]),
-        },
-        "width_mm": {
-            "low": st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"]),
-            "high": st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"]),
-        },
-        "height_mm": {
-            "low": st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"]),
-            "high": st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"]),
-        },
-        "weight_kg": {
-            "low": st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"]),
-            "high": st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"]),
-        },
-    }
-
     # Calculate carrier limits for borderline detection (max across all active carriers)
     carrier_limits = {
         "length_mm": max(c.inner_length_mm for c in active_carriers),
@@ -178,10 +109,9 @@ def _run_data_quality_detection() -> None:
         "height_mm": max(c.inner_height_mm for c in active_carriers),
     }
 
-    # Build DQ lists for capacity analysis
+    # Build DQ lists for capacity analysis (simplified - no static thresholds)
     builder = DQListBuilder(
         borderline_threshold_mm=st.session_state.get("borderline_threshold", 2.0),
-        outlier_thresholds=outlier_thresholds,
         enable_outlier_detection=st.session_state.get("outlier_validation_enabled", True),
         carriers=active_carriers,
     )
