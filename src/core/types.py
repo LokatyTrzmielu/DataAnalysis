@@ -227,6 +227,19 @@ class CarrierFitResult(BaseModel):
     margin_mm: Optional[float] = Field(
         default=None, description="Margin to limit in mm (for BORDERLINE)"
     )
+    # Location metrics (calculated when stock_qty is available)
+    locations_required: int = Field(
+        default=0, ge=0, description="Number of locations needed for stock"
+    )
+    filling_rate: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Space utilization ratio (0-1)"
+    )
+    stored_volume_L: float = Field(
+        default=0.0, ge=0.0, description="Total stored volume in liters"
+    )
+    carrier_volume_L: float = Field(
+        default=0.0, ge=0.0, description="Carrier internal volume in liters"
+    )
 
 
 # ============================================================================

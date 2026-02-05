@@ -17,7 +17,7 @@ from src.quality.dq_metrics import (
 )
 from src.quality.dq_lists import DQListBuilder, build_dq_lists
 from src.quality.impute import Imputer, ImputationMethod, impute_missing
-from src.core.types import DataQualityFlag
+from src.core.types import DataQualityFlag, CarrierConfig
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -266,23 +266,106 @@ class TestDQListBuilder:
         assert "SKU2" in skus
         assert "SKU3" in skus
 
-    def test_find_suspect_outliers(self):
-        """Test znajdowania outlierow."""
+    def test_find_suspect_outliers_no_carriers(self):
+        """Test that outliers are not detected without carriers configured."""
         df = pl.DataFrame({
             "sku": ["SKU1", "SKU2", "SKU3"],
-            "length_mm": [100.0, 0.0005, 4000.0],  # 0.0005 < 0.001 (too small), 4000 > 3650 (too large)
+            "length_mm": [100.0, 5000.0, 4000.0],  # Large values but no carrier to check against
             "width_mm": [50.0, 100.0, 150.0],
             "height_mm": [30.0, 60.0, 90.0],
             "weight_kg": [1.5, 3.0, 4.5],
         })
 
+        # Without carriers - no outliers detected (carriers define limits)
         builder = DQListBuilder()
+        outliers = builder._find_suspect_outliers(df)
+        assert len(outliers) == 0
+
+    def test_find_suspect_outliers_with_carriers(self):
+        """Test finding outliers with carrier-based detection."""
+        df = pl.DataFrame({
+            "sku": ["FITS", "TOO_LONG", "TOO_HEAVY"],
+            "length_mm": [100.0, 2000.0, 100.0],  # TOO_LONG won't fit any carrier
+            "width_mm": [100.0, 100.0, 100.0],
+            "height_mm": [100.0, 100.0, 100.0],
+            "weight_kg": [10.0, 10.0, 200.0],  # TOO_HEAVY exceeds max_weight
+        })
+
+        carriers = [CarrierConfig(
+            carrier_id="C1",
+            name="Test Carrier",
+            inner_length_mm=500,
+            inner_width_mm=500,
+            inner_height_mm=500,
+            max_weight_kg=100,
+            is_active=True,
+        )]
+
+        builder = DQListBuilder(carriers=carriers)
         outliers = builder._find_suspect_outliers(df)
 
         assert len(outliers) == 2
-        skus = [item.sku for item in outliers]
-        assert "SKU2" in skus
-        assert "SKU3" in skus
+        outlier_skus = {item.sku for item in outliers}
+        assert "FITS" not in outlier_skus
+        assert "TOO_LONG" in outlier_skus
+        assert "TOO_HEAVY" in outlier_skus
+
+    def test_outlier_checks_weight(self):
+        """Outlier detection should check both dimensions and weight."""
+        df = pl.DataFrame({
+            "sku": ["FITS", "TOO_HEAVY"],
+            "length_mm": [100.0, 100.0],
+            "width_mm": [100.0, 100.0],
+            "height_mm": [100.0, 100.0],
+            "weight_kg": [10.0, 200.0],  # 200kg > 100kg limit
+        })
+
+        carriers = [CarrierConfig(
+            carrier_id="C1",
+            name="Test",
+            inner_length_mm=500,
+            inner_width_mm=500,
+            inner_height_mm=500,
+            max_weight_kg=100,
+            is_active=True,
+        )]
+
+        builder = DQListBuilder(carriers=carriers)
+        result = builder.build_capacity_lists(df)
+
+        outlier_skus = {item.sku for item in result.suspect_outliers}
+        assert "FITS" not in outlier_skus
+        assert "TOO_HEAVY" in outlier_skus
+
+    def test_rotation_aware_outlier_detection(self):
+        """Test that rotation-aware detection allows rotated items to fit."""
+        # SKU 151×112×1225mm should fit in 1300×800×500mm carrier with rotation
+        df = pl.DataFrame({
+            "sku": ["FITS_WITH_ROTATION", "DOES_NOT_FIT"],
+            "length_mm": [151.0, 2000.0],  # 151 fits in 500mm when rotated
+            "width_mm": [112.0, 500.0],
+            "height_mm": [1225.0, 500.0],  # 1225 fits in 1300mm when rotated
+            "weight_kg": [10.0, 10.0],
+        })
+
+        carriers = [CarrierConfig(
+            carrier_id="C1",
+            name="Test",
+            inner_length_mm=1300,
+            inner_width_mm=800,
+            inner_height_mm=500,
+            max_weight_kg=100,
+            is_active=True,
+        )]
+
+        builder = DQListBuilder(carriers=carriers)
+        outliers = builder._find_suspect_outliers(df)
+
+        outlier_skus = {item.sku for item in outliers}
+        # 151×112×1225 fits as 1225×151×112 (fits in 1300×800×500)
+        assert "FITS_WITH_ROTATION" not in outlier_skus
+        # 2000mm doesn't fit any axis
+        assert "DOES_NOT_FIT" in outlier_skus
 
     def test_find_high_risk_borderline(self):
         """Test znajdowania SKU blisko limitow."""
@@ -352,20 +435,30 @@ class TestDQListBuilder:
     def test_outlier_detection_disabled(self):
         """Test that outliers are not detected when flag is False."""
         df = pl.DataFrame({
-            "sku": ["SKU1", "SKU2", "SKU3"],
-            "length_mm": [100.0, 0.0005, 4000.0],  # 0.0005 < 0.001 (too small), 4000 > 3650 (too large)
-            "width_mm": [50.0, 100.0, 150.0],
-            "height_mm": [30.0, 60.0, 90.0],
-            "weight_kg": [1.5, 3.0, 4.5],
+            "sku": ["SKU1", "SKU2"],
+            "length_mm": [100.0, 2000.0],  # 2000mm won't fit carrier
+            "width_mm": [100.0, 100.0],
+            "height_mm": [100.0, 100.0],
+            "weight_kg": [10.0, 10.0],
         })
 
+        carriers = [CarrierConfig(
+            carrier_id="C1",
+            name="Test",
+            inner_length_mm=500,
+            inner_width_mm=500,
+            inner_height_mm=500,
+            max_weight_kg=100,
+            is_active=True,
+        )]
+
         # With outlier detection enabled (default)
-        builder_enabled = DQListBuilder(enable_outlier_detection=True)
+        builder_enabled = DQListBuilder(enable_outlier_detection=True, carriers=carriers)
         outliers_enabled = builder_enabled._find_suspect_outliers(df)
-        assert len(outliers_enabled) == 2  # Should find 2 outliers
+        assert len(outliers_enabled) == 1  # Should find 1 outlier (SKU2)
 
         # With outlier detection disabled
-        builder_disabled = DQListBuilder(enable_outlier_detection=False)
+        builder_disabled = DQListBuilder(enable_outlier_detection=False, carriers=carriers)
         outliers_disabled = builder_disabled._find_suspect_outliers(df)
         assert len(outliers_disabled) == 0  # Should find no outliers
 

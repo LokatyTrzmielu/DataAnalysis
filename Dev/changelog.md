@@ -11,6 +11,63 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-05 13:30] - Fix
+- **Naprawa generowania raportów po uproszczeniu outlier detection**:
+  - Problem: ZipExporter.export() wymagał `capacity_dq_result` który został usunięty
+  - Raporty DQ_SuspectOutliers i DQ_HighRiskBorderline potrzebują szczegółów (field, value, details)
+  - Rozwiązanie: DQListBuilder uruchamiany automatycznie podczas capacity analysis
+  - `capacity_dq_result` przywrócony w session_state (generowany, nie konfigurowany przez UI)
+- **Lekcja:** Przy refaktoringu sprawdzać moduły eksportu/raportowania!
+- Branch: feature/capacity-location-metrics
+
+### [2026-02-05 13:00] - Refactor
+- **Usunięcie zbędnej logiki "Exclusion settings"**:
+  - Problem: Po uproszczeniu outlier detection do carrier-based, zostały artefakty starego systemu
+  - "Detect outliers" button był redundantny - analiza robi to samo automatycznie
+  - "Exclusion settings" checkbox był bezcelowy - outliers i tak pokazują się jako NOT_FIT
+  - Rozwiązanie: Usunięto oba, outliers widoczne w wynikach pod "Does not fit any carrier"
+- Zmiany w plikach:
+  - `src/ui/views/capacity_view.py`: Usunięto `render_data_quality_settings()`, dodano uproszczone `render_analysis_settings()`
+  - `src/ui/app.py`: Usunięto `outlier_validation_enabled` z session_state
+- Branch: feature/capacity-location-metrics
+
+### [2026-02-05 12:00] - Refactor
+- **Uproszczenie outlier detection - tylko rotation-aware z wagą**:
+  - **Problem:** SKU 151×112×1225mm oznaczany jako outlier mimo że mieści się w nośniku po rotacji
+  - **Stara logika:** Dwa mechanizmy: static thresholds + rotation-aware (konfliktujące)
+  - **Nowa logika:** Outlier = SKU który nie mieści się w ŻADNYM aktywnym nośniku pod względem:
+    - Wymiarów (z rotacją) - 6 możliwych orientacji
+    - Wagi - musi być ≤ max_weight_kg nośnika
+  - **Zero konfiguracji thresholds** - nośniki definiują limity
+- Zmiany w plikach:
+  - `src/core/dimension_checker.py`: Rozszerzenie `can_fit_any_carrier()` o parametr `weight_kg`
+  - `src/quality/dq_lists.py`: Usunięcie `outlier_thresholds`, uproszczenie `_find_suspect_outliers()` do tylko rotation+weight check
+  - `src/ui/views/capacity_view.py`: Usunięcie UI "Static thresholds", uproszczone wywołanie DQListBuilder
+  - `src/ui/app.py`: Usunięcie inicjalizacji outlier threshold values z session_state
+  - `tests/test_quality.py`: Zaktualizowane testy dla nowej logiki
+- Korzyści:
+  - Prostota - jeden spójny mechanizm zamiast dwóch
+  - Poprawność - SKU które mieszczą się po rotacji nie są flagowane jako outliers
+  - Pełna kontrola przez nośniki - dodanie wagi do sprawdzenia
+- Branch: feature/capacity-location-metrics
+
+### [2026-02-04 17:00] - Feature
+- Ulepszenie obliczeń pojemności zgodnie z metodologią arkusza Excel:
+  - **Nowa metryka: `locations_required`** - ile lokalizacji/nośników potrzeba dla danego SKU
+    - Formuła: `ceil(stock_qty / units_per_carrier)`
+  - **Nowa metryka: `filling_rate`** - współczynnik wypełnienia przestrzeni (0-1)
+    - Formuła: `(stock_qty × sku_volume) / (locations_required × carrier_volume)`
+    - Bliski 1.0 = optymalne wykorzystanie, < 0.5 = marnowanie miejsca
+  - **Nowy tryb: "Best Fit"** - automatyczny wybór optymalnej lokalizacji
+    - SKU przypisywany do nośnika z najwyższym filling rate
+    - Minimalizacja marnowanej przestrzeni
+- Zmiany w plikach:
+  - `src/core/types.py`: Rozszerzenie `CarrierFitResult` o pola: `locations_required`, `filling_rate`, `stored_volume_L`, `carrier_volume_L`
+  - `src/analytics/capacity.py`: Nowa metoda `_calculate_location_metrics()`, rozszerzenie `CarrierStats` o `total_locations_required` i `avg_filling_rate`, obsługa trybu `best_fit_mode`
+  - `src/ui/views/capacity_view.py`: Nowy tryb analizy "Best Fit", nowe kolumny w tabeli wyników ("Locations Req.", "Filling Rate (%)"), rozszerzone statystyki per carrier
+- Weryfikacja: Test jednostkowy potwierdza zgodność obliczeń z arkuszem Excel (SKU 100×80×60mm, stock 500szt → 14 lokalizacji, filling rate 71.4%)
+- Branch: feature/capacity-location-metrics
+
 ### [2026-02-04 15:30] - Fix
 - Poprawa kontrastu file uploadera:
   - Zmiana border z `1px dashed` na `2px dashed` z kolorem `accent_muted` (#5e3123)

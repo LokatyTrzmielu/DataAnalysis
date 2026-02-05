@@ -7,7 +7,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.core.config import OUTLIER_THRESHOLDS
 from src.core.types import CarrierConfig
 from src.ui.layout import (
     apply_plotly_dark_theme,
@@ -21,87 +20,13 @@ from src.ui.layout import (
 from src.ui.theme import COLORS
 
 
-def render_data_quality_settings() -> None:
-    """Render Data Quality Settings section with outlier and borderline configuration."""
-    # Get current outlier count from capacity_dq_result
-    outlier_count = 0
-    borderline_count = 0
-    if st.session_state.get("capacity_dq_result") is not None:
-        dq = st.session_state.capacity_dq_result
-        outlier_count = len({item.sku for item in dq.suspect_outliers})
-        borderline_count = len(dq.high_risk_borderline)
+def render_analysis_settings() -> None:
+    """Render analysis settings (borderline threshold only).
 
-    # Build expander title with counts
-    title_parts = ["🔍 Data Quality Settings"]
-    if outlier_count > 0 or borderline_count > 0:
-        title_parts.append(f"({outlier_count} outliers, {borderline_count} borderline)")
-
-    with st.expander(" ".join(title_parts), expanded=outlier_count > 0):
-        # Outlier validation toggle
-        st.session_state.outlier_validation_enabled = st.checkbox(
-            "Enable outlier detection",
-            value=st.session_state.get("outlier_validation_enabled", True),
-            help="Detect SKUs with values outside acceptable ranges using configured carriers",
-        )
-
-        if st.session_state.outlier_validation_enabled:
-            # Static thresholds in collapsible section
-            with st.expander("📏 Static thresholds", expanded=False):
-                st.caption("Values outside these ranges are flagged as outliers")
-                col1, col2, col3, col4 = st.columns(4)
-
-                with col1:
-                    st.session_state.outlier_length_min = st.number_input(
-                        "Length min (mm)",
-                        value=float(st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"])),
-                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_len_min"
-                    )
-                    st.session_state.outlier_length_max = st.number_input(
-                        "Length max (mm)",
-                        value=float(st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"])),
-                        min_value=0.001, step=100.0, format="%.1f", key="cap_ol_len_max"
-                    )
-
-                with col2:
-                    st.session_state.outlier_width_min = st.number_input(
-                        "Width min (mm)",
-                        value=float(st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"])),
-                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_wid_min"
-                    )
-                    st.session_state.outlier_width_max = st.number_input(
-                        "Width max (mm)",
-                        value=float(st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"])),
-                        min_value=0.001, step=100.0, format="%.1f", key="cap_ol_wid_max"
-                    )
-
-                with col3:
-                    st.session_state.outlier_height_min = st.number_input(
-                        "Height min (mm)",
-                        value=float(st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"])),
-                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_hgt_min"
-                    )
-                    st.session_state.outlier_height_max = st.number_input(
-                        "Height max (mm)",
-                        value=float(st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"])),
-                        min_value=0.001, step=100.0, format="%.1f", key="cap_ol_hgt_max"
-                    )
-
-                with col4:
-                    st.session_state.outlier_weight_min = st.number_input(
-                        "Weight min (kg)",
-                        value=float(st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"])),
-                        min_value=0.0, step=0.001, format="%.3f", key="cap_ol_wgt_min"
-                    )
-                    st.session_state.outlier_weight_max = st.number_input(
-                        "Weight max (kg)",
-                        value=float(st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"])),
-                        min_value=0.001, step=10.0, format="%.1f", key="cap_ol_wgt_max"
-                    )
-
-            st.caption("Additionally, SKUs that cannot fit ANY active carrier (with rotation) are flagged as outliers")
-
-        # Borderline threshold
-        render_divider()
+    Note: Outlier detection is now automatic during analysis.
+    SKUs that don't fit any carrier are shown in results as "Does not fit any carrier".
+    """
+    with st.expander("⚙️ Analysis Settings", expanded=False):
         current_threshold = st.session_state.get("borderline_threshold", 2.0)
         new_threshold = st.slider(
             "Borderline threshold (mm)",
@@ -116,85 +41,13 @@ def render_data_quality_settings() -> None:
         if new_threshold != current_threshold:
             st.session_state.borderline_threshold = new_threshold
             st.session_state.capacity_result = None  # Invalidate cache
-            st.session_state.capacity_dq_result = None
         elif "borderline_threshold" not in st.session_state:
             st.session_state.borderline_threshold = new_threshold
 
-        # Run detection button
-        render_divider()
-        active_carriers = [c for c in st.session_state.custom_carriers if c.get("is_active", True)]
-
-        if not active_carriers:
-            st.warning("Configure at least one active carrier to detect outliers")
-        else:
-            if st.button("🔍 Detect outliers & borderline", key="detect_dq_btn"):
-                _run_data_quality_detection()
-
-
-def _run_data_quality_detection() -> None:
-    """Run outlier and borderline detection using active carriers."""
-    from src.quality.dq_lists import DQListBuilder
-
-    df = st.session_state.masterdata_df
-    if df is None:
-        st.error("No masterdata loaded")
-        return
-
-    # Get active carriers
-    active_carriers = [
-        CarrierConfig(**c)
-        for c in st.session_state.custom_carriers
-        if c.get("is_active", True)
-    ]
-
-    if not active_carriers:
-        st.error("No active carriers configured")
-        return
-
-    # Build outlier thresholds from session state
-    outlier_thresholds = {
-        "length_mm": {
-            "low": st.session_state.get("outlier_length_min", OUTLIER_THRESHOLDS["length_mm"]["min"]),
-            "high": st.session_state.get("outlier_length_max", OUTLIER_THRESHOLDS["length_mm"]["max"]),
-        },
-        "width_mm": {
-            "low": st.session_state.get("outlier_width_min", OUTLIER_THRESHOLDS["width_mm"]["min"]),
-            "high": st.session_state.get("outlier_width_max", OUTLIER_THRESHOLDS["width_mm"]["max"]),
-        },
-        "height_mm": {
-            "low": st.session_state.get("outlier_height_min", OUTLIER_THRESHOLDS["height_mm"]["min"]),
-            "high": st.session_state.get("outlier_height_max", OUTLIER_THRESHOLDS["height_mm"]["max"]),
-        },
-        "weight_kg": {
-            "low": st.session_state.get("outlier_weight_min", OUTLIER_THRESHOLDS["weight_kg"]["min"]),
-            "high": st.session_state.get("outlier_weight_max", OUTLIER_THRESHOLDS["weight_kg"]["max"]),
-        },
-    }
-
-    # Calculate carrier limits for borderline detection (max across all active carriers)
-    carrier_limits = {
-        "length_mm": max(c.inner_length_mm for c in active_carriers),
-        "width_mm": max(c.inner_width_mm for c in active_carriers),
-        "height_mm": max(c.inner_height_mm for c in active_carriers),
-    }
-
-    # Build DQ lists for capacity analysis
-    builder = DQListBuilder(
-        borderline_threshold_mm=st.session_state.get("borderline_threshold", 2.0),
-        outlier_thresholds=outlier_thresholds,
-        enable_outlier_detection=st.session_state.get("outlier_validation_enabled", True),
-        carriers=active_carriers,
-    )
-
-    dq_result = builder.build_capacity_lists(df, carrier_limits)
-    st.session_state.capacity_dq_result = dq_result
-
-    # Show results
-    outlier_count = len({item.sku for item in dq_result.suspect_outliers})
-    borderline_count = len(dq_result.high_risk_borderline)
-
-    st.toast(f"Detected {outlier_count} outliers, {borderline_count} borderline", icon="🔍")
-    st.rerun()
+        st.caption(
+            "SKUs that don't fit any carrier (dimensions or weight) "
+            "will be shown in results under 'Does not fit any carrier'."
+        )
 
 
 def render_carrier_form() -> None:
@@ -444,8 +297,8 @@ def render_capacity_view() -> None:
 
     render_divider()
 
-    # Data Quality Settings (outlier & borderline detection)
-    render_data_quality_settings()
+    # Analysis Settings (borderline threshold)
+    render_analysis_settings()
 
     # Analysis button
     carriers_defined = len(st.session_state.custom_carriers) > 0
@@ -457,15 +310,17 @@ def render_capacity_view() -> None:
     render_divider()
     analysis_mode = st.radio(
         "Analysis mode",
-        options=["Independent (all carriers)", "Prioritized (by priority)"],
+        options=["Independent (all carriers)", "Prioritized (by priority)", "Best Fit (optimal filling)"],
         index=0,
         key="capacity_analysis_mode",
         help="Independent: SKU tested vs all active carriers separately. "
              "Prioritized: SKU assigned to first fitting carrier by priority (1=first). "
+             "Best Fit: SKU assigned to carrier with highest filling rate (optimal space use). "
              "Carriers with priority=0 are excluded from Prioritized mode.",
         horizontal=True,
     )
     prioritization_mode = analysis_mode == "Prioritized (by priority)"
+    best_fit_mode = analysis_mode == "Best Fit (optimal filling)"
 
     if prioritization_mode:
         # Count carriers with priority set
@@ -486,75 +341,61 @@ def render_capacity_view() -> None:
                 "Each SKU assigned to first fitting carrier by priority (1=first, 2=second, ...). "
                 "Set priority in the table above."
             )
-
-    # Exclusion settings - use capacity_dq_result (detected in this view)
-    outlier_count = 0
-    if st.session_state.get("capacity_dq_result") is not None:
-        outlier_count = len({item.sku for item in st.session_state.capacity_dq_result.suspect_outliers})
-
-    with st.expander(
-        f"⚠️ Exclusion settings ({outlier_count} outliers)" if outlier_count > 0 else "⚠️ Exclusion settings",
-        expanded=outlier_count > 0,
-    ):
-        if outlier_count > 0:
-            st.warning(f"{outlier_count} SKU detected as outliers (values outside normal range)")
-
-        st.checkbox(
-            f"Exclude outliers ({outlier_count} SKU)",
-            value=outlier_count > 0,  # Default: enabled only when outliers exist
-            key="exclude_outliers_checkbox",
-            disabled=outlier_count == 0,
-            help="SKU with suspicious values (dimensions/weight outside normal range)",
+    elif best_fit_mode:
+        active_carriers_count = sum(
+            1 for c in st.session_state.custom_carriers if c.get("is_active", True)
         )
-
-        if outlier_count == 0:
-            st.caption("Run 'Detect outliers & borderline' above to identify problematic SKUs")
-        else:
-            st.caption("Borderline filters will be available after running analysis")
+        st.info(
+            f"Best Fit mode: {active_carriers_count} active carrier(s) will be evaluated. "
+            "Each SKU assigned to carrier with highest filling rate (optimal space utilization). "
+            "Requires stock_qty data for accurate calculations."
+        )
 
     if st.button("Run capacity analysis", disabled=not carriers_defined, type="primary"):
         with st.spinner("Analysis in progress..."):
             try:
                 from src.analytics import CapacityAnalyzer
+                from src.quality.dq_lists import DQListBuilder
 
                 # Convert dictionaries to CarrierConfig
                 carriers = [
                     CarrierConfig(**c)
                     for c in st.session_state.custom_carriers
                 ]
+                active_carriers = [c for c in carriers if c.is_active]
 
                 # Use borderline threshold from session state
                 borderline_threshold = st.session_state.get("borderline_threshold", 2.0)
 
-                # Filter out only Outliers from analysis (borderline handled per carrier in UI)
-                df_to_analyze = st.session_state.masterdata_df
-                excluded_outliers_count = 0
-
-                # Use capacity_dq_result (detected in this view with active carriers)
-                if st.session_state.get("capacity_dq_result") is not None:
-                    dq = st.session_state.capacity_dq_result
-
-                    # Exclude outliers if checkbox is checked
-                    if st.session_state.get("exclude_outliers_checkbox", True):
-                        outlier_skus = {item.sku for item in dq.suspect_outliers}
-                        if outlier_skus:
-                            excluded_outliers_count = len(outlier_skus)
-                            df_to_analyze = df_to_analyze.filter(
-                                ~pl.col("sku").is_in(list(outlier_skus))
-                            )
-
+                # Analyze all SKUs - outliers will show as "Does not fit any carrier"
                 analyzer = CapacityAnalyzer(
                     carriers=carriers,
                     borderline_threshold_mm=borderline_threshold,
                 )
                 result = analyzer.analyze_dataframe(
-                    df_to_analyze,
+                    st.session_state.masterdata_df,
                     prioritization_mode=prioritization_mode,
+                    best_fit_mode=best_fit_mode,
                 )
                 st.session_state.capacity_result = result
-                st.session_state.capacity_excluded_outliers = excluded_outliers_count
                 st.session_state.capacity_prioritization_mode = prioritization_mode
+                st.session_state.capacity_best_fit_mode = best_fit_mode
                 st.session_state.capacity_threshold_used = borderline_threshold
+
+                # Generate DQ lists for reports (outliers/borderline details)
+                if active_carriers:
+                    carrier_limits = {
+                        "length_mm": max(c.inner_length_mm for c in active_carriers),
+                        "width_mm": max(c.inner_width_mm for c in active_carriers),
+                        "height_mm": max(c.inner_height_mm for c in active_carriers),
+                    }
+                    dq_builder = DQListBuilder(
+                        borderline_threshold_mm=borderline_threshold,
+                        carriers=active_carriers,
+                    )
+                    st.session_state.capacity_dq_result = dq_builder.build_capacity_lists(
+                        st.session_state.masterdata_df, carrier_limits
+                    )
 
                 st.toast("Capacity analysis complete", icon="✅")
                 st.rerun()
@@ -806,12 +647,14 @@ def _render_capacity_table() -> None:
     if selected_carrier != "All":
         filtered_df = filtered_df.filter(pl.col("carrier_id") == selected_carrier)
 
-    # Rename columns for display
+    # Rename columns for display - include new location metrics
     display_df = filtered_df.select([
         pl.col("sku").alias("SKU"),
         pl.col("carrier_id").alias("Carrier"),
         pl.col("fit_status").alias("Status"),
         pl.col("units_per_carrier").alias("Units/Carrier"),
+        pl.col("locations_required").alias("Locations Req."),
+        (pl.col("filling_rate") * 100).round(1).alias("Filling Rate (%)"),
         pl.col("volume_m3").alias("Volume (m³)"),
         pl.col("limiting_factor").alias("Limiting Factor"),
     ])
@@ -873,18 +716,16 @@ def _render_capacity_results() -> None:
 
     # Show analysis mode info
     render_section_header("Carrier Details", "📦")
-    if is_prioritized:
+    is_best_fit = st.session_state.get("capacity_best_fit_mode", False)
+    if is_best_fit:
+        st.caption("Best Fit mode - SKU assigned to carrier with highest filling rate")
+    elif is_prioritized:
         st.caption("Prioritized mode - SKU assigned to smallest fitting carrier")
     else:
         st.caption("Independent mode - each SKU tested vs all carriers")
 
-    # Show excluded outliers count if any
-    excluded_outliers = st.session_state.get("capacity_excluded_outliers", 0)
-    if excluded_outliers > 0:
-        st.info(f"Excluded from analysis: {excluded_outliers} outlier SKU")
-
     # Borderline filters per carrier (only in independent mode)
-    if not is_prioritized:
+    if not is_prioritized and not is_best_fit:
         with st.expander("🔧 Filter borderline SKU", expanded=False):
             st.caption("Exclude borderline from statistics per carrier:")
             for carrier_id in result.carriers_analyzed:
@@ -900,7 +741,7 @@ def _render_capacity_results() -> None:
     for carrier_id in result.carriers_analyzed:
         stats = result.carrier_stats.get(carrier_id)
         if stats:
-            # Special handling for "NONE" in prioritized mode
+            # "NONE" carrier = SKUs that don't fit any carrier (only in prioritized/best_fit mode)
             if carrier_id == "NONE":
                 with st.expander("❌ Does not fit any carrier", expanded=True):
                     col1, col2, col3 = st.columns(3)
@@ -943,24 +784,34 @@ def _render_capacity_results() -> None:
                 display_fit_pct = stats.fit_percentage
                 borderline_help = "SKU fitting but with margin < threshold (risk of fitting issues)"
 
-            # In prioritized mode, show "Assigned SKU" instead of FIT/NOT_FIT
-            if is_prioritized:
+            # In prioritized or best_fit mode, show "Assigned SKU" instead of FIT/NOT_FIT
+            if is_prioritized or is_best_fit:
                 assigned_count = stats.fit_count + stats.borderline_count
+                mode_label = "best filling rate" if is_best_fit else "smallest fitting"
                 with st.expander(f"📦 {stats.carrier_name} ({carrier_id})", expanded=True):
-                    col1, col2, col3 = st.columns(3)
+                    col1, col2, col3, col4 = st.columns(4)
                     with col1:
                         st.metric(
                             "Assigned SKU", assigned_count,
-                            help="Number of SKU assigned to this carrier (smallest fitting)"
+                            help=f"Number of SKU assigned to this carrier ({mode_label})"
                         )
                         if stats.borderline_count > 0:
                             st.caption(f"({stats.borderline_count} borderline)")
                     with col2:
                         st.metric(
+                            "Locations Req.", stats.total_locations_required,
+                            help="Total number of locations (carriers) needed for all assigned SKU"
+                        )
+                        st.metric(
+                            "Avg Filling Rate", f"{stats.avg_filling_rate * 100:.1f}%",
+                            help="Average space utilization across assigned SKU (higher = better)"
+                        )
+                    with col3:
+                        st.metric(
                             "Volume (m³)", f"{stats.total_volume_m3:.2f}",
                             help="Sum of unit volumes (L×W×H) for assigned SKU"
                         )
-                    with col3:
+                    with col4:
                         st.metric(
                             "Stock volume (m³)", f"{stats.stock_volume_m3:.2f}",
                             help="Sum of (unit volume × stock quantity) for assigned SKU"
