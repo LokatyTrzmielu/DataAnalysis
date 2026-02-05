@@ -7,6 +7,7 @@ from pathlib import Path
 
 import streamlit as st
 
+from src.quality.dq_lists import DQLists
 from src.ui.layout import (
     render_bold_label,
     render_divider,
@@ -16,6 +17,32 @@ from src.ui.layout import (
     render_status_buttons_inline,
 )
 from src.ui.theme import COLORS
+
+
+def _get_merged_dq_lists() -> DQLists:
+    """Merge validation DQ lists with capacity DQ results.
+
+    The validation pipeline produces missing_critical, duplicates, conflicts.
+    The capacity analysis produces suspect_outliers and high_risk_borderline.
+    This function merges them into a single DQLists for report generation.
+
+    Returns:
+        Merged DQLists with all available data
+    """
+    quality_dq = st.session_state.quality_result.dq_lists
+    capacity_dq = st.session_state.get("capacity_dq_result")
+
+    if capacity_dq is None:
+        return quality_dq
+
+    return DQLists(
+        missing_critical=quality_dq.missing_critical,
+        suspect_outliers=capacity_dq.suspect_outliers,
+        high_risk_borderline=capacity_dq.high_risk_borderline,
+        duplicates=quality_dq.duplicates,
+        conflicts=quality_dq.conflicts,
+        collisions=quality_dq.collisions,
+    )
 
 
 def generate_individual_report(report_type: str) -> tuple[str | None, bytes | None]:
@@ -62,16 +89,18 @@ def generate_individual_report(report_type: str) -> tuple[str | None, bytes | No
 
         elif report_type == "DQ_SuspectOutliers":
             generator = DQReportGenerator()
+            merged_dq = _get_merged_dq_lists()
             file_path = generator.generate_suspect_outliers(
                 output_dir / "DQ_SuspectOutliers.csv",
-                st.session_state.quality_result.dq_lists,
+                merged_dq,
             )
 
         elif report_type == "DQ_HighRiskBorderline":
             generator = DQReportGenerator()
+            merged_dq = _get_merged_dq_lists()
             file_path = generator.generate_high_risk_borderline(
                 output_dir / "DQ_HighRiskBorderline.csv",
-                st.session_state.quality_result.dq_lists,
+                merged_dq,
             )
 
         elif report_type == "DQ_Duplicates":
@@ -336,6 +365,7 @@ def _generate_zip_package() -> None:
                 quality_result=st.session_state.quality_result,
                 capacity_result=st.session_state.capacity_result,
                 performance_result=st.session_state.performance_result,
+                capacity_dq_result=st.session_state.get("capacity_dq_result"),
             )
 
             progress_bar.progress(80, text="Preparing download...")

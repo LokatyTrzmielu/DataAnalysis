@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from src.quality.pipeline import QualityPipelineResult
+from src.quality.dq_lists import DQLists
 from src.analytics.capacity import CapacityAnalysisResult
 from src.analytics.performance import PerformanceAnalysisResult
 from src.reporting.csv_writer import CSVWriter
@@ -35,6 +36,7 @@ class ZipExporter:
         performance_result: Optional[PerformanceAnalysisResult] = None,
         run_id: Optional[str] = None,
         create_zip: bool = True,
+        capacity_dq_result: Optional[DQLists] = None,
     ) -> Path:
         """Export complete report package.
 
@@ -46,6 +48,7 @@ class ZipExporter:
             performance_result: Performance analysis results
             run_id: Run identifier
             create_zip: Whether to create ZIP file
+            capacity_dq_result: DQ lists from capacity analysis (outliers/borderline)
 
         Returns:
             Path to the package (ZIP or directory)
@@ -71,10 +74,21 @@ class ZipExporter:
 
         # 2. DQ reports
         if quality_result:
+            # Merge DQ lists: validation (missing/duplicates/conflicts) + capacity (outliers/borderline)
+            dq_lists = quality_result.dq_lists
+            if capacity_dq_result:
+                dq_lists = DQLists(
+                    missing_critical=quality_result.dq_lists.missing_critical,
+                    suspect_outliers=capacity_dq_result.suspect_outliers,
+                    high_risk_borderline=capacity_dq_result.high_risk_borderline,
+                    duplicates=quality_result.dq_lists.duplicates,
+                    conflicts=quality_result.dq_lists.conflicts,
+                    collisions=quality_result.dq_lists.collisions,
+                )
             dq_paths = self.dq_generator.generate_all(
                 reports_dir,
                 quality_result.metrics_after,
-                quality_result.dq_lists,
+                dq_lists,
                 df=quality_result.df,
             )
             generated_files.extend(dq_paths)
