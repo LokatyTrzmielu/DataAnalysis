@@ -11,6 +11,15 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-05 13:30] - Fix
+- **Naprawa generowania raportów po uproszczeniu outlier detection**:
+  - Problem: ZipExporter.export() wymagał `capacity_dq_result` który został usunięty
+  - Raporty DQ_SuspectOutliers i DQ_HighRiskBorderline potrzebują szczegółów (field, value, details)
+  - Rozwiązanie: DQListBuilder uruchamiany automatycznie podczas capacity analysis
+  - `capacity_dq_result` przywrócony w session_state (generowany, nie konfigurowany przez UI)
+- **Lekcja:** Przy refaktoringu sprawdzać moduły eksportu/raportowania!
+- Branch: feature/capacity-location-metrics
+
 ### [2026-02-05 13:00] - Refactor
 - **Usunięcie zbędnej logiki "Exclusion settings"**:
   - Problem: Po uproszczeniu outlier detection do carrier-based, zostały artefakty starego systemu
@@ -19,7 +28,7 @@ Rejestr zmian w projekcie DataAnalysis.
   - Rozwiązanie: Usunięto oba, outliers widoczne w wynikach pod "Does not fit any carrier"
 - Zmiany w plikach:
   - `src/ui/views/capacity_view.py`: Usunięto `render_data_quality_settings()`, dodano uproszczone `render_analysis_settings()`
-  - `src/ui/app.py`: Usunięto `capacity_dq_result` i `outlier_validation_enabled` z session_state
+  - `src/ui/app.py`: Usunięto `outlier_validation_enabled` z session_state
 - Branch: feature/capacity-location-metrics
 
 ### [2026-02-05 12:00] - Refactor
