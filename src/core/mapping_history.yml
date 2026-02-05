@@ -1,5 +1,5 @@
 version: '1.0'
-last_updated: '2026-02-04T16:16:10.589587'
+last_updated: '2026-02-05T21:28:19.664939'
 masterdata_mappings:
 - source_column: nazwa_indeksu
   target_field: sku
