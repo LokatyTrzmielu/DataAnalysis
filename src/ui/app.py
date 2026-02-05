@@ -83,12 +83,8 @@ def init_session_state() -> None:
         "mapping_history_service": None,
         # Custom carriers for capacity analysis
         "custom_carriers": [],
-        # Outlier validation (simplified - carriers define limits)
-        "outlier_validation_enabled": True,
         # Borderline threshold (used in Capacity Analysis)
         "borderline_threshold": 2.0,
-        # Capacity DQ result (outliers/borderline detected in Capacity Analysis)
-        "capacity_dq_result": None,
         # Carriers loaded flag
         "carriers_loaded": False,
     }

@@ -11,6 +11,17 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-05 13:00] - Refactor
+- **Usunięcie zbędnej logiki "Exclusion settings"**:
+  - Problem: Po uproszczeniu outlier detection do carrier-based, zostały artefakty starego systemu
+  - "Detect outliers" button był redundantny - analiza robi to samo automatycznie
+  - "Exclusion settings" checkbox był bezcelowy - outliers i tak pokazują się jako NOT_FIT
+  - Rozwiązanie: Usunięto oba, outliers widoczne w wynikach pod "Does not fit any carrier"
+- Zmiany w plikach:
+  - `src/ui/views/capacity_view.py`: Usunięto `render_data_quality_settings()`, dodano uproszczone `render_analysis_settings()`
+  - `src/ui/app.py`: Usunięto `capacity_dq_result` i `outlier_validation_enabled` z session_state
+- Branch: feature/capacity-location-metrics
+
 ### [2026-02-05 12:00] - Refactor
 - **Uproszczenie outlier detection - tylko rotation-aware z wagą**:
   - **Problem:** SKU 151×112×1225mm oznaczany jako outlier mimo że mieści się w nośniku po rotacji
