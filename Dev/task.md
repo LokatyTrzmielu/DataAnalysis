@@ -30,6 +30,7 @@
 | 17 | Naprawa Stock Volume | konwersja stock z przecinkami | ✅ |
 | 18 | Priorytet nośników | ręczny priorytet w trybie Prioritized | ✅ |
 | 19 | Import string columns | obsługa kolumn stringowych przy imporcie | ✅ |
+| 20 | Date→Datetime fix | obsługa pl.Date w timestamp (#17) | ✅ |
 
 ---
 

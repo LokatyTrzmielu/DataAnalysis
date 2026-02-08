@@ -11,6 +11,19 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-08 10:00] - Fix
+- **Obsługa kolumny timestamp typu `pl.Date` (#17)**:
+  - Problem: CSV z datami bez czasu (np. `2024-01-15`) powodował crash w performance analysis
+  - Polars auto-detect (`try_parse_dates=True`) rozpoznaje takie wartości jako `pl.Date`, a kod obsługiwał tylko `Utf8` i `Int64`
+  - Błąd: `"Cannot convert timestamp column of type Date to datetime"`
+  - Rozwiązanie: Dodano `pl.Date` → `pl.Datetime` cast (`pl.col("timestamp").cast(pl.Datetime)`) w 3 miejscach
+- Zmiany w plikach:
+  - `src/ingest/pipeline.py:233-235` — nowy `elif ts_dtype == pl.Date` w bloku parsowania timestamp
+  - `src/model/orders.py:47-50` — nowy `elif` po sprawdzeniu `Utf8` w `normalize()`
+  - `src/analytics/performance.py:135-138` — nowy `elif` przed klauzulą `else` (error)
+- Branch: fix/date-to-datetime → main (PR #18)
+- Issue: #17
+
 ### [2026-02-05 13:30] - Fix
 - **Naprawa generowania raportów po uproszczeniu outlier detection**:
   - Problem: ZipExporter.export() wymagał `capacity_dq_result` który został usunięty
