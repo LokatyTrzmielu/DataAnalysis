@@ -44,6 +44,10 @@ class OrdersProcessor:
                 result = result.with_columns([
                     pl.col("timestamp").str.to_datetime(strict=False).alias("timestamp")
                 ])
+            elif result["timestamp"].dtype == pl.Date:
+                result = result.with_columns([
+                    pl.col("timestamp").cast(pl.Datetime).alias("timestamp")
+                ])
 
         # Ensure quantity is int
         if "quantity" in result.columns:
