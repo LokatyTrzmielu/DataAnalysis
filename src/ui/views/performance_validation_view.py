@@ -213,7 +213,7 @@ def _render_working_pattern(df: pl.DataFrame) -> None:
         day_labels = [day_names.get(d, str(d)) for d in active_weekdays]
         days_text = f"{day_labels[0]}-{day_labels[-1]}" if len(day_labels) > 1 else day_labels[0]
     elif "order_date" in df.columns:
-        weekdays = df["order_date"].cast(pl.Date).dt.weekday().unique().to_list()
+        weekdays = df["order_date"].cast(pl.Date).dt.weekday().unique().drop_nulls().to_list()
         active_weekdays = sorted(weekdays)
         active_count = len(active_weekdays)
         day_labels = [day_names.get(d, str(d)) for d in active_weekdays]
