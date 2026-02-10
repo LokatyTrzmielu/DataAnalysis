@@ -186,6 +186,9 @@ class PerformanceAnalyzer:
             else:
                 raise ValueError(f"Cannot convert timestamp column of type {ts_dtype} to datetime")
 
+        # Filter out rows with null timestamps
+        df = df.filter(pl.col("timestamp").is_not_null())
+
         # Date range
         ts_min = df["timestamp"].min()
         ts_max = df["timestamp"].max()
