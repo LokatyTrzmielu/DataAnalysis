@@ -127,10 +127,11 @@ def _render_date_gaps(df: pl.DataFrame) -> None:
     else:
         st.warning(f"Date gaps: {len(missing_dates)} missing calendar days")
         with st.expander(f"Show missing dates ({len(missing_dates)})"):
-            st.dataframe(
-                pl.DataFrame({"missing_date": missing_dates}),
-                use_container_width=True,
+            day_names = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
+            gap_df = pl.DataFrame({"missing_date": missing_dates}).with_columns(
+                pl.col("missing_date").dt.weekday().replace_strict(day_names, default="?").alias("weekday"),
             )
+            st.dataframe(gap_df, use_container_width=True)
     st.caption("Weekends and holidays may be intentional gaps — review in context.")
 
 
