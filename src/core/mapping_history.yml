@@ -1,5 +1,5 @@
 version: '1.0'
-last_updated: '2026-02-05T21:28:19.664939'
+last_updated: '2026-02-10T20:11:49.570789'
 masterdata_mappings:
 - source_column: nazwa_indeksu
   target_field: sku
@@ -25,5 +25,17 @@ orders_mappings:
   client_pattern: ''
   use_count: 1
   last_used: '2026-02-02T11:56:32.498998'
+  is_user_correction: true
+- source_column: order_picking_date
+  target_field: date
+  client_pattern: ''
+  use_count: 1
+  last_used: '2026-02-10T12:37:16.977409'
+  is_user_correction: true
+- source_column: order_picking_time
+  target_field: time
+  client_pattern: ''
+  use_count: 1
+  last_used: '2026-02-10T20:11:49.570780'
   is_user_correction: true
 blacklist: []

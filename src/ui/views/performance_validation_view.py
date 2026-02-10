@@ -22,14 +22,14 @@ def render_performance_validation_view() -> None:
     with col1:
         st.metric("Total records", len(df))
     with col2:
-        if "date" in df.columns:
-            date_min = df["date"].min()
-            date_max = df["date"].max()
+        if "order_date" in df.columns:
+            date_min = df["order_date"].min()
+            date_max = df["order_date"].max()
             st.metric("Date range", f"{date_min} - {date_max}")
         else:
             st.metric("Date range", "N/A")
     with col3:
-        has_hourly = "hour" in df.columns or "time" in df.columns
+        has_hourly = "order_hour" in df.columns and df["order_hour"].n_unique() > 1
         st.metric("Hourly data", "Yes" if has_hourly else "No")
 
     render_divider()
