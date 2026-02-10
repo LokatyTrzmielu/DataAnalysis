@@ -1,4 +1,4 @@
-"""Validation view - data quality validation tab."""
+"""Capacity validation view - masterdata quality validation tab."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import streamlit as st
 from src.ui.layout import render_bold_label, render_divider, render_section_header
 
 
-def render_validation_view(show_header: bool = True) -> None:
-    """Render the Validation tab content.
+def render_capacity_validation_view(show_header: bool = True) -> None:
+    """Render the Capacity Validation tab content.
 
     Args:
         show_header: Whether to display the header. Set to False when embedded in another view.
@@ -50,11 +50,11 @@ def render_validation_view(show_header: bool = True) -> None:
 
     # Display results
     if st.session_state.quality_result is not None:
-        _render_validation_results()
+        _render_capacity_validation_results()
 
 
-def _render_validation_results() -> None:
-    """Display validation results."""
+def _render_capacity_validation_results() -> None:
+    """Display capacity validation results."""
     result = st.session_state.quality_result
 
     # Metrics

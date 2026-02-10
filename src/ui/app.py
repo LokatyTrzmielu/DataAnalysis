@@ -29,7 +29,8 @@ from src.ui.views import (
     render_import_view,
     render_masterdata_import,
     render_orders_import,
-    render_validation_view,
+    render_capacity_validation_view,
+    render_performance_validation_view,
     render_capacity_view,
     render_performance_view,
     render_reports_view,
@@ -462,8 +463,8 @@ def _render_capacity_validation() -> None:
 
     render_divider()
 
-    # Use existing validation view (without header, already shown above)
-    render_validation_view(show_header=False)
+    # Use existing capacity validation view (without header, already shown above)
+    render_capacity_validation_view(show_header=False)
 
 
 def _render_performance_section() -> None:
@@ -521,8 +522,8 @@ def _render_performance_validation() -> None:
 
     render_divider()
 
-    # Use existing validation view (without header, already shown above)
-    render_validation_view(show_header=False)
+    # Use performance-specific validation view
+    render_performance_validation_view()
 
 
 def _render_reports_section() -> None:

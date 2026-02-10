@@ -2,7 +2,7 @@
 
 ## Status Projektu
 
-**MVP KOMPLETNE** | 122 testy | Wszystkie fazy ukończone
+**MVP KOMPLETNE** | 143 testy | Wszystkie fazy ukończone
 
 ---
 
@@ -30,6 +30,8 @@
 | 17 | Naprawa Stock Volume | konwersja stock z przecinkami | ✅ |
 | 18 | Priorytet nośników | ręczny priorytet w trybie Prioritized | ✅ |
 | 19 | Import string columns | obsługa kolumn stringowych przy imporcie | ✅ |
+| 20 | Performance module | date/time import, analytics, UI charts | ✅ |
+| 21 | Validation split | rozdzielenie Capacity/Performance validation | ✅ |
 
 ---
 
@@ -184,6 +186,19 @@ aby załadować nośniki z polem priority.
 | `pipeline.py:120-123` | Cast stock do Int64 |
 
 **Parametr `strict=False`** powoduje, że nieparsowalne wartości stają się `null` zamiast wyrzucać błąd.
+
+---
+
+## Rozdzielenie Validation (Faza 21) - ZAKOŃCZONA
+
+**Problem:** `_render_performance_validation()` wywoływała `render_validation_view()` przeznaczoną dla Masterdata - Orders mają inny schemat danych.
+
+**Rozwiązanie:** Dwa niezależne widoki walidacji:
+
+| Plik | Funkcja | Zakres |
+|------|---------|--------|
+| `capacity_validation_view.py` | `render_capacity_validation_view()` | Walidacja Masterdata (quality pipeline, coverage, issues) |
+| `performance_validation_view.py` | `render_performance_validation_view()` | Walidacja Orders (placeholder: total records, date range, hourly data) |
 
 ---
 

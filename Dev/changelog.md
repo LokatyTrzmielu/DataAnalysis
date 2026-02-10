@@ -11,6 +11,22 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-10 12:00] - Refactor
+- **Rozdzielenie Capacity Validation i Performance Validation**:
+  - Problem: `_render_performance_validation()` wywoływała `render_validation_view()` przeznaczoną dla Masterdata, co było błędne dla danych Orders
+  - Rozwiązanie: Dwie niezależne walidacje:
+    - `capacity_validation_view.py` z `render_capacity_validation_view()` - istniejąca logika Masterdata (bez zmian)
+    - `performance_validation_view.py` z `render_performance_validation_view()` - nowy widok dla Orders (placeholder z podstawowymi statystykami)
+  - Usunięto stary `validation_view.py`
+- Zmiany w plikach:
+  - `src/ui/views/validation_view.py` → usunięty
+  - `src/ui/views/capacity_validation_view.py` → nowy (rename z validation_view.py)
+  - `src/ui/views/performance_validation_view.py` → nowy (placeholder Orders validation)
+  - `src/ui/views/__init__.py` → zaktualizowane importy
+  - `src/ui/app.py` → zaktualizowane importy i wywołania
+- Weryfikacja: 143 testy przechodzą
+- Branch: feature/performance
+
 ### [2026-02-05 13:30] - Fix
 - **Naprawa generowania raportów po uproszczeniu outlier detection**:
   - Problem: ZipExporter.export() wymagał `capacity_dq_result` który został usunięty
