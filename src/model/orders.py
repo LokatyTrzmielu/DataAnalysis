@@ -30,6 +30,9 @@ class OrdersProcessor:
     def normalize(self, df: pl.DataFrame) -> pl.DataFrame:
         """Normalize orders data.
 
+        Pipeline already produces timestamp, order_date, order_hour columns.
+        This method handles edge cases and adds remaining helper columns.
+
         Args:
             df: DataFrame with Orders data
 
@@ -38,7 +41,7 @@ class OrdersProcessor:
         """
         result = df.clone()
 
-        # Ensure timestamp is datetime
+        # Ensure timestamp is datetime (fallback if not from pipeline)
         if "timestamp" in result.columns:
             if result["timestamp"].dtype == pl.Utf8:
                 result = result.with_columns([
@@ -51,13 +54,20 @@ class OrdersProcessor:
                 pl.col("quantity").cast(pl.Int64).alias("quantity")
             ])
 
-        # Add helper columns
+        # Add helper columns if not already present (pipeline may have created them)
         if "timestamp" in result.columns:
-            result = result.with_columns([
-                pl.col("timestamp").dt.date().alias("order_date"),
-                pl.col("timestamp").dt.hour().alias("order_hour"),
-                pl.col("timestamp").dt.weekday().alias("weekday"),
-            ])
+            if "order_date" not in result.columns:
+                result = result.with_columns([
+                    pl.col("timestamp").dt.date().alias("order_date"),
+                ])
+            if "order_hour" not in result.columns:
+                result = result.with_columns([
+                    pl.col("timestamp").dt.hour().alias("order_hour"),
+                ])
+            if "weekday" not in result.columns:
+                result = result.with_columns([
+                    pl.col("timestamp").dt.weekday().alias("weekday"),
+                ])
 
         return result
 

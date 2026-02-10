@@ -27,6 +27,7 @@ class IngestResult:
     rows_imported: int = 0
     columns_mapped: int = 0
     warnings: list[str] = field(default_factory=list)
+    has_hourly_data: bool = False
 
 
 class MasterdataIngestPipeline:
@@ -213,23 +214,100 @@ class OrdersIngestPipeline:
             sku_result = self.sku_normalizer.normalize_dataframe(df, "sku")
             df = sku_result.df
 
-        # 4. Timestamp parsing
-        if "timestamp" in df.columns:
-            ts_dtype = df["timestamp"].dtype
-            # Ensure timestamp is datetime
-            if not str(ts_dtype).startswith("Datetime"):
-                if ts_dtype == pl.Utf8:
+        # 4. Date/time parsing → produce `timestamp` column
+        has_hourly_data = False
+
+        if "date" in df.columns:
+            date_dtype = df["date"].dtype
+
+            # Parse date column to datetime
+            if date_dtype == pl.Date:
+                df = df.with_columns([
+                    pl.col("date").cast(pl.Datetime).alias("date")
+                ])
+            elif date_dtype == pl.Utf8:
+                df = df.with_columns([
+                    pl.col("date").str.to_datetime(
+                        format=None, strict=False,
+                    ).alias("date")
+                ])
+            elif date_dtype in [pl.Int64, pl.Int32, pl.UInt64, pl.UInt32]:
+                df = df.with_columns([
+                    pl.from_epoch(pl.col("date"), time_unit="s").alias("date")
+                ])
+            # If already Datetime, keep as is
+
+            # Check if date column contains time info (any non-midnight time)
+            date_has_time = (
+                df["date"].dtype in [pl.Datetime, pl.Datetime("us"), pl.Datetime("ns"), pl.Datetime("ms")]
+                and df.filter(
+                    (pl.col("date").dt.hour() != 0)
+                    | (pl.col("date").dt.minute() != 0)
+                ).height > 0
+            )
+
+            if "time" in df.columns:
+                # Separate time column → combine with date
+                time_dtype = df["time"].dtype
+                if time_dtype == pl.Utf8:
+                    # Parse time strings like "14:30:00" or "14:30"
                     df = df.with_columns([
-                        pl.col("timestamp").str.to_datetime(
-                            format=None,  # Auto-detect
-                            strict=False,
+                        pl.col("time").str.to_time(format=None, strict=False).alias("time")
+                    ])
+                elif time_dtype == pl.Duration:
+                    df = df.with_columns([
+                        (pl.lit("1970-01-01").str.to_datetime() + pl.col("time"))
+                        .dt.time().alias("time")
+                    ])
+
+                if df["time"].dtype == pl.Time:
+                    # Combine date (date part only) + time
+                    df = df.with_columns([
+                        (
+                            pl.col("date").dt.truncate("1d")
+                            + pl.col("time").cast(pl.Duration)
                         ).alias("timestamp")
                     ])
-                elif ts_dtype in [pl.Int64, pl.Int32, pl.UInt64, pl.UInt32]:
-                    # Convert Unix epoch (seconds) to datetime
-                    df = df.with_columns([
-                        pl.from_epoch(pl.col("timestamp"), time_unit="s").alias("timestamp")
-                    ])
+                    has_hourly_data = True
+                else:
+                    # Time parsing failed, fall back to date only
+                    df = df.with_columns([pl.col("date").alias("timestamp")])
+                    warnings.append(
+                        "Time column could not be parsed. Using date only."
+                    )
+            elif date_has_time:
+                # Date column already contains time component
+                df = df.with_columns([pl.col("date").alias("timestamp")])
+                has_hourly_data = True
+            else:
+                # Date only - no time info
+                df = df.with_columns([pl.col("date").alias("timestamp")])
+
+            # Truncate to hour precision
+            if has_hourly_data:
+                df = df.with_columns([
+                    pl.col("timestamp").dt.truncate("1h").alias("timestamp")
+                ])
+
+            # Create helper columns
+            df = df.with_columns([
+                pl.col("timestamp").dt.date().alias("order_date"),
+                pl.col("timestamp").dt.hour().alias("order_hour"),
+            ])
+
+            # Drop intermediate columns
+            drop_cols = []
+            if "date" in df.columns and "date" != "timestamp":
+                drop_cols.append("date")
+            if "time" in df.columns:
+                drop_cols.append("time")
+            if drop_cols:
+                df = df.drop(drop_cols)
+
+            if not has_hourly_data:
+                warnings.append(
+                    "Hourly analysis unavailable - import data with time information."
+                )
 
         return IngestResult(
             df=df,
@@ -239,6 +317,7 @@ class OrdersIngestPipeline:
             rows_imported=len(df),
             columns_mapped=len(mapping.mappings),
             warnings=warnings,
+            has_hourly_data=has_hourly_data,
         )
 
 

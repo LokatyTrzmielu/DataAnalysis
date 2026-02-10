@@ -195,92 +195,72 @@ def render_performance_view() -> None:
 
 
 def _render_performance_results() -> None:
-    """Display performance analysis results."""
+    """Display performance analysis results.
+
+    Layout: KPI -> Throughput -> Daily Activity -> Heatmap -> Trends -> SKU Pareto -> Order Structure -> Detailed Stats
+    """
     result = st.session_state.performance_result
-    kpi = result.kpi
 
     render_divider()
 
-    # New KPI section
+    # 1. KPI section
     _render_performance_kpi()
 
     render_divider()
 
-    # New charts section
-    _render_performance_charts()
+    # 2. Throughput chart (only when hourly data available)
+    _render_throughput_chart()
 
     render_divider()
 
-    # Detailed statistics section
-    render_section_header("Detailed Statistics", "📊")
+    # 3. Daily Activity
+    render_section_header("Daily Activity", "📅")
+    _render_daily_lines_chart()
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.metric(
-            "Lines/h (avg)",
-            f"{kpi.avg_lines_per_hour:.1f}",
-            help="Average order lines processed per hour",
-        )
-        st.metric(
-            "Orders/h (avg)",
-            f"{kpi.avg_orders_per_hour:.1f}",
-            help="Average number of orders processed per hour",
-        )
-        st.metric(
-            "Total lines",
-            f"{kpi.total_lines:,}",
-            help="Total number of order lines in the dataset",
-        )
-    with col_b:
-        st.metric(
-            "Peak lines/h",
-            kpi.peak_lines_per_hour,
-            help="Maximum lines per hour observed (busiest hour)",
-        )
-        st.metric(
-            "P95 lines/h",
-            f"{kpi.p95_lines_per_hour:.1f}",
-            help="95th percentile of hourly line throughput",
-        )
-        st.metric(
-            "Total units",
-            f"{kpi.total_units:,}",
-            help="Total number of units (quantity) across all lines",
-        )
+    render_divider()
+
+    # 4. Heatmap
+    _render_hourly_heatmap()
+
+    render_divider()
+
+    # 5. Trends
+    _render_trends_section()
+
+    render_divider()
+
+    # 6. SKU Pareto
+    _render_sku_pareto_section()
+
+    render_divider()
+
+    # 7. Order Structure
+    _render_order_structure_chart()
+
+    render_divider()
+
+    # 8. Detailed Statistics
+    _render_detailed_stats()
 
 
 def _render_performance_kpi() -> None:
-    """Render KPI section with 4 cards."""
+    """Render KPI section with conditional hourly KPIs."""
     result = st.session_state.performance_result
     kpi = result.kpi
 
-    # Find peak hour
-    hourly = result.hourly_metrics
-    peak_hour = 0
-    if hourly:
-        max_lines = max(h.lines for h in hourly)
-        for h in hourly:
-            if h.lines == max_lines:
-                peak_hour = h.hour
-                break
-
     render_section_header("Key Performance Indicators", "📊")
 
+    # Always-visible KPIs
     metrics = [
-        {
-            "title": "Avg Lines/h",
-            "value": f"{kpi.avg_lines_per_hour:.1f}",
-            "help_text": "Average lines per hour across all hours",
-        },
-        {
-            "title": "Peak Hour",
-            "value": f"{peak_hour:02d}:00",
-            "help_text": f"Hour with highest activity ({kpi.peak_lines_per_hour} lines)",
-        },
         {
             "title": "Total Orders",
             "value": f"{kpi.total_orders:,}",
             "help_text": "Total number of unique orders",
+        },
+        {
+            "title": "Total Lines",
+            "value": f"{kpi.total_lines:,}",
+            "help_text": "Total order lines",
         },
         {
             "title": "Avg Lines/Order",
@@ -289,7 +269,101 @@ def _render_performance_kpi() -> None:
         },
     ]
 
+    # Hourly KPIs only when hourly data exists
+    if result.has_hourly_data:
+        # Find peak hour
+        peak_hour = 0
+        hourly = result.hourly_metrics
+        if hourly:
+            max_lines = max(h.lines for h in hourly)
+            for h in hourly:
+                if h.lines == max_lines:
+                    peak_hour = h.hour
+                    break
+
+        metrics.extend([
+            {
+                "title": "Avg Lines/h",
+                "value": f"{kpi.avg_lines_per_hour:.1f}",
+                "help_text": "Average lines per hour (from date+hour data)",
+            },
+            {
+                "title": "P95 Lines/h",
+                "value": f"{kpi.p95_lines_per_hour:.0f}",
+                "help_text": "95th percentile hourly throughput",
+            },
+        ])
+
     render_kpi_section(metrics)
+
+
+def _render_throughput_chart() -> None:
+    """Render throughput scatter/line chart (date+hour granularity)."""
+    result = st.session_state.performance_result
+
+    if not result.has_hourly_data:
+        render_section_header("Hourly Throughput", "📈")
+        st.warning("Hourly throughput analysis unavailable - import data with time information.")
+        return
+
+    datehour = result.datehour_metrics
+    if not datehour:
+        return
+
+    render_section_header("Hourly Throughput", "📈")
+
+    # Build x-axis as datetime for proper time series
+    from datetime import datetime as dt
+    x_vals = [dt.combine(dh.date, dt.min.time()).replace(hour=dh.hour) for dh in datehour]
+    y_vals = [dh.lines for dh in datehour]
+
+    kpi = result.kpi
+
+    fig = go.Figure()
+
+    # Scatter data points
+    fig.add_trace(go.Scatter(
+        x=x_vals,
+        y=y_vals,
+        mode="markers",
+        name="Lines/h",
+        marker={"color": COLORS["primary"], "size": 5, "opacity": 0.7},
+        hovertemplate="%{x}<br>Lines: %{y}<extra></extra>",
+    ))
+
+    # Reference lines
+    fig.add_hline(
+        y=kpi.avg_lines_per_hour,
+        line_dash="dash",
+        line_color=COLORS["info"],
+        annotation_text=f"Avg: {kpi.avg_lines_per_hour:.0f}",
+        annotation_position="top left",
+    )
+    fig.add_hline(
+        y=kpi.p90_lines_per_hour,
+        line_dash="dot",
+        line_color=COLORS["warning"],
+        annotation_text=f"P90: {kpi.p90_lines_per_hour:.0f}",
+        annotation_position="top left",
+    )
+    fig.add_hline(
+        y=kpi.p95_lines_per_hour,
+        line_dash="dot",
+        line_color=COLORS["error"],
+        annotation_text=f"P95: {kpi.p95_lines_per_hour:.0f}",
+        annotation_position="top left",
+    )
+
+    fig.update_layout(
+        title="Throughput Over Time (Lines per Hour)",
+        xaxis_title="Date",
+        yaxis_title="Lines / hour",
+        showlegend=False,
+        hovermode="closest",
+    )
+
+    apply_plotly_dark_theme(fig)
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def _render_daily_lines_chart() -> None:
@@ -301,7 +375,6 @@ def _render_daily_lines_chart() -> None:
         st.info("No daily metrics available.")
         return
 
-    # Prepare data
     dates = [d.date for d in daily]
     lines = [d.lines for d in daily]
     orders = [d.orders for d in daily]
@@ -343,18 +416,22 @@ def _render_daily_lines_chart() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def _render_hourly_heatmap() -> None:
     """Render hourly activity heatmap by day of week."""
-    orders_df = st.session_state.orders_df
+    result = st.session_state.performance_result
 
-    if orders_df is None or "timestamp" not in orders_df.columns:
-        st.info("No timestamp data available for heatmap.")
+    if not result.has_hourly_data:
         return
 
-    # Filter out null timestamps and aggregate by day of week (0=Mon) and hour
+    orders_df = st.session_state.orders_df
+    if orders_df is None or "timestamp" not in orders_df.columns:
+        return
+
+    render_section_header("Hourly Activity Heatmap", "🗺️")
+
     heatmap_df = orders_df.filter(
         pl.col("timestamp").is_not_null()
     ).with_columns([
@@ -364,15 +441,12 @@ def _render_hourly_heatmap() -> None:
         pl.len().alias("lines")
     ).sort(["day_of_week", "hour"])
 
-    # Create matrix (7 days x 24 hours)
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     hours = list(range(24))
-
-    # Initialize with zeros
     matrix = [[0 for _ in range(24)] for _ in range(7)]
 
     for row in heatmap_df.to_dicts():
-        day_idx = row["day_of_week"] - 1  # Polars weekday is 1-7
+        day_idx = row["day_of_week"] - 1
         if 0 <= day_idx < 7:
             matrix[day_idx][row["hour"]] = row["lines"]
 
@@ -389,14 +463,169 @@ def _render_hourly_heatmap() -> None:
     ))
 
     fig.update_layout(
-        title="Hourly Activity Heatmap",
         xaxis_title="Hour",
         yaxis_title="Day of Week",
         yaxis={"autorange": "reversed"},
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_trends_section() -> None:
+    """Render weekly trends and day-of-week profile."""
+    result = st.session_state.performance_result
+
+    render_section_header("Trends", "📊")
+
+    col1, col2 = st.columns(2)
+
+    # Weekly trend bar chart
+    with col1:
+        weekly = result.weekly_trends
+        if weekly:
+            labels = [f"W{w.week_number}" for w in weekly]
+            lines = [w.lines for w in weekly]
+
+            fig = go.Figure(data=go.Bar(
+                x=labels,
+                y=lines,
+                marker_color=COLORS["primary"],
+                hovertemplate="Week %{x}<br>Lines: %{y:,}<extra></extra>",
+            ))
+            fig.update_layout(
+                title="Weekly Trend (Lines)",
+                xaxis_title="Week",
+                yaxis_title="Lines",
+            )
+            apply_plotly_dark_theme(fig)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Not enough data for weekly trends.")
+
+    # Day-of-week profile
+    with col2:
+        weekday_profile = result.weekday_profile
+        if weekday_profile:
+            day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            day_labels = []
+            day_values = []
+            for i in range(1, 8):  # Polars weekday 1=Mon, 7=Sun
+                day_labels.append(day_names[i - 1])
+                day_values.append(weekday_profile.get(i, 0))
+
+            fig = go.Figure(data=go.Bar(
+                x=day_labels,
+                y=day_values,
+                marker_color=COLORS["warning"],
+                hovertemplate="%{x}<br>Avg Lines/day: %{y:.0f}<extra></extra>",
+            ))
+            fig.update_layout(
+                title="Day-of-Week Profile (Avg Lines/Day)",
+                xaxis_title="Day",
+                yaxis_title="Avg Lines",
+            )
+            apply_plotly_dark_theme(fig)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Not enough data for weekday profile.")
+
+
+def _render_sku_pareto_section() -> None:
+    """Render SKU Pareto chart and ABC summary."""
+    result = st.session_state.performance_result
+    sku_pareto = result.sku_pareto
+
+    if not sku_pareto:
+        return
+
+    render_section_header("SKU Pareto / ABC Analysis", "📦")
+
+    # ABC summary
+    abc_counts = {"A": 0, "B": 0, "C": 0}
+    abc_lines = {"A": 0, "B": 0, "C": 0}
+    for s in sku_pareto:
+        abc_counts[s.abc_class] += 1
+        abc_lines[s.abc_class] += s.total_lines
+
+    total_sku = len(sku_pareto)
+    total_lines = sum(s.total_lines for s in sku_pareto)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        pct_sku = abc_counts["A"] / total_sku * 100 if total_sku > 0 else 0
+        pct_lines = abc_lines["A"] / total_lines * 100 if total_lines > 0 else 0
+        st.metric("Class A", f"{abc_counts['A']} SKU ({pct_sku:.0f}%)",
+                   delta=f"{pct_lines:.0f}% of lines")
+    with col2:
+        pct_sku = abc_counts["B"] / total_sku * 100 if total_sku > 0 else 0
+        pct_lines = abc_lines["B"] / total_lines * 100 if total_lines > 0 else 0
+        st.metric("Class B", f"{abc_counts['B']} SKU ({pct_sku:.0f}%)",
+                   delta=f"{pct_lines:.0f}% of lines")
+    with col3:
+        pct_sku = abc_counts["C"] / total_sku * 100 if total_sku > 0 else 0
+        pct_lines = abc_lines["C"] / total_lines * 100 if total_lines > 0 else 0
+        st.metric("Class C", f"{abc_counts['C']} SKU ({pct_sku:.0f}%)",
+                   delta=f"{pct_lines:.0f}% of lines")
+
+    # Pareto chart (top 20)
+    top_n = min(20, len(sku_pareto))
+    top_skus = sku_pareto[:top_n]
+
+    fig = go.Figure()
+
+    # Bar: lines per SKU
+    fig.add_trace(go.Bar(
+        x=[s.sku for s in top_skus],
+        y=[s.total_lines for s in top_skus],
+        name="Lines",
+        marker_color=COLORS["primary"],
+        hovertemplate="%{x}<br>Lines: %{y:,}<extra></extra>",
+    ))
+
+    # Line: cumulative %
+    fig.add_trace(go.Scatter(
+        x=[s.sku for s in top_skus],
+        y=[s.cumulative_pct for s in top_skus],
+        name="Cumulative %",
+        mode="lines+markers",
+        line={"color": COLORS["error"], "width": 2},
+        marker={"size": 5},
+        yaxis="y2",
+        hovertemplate="%{x}<br>Cumulative: %{y:.1f}%<extra></extra>",
+    ))
+
+    fig.update_layout(
+        title=f"SKU Pareto (Top {top_n})",
+        xaxis_title="SKU",
+        xaxis={"tickangle": -45},
+        yaxis={"title": "Lines"},
+        yaxis2={
+            "title": "Cumulative %",
+            "side": "right",
+            "overlaying": "y",
+            "showgrid": False,
+            "range": [0, 105],
+        },
+        showlegend=True,
+        legend={"x": 0, "y": 1.1, "orientation": "h"},
+    )
+
+    apply_plotly_dark_theme(fig)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Top 20 SKU table
+    with st.expander(f"Top {top_n} SKU details"):
+        table_data = {
+            "Rank": [s.frequency_rank for s in top_skus],
+            "SKU": [s.sku for s in top_skus],
+            "Lines": [s.total_lines for s in top_skus],
+            "Units": [s.total_units for s in top_skus],
+            "Orders": [s.total_orders for s in top_skus],
+            "Cumulative %": [f"{s.cumulative_pct:.1f}%" for s in top_skus],
+            "ABC": [s.abc_class for s in top_skus],
+        }
+        st.dataframe(pl.DataFrame(table_data), use_container_width=True)
 
 
 def _render_order_structure_chart() -> None:
@@ -404,10 +633,10 @@ def _render_order_structure_chart() -> None:
     orders_df = st.session_state.orders_df
 
     if orders_df is None or "order_id" not in orders_df.columns:
-        st.info("No order data available.")
         return
 
-    # Calculate lines per order
+    render_section_header("Order Structure", "📋")
+
     lines_per_order = orders_df.group_by("order_id").agg(
         pl.len().alias("lines_count")
     )
@@ -418,25 +647,33 @@ def _render_order_structure_chart() -> None:
         x=lines_counts,
         nbins=30,
         labels={"x": "Lines per Order", "y": "Order Count"},
-        title="Order Structure (Lines per Order)",
+        title="Lines per Order Distribution",
     )
 
     fig.update_traces(marker_color=COLORS["warning"])
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
 
 
-def _render_performance_charts() -> None:
-    """Render all performance charts."""
-    render_section_header("Performance Charts", "📈")
+def _render_detailed_stats() -> None:
+    """Render detailed statistics section."""
+    result = st.session_state.performance_result
+    kpi = result.kpi
 
-    col1, col2 = st.columns(2)
+    render_section_header("Detailed Statistics", "📊")
 
-    with col1:
-        _render_daily_lines_chart()
-
-    with col2:
-        _render_hourly_heatmap()
-
-    # Full width chart
-    _render_order_structure_chart()
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.metric("Total Lines", f"{kpi.total_lines:,}")
+        st.metric("Total Orders", f"{kpi.total_orders:,}")
+        st.metric("Total Units", f"{kpi.total_units:,}")
+        st.metric("Unique SKU", f"{kpi.unique_sku:,}")
+    with col_b:
+        st.metric("Avg Lines/Order", f"{kpi.avg_lines_per_order:.2f}")
+        st.metric("Avg Units/Line", f"{kpi.avg_units_per_line:.2f}")
+        if result.has_hourly_data:
+            st.metric("Avg Lines/h", f"{kpi.avg_lines_per_hour:.1f}")
+            st.metric("Peak Lines/h", f"{kpi.peak_lines_per_hour:,}")
+            st.metric("P90 Lines/h", f"{kpi.p90_lines_per_hour:.0f}")
+            st.metric("P95 Lines/h", f"{kpi.p95_lines_per_hour:.0f}")
+            st.metric("P99 Lines/h", f"{kpi.p99_lines_per_hour:.0f}")

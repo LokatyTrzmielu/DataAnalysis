@@ -35,6 +35,50 @@ class DailyMetrics:
 
 
 @dataclass
+class DateHourMetrics:
+    """Metrics per date+hour (real throughput data point)."""
+    date: date
+    hour: int
+    lines: int
+    orders: int
+    units: int
+
+
+@dataclass
+class WeeklyTrend:
+    """Weekly trend metrics."""
+    year: int
+    week_number: int
+    lines: int
+    orders: int
+    units: int
+    avg_lines_per_hour: float
+
+
+@dataclass
+class MonthlyTrend:
+    """Monthly trend metrics."""
+    year: int
+    month: int
+    lines: int
+    orders: int
+    units: int
+    avg_lines_per_hour: float
+
+
+@dataclass
+class SKUFrequency:
+    """SKU frequency / Pareto analysis."""
+    sku: str
+    total_lines: int
+    total_units: int
+    total_orders: int
+    frequency_rank: int
+    cumulative_pct: float
+    abc_class: str  # "A", "B", or "C"
+
+
+@dataclass
 class PerformanceKPI:
     """Key performance indicators."""
     # Totals
@@ -88,6 +132,13 @@ class PerformanceAnalysisResult:
     date_from: date
     date_to: date
     total_productive_hours: float
+    # New fields
+    datehour_metrics: list[DateHourMetrics] = field(default_factory=list)
+    weekly_trends: list[WeeklyTrend] = field(default_factory=list)
+    monthly_trends: list[MonthlyTrend] = field(default_factory=list)
+    weekday_profile: dict[int, float] = field(default_factory=dict)
+    sku_pareto: list[SKUFrequency] = field(default_factory=list)
+    has_hourly_data: bool = False
 
 
 class PerformanceAnalyzer:
@@ -149,19 +200,34 @@ class PerformanceAnalyzer:
         else:
             raise ValueError(f"Cannot extract date from timestamp max: {type(ts_max)}")
 
-        # 1. Calculate hourly metrics
+        # Detect hourly data: check if any non-midnight timestamps exist
+        has_hourly_data = df.filter(
+            (pl.col("timestamp").dt.hour() != 0)
+            | (pl.col("timestamp").dt.minute() != 0)
+        ).height > 0
+
+        # 1. Calculate hourly metrics (aggregated profile)
         hourly = self._calculate_hourly_metrics(df)
 
         # 2. Calculate daily metrics
         daily = self._calculate_daily_metrics(df)
 
-        # 3. Calculate KPI
-        kpi = self._calculate_kpi(df, hourly)
+        # 3. Calculate date+hour metrics (real throughput data points)
+        datehour = self._calculate_datehour_metrics(df)
 
-        # 4. Calculate performance per shift
+        # 4. Calculate KPI (uses datehour for percentiles)
+        kpi = self._calculate_kpi(df, datehour)
+
+        # 5. Calculate trends
+        weekly_trends, monthly_trends, weekday_profile = self._calculate_trends(df, datehour)
+
+        # 6. Calculate SKU Pareto
+        sku_pareto = self._calculate_sku_pareto(df)
+
+        # 7. Calculate performance per shift
         shift_perf = self._calculate_shift_performance(df, date_from, date_to)
 
-        # 5. Calculate total productive hours
+        # 8. Calculate total productive hours
         total_hours = self._calculate_total_productive_hours(date_from, date_to)
 
         return PerformanceAnalysisResult(
@@ -172,6 +238,12 @@ class PerformanceAnalyzer:
             date_from=date_from,
             date_to=date_to,
             total_productive_hours=total_hours,
+            datehour_metrics=datehour,
+            weekly_trends=weekly_trends,
+            monthly_trends=monthly_trends,
+            weekday_profile=weekday_profile,
+            sku_pareto=sku_pareto,
+            has_hourly_data=has_hourly_data,
         )
 
     def _calculate_hourly_metrics(self, df: pl.DataFrame) -> list[HourlyMetrics]:
@@ -193,6 +265,28 @@ class PerformanceAnalyzer:
                 unique_sku=row["unique_sku"],
             )
             for row in hourly_df.to_dicts()
+        ]
+
+    def _calculate_datehour_metrics(self, df: pl.DataFrame) -> list[DateHourMetrics]:
+        """Calculate metrics per date+hour (real throughput data points)."""
+        datehour_df = df.group_by([
+            pl.col("timestamp").dt.date().alias("date"),
+            pl.col("timestamp").dt.hour().alias("hour"),
+        ]).agg([
+            pl.len().alias("lines"),
+            pl.col("order_id").n_unique().alias("orders"),
+            pl.col("quantity").sum().alias("units"),
+        ]).sort(["date", "hour"])
+
+        return [
+            DateHourMetrics(
+                date=row["date"],
+                hour=row["hour"],
+                lines=row["lines"],
+                orders=row["orders"],
+                units=row["units"],
+            )
+            for row in datehour_df.to_dicts()
         ]
 
     def _calculate_daily_metrics(self, df: pl.DataFrame) -> list[DailyMetrics]:
@@ -221,9 +315,9 @@ class PerformanceAnalyzer:
     def _calculate_kpi(
         self,
         df: pl.DataFrame,
-        hourly: list[HourlyMetrics],
+        datehour: list[DateHourMetrics],
     ) -> PerformanceKPI:
-        """Calculate KPI."""
+        """Calculate KPI using real date+hour data points for percentiles."""
         total_lines = len(df)
         total_orders = df["order_id"].n_unique()
         total_units = int(df["quantity"].sum() or 0)
@@ -234,28 +328,27 @@ class PerformanceAnalyzer:
         avg_units_per_line = total_units / total_lines if total_lines > 0 else 0
         avg_units_per_order = total_units / total_orders if total_orders > 0 else 0
 
-        # Hourly metrics
-        if hourly:
-            lines_values = [h.lines for h in hourly]
-            orders_values = [h.orders for h in hourly]
-            units_values = [h.units for h in hourly]
-            sku_values = [h.unique_sku for h in hourly]
+        # Use real date+hour data points (statistically valid)
+        if datehour:
+            lines_values = [dh.lines for dh in datehour]
+            orders_values = [dh.orders for dh in datehour]
+            units_values = [dh.units for dh in datehour]
 
             avg_lines_per_hour = sum(lines_values) / len(lines_values)
             avg_orders_per_hour = sum(orders_values) / len(orders_values)
             avg_units_per_hour = sum(units_values) / len(units_values)
-            avg_unique_sku_per_hour = sum(sku_values) / len(sku_values)
+            avg_unique_sku_per_hour = 0.0  # Not available from datehour
 
             peak_lines = max(lines_values)
             peak_orders = max(orders_values)
             peak_units = max(units_values)
 
-            # Percentiles
+            # Percentiles from real data points (hundreds of points)
             sorted_lines = sorted(lines_values)
             n = len(sorted_lines)
-            p90 = sorted_lines[int(n * 0.90)] if n > 0 else 0
-            p95 = sorted_lines[int(n * 0.95)] if n > 0 else 0
-            p99 = sorted_lines[int(n * 0.99)] if n > 0 else 0
+            p90 = sorted_lines[min(int(n * 0.90), n - 1)] if n > 0 else 0
+            p95 = sorted_lines[min(int(n * 0.95), n - 1)] if n > 0 else 0
+            p99 = sorted_lines[min(int(n * 0.99), n - 1)] if n > 0 else 0
         else:
             avg_lines_per_hour = avg_orders_per_hour = avg_units_per_hour = 0
             avg_unique_sku_per_hour = 0
@@ -281,6 +374,141 @@ class PerformanceAnalyzer:
             p95_lines_per_hour=p95,
             p99_lines_per_hour=p99,
         )
+
+    def _calculate_trends(
+        self,
+        df: pl.DataFrame,
+        datehour: list[DateHourMetrics],
+    ) -> tuple[list[WeeklyTrend], list[MonthlyTrend], dict[int, float]]:
+        """Calculate weekly/monthly trends and weekday profile."""
+        # Weekly trends
+        weekly_df = df.with_columns([
+            pl.col("timestamp").dt.iso_year().alias("year"),
+            pl.col("timestamp").dt.week().alias("week"),
+        ]).group_by(["year", "week"]).agg([
+            pl.len().alias("lines"),
+            pl.col("order_id").n_unique().alias("orders"),
+            pl.col("quantity").sum().alias("units"),
+        ]).sort(["year", "week"])
+
+        # Count date+hour data points per week for avg_lines_per_hour
+        dh_df = pl.DataFrame([
+            {"year": dh.date.isocalendar()[0], "week": dh.date.isocalendar()[1], "lines": dh.lines}
+            for dh in datehour
+        ]) if datehour else pl.DataFrame({"year": [], "week": [], "lines": []})
+
+        dh_weekly = {}
+        if len(dh_df) > 0:
+            dh_agg = dh_df.group_by(["year", "week"]).agg([
+                pl.col("lines").mean().alias("avg_lph"),
+            ])
+            for row in dh_agg.to_dicts():
+                dh_weekly[(row["year"], row["week"])] = row["avg_lph"]
+
+        weekly_trends = [
+            WeeklyTrend(
+                year=row["year"],
+                week_number=row["week"],
+                lines=row["lines"],
+                orders=row["orders"],
+                units=row["units"],
+                avg_lines_per_hour=dh_weekly.get((row["year"], row["week"]), 0.0),
+            )
+            for row in weekly_df.to_dicts()
+        ]
+
+        # Monthly trends
+        monthly_df = df.with_columns([
+            pl.col("timestamp").dt.year().alias("year"),
+            pl.col("timestamp").dt.month().alias("month"),
+        ]).group_by(["year", "month"]).agg([
+            pl.len().alias("lines"),
+            pl.col("order_id").n_unique().alias("orders"),
+            pl.col("quantity").sum().alias("units"),
+        ]).sort(["year", "month"])
+
+        dh_monthly = {}
+        if len(dh_df) > 0:
+            dh_m = pl.DataFrame([
+                {"year": dh.date.year, "month": dh.date.month, "lines": dh.lines}
+                for dh in datehour
+            ])
+            dh_m_agg = dh_m.group_by(["year", "month"]).agg([
+                pl.col("lines").mean().alias("avg_lph"),
+            ])
+            for row in dh_m_agg.to_dicts():
+                dh_monthly[(row["year"], row["month"])] = row["avg_lph"]
+
+        monthly_trends = [
+            MonthlyTrend(
+                year=row["year"],
+                month=row["month"],
+                lines=row["lines"],
+                orders=row["orders"],
+                units=row["units"],
+                avg_lines_per_hour=dh_monthly.get((row["year"], row["month"]), 0.0),
+            )
+            for row in monthly_df.to_dicts()
+        ]
+
+        # Weekday profile: avg lines per day for each weekday (0=Mon, 6=Sun)
+        weekday_df = df.with_columns([
+            pl.col("timestamp").dt.weekday().alias("weekday"),
+            pl.col("timestamp").dt.date().alias("_date"),
+        ]).group_by(["weekday", "_date"]).agg([
+            pl.len().alias("lines"),
+        ]).group_by("weekday").agg([
+            pl.col("lines").mean().alias("avg_lines"),
+        ]).sort("weekday")
+
+        weekday_profile = {
+            row["weekday"]: round(row["avg_lines"], 1)
+            for row in weekday_df.to_dicts()
+        }
+
+        return weekly_trends, monthly_trends, weekday_profile
+
+    def _calculate_sku_pareto(self, df: pl.DataFrame) -> list[SKUFrequency]:
+        """Calculate SKU frequency / Pareto with ABC classification."""
+        if "sku" not in df.columns:
+            return []
+
+        sku_df = df.group_by("sku").agg([
+            pl.len().alias("total_lines"),
+            pl.col("quantity").sum().alias("total_units"),
+            pl.col("order_id").n_unique().alias("total_orders"),
+        ]).sort("total_lines", descending=True)
+
+        total_lines_all = sku_df["total_lines"].sum()
+        if total_lines_all == 0:
+            return []
+
+        results = []
+        cumulative = 0
+
+        for rank, row in enumerate(sku_df.to_dicts(), start=1):
+            cumulative += row["total_lines"]
+            cumulative_pct = cumulative / total_lines_all * 100
+
+            # ABC: A = top 80%, B = next 15% (80-95%), C = rest (95-100%)
+            if cumulative_pct <= 80:
+                abc_class = "A"
+            elif cumulative_pct <= 95:
+                abc_class = "B"
+            else:
+                abc_class = "C"
+
+            results.append(SKUFrequency(
+                sku=row["sku"],
+                total_lines=row["total_lines"],
+                total_units=row["total_units"],
+                total_orders=row["total_orders"],
+                frequency_rank=rank,
+                cumulative_pct=round(cumulative_pct, 2),
+                abc_class=abc_class,
+            ))
+
+        return results
 
     def _calculate_shift_performance(
         self,

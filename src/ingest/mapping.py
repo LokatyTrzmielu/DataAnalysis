@@ -140,18 +140,28 @@ ORDERS_SCHEMA = {
         "required": True,
         "description": "Line quantity (EA)",
     },
-    "timestamp": {
+    "date": {
         "aliases": [
             # English
-            "timestamp", "datetime", "date", "time", "created", "shipped",
+            "datetime", "timestamp", "date", "created", "shipped",
             "order_date", "ship_date", "delivery_date", "fulfillment_date",
             "transaction_date", "created_at", "updated_at", "processed_date",
             # Polish
-            "data", "czas", "data_zamowienia", "data_wysylki", "data_dostawy",
+            "data", "data_zamowienia", "data_wysylki", "data_dostawy",
             "data_realizacji",
         ],
         "required": True,
-        "description": "Fulfillment date/time",
+        "description": "Date or datetime column",
+    },
+    "time": {
+        "aliases": [
+            # English
+            "time", "hour", "time_of_day", "order_time", "ship_time",
+            # Polish
+            "czas", "godzina",
+        ],
+        "required": False,
+        "description": "Time column (when date and time are separate)",
     },
 }
 
