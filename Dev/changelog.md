@@ -11,6 +11,18 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-10 14:00] - Feature
+- **Performance Validation View — full implementation**:
+  - Expanded Orders data summary: 5 metrics (added Unique SKUs, Unique days)
+  - New section: Missing SKUs — detects null, empty, "N/A", "-", whitespace-only SKU values
+  - New section: Date gaps — finds missing calendar dates between min/max order_date
+  - New section: Quantity anomalies — null/zero, negative, and statistical outliers (>mean+3σ)
+  - New section: Working pattern profile — active days/week, hours range, estimated shifts (only with hourly data)
+  - Removed placeholder "under development" message
+  - Pattern: main render function + private `_render_*` helpers (matches capacity validation style)
+- File: `src/ui/views/performance_validation_view.py`
+- Branch: feature/performance
+
 ### [2026-02-10 12:00] - Refactor
 - **Rozdzielenie Capacity Validation i Performance Validation**:
   - Problem: `_render_performance_validation()` wywoływała `render_validation_view()` przeznaczoną dla Masterdata, co było błędne dla danych Orders
