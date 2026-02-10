@@ -21,7 +21,8 @@ def render_performance_validation_view() -> None:
     # --- Orders data summary ---
     render_section_header("Orders data summary", "📋")
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # Row 1: 3 columns
+    col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Total records", len(df))
     with col2:
@@ -34,6 +35,9 @@ def render_performance_validation_view() -> None:
     with col3:
         has_hourly = "order_hour" in df.columns and df["order_hour"].n_unique() > 1
         st.metric("Hourly data", "Yes" if has_hourly else "No")
+
+    # Row 2: 3 columns (last one empty)
+    col4, col5, _col6 = st.columns(3)
     with col4:
         if "sku" in df.columns:
             st.metric("Unique SKUs", df["sku"].n_unique())
@@ -89,9 +93,8 @@ def _render_missing_skus(df: pl.DataFrame) -> None:
         st.success("Missing SKUs: 0")
     else:
         st.warning(f"Missing SKUs: {count} rows with null, empty, or placeholder SKU values")
-        show_cols = [c for c in ["order_date", "sku", "quantity"] if c in df.columns]
         with st.expander(f"Show sample rows ({min(count, 20)} of {count})"):
-            st.dataframe(bad_rows.select(show_cols).head(20), use_container_width=True)
+            st.dataframe(bad_rows.head(20), use_container_width=True)
 
 
 def _render_date_gaps(df: pl.DataFrame) -> None:
@@ -139,8 +142,6 @@ def _render_quantity_anomalies(df: pl.DataFrame) -> None:
         st.info("No `quantity` column found in the data.")
         return
 
-    show_cols = [c for c in ["order_date", "sku", "quantity"] if c in df.columns]
-
     # 1. Null or zero
     null_zero_mask = df["quantity"].is_null() | (df["quantity"] == 0)
     null_zero = df.filter(null_zero_mask)
@@ -151,7 +152,7 @@ def _render_quantity_anomalies(df: pl.DataFrame) -> None:
     else:
         st.warning(f"Null/zero quantities: {nz_count} rows")
         with st.expander(f"Show sample rows ({min(nz_count, 20)} of {nz_count})"):
-            st.dataframe(null_zero.select(show_cols).head(20), use_container_width=True)
+            st.dataframe(null_zero.head(20), use_container_width=True)
 
     # 2. Negative
     neg_mask = df["quantity"] < 0
@@ -163,7 +164,7 @@ def _render_quantity_anomalies(df: pl.DataFrame) -> None:
     else:
         st.warning(f"Negative quantities: {neg_count} rows (possible returns)")
         with st.expander(f"Show sample rows ({min(neg_count, 20)} of {neg_count})"):
-            st.dataframe(negatives.select(show_cols).head(20), use_container_width=True)
+            st.dataframe(negatives.head(20), use_container_width=True)
 
     # 3. Statistical outliers (mean + 3*std)
     qty_col = df["quantity"].drop_nulls().cast(pl.Float64)
@@ -177,19 +178,23 @@ def _render_quantity_anomalies(df: pl.DataFrame) -> None:
             out_count = len(outliers)
 
             if out_count == 0:
-                st.success("Statistical outliers (>mean+3σ): 0")
+                st.success("Statistical outliers: 0")
             else:
                 st.warning(
-                    f"Statistical outliers: {out_count} rows with quantity > {threshold:.0f} "
-                    f"(mean={mean_val:.1f}, std={std_val:.1f})"
+                    f"Statistical outliers: {out_count} rows with unusually high "
+                    f"quantity (>{threshold:.0f})"
+                )
+                st.caption(
+                    "Outliers detected using the 3-sigma rule: values exceeding "
+                    "the average plus 3× standard deviation are flagged as extreme."
                 )
                 with st.expander(f"Show sample rows ({min(out_count, 20)} of {out_count})"):
                     st.dataframe(
-                        outliers.select(show_cols).sort("quantity", descending=True).head(20),
+                        outliers.sort("quantity", descending=True).head(20),
                         use_container_width=True,
                     )
         else:
-            st.success("Statistical outliers (>mean+3σ): 0 (no variance)")
+            st.success("Statistical outliers: 0 (no variance)")
 
 
 def _render_working_pattern(df: pl.DataFrame) -> None:
@@ -207,9 +212,15 @@ def _render_working_pattern(df: pl.DataFrame) -> None:
         active_count = len(active_weekdays)
         day_labels = [day_names.get(d, str(d)) for d in active_weekdays]
         days_text = f"{day_labels[0]}-{day_labels[-1]}" if len(day_labels) > 1 else day_labels[0]
+    elif "order_date" in df.columns:
+        weekdays = df["order_date"].cast(pl.Date).dt.weekday().unique().to_list()
+        active_weekdays = sorted(weekdays)
+        active_count = len(active_weekdays)
+        day_labels = [day_names.get(d, str(d)) for d in active_weekdays]
+        days_text = f"{day_labels[0]}-{day_labels[-1]}" if len(day_labels) > 1 else day_labels[0]
     else:
-        active_count = None
-        days_text = "N/A"
+        active_count = df["order_date"].n_unique() if "order_date" in df.columns else 0
+        days_text = str(active_count) if active_count else "unknown"
 
     # Active hours range
     min_hour = df["order_hour"].min()
@@ -217,20 +228,20 @@ def _render_working_pattern(df: pl.DataFrame) -> None:
     hours_text = f"{min_hour:02d}:00 - {max_hour:02d}:00" if min_hour is not None else "N/A"
 
     # Estimated shifts
-    if min_hour is not None and max_hour is not None and max_hour > min_hour:
+    if min_hour is not None and max_hour is not None:
         span = max_hour - min_hour
-        shifts = max(1, round(span / 8))
+        shifts = max(1, round(span / 8)) if span > 0 else 1
     else:
-        shifts = None
+        shifts = 1
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        label = f"{days_text} → {active_count} days/week" if active_count else "N/A"
+        label = f"{days_text} → {active_count} days/week"
         st.metric("Active days per week", label)
     with col2:
         st.metric("Active hours range", hours_text)
     with col3:
-        st.metric("Estimated shifts", f"~{shifts}" if shifts else "N/A")
+        st.metric("Estimated shifts", f"~{shifts}")
 
     st.caption(
         "Working pattern is informational only — derived from order timestamps. "

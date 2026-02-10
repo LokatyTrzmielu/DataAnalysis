@@ -11,6 +11,15 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-10 15:00] - Fix
+- **Performance Validation View — UI/UX fixes after user testing**:
+  1. Orders data summary: split 5 cramped columns into 2 rows of 3 columns
+  2. Expandable tables (Missing SKUs, Quantity anomalies): show all imported columns instead of hardcoded 3
+  3. Statistical outliers: replaced technical `(mean=X, std=Y)` with user-friendly message + caption explaining 3-sigma rule
+  4. Working pattern profile: fixed N/A values — shifts defaults to 1 when `max_hour == min_hour`, fallback computes weekday from `order_date` if `weekday` column missing
+- File: `src/ui/views/performance_validation_view.py`
+- Branch: feature/performance
+
 ### [2026-02-10 14:00] - Feature
 - **Performance Validation View — full implementation**:
   - Expanded Orders data summary: 5 metrics (added Unique SKUs, Unique days)
