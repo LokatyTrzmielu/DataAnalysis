@@ -191,6 +191,47 @@ def render_mapping_ui(
                 if selected != "-- Don't map --":
                     user_mappings[field_name] = selected
 
+        # Optional fields section
+        optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
+        if optional_fields:
+            with st.expander("⏱ Optional fields", expanded=False):
+                for field_name in optional_fields:
+                    field_cfg = schema[field_name]
+                    widget_key = f"{key_prefix}_map_{field_name}"
+
+                    current_mapping = mapping_result.mappings.get(field_name)
+                    current_value = current_mapping.source_column if current_mapping else None
+
+                    if current_value and current_value in file_columns:
+                        default_idx = file_columns.index(current_value) + 1
+                    else:
+                        default_idx = 0
+
+                    current_selection = st.session_state.get(widget_key)
+                    is_mapped = current_selection is not None and current_selection != "-- Don't map --"
+                    if current_selection is None:
+                        is_mapped = current_value is not None
+
+                    col_status, col_dropdown = st.columns([1, 3])
+
+                    with col_status:
+                        st.markdown(
+                            _get_field_status_html(is_mapped),
+                            unsafe_allow_html=True,
+                        )
+
+                    with col_dropdown:
+                        selected = st.selectbox(
+                            field_name,
+                            options=dropdown_options,
+                            index=default_idx,
+                            key=widget_key,
+                            help=field_cfg["description"],
+                        )
+
+                        if selected != "-- Don't map --":
+                            user_mappings[field_name] = selected
+
     with col_summary:
         # Mapping summary - always visible (no expander)
         st.markdown(
