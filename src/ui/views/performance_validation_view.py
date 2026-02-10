@@ -126,12 +126,26 @@ def _render_date_gaps(df: pl.DataFrame) -> None:
         st.success("Date gaps: 0 — all calendar days between min and max are covered")
     else:
         st.warning(f"Date gaps: {len(missing_dates)} missing calendar days")
-        with st.expander(f"Show missing dates ({len(missing_dates)})"):
+        # Collect dates adjacent to each gap for context
+        neighbor_dates: set[date] = set()
+        for md in missing_dates:
+            day_before = md - timedelta(days=1)
+            day_after = md + timedelta(days=1)
+            if day_before in actual_dates:
+                neighbor_dates.add(day_before)
+            if day_after in actual_dates:
+                neighbor_dates.add(day_after)
+
+        context_rows = df.filter(pl.col("order_date").is_in(sorted(neighbor_dates)))
+        with st.expander(f"Show missing dates ({len(missing_dates)}) + surrounding rows"):
             day_names = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
             gap_df = pl.DataFrame({"missing_date": missing_dates}).with_columns(
                 pl.col("missing_date").dt.weekday().replace_strict(day_names, default="?").alias("weekday"),
             )
             st.dataframe(gap_df, use_container_width=True)
+            if len(context_rows) > 0:
+                st.caption("Rows from days adjacent to gaps (for locating in source file):")
+                st.dataframe(context_rows.head(50), use_container_width=True)
     st.caption("Weekends and holidays may be intentional gaps — review in context.")
 
 
