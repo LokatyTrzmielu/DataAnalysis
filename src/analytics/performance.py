@@ -395,10 +395,11 @@ class PerformanceAnalyzer:
         ]).sort(["year", "week"])
 
         # Count date+hour data points per week for avg_lines_per_hour
+        valid_dh = [dh for dh in datehour if dh.date is not None]
         dh_df = pl.DataFrame([
             {"year": dh.date.isocalendar()[0], "week": dh.date.isocalendar()[1], "lines": dh.lines}
-            for dh in datehour
-        ]) if datehour else pl.DataFrame({"year": [], "week": [], "lines": []})
+            for dh in valid_dh
+        ]) if valid_dh else pl.DataFrame({"year": [], "week": [], "lines": []})
 
         dh_weekly = {}
         if len(dh_df) > 0:
