@@ -492,35 +492,12 @@ def _render_performance_import() -> None:
 
 
 def _render_performance_validation() -> None:
-    """Render Performance Validation sub-tab with settings."""
-    from src.ui.layout import render_message_box
-
+    """Render Performance Validation sub-tab."""
     st.header("✅ Validation")
 
     if st.session_state.orders_df is None:
         st.info("Import Orders in the Import tab first")
         return
-
-    # Performance Settings section
-    with st.expander("⚙️ Performance Settings", expanded=False):
-        col1, col2 = st.columns(2)
-
-        with col1:
-            # Productive hours
-            st.session_state.productive_hours = st.slider(
-                "Productive hours / shift",
-                min_value=4.0,
-                max_value=8.0,
-                value=st.session_state.get("productive_hours", 7.0),
-                step=0.5,
-                help="Effective work time per shift",
-            )
-
-        with col2:
-            # Placeholder for future settings
-            st.markdown("*Additional settings can be added here*")
-
-    render_divider()
 
     # Use performance-specific validation view
     render_performance_validation_view()

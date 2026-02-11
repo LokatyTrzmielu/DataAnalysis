@@ -28,6 +28,17 @@ def render_performance_view() -> None:
         st.info("Import Orders in the Import tab first")
         return
 
+    # Performance settings
+    productive_hours = st.slider(
+        "Productive hours / shift",
+        min_value=4.0,
+        max_value=8.0,
+        value=st.session_state.get("productive_hours", 7.0),
+        step=0.5,
+        help="Effective work time per shift",
+    )
+    st.session_state.productive_hours = productive_hours
+
     # Shift configuration
     render_bold_label("Shift configuration:", "⏰")
     shift_config = st.selectbox(
