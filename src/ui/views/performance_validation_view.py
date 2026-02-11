@@ -138,11 +138,6 @@ def _render_date_gaps(df: pl.DataFrame) -> None:
 
         context_rows = df.filter(pl.col("order_date").is_in(sorted(neighbor_dates)))
         with st.expander(f"Show missing dates ({len(missing_dates)}) + surrounding rows"):
-            day_names = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
-            gap_df = pl.DataFrame({"missing_date": missing_dates}).with_columns(
-                pl.col("missing_date").dt.weekday().replace_strict(day_names, default="?").alias("weekday"),
-            )
-            st.dataframe(gap_df, use_container_width=True)
             if len(context_rows) > 0:
                 st.caption("Rows from days adjacent to gaps (for locating in source file):")
                 st.dataframe(context_rows.head(50), use_container_width=True)
@@ -237,17 +232,33 @@ def _render_working_pattern(df: pl.DataFrame) -> None:
         active_count = df["order_date"].n_unique() if "order_date" in df.columns else 0
         days_text = str(active_count) if active_count else "unknown"
 
-    # Active hours range
-    min_hour = df["order_hour"].min()
-    max_hour = df["order_hour"].max()
-    hours_text = f"{min_hour:02d}:00 - {max_hour:02d}:00" if min_hour is not None else "N/A"
+    # Active hours range — detect largest gap (handles overnight shifts)
+    unique_hours = sorted(df["order_hour"].unique().drop_nulls().to_list())
+    if len(unique_hours) >= 2:
+        # Calculate gaps between consecutive hours (circular)
+        gaps = []
+        for i in range(len(unique_hours) - 1):
+            gaps.append((unique_hours[i + 1] - unique_hours[i], i))
+        # Wrap-around gap (last hour → first hour next day)
+        gaps.append((24 - unique_hours[-1] + unique_hours[0], len(unique_hours) - 1))
+
+        # Largest gap = inactive period
+        largest_gap, gap_idx = max(gaps, key=lambda x: x[0])
+
+        start_hour = unique_hours[(gap_idx + 1) % len(unique_hours)]
+        end_hour = unique_hours[gap_idx]
+
+        hours_text = f"{start_hour:02d}:00 - {end_hour:02d}:00"
+        span = (end_hour - start_hour) % 24 or 24
+    elif len(unique_hours) == 1:
+        hours_text = f"{unique_hours[0]:02d}:00"
+        span = 1
+    else:
+        hours_text = "N/A"
+        span = 0
 
     # Estimated shifts
-    if min_hour is not None and max_hour is not None:
-        span = max_hour - min_hour
-        shifts = max(1, round(span / 8)) if span > 0 else 1
-    else:
-        shifts = 1
+    shifts = max(1, round(span / 8)) if span > 0 else 1
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -260,5 +271,5 @@ def _render_working_pattern(df: pl.DataFrame) -> None:
 
     st.caption(
         "Working pattern is informational only — derived from order timestamps. "
-        "Estimated shifts = (max hour − min hour) / 8, rounded."
+        "Estimated shifts = active span / 8, rounded."
     )
