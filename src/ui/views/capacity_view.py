@@ -11,6 +11,7 @@ from src.core.types import CarrierConfig
 from src.ui.layout import (
     apply_plotly_dark_theme,
     render_bold_label,
+    render_chart_download_button,
     render_divider,
     render_kpi_section,
     render_section_header,
@@ -507,6 +508,7 @@ def _render_dimensions_histogram() -> None:
 
     apply_plotly_dark_theme(fig)
     st.plotly_chart(fig, width="stretch")
+    render_chart_download_button(fig, "dimensions_distribution")
 
 
 def _render_carrier_fit_chart() -> None:
@@ -562,6 +564,7 @@ def _render_carrier_fit_chart() -> None:
 
     apply_plotly_dark_theme(fig)
     st.plotly_chart(fig, width="stretch")
+    render_chart_download_button(fig, "carrier_fit")
 
 
 def _render_weight_histogram() -> None:
@@ -588,6 +591,7 @@ def _render_weight_histogram() -> None:
 
     apply_plotly_dark_theme(fig)
     st.plotly_chart(fig, width="stretch")
+    render_chart_download_button(fig, "weight_distribution")
 
 
 def _render_capacity_charts() -> None:

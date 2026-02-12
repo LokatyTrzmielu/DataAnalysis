@@ -11,6 +11,16 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-12 20:00] - Feature
+- **Eksport interaktywnych wykresów jako standalone HTML**:
+  - Dodano przycisk "Download interactive HTML" pod każdym wykresem w zakładkach Analysis
+  - Performance Analysis: 7 wykresów (throughput, daily activity, heatmap, weekly trend, day-of-week, SKU pareto, order structure)
+  - Capacity Analysis: 3 wykresy (dimensions distribution, carrier fit, weight distribution)
+  - Pliki HTML otwierają się w przeglądarce z pełną interaktywnością (zoom, hover, pan)
+  - Wykorzystano wbudowany Plotly `fig.to_html()` z CDN — brak nowych zależności
+- Pliki: `src/ui/layout.py`, `src/ui/views/performance_view.py`, `src/ui/views/capacity_view.py`
+- Branch: feature/performance
+
 ### [2026-02-12 18:00] - Fix
 - **Smart date gaps detection in Validation tab**:
   1. Infer working weekdays from data (weekdays appearing in >=20% of weeks)

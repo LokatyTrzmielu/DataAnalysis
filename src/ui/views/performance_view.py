@@ -14,6 +14,7 @@ import streamlit as st
 from src.ui.layout import (
     apply_plotly_dark_theme,
     render_bold_label,
+    render_chart_download_button,
     render_divider,
     render_kpi_section,
     render_section_header,
@@ -380,6 +381,7 @@ def _render_throughput_chart() -> None:
 
     apply_plotly_dark_theme(fig)
     st.plotly_chart(fig, use_container_width=True)
+    render_chart_download_button(fig, "throughput_hourly")
 
 
 def _render_daily_lines_chart() -> None:
@@ -433,6 +435,7 @@ def _render_daily_lines_chart() -> None:
 
     apply_plotly_dark_theme(fig)
     st.plotly_chart(fig, use_container_width=True)
+    render_chart_download_button(fig, "daily_activity")
 
 
 def _render_hourly_heatmap() -> None:
@@ -487,6 +490,7 @@ def _render_hourly_heatmap() -> None:
 
     apply_plotly_dark_theme(fig)
     st.plotly_chart(fig, use_container_width=True)
+    render_chart_download_button(fig, "hourly_heatmap")
 
 
 def _render_trends_section() -> None:
@@ -517,6 +521,7 @@ def _render_trends_section() -> None:
             )
             apply_plotly_dark_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
+            render_chart_download_button(fig, "weekly_trend")
         else:
             st.info("Not enough data for weekly trends.")
 
@@ -544,6 +549,7 @@ def _render_trends_section() -> None:
             )
             apply_plotly_dark_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
+            render_chart_download_button(fig, "day_of_week")
         else:
             st.info("Not enough data for weekday profile.")
 
@@ -630,6 +636,7 @@ def _render_sku_pareto_section() -> None:
 
     apply_plotly_dark_theme(fig)
     st.plotly_chart(fig, use_container_width=True)
+    render_chart_download_button(fig, "sku_pareto")
 
     # Top 20 SKU table
     with st.expander(f"Top {top_n} SKU details"):
@@ -672,6 +679,7 @@ def _render_order_structure_chart() -> None:
     fig.update_traces(marker_color=COLORS["warning"])
     apply_plotly_dark_theme(fig)
     st.plotly_chart(fig, use_container_width=True)
+    render_chart_download_button(fig, "order_structure")
 
 
 def _render_detailed_stats() -> None:

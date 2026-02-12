@@ -251,6 +251,23 @@ def apply_plotly_dark_theme(fig) -> None:
     fig.update_layout(**get_plotly_layout_defaults())
 
 
+def render_chart_download_button(fig, filename: str) -> None:
+    """Render a download button for an interactive HTML version of a Plotly chart.
+
+    Args:
+        fig: Plotly figure object
+        filename: Base filename (without extension) for the downloaded file
+    """
+    html = fig.to_html(full_html=True, include_plotlyjs="cdn")
+    st.download_button(
+        label="📥 Download interactive HTML",
+        data=html,
+        file_name=f"{filename}.html",
+        mime="text/html",
+        key=f"dl_{filename}",
+    )
+
+
 # ===== ETAP 2: Dodatkowe komponenty =====
 
 
