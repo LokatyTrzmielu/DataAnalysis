@@ -186,6 +186,10 @@ class PerformanceAnalyzer:
                 df = df.with_columns([
                     pl.from_epoch(pl.col("timestamp"), time_unit="s").alias("timestamp")
                 ])
+            elif ts_dtype == pl.Date:
+                df = df.with_columns([
+                    pl.col("timestamp").cast(pl.Datetime).alias("timestamp")
+                ])
             else:
                 raise ValueError(f"Cannot convert timestamp column of type {ts_dtype} to datetime")
 
