@@ -98,7 +98,7 @@ def _render_missing_skus(df: pl.DataFrame) -> None:
 
 
 def _render_date_gaps(df: pl.DataFrame) -> None:
-    """Find and display missing calendar dates in the order data."""
+    """Find and display missing calendar dates with workday/non-workday breakdown."""
     render_section_header("Date gaps", "📅")
 
     if "order_date" not in df.columns:
@@ -112,6 +112,8 @@ def _render_date_gaps(df: pl.DataFrame) -> None:
         st.info("Cannot determine date range (min/max is null).")
         return
 
+    day_names = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
+
     # Build full calendar between min and max
     all_dates: set[date] = set()
     current = date_min
@@ -119,29 +121,69 @@ def _render_date_gaps(df: pl.DataFrame) -> None:
         all_dates.add(current)
         current += timedelta(days=1)
 
-    actual_dates = set(df["order_date"].unique().to_list())
+    actual_dates = {d for d in df["order_date"].unique().to_list() if d is not None}
     missing_dates = sorted(all_dates - actual_dates)
 
     if len(missing_dates) == 0:
         st.success("Date gaps: 0 — all calendar days between min and max are covered")
-    else:
-        st.warning(f"Date gaps: {len(missing_dates)} missing calendar days")
-        # Collect dates adjacent to each gap for context
-        neighbor_dates: set[date] = set()
-        for md in missing_dates:
-            day_before = md - timedelta(days=1)
-            day_after = md + timedelta(days=1)
-            if day_before in actual_dates:
-                neighbor_dates.add(day_before)
-            if day_after in actual_dates:
-                neighbor_dates.add(day_after)
+        return
 
-        context_rows = df.filter(pl.col("order_date").is_in(sorted(neighbor_dates)))
-        with st.expander(f"Show missing dates ({len(missing_dates)}) + surrounding rows"):
-            if len(context_rows) > 0:
-                st.caption("Rows from days adjacent to gaps (for locating in source file):")
+    # Infer working weekdays from data (weekdays appearing in >=20% of weeks)
+    total_weeks = max(((date_max - date_min).days + 1) / 7, 1)
+    weekday_counts: dict[int, int] = {}
+    for d in actual_dates:
+        wd = d.isoweekday()  # 1=Mon..7=Sun
+        weekday_counts[wd] = weekday_counts.get(wd, 0) + 1
+
+    working_weekdays: set[int] = set()
+    for wd, count in weekday_counts.items():
+        if count >= max(total_weeks * 0.2, 1):
+            working_weekdays.add(wd)
+
+    # Classify missing dates
+    missing_workdays = [d for d in missing_dates if d.isoweekday() in working_weekdays]
+    missing_nonwork = [d for d in missing_dates if d.isoweekday() not in working_weekdays]
+
+    # Display metrics
+    working_labels = sorted(day_names[w] for w in working_weekdays)
+    col1, col2 = st.columns(2)
+    with col1:
+        if missing_workdays:
+            st.warning(f"Workday gaps: **{len(missing_workdays)}** missing days")
+        else:
+            st.success("Workday gaps: 0")
+    with col2:
+        st.info(f"Non-working days: {len(missing_nonwork)} ({', '.join(day_names[w] for w in sorted(set(d.isoweekday() for d in missing_nonwork)) if w in day_names) if missing_nonwork else 'none'})")
+
+    st.caption(f"Detected working days: {', '.join(working_labels)}")
+
+    # Show workday gaps detail
+    if missing_workdays:
+        with st.expander(f"Show workday gaps ({len(missing_workdays)})"):
+            gap_data = [
+                {"date": d.isoformat(), "weekday": day_names.get(d.isoweekday(), "?")}
+                for d in missing_workdays
+            ]
+            st.dataframe(gap_data, use_container_width=True)
+
+            # Context rows from adjacent dates
+            neighbor_dates: set[date] = set()
+            for md in missing_workdays:
+                day_before = md - timedelta(days=1)
+                day_after = md + timedelta(days=1)
+                if day_before in actual_dates:
+                    neighbor_dates.add(day_before)
+                if day_after in actual_dates:
+                    neighbor_dates.add(day_after)
+
+            if neighbor_dates:
+                context_rows = df.filter(pl.col("order_date").is_in(sorted(neighbor_dates)))
+                # Show only relevant columns
+                display_cols = [c for c in ["order_date", "timestamp", "sku", "quantity"] if c in context_rows.columns]
+                if display_cols:
+                    context_rows = context_rows.select(display_cols)
+                st.caption("Adjacent rows for source traceability:")
                 st.dataframe(context_rows.head(50), use_container_width=True)
-    st.caption("Weekends and holidays may be intentional gaps — review in context.")
 
 
 def _render_quantity_anomalies(df: pl.DataFrame) -> None:

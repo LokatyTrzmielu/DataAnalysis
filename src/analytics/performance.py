@@ -137,8 +137,11 @@ class PerformanceAnalysisResult:
     weekly_trends: list[WeeklyTrend] = field(default_factory=list)
     monthly_trends: list[MonthlyTrend] = field(default_factory=list)
     weekday_profile: dict[int, float] = field(default_factory=dict)
+    shifts_per_day: int = 2
     sku_pareto: list[SKUFrequency] = field(default_factory=list)
     has_hourly_data: bool = False
+    excluded_nonworking_rows: int = 0
+    filtered_df: object = None  # pl.DataFrame after non-working day filter
 
 
 class PerformanceAnalyzer:
@@ -189,6 +192,18 @@ class PerformanceAnalyzer:
         # Filter out rows with null timestamps
         df = df.filter(pl.col("timestamp").is_not_null())
 
+        # Filter out non-working days based on shift schedule
+        excluded_nonworking_rows = 0
+        if self.shift_schedule:
+            weekly = self.shift_schedule.weekly_schedule
+            all_days = [weekly.mon, weekly.tue, weekly.wed, weekly.thu, weekly.fri, weekly.sat, weekly.sun]
+            # Polars dt.weekday() returns 1=Mon..7=Sun (ISO), not 0-based
+            working_weekdays = [i + 1 for i, shifts in enumerate(all_days) if shifts]
+            if len(working_weekdays) < 7:
+                rows_before = df.height
+                df = df.filter(pl.col("timestamp").dt.weekday().is_in(working_weekdays))
+                excluded_nonworking_rows = rows_before - df.height
+
         # Date range
         ts_min = df["timestamp"].min()
         ts_max = df["timestamp"].max()
@@ -227,10 +242,19 @@ class PerformanceAnalyzer:
         # 6. Calculate SKU Pareto
         sku_pareto = self._calculate_sku_pareto(df)
 
-        # 7. Calculate performance per shift
+        # 7. Determine shifts per day from schedule
+        if self.shift_schedule:
+            weekly = self.shift_schedule.weekly_schedule
+            all_days = [weekly.mon, weekly.tue, weekly.wed, weekly.thu, weekly.fri, weekly.sat, weekly.sun]
+            working_days = [d for d in all_days if d]
+            shifts_per_day = max((len(d) for d in working_days), default=2)
+        else:
+            shifts_per_day = 2
+
+        # 8. Calculate performance per shift
         shift_perf = self._calculate_shift_performance(df, date_from, date_to)
 
-        # 8. Calculate total productive hours
+        # 9. Calculate total productive hours
         total_hours = self._calculate_total_productive_hours(date_from, date_to)
 
         return PerformanceAnalysisResult(
@@ -247,6 +271,9 @@ class PerformanceAnalyzer:
             weekday_profile=weekday_profile,
             sku_pareto=sku_pareto,
             has_hourly_data=has_hourly_data,
+            shifts_per_day=shifts_per_day,
+            excluded_nonworking_rows=excluded_nonworking_rows,
+            filtered_df=df,
         )
 
     def _calculate_hourly_metrics(self, df: pl.DataFrame) -> list[HourlyMetrics]:

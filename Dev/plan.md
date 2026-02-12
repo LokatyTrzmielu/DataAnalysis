@@ -45,6 +45,9 @@
 | 14 | Paleta kolorów i przyciski statusu | ✅ |
 | 15 | Restrukturyzacja nawigacji | ✅ |
 | 16 | UI Audit Priority 3 | ✅ |
+| 17 | Performance module (date/time import, analytics, UI) | ✅ |
+| 18 | Validation split (Capacity/Performance) | ✅ |
+| 19 | Performance Validation UI/UX fixes | ✅ |
 
 ---
 

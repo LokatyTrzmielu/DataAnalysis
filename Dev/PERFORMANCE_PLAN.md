@@ -152,12 +152,31 @@ File: `src/ui/views/performance_view.py`
 
 ---
 
+## Part 4: Performance Validation View — UI/UX Fixes
+
+File: `src/ui/views/performance_validation_view.py`
+**Status:** Completed (2026-02-10)
+
+After user testing of the initial implementation (Part 3), 5 issues were reported and fixed:
+
+- [x] **4.1** Orders data summary: split 5 cramped columns → 2 rows of 3 columns
+- [x] **4.2** Expandable tables (Missing SKUs, Quantity anomalies): show all imported columns instead of hardcoded 3
+- [x] **4.3** Statistical outliers: replaced technical `(mean=X, std=Y)` with user-friendly message + 3-sigma caption
+- [x] **4.4** Working pattern: fixed N/A values — shifts=1 fallback, weekday computed from order_date if column missing
+- [x] **4.5** Date gaps: added weekday column + rows from adjacent days with all original columns for source traceability
+
+---
+
 ## Verification checklist
 
-- [ ] Import Orders with datetime in one column → date and hour extracted
-- [ ] Import Orders with date-only column → works, warning about no hourly data
-- [ ] Import Orders with separate date + time columns → combined correctly
-- [ ] Performance analysis with hourly data → all new sections render
-- [ ] Performance analysis without hourly data → throughput chart hidden, warning shown
-- [ ] SKU Pareto shows ABC classification correctly
-- [ ] All tests pass
+- [x] Import Orders with datetime in one column → date and hour extracted
+- [x] Import Orders with date-only column → works, warning about no hourly data
+- [x] Import Orders with separate date + time columns → combined correctly
+- [x] Performance analysis with hourly data → all new sections render
+- [x] Performance analysis without hourly data → throughput chart hidden, warning shown
+- [x] SKU Pareto shows ABC classification correctly
+- [x] Summary metrics fit in 2 rows of 3 columns
+- [x] Expandable tables show all imported columns
+- [x] Statistical outliers warning readable without statistics knowledge
+- [x] Working pattern shows numeric values, not N/A
+- [x] All tests pass

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import plotly.express as px
 import plotly.graph_objects as go
+import pandas as pd
 import polars as pl
 import streamlit as st
 
@@ -211,6 +212,10 @@ def _render_performance_results() -> None:
     Layout: KPI -> Throughput -> Daily Activity -> Heatmap -> Trends -> SKU Pareto -> Order Structure -> Detailed Stats
     """
     result = st.session_state.performance_result
+
+    excluded = getattr(result, "excluded_nonworking_rows", 0)
+    if excluded > 0:
+        st.info(f"{excluded} rows from non-working days excluded from analysis (based on shift configuration)")
 
     render_divider()
 
@@ -437,7 +442,8 @@ def _render_hourly_heatmap() -> None:
     if not result.has_hourly_data:
         return
 
-    orders_df = st.session_state.orders_df
+    filtered = getattr(result, "filtered_df", None)
+    orders_df = filtered if filtered is not None else st.session_state.orders_df
     if orders_df is None or "timestamp" not in orders_df.columns:
         return
 
@@ -641,7 +647,9 @@ def _render_sku_pareto_section() -> None:
 
 def _render_order_structure_chart() -> None:
     """Render order structure histogram (lines per order distribution)."""
-    orders_df = st.session_state.orders_df
+    result = st.session_state.performance_result
+    filtered = getattr(result, "filtered_df", None)
+    orders_df = filtered if filtered is not None else st.session_state.orders_df
 
     if orders_df is None or "order_id" not in orders_df.columns:
         return
@@ -673,18 +681,82 @@ def _render_detailed_stats() -> None:
 
     render_section_header("Detailed Statistics", "📊")
 
+    # Summary metrics row
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total Lines", f"{kpi.total_lines:,}")
+    c2.metric("Total Orders", f"{kpi.total_orders:,}")
+    c3.metric("Total Pieces", f"{kpi.total_units:,}")
+    c4.metric("Unique SKU", f"{kpi.unique_sku:,}")
+
+    # Additional ratio metrics
     col_a, col_b = st.columns(2)
     with col_a:
-        st.metric("Total Lines", f"{kpi.total_lines:,}")
-        st.metric("Total Orders", f"{kpi.total_orders:,}")
-        st.metric("Total Units", f"{kpi.total_units:,}")
-        st.metric("Unique SKU", f"{kpi.unique_sku:,}")
-    with col_b:
         st.metric("Avg Lines/Order", f"{kpi.avg_lines_per_order:.2f}")
-        st.metric("Avg Units/Line", f"{kpi.avg_units_per_line:.2f}")
+        st.metric("Avg Pieces/Line", f"{kpi.avg_units_per_line:.2f}")
+    with col_b:
         if result.has_hourly_data:
-            st.metric("Avg Lines/h", f"{kpi.avg_lines_per_hour:.1f}")
-            st.metric("Peak Lines/h", f"{kpi.peak_lines_per_hour:,}")
             st.metric("P90 Lines/h", f"{kpi.p90_lines_per_hour:.0f}")
             st.metric("P95 Lines/h", f"{kpi.p95_lines_per_hour:.0f}")
             st.metric("P99 Lines/h", f"{kpi.p99_lines_per_hour:.0f}")
+
+    # --- Throughput tables (Per Hour / Per Shift / Per Day) ---
+    if result.has_hourly_data and result.daily_metrics:
+        daily = result.daily_metrics
+        shifts_per_day = result.shifts_per_day
+
+        # Per-day avg/max from daily_metrics
+        avg_orders_day = sum(d.orders for d in daily) / len(daily)
+        max_orders_day = max(d.orders for d in daily)
+        avg_lines_day = sum(d.lines for d in daily) / len(daily)
+        max_lines_day = max(d.lines for d in daily)
+        avg_units_day = sum(d.units for d in daily) / len(daily)
+        max_units_day = max(d.units for d in daily)
+
+        # Per-shift = per-day / shifts_per_day
+        avg_orders_shift = avg_orders_day / shifts_per_day
+        max_orders_shift = max_orders_day / shifts_per_day
+        avg_lines_shift = avg_lines_day / shifts_per_day
+        max_lines_shift = max_lines_day / shifts_per_day
+        avg_units_shift = avg_units_day / shifts_per_day
+        max_units_shift = max_units_day / shifts_per_day
+
+        def _fmt(v: float) -> str:
+            return f"{v:,.1f}" if v % 1 else f"{int(v):,}"
+
+        index = ["Per Hour", "Per Shift", "Per Day"]
+
+        st.markdown("**Orders**")
+        st.dataframe(
+            pd.DataFrame(
+                {
+                    "Avg": [_fmt(kpi.avg_orders_per_hour), _fmt(avg_orders_shift), _fmt(avg_orders_day)],
+                    "Max": [_fmt(kpi.peak_orders_per_hour), _fmt(max_orders_shift), _fmt(max_orders_day)],
+                },
+                index=index,
+            ),
+            use_container_width=True,
+        )
+
+        st.markdown("**Order Lines**")
+        st.dataframe(
+            pd.DataFrame(
+                {
+                    "Avg": [_fmt(kpi.avg_lines_per_hour), _fmt(avg_lines_shift), _fmt(avg_lines_day)],
+                    "Max": [_fmt(kpi.peak_lines_per_hour), _fmt(max_lines_shift), _fmt(max_lines_day)],
+                },
+                index=index,
+            ),
+            use_container_width=True,
+        )
+
+        st.markdown("**Pieces**")
+        st.dataframe(
+            pd.DataFrame(
+                {
+                    "Avg": [_fmt(kpi.avg_units_per_hour), _fmt(avg_units_shift), _fmt(avg_units_day)],
+                    "Max": [_fmt(kpi.peak_units_per_hour), _fmt(max_units_shift), _fmt(max_units_day)],
+                },
+                index=index,
+            ),
+            use_container_width=True,
+        )

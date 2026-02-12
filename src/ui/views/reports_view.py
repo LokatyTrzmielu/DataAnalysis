@@ -124,6 +124,28 @@ def generate_individual_report(report_type: str) -> tuple[str | None, bytes | No
             else:
                 return None, None
 
+        elif report_type == "SKU_Pareto_ABC":
+            pr = st.session_state.performance_result
+            if pr and pr.sku_pareto:
+                import polars as pl
+                rows = [
+                    {
+                        "Rank": s.frequency_rank,
+                        "SKU": s.sku,
+                        "Total Lines": s.total_lines,
+                        "Total Orders": s.total_orders,
+                        "Total Units": s.total_units,
+                        "Cumulative %": round(s.cumulative_pct, 2),
+                        "ABC Class": s.abc_class,
+                    }
+                    for s in pr.sku_pareto
+                ]
+                df_pareto = pl.DataFrame(rows)
+                file_path = output_dir / "SKU_Pareto_ABC.csv"
+                writer.write(df_pareto, file_path)
+            else:
+                return None, None
+
         else:
             return None, None
 
@@ -221,6 +243,7 @@ def _render_report_categories(
     categories = [
         ("Summary", "📊", "Main summary of all analyses"),
         ("Data Quality", "🔍", "Data quality validation reports"),
+        ("Performance", "⚡", "Performance analysis reports"),
         ("Capacity", "📦", "Capacity analysis results"),
     ]
 
@@ -258,6 +281,17 @@ def _build_reports_list(has_quality: bool, has_capacity: bool) -> list[dict]:
                 "description": desc,
                 "available": True,
                 "category": "Data Quality",
+            })
+
+    # Performance reports - available if performance_result exists
+    if st.session_state.performance_result is not None:
+        pr = st.session_state.performance_result
+        if pr.sku_pareto:
+            reports.append({
+                "name": "SKU_Pareto_ABC",
+                "description": "SKU frequency ranking with ABC classification (Pareto analysis)",
+                "available": True,
+                "category": "Performance",
             })
 
     # Capacity report - available if capacity_result exists
@@ -528,7 +562,7 @@ def _render_performance_preview() -> None:
                     <span class="metric-value">{kpi.total_orders:,}</span>
                 </div>
                 <div class="preview-metric">
-                    <span class="metric-label">Total Units</span>
+                    <span class="metric-label">Total Pieces</span>
                     <span class="metric-value">{kpi.total_units:,}</span>
                 </div>
                 """,

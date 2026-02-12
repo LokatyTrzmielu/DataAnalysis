@@ -11,6 +11,25 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-12 18:00] - Fix
+- **Smart date gaps detection in Validation tab**:
+  1. Infer working weekdays from data (weekdays appearing in >=20% of weeks)
+  2. Classify missing dates into "workday gaps" (unexpected) vs "non-working days" (expected)
+  3. Show breakdown: workday gaps as warning, non-working days as info
+  4. Display detected working days pattern (e.g., "Mon, Tue, Wed, Thu, Fri")
+  5. Show workday gaps table with date + weekday name
+  6. Context rows now show only relevant columns (order_date, timestamp, sku, quantity) instead of full DataFrame
+- Root cause: algorithm treated all calendar days as expected, so weekends (84 days) showed as "missing"
+- File: `src/ui/views/performance_validation_view.py`
+
+### [2026-02-12 17:30] - Fix
+- **Per Shift calculation fixed** — was showing same values as Per Day
+  1. Added `shifts_per_day` field to `PerformanceAnalysisResult`
+  2. Compute from weekly schedule (max shifts on any working day) instead of counting shift types
+  3. Use `result.shifts_per_day` in view instead of `len(result.shift_performance)`
+- Root cause: `shift_performance` grouped by shift TYPE (BASE/OVERLAY), not by shift count
+- Files: `src/analytics/performance.py`, `src/ui/views/performance_view.py`
+
 ### [2026-02-10 15:00] - Fix
 - **Performance Validation View — UI/UX fixes after user testing**:
   1. Orders data summary: split 5 cramped columns into 2 rows of 3 columns
