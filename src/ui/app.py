@@ -29,7 +29,8 @@ from src.ui.views import (
     render_import_view,
     render_masterdata_import,
     render_orders_import,
-    render_validation_view,
+    render_capacity_validation_view,
+    render_performance_validation_view,
     render_capacity_view,
     render_performance_view,
     render_reports_view,
@@ -462,8 +463,8 @@ def _render_capacity_validation() -> None:
 
     render_divider()
 
-    # Use existing validation view (without header, already shown above)
-    render_validation_view(show_header=False)
+    # Use existing capacity validation view (without header, already shown above)
+    render_capacity_validation_view(show_header=False)
 
 
 def _render_performance_section() -> None:
@@ -491,38 +492,15 @@ def _render_performance_import() -> None:
 
 
 def _render_performance_validation() -> None:
-    """Render Performance Validation sub-tab with settings."""
-    from src.ui.layout import render_message_box
-
+    """Render Performance Validation sub-tab."""
     st.header("✅ Validation")
 
     if st.session_state.orders_df is None:
         st.info("Import Orders in the Import tab first")
         return
 
-    # Performance Settings section
-    with st.expander("⚙️ Performance Settings", expanded=False):
-        col1, col2 = st.columns(2)
-
-        with col1:
-            # Productive hours
-            st.session_state.productive_hours = st.slider(
-                "Productive hours / shift",
-                min_value=4.0,
-                max_value=8.0,
-                value=st.session_state.get("productive_hours", 7.0),
-                step=0.5,
-                help="Effective work time per shift",
-            )
-
-        with col2:
-            # Placeholder for future settings
-            st.markdown("*Additional settings can be added here*")
-
-    render_divider()
-
-    # Use existing validation view (without header, already shown above)
-    render_validation_view(show_header=False)
+    # Use performance-specific validation view
+    render_performance_validation_view()
 
 
 def _render_reports_section() -> None:

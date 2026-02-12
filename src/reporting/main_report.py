@@ -110,7 +110,7 @@ class MainReportGenerator:
         # Totals
         data.append(("Performance", "Total Lines", Formatter.integer(kpi.total_lines)))
         data.append(("Performance", "Total Orders", Formatter.integer(kpi.total_orders)))
-        data.append(("Performance", "Total Units", Formatter.integer(kpi.total_units)))
+        data.append(("Performance", "Total Pieces", Formatter.integer(kpi.total_units)))
         data.append(("Performance", "Unique SKU", Formatter.integer(kpi.unique_sku)))
 
         # Date range
@@ -121,12 +121,12 @@ class MainReportGenerator:
         # Averages
         data.append(("Performance", "Avg Lines/Hour", Formatter.rate(kpi.avg_lines_per_hour)))
         data.append(("Performance", "Avg Orders/Hour", Formatter.rate(kpi.avg_orders_per_hour)))
-        data.append(("Performance", "Avg Units/Hour", Formatter.rate(kpi.avg_units_per_hour)))
+        data.append(("Performance", "Avg Pieces/Hour", Formatter.rate(kpi.avg_units_per_hour)))
 
         # Per order/line
         data.append(("Performance", "Avg Lines/Order", Formatter.average(kpi.avg_lines_per_order)))
-        data.append(("Performance", "Avg Units/Line", Formatter.average(kpi.avg_units_per_line)))
-        data.append(("Performance", "Avg Units/Order", Formatter.average(kpi.avg_units_per_order)))
+        data.append(("Performance", "Avg Pieces/Line", Formatter.average(kpi.avg_units_per_line)))
+        data.append(("Performance", "Avg Pieces/Order", Formatter.average(kpi.avg_units_per_order)))
 
         # Peaks
         data.append(("Performance", "Peak Lines/Hour", Formatter.integer(kpi.peak_lines_per_hour)))

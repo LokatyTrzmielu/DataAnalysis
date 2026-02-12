@@ -11,18 +11,61 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
-### [2026-02-08 10:00] - Fix
-- **Obsługa kolumny timestamp typu `pl.Date` (#17)**:
-  - Problem: CSV z datami bez czasu (np. `2024-01-15`) powodował crash w performance analysis
-  - Polars auto-detect (`try_parse_dates=True`) rozpoznaje takie wartości jako `pl.Date`, a kod obsługiwał tylko `Utf8` i `Int64`
-  - Błąd: `"Cannot convert timestamp column of type Date to datetime"`
-  - Rozwiązanie: Dodano `pl.Date` → `pl.Datetime` cast (`pl.col("timestamp").cast(pl.Datetime)`) w 3 miejscach
+### [2026-02-12 18:00] - Fix
+- **Smart date gaps detection in Validation tab**:
+  1. Infer working weekdays from data (weekdays appearing in >=20% of weeks)
+  2. Classify missing dates into "workday gaps" (unexpected) vs "non-working days" (expected)
+  3. Show breakdown: workday gaps as warning, non-working days as info
+  4. Display detected working days pattern (e.g., "Mon, Tue, Wed, Thu, Fri")
+  5. Show workday gaps table with date + weekday name
+  6. Context rows now show only relevant columns (order_date, timestamp, sku, quantity) instead of full DataFrame
+- Root cause: algorithm treated all calendar days as expected, so weekends (84 days) showed as "missing"
+- File: `src/ui/views/performance_validation_view.py`
+
+### [2026-02-12 17:30] - Fix
+- **Per Shift calculation fixed** — was showing same values as Per Day
+  1. Added `shifts_per_day` field to `PerformanceAnalysisResult`
+  2. Compute from weekly schedule (max shifts on any working day) instead of counting shift types
+  3. Use `result.shifts_per_day` in view instead of `len(result.shift_performance)`
+- Root cause: `shift_performance` grouped by shift TYPE (BASE/OVERLAY), not by shift count
+- Files: `src/analytics/performance.py`, `src/ui/views/performance_view.py`
+
+### [2026-02-10 15:00] - Fix
+- **Performance Validation View — UI/UX fixes after user testing**:
+  1. Orders data summary: split 5 cramped columns into 2 rows of 3 columns
+  2. Expandable tables (Missing SKUs, Quantity anomalies): show all imported columns instead of hardcoded 3
+  3. Statistical outliers: replaced technical `(mean=X, std=Y)` with user-friendly message + caption explaining 3-sigma rule
+  4. Working pattern profile: fixed N/A values — shifts defaults to 1 when `max_hour == min_hour`, fallback computes weekday from `order_date` if `weekday` column missing
+- File: `src/ui/views/performance_validation_view.py`
+- Branch: feature/performance
+
+### [2026-02-10 14:00] - Feature
+- **Performance Validation View — full implementation**:
+  - Expanded Orders data summary: 5 metrics (added Unique SKUs, Unique days)
+  - New section: Missing SKUs — detects null, empty, "N/A", "-", whitespace-only SKU values
+  - New section: Date gaps — finds missing calendar dates between min/max order_date
+  - New section: Quantity anomalies — null/zero, negative, and statistical outliers (>mean+3σ)
+  - New section: Working pattern profile — active days/week, hours range, estimated shifts (only with hourly data)
+  - Removed placeholder "under development" message
+  - Pattern: main render function + private `_render_*` helpers (matches capacity validation style)
+- File: `src/ui/views/performance_validation_view.py`
+- Branch: feature/performance
+
+### [2026-02-10 12:00] - Refactor
+- **Rozdzielenie Capacity Validation i Performance Validation**:
+  - Problem: `_render_performance_validation()` wywoływała `render_validation_view()` przeznaczoną dla Masterdata, co było błędne dla danych Orders
+  - Rozwiązanie: Dwie niezależne walidacje:
+    - `capacity_validation_view.py` z `render_capacity_validation_view()` - istniejąca logika Masterdata (bez zmian)
+    - `performance_validation_view.py` z `render_performance_validation_view()` - nowy widok dla Orders (placeholder z podstawowymi statystykami)
+  - Usunięto stary `validation_view.py`
 - Zmiany w plikach:
-  - `src/ingest/pipeline.py:233-235` — nowy `elif ts_dtype == pl.Date` w bloku parsowania timestamp
-  - `src/model/orders.py:47-50` — nowy `elif` po sprawdzeniu `Utf8` w `normalize()`
-  - `src/analytics/performance.py:135-138` — nowy `elif` przed klauzulą `else` (error)
-- Branch: fix/date-to-datetime → main (PR #18)
-- Issue: #17
+  - `src/ui/views/validation_view.py` → usunięty
+  - `src/ui/views/capacity_validation_view.py` → nowy (rename z validation_view.py)
+  - `src/ui/views/performance_validation_view.py` → nowy (placeholder Orders validation)
+  - `src/ui/views/__init__.py` → zaktualizowane importy
+  - `src/ui/app.py` → zaktualizowane importy i wywołania
+- Weryfikacja: 143 testy przechodzą
+- Branch: feature/performance
 
 ### [2026-02-05 13:30] - Fix
 - **Naprawa generowania raportów po uproszczeniu outlier detection**:

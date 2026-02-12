@@ -456,3 +456,153 @@ class TestIngestIntegration:
         mapped_df = wizard.apply_mapping(df, mapping)
         assert "sku" in mapped_df.columns
         assert "order_id" in mapped_df.columns
+
+
+# ============================================================================
+# Testy Orders Date/Time Import
+# ============================================================================
+
+
+class TestOrdersDateTimeImport:
+    """Testy dla nowej logiki importu date/time w Orders."""
+
+    def test_datetime_in_one_column(self):
+        """Datetime w jednej kolumnie → date i hour extracted."""
+        from src.ingest.pipeline import OrdersIngestPipeline
+        from src.ingest.mapping import MappingResult, ColumnMapping
+
+        df = pl.DataFrame({
+            "order_id": ["O1", "O2", "O3"],
+            "sku": ["A", "B", "C"],
+            "quantity": [1, 2, 3],
+            "date": [
+                "2024-01-15 14:30:00",
+                "2024-01-16 09:15:00",
+                "2024-01-17 22:45:00",
+            ],
+        })
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False, encoding="utf-8"
+        ) as f:
+            df.write_csv(f.name)
+            temp_path = f.name
+
+        pipeline = OrdersIngestPipeline()
+        result = pipeline.run(temp_path)
+
+        assert result.has_hourly_data is True
+        assert "timestamp" in result.df.columns
+        assert "order_date" in result.df.columns
+        assert "order_hour" in result.df.columns
+        assert result.df["order_hour"].to_list() == [14, 9, 22]
+        # No warning about missing hourly data
+        assert not any("Hourly analysis unavailable" in w for w in result.warnings)
+
+        Path(temp_path).unlink()
+
+    def test_date_only_column(self):
+        """Date-only kolumna → dziala, warning o braku danych godzinowych."""
+        from src.ingest.pipeline import OrdersIngestPipeline
+
+        df = pl.DataFrame({
+            "order_id": ["O1", "O2", "O3"],
+            "sku": ["A", "B", "C"],
+            "quantity": [1, 2, 3],
+            "date": ["2024-01-15", "2024-01-16", "2024-01-17"],
+        })
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False, encoding="utf-8"
+        ) as f:
+            df.write_csv(f.name)
+            temp_path = f.name
+
+        pipeline = OrdersIngestPipeline()
+        result = pipeline.run(temp_path)
+
+        assert result.has_hourly_data is False
+        assert "timestamp" in result.df.columns
+        assert "order_date" in result.df.columns
+        assert result.df["order_hour"].to_list() == [0, 0, 0]
+        assert any("Hourly analysis unavailable" in w for w in result.warnings)
+
+        Path(temp_path).unlink()
+
+    def test_separate_date_and_time_columns(self):
+        """Osobne kolumny date + time → combined correctly."""
+        from src.ingest.pipeline import OrdersIngestPipeline
+
+        df = pl.DataFrame({
+            "order_id": ["O1", "O2", "O3"],
+            "sku": ["A", "B", "C"],
+            "quantity": [1, 2, 3],
+            "date": ["2024-01-15", "2024-01-16", "2024-01-17"],
+            "time": ["14:30:00", "09:15:00", "22:45:00"],
+        })
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False, encoding="utf-8"
+        ) as f:
+            df.write_csv(f.name)
+            temp_path = f.name
+
+        pipeline = OrdersIngestPipeline()
+        result = pipeline.run(temp_path)
+
+        assert result.has_hourly_data is True
+        assert "timestamp" in result.df.columns
+        assert result.df["order_hour"].to_list() == [14, 9, 22]
+        assert not any("Hourly analysis unavailable" in w for w in result.warnings)
+
+        Path(temp_path).unlink()
+
+    def test_timestamp_alias_maps_to_date(self):
+        """Kolumna 'timestamp' w danych → mapuje się na pole 'date'."""
+        wizard = create_orders_wizard()
+        columns = ["order_id", "sku", "quantity", "timestamp"]
+        result = wizard.auto_map(columns)
+
+        assert result.is_complete
+        assert result.get_source_column("date") == "timestamp"
+
+    def test_european_date_format(self):
+        """Europejski format daty (DD.MM.YYYY)."""
+        from src.ingest.pipeline import OrdersIngestPipeline
+
+        df = pl.DataFrame({
+            "order_id": ["O1", "O2"],
+            "sku": ["A", "B"],
+            "quantity": [1, 2],
+            "date": ["15.01.2024 14:30:00", "16.01.2024 09:15:00"],
+        })
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False, encoding="utf-8"
+        ) as f:
+            df.write_csv(f.name)
+            temp_path = f.name
+
+        pipeline = OrdersIngestPipeline()
+        result = pipeline.run(temp_path)
+
+        assert "timestamp" in result.df.columns
+        # Polars auto-detect should handle this format
+        assert result.df["timestamp"].dtype in [
+            pl.Datetime, pl.Datetime("us"), pl.Datetime("ns"), pl.Datetime("ms")
+        ]
+
+        Path(temp_path).unlink()
+
+    def test_orders_fixture_backward_compat(self):
+        """Istniejacy fixture orders_clean.csv nadal dziala (timestamp → date alias)."""
+        from src.ingest.pipeline import OrdersIngestPipeline
+
+        pipeline = OrdersIngestPipeline()
+        result = pipeline.run(FIXTURES_DIR / "orders_clean.csv")
+
+        assert result.has_hourly_data is True
+        assert "timestamp" in result.df.columns
+        assert "order_date" in result.df.columns
+        assert "order_hour" in result.df.columns
+        assert result.rows_imported > 0

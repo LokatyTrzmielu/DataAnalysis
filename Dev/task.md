@@ -2,7 +2,7 @@
 
 ## Status Projektu
 
-**MVP KOMPLETNE** | 122 testy | Wszystkie fazy ukończone
+**MVP KOMPLETNE** | 143 testy | Wszystkie fazy ukończone
 
 ---
 
@@ -30,7 +30,10 @@
 | 17 | Naprawa Stock Volume | konwersja stock z przecinkami | ✅ |
 | 18 | Priorytet nośników | ręczny priorytet w trybie Prioritized | ✅ |
 | 19 | Import string columns | obsługa kolumn stringowych przy imporcie | ✅ |
-| 20 | Date→Datetime fix | obsługa pl.Date w timestamp (#17) | ✅ |
+| 20 | Performance module | date/time import, analytics, UI charts | ✅ |
+| 21 | Validation split | rozdzielenie Capacity/Performance validation | ✅ |
+| 22 | Performance Validation UI/UX | poprawki layoutu, kolumn, outliers, working pattern | ✅ |
+| 23 | Units→Pieces & Throughput | rename labels, 18 nowych metryk throughput | ✅ |
 
 ---
 
@@ -185,6 +188,61 @@ aby załadować nośniki z polem priority.
 | `pipeline.py:120-123` | Cast stock do Int64 |
 
 **Parametr `strict=False`** powoduje, że nieparsowalne wartości stają się `null` zamiast wyrzucać błąd.
+
+---
+
+## Rozdzielenie Validation (Faza 21) - ZAKOŃCZONA
+
+**Problem:** `_render_performance_validation()` wywoływała `render_validation_view()` przeznaczoną dla Masterdata - Orders mają inny schemat danych.
+
+**Rozwiązanie:** Dwa niezależne widoki walidacji:
+
+| Plik | Funkcja | Zakres |
+|------|---------|--------|
+| `capacity_validation_view.py` | `render_capacity_validation_view()` | Walidacja Masterdata (quality pipeline, coverage, issues) |
+| `performance_validation_view.py` | `render_performance_validation_view()` | Walidacja Orders (summary, missing SKUs, date gaps, quantity anomalies, working pattern) |
+
+---
+
+## Performance Validation UI/UX (Faza 22) - ZAKOŃCZONA
+
+**Problem:** Po implementacji widoku Performance Validation, testy użytkownika wykazały 5 problemów UI/UX.
+
+**Poprawki:**
+
+| # | Problem | Rozwiązanie |
+|---|---------|-------------|
+| 1 | 5 kolumn summary zbyt ciasnych | Podział na 2 rzędy po 3 kolumny |
+| 2 | Expandable tables pokazywały 3 hardcoded kolumny | Wyświetlanie wszystkich kolumn z importowanego pliku |
+| 3 | Outliers: "mean=X, std=Y" niezrozumiałe | User-friendly message + caption wyjaśniający 3-sigma |
+| 4 | Working pattern: wartości "N/A" | Fallback: shifts=1 gdy max==min hour, weekday z order_date |
+| 5 | Date gaps: 1 kolumna missing_date | Dodanie weekday + wierszy z sąsiednich dni (pełne kolumny) |
+
+**Plik:** `src/ui/views/performance_validation_view.py`
+
+---
+
+## Rename Units→Pieces & Detailed Throughput (Faza 23) - ZAKOŃCZONA
+
+**Zmiany:**
+
+| # | Zmiana | Pliki |
+|---|--------|-------|
+| 1 | Rename "Total Units" → "Total Pieces" | performance_view.py, reports_view.py, main_report.py |
+| 2 | Rename "Avg Units/*" → "Avg Pieces/*" | performance_view.py, main_report.py |
+| 3 | 18 nowych metryk throughput (3 grupy × 3 okresy × avg/max) | performance_view.py |
+
+**Nowy layout Detailed Statistics:**
+- Wiersz z 4 metrykami summary (Total Lines, Orders, Pieces, SKU)
+- Ratio metrics (Avg Lines/Order, Avg Pieces/Line, percentyle)
+- 3 tabele throughput: Orders, Order Lines, Pieces
+  - Każda z wierszami: Per Hour, Per Shift, Per Day
+  - Kolumny: Avg, Max
+
+**Źródła danych:**
+- Per Hour: z istniejących pól KPI (avg_*_per_hour, peak_*_per_hour)
+- Per Day: obliczone z `result.daily_metrics` (mean/max)
+- Per Shift: Per Day / shifts_per_day
 
 ---
 

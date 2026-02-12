@@ -430,8 +430,8 @@ class TestPerformanceAnalyzer:
         df = self.get_test_orders()
         analyzer = PerformanceAnalyzer()
 
-        hourly = analyzer._calculate_hourly_metrics(df)
-        kpi = analyzer._calculate_kpi(df, hourly)
+        datehour = analyzer._calculate_datehour_metrics(df)
+        kpi = analyzer._calculate_kpi(df, datehour)
 
         assert kpi.avg_lines_per_order == 2.0  # 6 lines / 3 orders
         assert kpi.avg_units_per_line == 17 / 6
@@ -522,3 +522,138 @@ class TestAnalyticsIntegration:
         assert result.kpi.total_orders > 0
         assert len(result.hourly_metrics) > 0
         assert len(result.daily_metrics) > 0
+
+
+# ============================================================================
+# Testy nowych funkcji Performance (Part 2)
+# ============================================================================
+
+
+class TestPerformanceNewFeatures:
+    """Testy dla nowych funkcji: DateHour, Trends, SKU Pareto."""
+
+    def get_test_orders(self) -> pl.DataFrame:
+        """Testowe zamowienia z wiekszym zakresem dat."""
+        return pl.DataFrame({
+            "order_id": [
+                "O1", "O1", "O2", "O3", "O3", "O3",
+                "O4", "O5", "O6", "O6",
+            ],
+            "sku": [
+                "SKU1", "SKU2", "SKU1", "SKU1", "SKU2", "SKU3",
+                "SKU1", "SKU1", "SKU2", "SKU3",
+            ],
+            "quantity": [2, 3, 5, 1, 2, 4, 3, 1, 2, 6],
+            "timestamp": [
+                datetime(2024, 10, 14, 10, 30),  # Mon
+                datetime(2024, 10, 14, 10, 30),
+                datetime(2024, 10, 14, 14, 45),
+                datetime(2024, 10, 15, 9, 15),   # Tue
+                datetime(2024, 10, 15, 9, 15),
+                datetime(2024, 10, 15, 9, 15),
+                datetime(2024, 10, 21, 11, 0),    # Next Mon
+                datetime(2024, 10, 21, 14, 0),
+                datetime(2024, 10, 22, 8, 30),    # Next Tue
+                datetime(2024, 10, 22, 8, 30),
+            ],
+        })
+
+    def test_datehour_metrics(self):
+        """Test obliczania metryk date+hour."""
+        df = self.get_test_orders()
+        analyzer = PerformanceAnalyzer()
+        datehour = analyzer._calculate_datehour_metrics(df)
+
+        assert len(datehour) > 0
+        # Each entry has date + hour
+        for dh in datehour:
+            assert dh.date is not None
+            assert 0 <= dh.hour <= 23
+            assert dh.lines > 0
+
+    def test_kpi_percentiles_from_datehour(self):
+        """Test ze percentyle liczone sa z date+hour (nie 24-point profile)."""
+        df = self.get_test_orders()
+        analyzer = PerformanceAnalyzer()
+
+        datehour = analyzer._calculate_datehour_metrics(df)
+        kpi = analyzer._calculate_kpi(df, datehour)
+
+        # datehour has more data points than 24 → percentiles are meaningful
+        assert kpi.p90_lines_per_hour >= 0
+        assert kpi.p95_lines_per_hour >= kpi.p90_lines_per_hour
+        assert kpi.p99_lines_per_hour >= kpi.p95_lines_per_hour
+        assert kpi.peak_lines_per_hour >= kpi.p99_lines_per_hour
+
+    def test_weekly_trends(self):
+        """Test trendow tygodniowych."""
+        df = self.get_test_orders()
+        analyzer = PerformanceAnalyzer()
+        result = analyzer.analyze(df)
+
+        assert len(result.weekly_trends) == 2  # 2 tygodnie
+        for wt in result.weekly_trends:
+            assert wt.year == 2024
+            assert wt.lines > 0
+            assert wt.orders > 0
+
+    def test_monthly_trends(self):
+        """Test trendow miesiecznych."""
+        df = self.get_test_orders()
+        analyzer = PerformanceAnalyzer()
+        result = analyzer.analyze(df)
+
+        assert len(result.monthly_trends) == 1  # Wszystko w pazdzierniku
+        assert result.monthly_trends[0].month == 10
+        assert result.monthly_trends[0].lines == 10
+
+    def test_weekday_profile(self):
+        """Test profilu dnia tygodnia."""
+        df = self.get_test_orders()
+        analyzer = PerformanceAnalyzer()
+        result = analyzer.analyze(df)
+
+        assert len(result.weekday_profile) > 0
+        # Mon=1 and Tue=2 should be present (Polars weekday: 1=Mon)
+        assert 1 in result.weekday_profile  # Monday
+        assert 2 in result.weekday_profile  # Tuesday
+
+    def test_sku_pareto(self):
+        """Test SKU Pareto z klasyfikacja ABC."""
+        df = self.get_test_orders()
+        analyzer = PerformanceAnalyzer()
+        result = analyzer.analyze(df)
+
+        assert len(result.sku_pareto) == 3  # 3 unikalne SKU
+        # Sorted by total_lines descending
+        assert result.sku_pareto[0].frequency_rank == 1
+        assert result.sku_pareto[0].total_lines >= result.sku_pareto[1].total_lines
+        # Cumulative pct reaches 100
+        assert result.sku_pareto[-1].cumulative_pct == 100.0
+        # ABC classes present
+        abc_classes = {s.abc_class for s in result.sku_pareto}
+        assert abc_classes.issubset({"A", "B", "C"})
+
+    def test_has_hourly_data_true(self):
+        """Test flagi has_hourly_data gdy dane maja czas."""
+        df = self.get_test_orders()
+        analyzer = PerformanceAnalyzer()
+        result = analyzer.analyze(df)
+
+        assert result.has_hourly_data is True
+
+    def test_has_hourly_data_false(self):
+        """Test flagi has_hourly_data gdy dane nie maja czasu."""
+        df = pl.DataFrame({
+            "order_id": ["O1", "O2"],
+            "sku": ["A", "B"],
+            "quantity": [1, 2],
+            "timestamp": [
+                datetime(2024, 10, 15, 0, 0),
+                datetime(2024, 10, 16, 0, 0),
+            ],
+        })
+        analyzer = PerformanceAnalyzer()
+        result = analyzer.analyze(df)
+
+        assert result.has_hourly_data is False

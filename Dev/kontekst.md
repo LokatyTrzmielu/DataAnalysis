@@ -12,7 +12,7 @@
 | Katalog roboczy | `D:\VS\DataAnalysis` |
 | Data rozpoczęcia | 2026-01-03 |
 | Status | **MVP KOMPLETNE** - Modernizacja UI + nawigacja sidebar |
-| Testy | 122 (wszystkie przechodzą) |
+| Testy | 143 (wszystkie przechodzą) |
 
 ---
 
@@ -53,12 +53,13 @@ src/
     ├── theme.py    # Dark theme, paleta kolorów, CSS, sidebar styling
     ├── layout.py   # Komponenty UI (KPI cards, badges, sekcje)
     └── views/      # Widoki zakładek
-        ├── import_view.py      # Import danych z mapowaniem
-        ├── validation_view.py  # Walidacja i jakość danych
-        ├── capacity_view.py    # Analiza pojemnościowa
-        ├── performance_view.py # Analiza wydajnościowa
-        ├── reports_view.py     # Raporty i eksport
-        └── components_demo.py  # Demo komponentów UI
+        ├── import_view.py                # Import danych z mapowaniem
+        ├── capacity_validation_view.py   # Walidacja Masterdata
+        ├── performance_validation_view.py # Walidacja Orders (placeholder)
+        ├── capacity_view.py              # Analiza pojemnościowa
+        ├── performance_view.py           # Analiza wydajnościowa
+        ├── reports_view.py               # Raporty i eksport
+        └── components_demo.py            # Demo komponentów UI
 
 # Nawigacja UI (sidebar)
 SIDEBAR:                    MAIN VIEW:
@@ -67,7 +68,7 @@ SIDEBAR:                    MAIN VIEW:
 ├─ Performance       ───>   [Import] [Validation] [Analysis]
 └─ Reports           ───>   Report generation
 
-tests/          # 122 testy jednostkowe + integracyjne
+tests/          # 143 testy jednostkowe + integracyjne
 runs/           # Wyniki analiz per klient
 ```
 
@@ -309,5 +310,5 @@ pl.col("length").cast(pl.Float64, strict=False) * factor
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-01-23
-**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + priorytet nośników
+**Data:** 2026-02-10
+**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + performance module + validation split
