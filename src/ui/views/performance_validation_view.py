@@ -63,6 +63,10 @@ def render_performance_validation_view() -> None:
     _render_quantity_anomalies(df)
     render_divider()
 
+    # --- SKU cross-validation ---
+    _render_sku_cross_validation(df)
+    render_divider()
+
     # --- Working pattern profile ---
     _render_working_pattern(df)
 
@@ -315,3 +319,62 @@ def _render_working_pattern(df: pl.DataFrame) -> None:
         "Working pattern is informational only — derived from order timestamps. "
         "Estimated shifts = active span / 8, rounded."
     )
+
+
+def _render_sku_cross_validation(df: pl.DataFrame) -> None:
+    """Cross-validate SKUs between Orders and Masterdata datasets."""
+    render_section_header("SKU cross-validation", "🔗")
+
+    # Check if Capacity data is imported
+    masterdata_df = st.session_state.get("masterdata_df")
+    if masterdata_df is None:
+        st.info("Import Masterdata in the Import tab to enable SKU cross-validation.")
+        return
+
+    if "sku" not in df.columns or "sku" not in masterdata_df.columns:
+        st.info("SKU column not found in one or both datasets.")
+        return
+
+    # Get unique SKU sets
+    perf_skus = set(df["sku"].drop_nulls().unique().to_list())
+    cap_skus = set(masterdata_df["sku"].drop_nulls().unique().to_list())
+
+    matched = perf_skus & cap_skus
+    perf_only = perf_skus - cap_skus
+    cap_only = cap_skus - perf_skus
+
+    match_pct = (len(matched) / len(perf_skus) * 100) if perf_skus else 0
+
+    # Metrics row
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Performance unique SKUs", f"{len(perf_skus):,}")
+    with col2:
+        st.metric("Capacity unique SKUs", f"{len(cap_skus):,}")
+    with col3:
+        st.metric("Difference", f"{abs(len(perf_skus) - len(cap_skus)):,}")
+
+    # Match results
+    if match_pct == 100:
+        st.success(
+            f"SKU match: {len(matched):,} / {len(perf_skus):,} ({match_pct:.1f}%)"
+            " — all Performance SKUs found in Capacity"
+        )
+    elif match_pct >= 90:
+        st.success(f"SKU match: {len(matched):,} / {len(perf_skus):,} ({match_pct:.1f}%)")
+    elif match_pct >= 70:
+        st.warning(f"SKU match: {len(matched):,} / {len(perf_skus):,} ({match_pct:.1f}%)")
+    else:
+        st.error(f"SKU match: {len(matched):,} / {len(perf_skus):,} ({match_pct:.1f}%)")
+
+    # Missing SKUs detail (Performance SKUs not in Capacity)
+    if perf_only:
+        with st.expander(f"Performance SKUs not in Capacity ({len(perf_only):,})"):
+            missing_df = pl.DataFrame({"sku": sorted(perf_only)})
+            st.dataframe(missing_df, use_container_width=True)
+
+    # Extra SKUs detail (Capacity SKUs not in Performance)
+    if cap_only:
+        with st.expander(f"Capacity SKUs not in Performance ({len(cap_only):,})"):
+            extra_df = pl.DataFrame({"sku": sorted(cap_only)})
+            st.dataframe(extra_df, use_container_width=True)
