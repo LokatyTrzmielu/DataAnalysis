@@ -17,6 +17,7 @@ from src.ui.layout import (
     render_chart_download_button,
     render_divider,
     render_kpi_section,
+    render_plotly_chart,
     render_section_header,
 )
 from src.ui.theme import COLORS
@@ -380,7 +381,7 @@ def _render_throughput_chart() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    render_plotly_chart(fig, "throughput_hourly", use_container_width=True)
     render_chart_download_button(fig, "throughput_hourly")
 
 
@@ -434,7 +435,7 @@ def _render_daily_lines_chart() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    render_plotly_chart(fig, "daily_activity", use_container_width=True)
     render_chart_download_button(fig, "daily_activity")
 
 
@@ -489,7 +490,7 @@ def _render_hourly_heatmap() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    render_plotly_chart(fig, "hourly_heatmap", use_container_width=True)
     render_chart_download_button(fig, "hourly_heatmap")
 
 
@@ -520,7 +521,7 @@ def _render_trends_section() -> None:
                 yaxis_title="Lines",
             )
             apply_plotly_dark_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            render_plotly_chart(fig, "weekly_trend", use_container_width=True)
             render_chart_download_button(fig, "weekly_trend")
         else:
             st.info("Not enough data for weekly trends.")
@@ -548,7 +549,7 @@ def _render_trends_section() -> None:
                 yaxis_title="Avg Lines",
             )
             apply_plotly_dark_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            render_plotly_chart(fig, "day_of_week", use_container_width=True)
             render_chart_download_button(fig, "day_of_week")
         else:
             st.info("Not enough data for weekday profile.")
@@ -635,7 +636,7 @@ def _render_sku_pareto_section() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    render_plotly_chart(fig, "sku_pareto", use_container_width=True)
     render_chart_download_button(fig, "sku_pareto")
 
     # Top 20 SKU table
@@ -678,7 +679,7 @@ def _render_order_structure_chart() -> None:
 
     fig.update_traces(marker_color=COLORS["warning"])
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    render_plotly_chart(fig, "order_structure", use_container_width=True)
     render_chart_download_button(fig, "order_structure")
 
 

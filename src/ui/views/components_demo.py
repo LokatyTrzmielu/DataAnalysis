@@ -37,7 +37,7 @@ def render_demo_chart() -> None:
     try:
         import plotly.graph_objects as go
 
-        from src.ui.layout import apply_plotly_dark_theme
+        from src.ui.layout import apply_plotly_dark_theme, render_plotly_chart
 
         fig = go.Figure(
             data=[
@@ -50,7 +50,7 @@ def render_demo_chart() -> None:
         )
         apply_plotly_dark_theme(fig)
         fig.update_layout(height=250)
-        st.plotly_chart(fig, width="stretch")
+        render_plotly_chart(fig, "demo_chart", width="stretch")
     except ImportError:
         st.warning("Plotly not installed. Run: pip install plotly")
 

@@ -251,6 +251,23 @@ def apply_plotly_dark_theme(fig) -> None:
     fig.update_layout(**get_plotly_layout_defaults())
 
 
+def render_plotly_chart(fig, filename: str, **kwargs) -> None:
+    """Render Plotly chart with custom PNG export filename.
+
+    Args:
+        fig: Plotly figure object
+        filename: Base filename (without extension) for the PNG download
+        **kwargs: Additional arguments passed to st.plotly_chart
+    """
+    config = {
+        "toImageButtonOptions": {
+            "filename": filename,
+            "format": "png",
+        }
+    }
+    st.plotly_chart(fig, config=config, **kwargs)
+
+
 def render_chart_download_button(fig, filename: str) -> None:
     """Render a download button for an interactive HTML version of a Plotly chart.
 

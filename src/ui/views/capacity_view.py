@@ -14,6 +14,7 @@ from src.ui.layout import (
     render_chart_download_button,
     render_divider,
     render_kpi_section,
+    render_plotly_chart,
     render_section_header,
     render_spacer,
     render_status_button,
@@ -507,7 +508,7 @@ def _render_dimensions_histogram() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, width="stretch")
+    render_plotly_chart(fig, "dimensions_distribution", width="stretch")
     render_chart_download_button(fig, "dimensions_distribution")
 
 
@@ -563,7 +564,7 @@ def _render_carrier_fit_chart() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, width="stretch")
+    render_plotly_chart(fig, "carrier_fit", width="stretch")
     render_chart_download_button(fig, "carrier_fit")
 
 
@@ -590,7 +591,7 @@ def _render_weight_histogram() -> None:
     )
 
     apply_plotly_dark_theme(fig)
-    st.plotly_chart(fig, width="stretch")
+    render_plotly_chart(fig, "weight_distribution", width="stretch")
     render_chart_download_button(fig, "weight_distribution")
 
 
