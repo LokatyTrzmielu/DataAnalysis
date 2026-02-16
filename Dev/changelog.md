@@ -11,6 +11,15 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-16] - Refactor
+- **Ujednolicenie obsługi formatów numerycznych w pipeline**:
+  - Nowy moduł `src/ingest/cleaning.py` z uniwersalną funkcją `clean_numeric_column()`
+  - Obsługuje: europejski przecinek dziesiętny (`1,5`), notację naukową (`1,0E+0`), kropki jako separatory tysięcy (`1.234,56`)
+  - Zastosowano w `pipeline.py` (kolumna `stock`) zamiast inline kodu
+  - Zastosowano w `units.py` (wymiary `length/width/height` i `weight`) — wcześniej wartości jak `"1,5"` cicho stawały się `null`
+  - 9 nowych testów w `test_ingest.py` pokrywających edge cases
+- Branch: `feature/numeric-cleaning`
+
 ### [2026-02-12 20:00] - Feature
 - **Eksport interaktywnych wykresów jako standalone HTML**:
   - Dodano przycisk "Download interactive HTML" pod każdym wykresem w zakładkach Analysis

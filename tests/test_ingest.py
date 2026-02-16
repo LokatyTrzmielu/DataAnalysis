@@ -23,6 +23,7 @@ from src.ingest.units import (
     WEIGHT_TO_KG,
 )
 from src.ingest.sku_normalize import SKUNormalizer, normalize_sku_column
+from src.ingest.cleaning import clean_numeric_column
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -412,6 +413,60 @@ class TestSKUNormalizer:
         result = normalize_sku_column(df, "sku")
 
         assert result.df["sku"].to_list() == ["ABC", "DEF", "GHI"]
+
+
+# ============================================================================
+# Testy clean_numeric_column
+# ============================================================================
+
+
+class TestCleanNumericColumn:
+    """Testy dla uniwersalnej funkcji czyszczenia wartości numerycznych."""
+
+    def _clean(self, values: list) -> list:
+        """Helper: czyści listę wartości przez clean_numeric_column."""
+        df = pl.DataFrame({"v": values}, schema={"v": pl.Utf8})
+        return df.select(clean_numeric_column(pl.col("v")))["v"].to_list()
+
+    def test_european_decimal_comma(self):
+        """Przecinek jako separator dziesiętny → kropka."""
+        assert self._clean(["1,5"]) == [1.5]
+
+    def test_scientific_notation_comma(self):
+        """Notacja naukowa z przecinkiem → poprawna wartość."""
+        assert self._clean(["1,0E+0"]) == [1.0]
+
+    def test_thousands_separator_dot(self):
+        """Kropka jako separator tysięcy → usunięta."""
+        assert self._clean(["1.234,56"]) == [1234.56]
+
+    def test_scientific_notation_dot(self):
+        """Notacja naukowa z kropką → nadal działa."""
+        assert self._clean(["1.0E+3"]) == [1000.0]
+
+    def test_empty_string(self):
+        """Pusty string → null."""
+        result = self._clean([""])
+        assert result == [None]
+
+    def test_none_value(self):
+        """None → null."""
+        df = pl.DataFrame({"v": [None]}, schema={"v": pl.Utf8})
+        result = df.select(clean_numeric_column(pl.col("v")))["v"].to_list()
+        assert result == [None]
+
+    def test_non_numeric_string(self):
+        """Tekst nienumeryczny → null."""
+        result = self._clean(["abc"])
+        assert result == [None]
+
+    def test_plain_integer(self):
+        """Zwykła liczba całkowita → poprawna wartość."""
+        assert self._clean(["42"]) == [42.0]
+
+    def test_plain_float(self):
+        """Zwykła liczba zmiennoprzecinkowa → poprawna wartość."""
+        assert self._clean(["3.14"]) == [3.14]
 
 
 # ============================================================================
