@@ -7,7 +7,7 @@ carriers:
     inner_length_mm: 570
     inner_width_mm: 370
     inner_height_mm: 200
-    max_weight_kg: 35
+    max_weight_kg: 30
     is_active: true
     priority: 1
 
