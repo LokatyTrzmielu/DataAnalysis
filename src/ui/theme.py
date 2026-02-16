@@ -1,30 +1,30 @@
-"""Theme configuration for the Streamlit app - dark mode inspired by n8n."""
+"""Theme configuration for the Streamlit app - warm neutral with gold accent."""
 
-# Paleta kolorów - ciepła kawowo-brązowa
+# Paleta kolorów - ciepła neutralna ze złotym akcentem
 COLORS = {
     # === TŁA ===
-    "background": "#20100e",      # coffee-bean
-    "surface": "#323232",         # graphite
-    "surface_elevated": "#424242", # elevated surface - dla kart na szarym tle
-    "surface_light": "#5f605b",   # dim-grey
+    "background": "#2d2926",       # ciemniejszy wariant - sidebar, deepest bg
+    "surface": "#463f3a",          # główne tło aplikacji
+    "surface_elevated": "#544c46", # karty, inputy (jaśniejszy o 1 stopień)
+    "surface_light": "#635b54",    # hover, subtelne wyróżnienia
 
     # === AKCENTY ===
-    "accent": "#b7622c",          # burnt-caramel - główny
-    "accent_dark": "#923b1b",     # rust-brown - hover
-    "accent_muted": "#5e3123",    # espresso - subtle
+    "accent": "#c9a227",           # złoty - główny akcent
+    "accent_dark": "#a8861f",      # ciemniejsze złoto - hover
+    "accent_muted": "#6b5a2a",     # stonowane złoto - subtelne bordery
 
     # === FUNKCJONALNE ===
-    "primary": "#4CAF50",         # Zielony sukces (zachowany)
-    "error": "#E57373",           # Ciepły czerwony
-    "warning": "#b7622c",         # burnt-caramel
-    "info": "#8D6E63",            # Ciepły brąz
+    "primary": "#4CAF50",          # zielony sukces (bez zmian)
+    "error": "#E57373",            # czerwony błąd (bez zmian)
+    "warning": "#c9a227",          # złoty (= accent)
+    "info": "#8a817c",             # ciepły szary
 
     # === TEKST ===
-    "text": "#F5F0E8",            # Ciepła biel
-    "text_secondary": "#A89F94",  # Ciepły taupe
+    "text": "#f4f3ee",             # kremowa biel
+    "text_secondary": "#bcb8b1",   # jasny beż
 
     # === BORDERY ===
-    "border": "#5e3123",          # espresso
+    "border": "#635b54",           # ciepły szary border
 }
 
 # Kolory dla 7 typów statusu
@@ -276,7 +276,7 @@ def get_custom_css() -> str:
 
     [data-testid="stFileUploader"]:hover {{
         border-color: {COLORS["accent"]};
-        background-color: rgba(66, 66, 66, 0.8);
+        background-color: rgba(84, 76, 70, 0.8);
     }}
 
     /* Selectbox */
@@ -385,7 +385,7 @@ def get_custom_css() -> str:
 
     /* Info box styling */
     .info-box {{
-        background-color: rgba(141, 110, 99, 0.15);
+        background-color: rgba(138, 129, 124, 0.15);
         border-left: 3px solid {COLORS["info"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -399,7 +399,7 @@ def get_custom_css() -> str:
 
     /* Warning box styling */
     .warning-box {{
-        background-color: rgba(183, 98, 44, 0.15);
+        background-color: rgba(201, 162, 39, 0.15);
         border-left: 3px solid {COLORS["warning"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -627,7 +627,7 @@ def get_custom_css() -> str:
         font-size: 0.95rem !important;
     }}
 
-    /* Hover state - rust-brown color */
+    /* Hover state - dark gold color */
     [data-testid="stSidebar"] .stRadio > div > label:hover {{
         background-color: transparent !important;
     }}
