@@ -15,7 +15,7 @@
 | Moduł | Pliki | Opis |
 |-------|-------|------|
 | `src/core/` | config, formatting, paths, types, carriers | Konfiguracja, typy Pydantic |
-| `src/ingest/` | readers, mapping, units, sku_normalize, pipeline | Import XLSX/CSV, Mapping Wizard |
+| `src/ingest/` | readers, mapping, units, sku_normalize, pipeline, cleaning | Import XLSX/CSV, Mapping Wizard |
 | `src/quality/` | validators, dq_metrics, dq_lists, impute, pipeline | Walidacja, DQ scorecard, imputacja |
 | `src/model/` | masterdata, orders | Przetwarzanie danych |
 | `src/analytics/` | duckdb_runner, capacity, shifts, performance | Analiza pojemnościowa i wydajnościowa |

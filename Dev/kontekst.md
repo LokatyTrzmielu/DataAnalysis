@@ -12,7 +12,7 @@
 | Katalog roboczy | `D:\VS\DataAnalysis` |
 | Data rozpoczęcia | 2026-01-03 |
 | Status | **MVP KOMPLETNE** - Modernizacja UI + nawigacja sidebar |
-| Testy | 143 (wszystkie przechodzą) |
+| Testy | 152 (wszystkie przechodzą) |
 
 ---
 
@@ -43,7 +43,7 @@ Lokalna aplikacja do analizy danych magazynowych:
 ```
 src/
 ├── core/       # Konfiguracja, typy, formatowanie, carriers
-├── ingest/     # Import danych, Mapping Wizard
+├── ingest/     # Import danych, Mapping Wizard, cleaning numeryczny
 ├── quality/    # Walidacja, DQ metrics, imputacja
 ├── model/      # Masterdata, Orders processing
 ├── analytics/  # DuckDB, capacity, performance
@@ -308,7 +308,17 @@ pl.col("length").cast(pl.Float64, strict=False) * factor
 
 ---
 
+## Ujednolicenie Numeric Cleaning (2026-02-16)
+
+**Problem:** Europejskie formaty numeryczne obsługiwane tylko w `stock`. Wymiary i waga cicho traciły wartości jak `"1,5"`.
+
+**Rozwiązanie:** Nowy moduł `src/ingest/cleaning.py` z `clean_numeric_column()` — użyty w `pipeline.py` (stock) i `units.py` (dimensions + weight).
+
+**GitHub Issue:** #26 | **Branch:** `feature/numeric-cleaning`
+
+---
+
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-02-10
-**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + performance module + validation split
+**Data:** 2026-02-16
+**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + performance module + validation split + numeric cleaning

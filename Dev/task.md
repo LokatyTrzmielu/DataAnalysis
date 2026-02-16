@@ -2,7 +2,7 @@
 
 ## Status Projektu
 
-**MVP KOMPLETNE** | 143 testy | Wszystkie fazy ukończone
+**MVP KOMPLETNE** | 152 testy | Wszystkie fazy ukończone
 
 ---
 
@@ -34,6 +34,7 @@
 | 21 | Validation split | rozdzielenie Capacity/Performance validation | ✅ |
 | 22 | Performance Validation UI/UX | poprawki layoutu, kolumn, outliers, working pattern | ✅ |
 | 23 | Units→Pieces & Throughput | rename labels, 18 nowych metryk throughput | ✅ |
+| 24 | Numeric cleaning | uniwersalna clean_numeric_column() | ✅ |
 
 ---
 
@@ -243,6 +244,24 @@ aby załadować nośniki z polem priority.
 - Per Hour: z istniejących pól KPI (avg_*_per_hour, peak_*_per_hour)
 - Per Day: obliczone z `result.daily_metrics` (mean/max)
 - Per Shift: Per Day / shifts_per_day
+
+---
+
+## Ujednolicenie Numeric Cleaning (Faza 24) - ZAKOŃCZONA
+
+**Problem:** Europejskie formaty numeryczne (przecinek dziesiętny, notacja naukowa `1,0E+0`) obsługiwane tylko dla `stock`. Kolumny wymiarów i wagi cicho konwertowały takie wartości na `null`.
+
+**Rozwiązanie:** Uniwersalna funkcja `clean_numeric_column()` w nowym module `src/ingest/cleaning.py`.
+
+| Plik | Zmiana |
+|------|--------|
+| `src/ingest/cleaning.py` | **NOWY** — `clean_numeric_column()` |
+| `src/ingest/pipeline.py` | Import + użycie w stock (zastąpienie inline kodu) |
+| `src/ingest/units.py` | Import + użycie w dimensions i weight (sample + conversion) |
+| `tests/test_ingest.py` | 9 nowych testów edge cases |
+
+**GitHub Issue:** #26
+**Branch:** `feature/numeric-cleaning`
 
 ---
 
