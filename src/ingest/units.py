@@ -7,6 +7,8 @@ from typing import Optional
 
 import polars as pl
 
+from src.ingest.cleaning import clean_numeric_column
+
 
 class LengthUnit(str, Enum):
     """Length units."""
@@ -246,7 +248,7 @@ class UnitConverter:
         """
         if source_unit is None and auto_detect:
             # Detect unit based on first column
-            sample = df[length_col].cast(pl.Float64, strict=False).drop_nulls().to_list()[:100]
+            sample = df.select(clean_numeric_column(pl.col(length_col))).to_series().drop_nulls().to_list()[:100]
             detection = self.detector.detect_length_unit(sample, length_col)
             if isinstance(detection.detected_unit, LengthUnit):
                 source_unit = detection.detected_unit
@@ -256,11 +258,10 @@ class UnitConverter:
 
         factor = LENGTH_TO_MM[source_unit]
 
-        # Always cast to Float64 to handle string columns, then apply conversion
         return df.with_columns([
-            (pl.col(length_col).cast(pl.Float64, strict=False) * factor).alias(length_col),
-            (pl.col(width_col).cast(pl.Float64, strict=False) * factor).alias(width_col),
-            (pl.col(height_col).cast(pl.Float64, strict=False) * factor).alias(height_col),
+            (clean_numeric_column(pl.col(length_col)) * factor).alias(length_col),
+            (clean_numeric_column(pl.col(width_col)) * factor).alias(width_col),
+            (clean_numeric_column(pl.col(height_col)) * factor).alias(height_col),
         ])
 
     def convert_weight_to_kg(
@@ -282,7 +283,7 @@ class UnitConverter:
             DataFrame with weight in kg
         """
         if source_unit is None and auto_detect:
-            sample = df[weight_col].cast(pl.Float64, strict=False).drop_nulls().to_list()[:100]
+            sample = df.select(clean_numeric_column(pl.col(weight_col))).to_series().drop_nulls().to_list()[:100]
             detection = self.detector.detect_weight_unit(sample, weight_col)
             if isinstance(detection.detected_unit, WeightUnit):
                 source_unit = detection.detected_unit
@@ -292,7 +293,6 @@ class UnitConverter:
 
         factor = WEIGHT_TO_KG[source_unit]
 
-        # Always cast to Float64 to handle string columns, then apply conversion
         return df.with_columns([
-            (pl.col(weight_col).cast(pl.Float64, strict=False) * factor).alias(weight_col),
+            (clean_numeric_column(pl.col(weight_col)) * factor).alias(weight_col),
         ])

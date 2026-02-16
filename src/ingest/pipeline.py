@@ -15,6 +15,7 @@ from src.ingest.mapping import (
 )
 from src.ingest.units import UnitConverter, LengthUnit, WeightUnit
 from src.ingest.sku_normalize import SKUNormalizer, NormalizationResult
+from src.ingest.cleaning import clean_numeric_column
 
 
 @dataclass
@@ -118,15 +119,10 @@ class MasterdataIngestPipeline:
             df = df.rename({"weight": "weight_kg"})
 
         if "stock" in df.columns:
-            # Handle various numeric formats (commas, dots as decimal separators)
-            # Convert: string -> replace comma -> float -> round -> int
             df = df.with_columns([
-                pl.col("stock")
-                .cast(pl.Utf8)  # First convert to string
-                .str.replace(",", ".")  # Replace comma with dot (European format)
-                .cast(pl.Float64, strict=False)  # Convert to float
-                .round(0)  # Round to whole number
-                .cast(pl.Int64, strict=False)  # Convert to int
+                clean_numeric_column(pl.col("stock"))
+                .round(0)
+                .cast(pl.Int64, strict=False)
                 .alias("stock")
             ])
             df = df.rename({"stock": "stock_qty"})
