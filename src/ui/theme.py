@@ -1,41 +1,41 @@
-"""Theme configuration for the Streamlit app - warm neutral with gold accent."""
+"""Theme configuration for the Streamlit app - light theme with gold accent."""
 
-# Paleta kolorów - ciepła neutralna ze złotym akcentem
+# Paleta kolorów - jasny motyw ze złotym akcentem
 COLORS = {
     # === TŁA ===
-    "background": "#2d2926",       # ciemniejszy wariant - sidebar, deepest bg
-    "surface": "#463f3a",          # główne tło aplikacji
-    "surface_elevated": "#544c46", # karty, inputy (jaśniejszy o 1 stopień)
-    "surface_light": "#635b54",    # hover, subtelne wyróżnienia
+    "background": "#f0ede8",       # ciepły jasny beż — sidebar
+    "surface": "#faf9f6",          # prawie-biały — główne tło
+    "surface_elevated": "#ffffff", # czysty biały — karty, inputy
+    "surface_light": "#e8e4de",    # ciepły jasny — hover, wyróżnienia
 
     # === AKCENTY ===
-    "accent": "#c9a227",           # złoty - główny akcent
-    "accent_dark": "#a8861f",      # ciemniejsze złoto - hover
-    "accent_muted": "#6b5a2a",     # stonowane złoto - subtelne bordery
+    "accent": "#c9a227",           # złoty — główny akcent (bez zmian)
+    "accent_dark": "#a8861f",      # ciemniejsze złoto — hover
+    "accent_muted": "#e8d9a0",     # jasne złoto — subtelne bordery
 
     # === FUNKCJONALNE ===
-    "primary": "#4CAF50",          # zielony sukces (bez zmian)
-    "error": "#E57373",            # czerwony błąd (bez zmian)
+    "primary": "#2e7d32",          # ciemniejszy zielony (lepszy kontrast na jasnym)
+    "error": "#c62828",            # ciemniejszy czerwony
     "warning": "#c9a227",          # złoty (= accent)
     "info": "#8a817c",             # ciepły szary
 
     # === TEKST ===
-    "text": "#f4f3ee",             # kremowa biel
-    "text_secondary": "#bcb8b1",   # jasny beż
+    "text": "#2d2926",             # ciemny brąz — tekst główny
+    "text_secondary": "#6b6560",   # ciepły ciemnoszary — tekst drugorzędny
 
     # === BORDERY ===
-    "border": "#635b54",           # ciepły szary border
+    "border": "#d5d0c8",           # jasny ciepły border
 }
 
-# Kolory dla 7 typów statusu
+# Kolory dla 7 typów statusu (ciemniejsze warianty dla jasnego tła)
 STATUS_COLORS = {
-    "pending": "#FFB74D",       # żółty
-    "in_progress": "#64B5F6",   # niebieski
-    "submitted": "#BA68C8",     # fioletowy
-    "in_review": "#FF8A65",     # pomarańczowy
-    "success": "#81C784",       # zielony
-    "failed": "#E57373",        # czerwony
-    "expired": "#90A4AE",       # szary
+    "pending": "#e6a817",       # ciemniejszy żółty
+    "in_progress": "#1976D2",   # ciemniejszy niebieski
+    "submitted": "#7B1FA2",     # ciemniejszy fioletowy
+    "in_review": "#E65100",     # ciemniejszy pomarańczowy
+    "success": "#2E7D32",       # ciemniejszy zielony
+    "failed": "#C62828",        # ciemniejszy czerwony
+    "expired": "#546E7A",       # ciemniejszy szary
 }
 
 # Ikony SVG dla statusów
@@ -51,7 +51,7 @@ STATUS_ICONS = {
 
 
 def get_custom_css() -> str:
-    """Return custom CSS for dark theme styling."""
+    """Return custom CSS for light theme styling."""
     return f"""
     <style>
     /* Główne tło i tekst */
@@ -65,7 +65,7 @@ def get_custom_css() -> str:
         border-radius: 8px;
         padding: 1rem 1.25rem;
         border: 1px solid {COLORS["border"]};
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     }}
 
     .kpi-card h3 {{
@@ -130,44 +130,44 @@ def get_custom_css() -> str:
     }}
 
     .status-btn.pending {{
-        background-color: rgba(255, 183, 77, 0.15);
-        border-color: rgba(255, 183, 77, 0.4);
+        background-color: rgba(230, 168, 23, 0.10);
+        border-color: rgba(230, 168, 23, 0.3);
         color: {STATUS_COLORS["pending"]};
     }}
 
     .status-btn.in_progress {{
-        background-color: rgba(100, 181, 246, 0.15);
-        border-color: rgba(100, 181, 246, 0.4);
+        background-color: rgba(25, 118, 210, 0.10);
+        border-color: rgba(25, 118, 210, 0.3);
         color: {STATUS_COLORS["in_progress"]};
     }}
 
     .status-btn.submitted {{
-        background-color: rgba(186, 104, 200, 0.15);
-        border-color: rgba(186, 104, 200, 0.4);
+        background-color: rgba(123, 31, 162, 0.10);
+        border-color: rgba(123, 31, 162, 0.3);
         color: {STATUS_COLORS["submitted"]};
     }}
 
     .status-btn.in_review {{
-        background-color: rgba(255, 138, 101, 0.15);
-        border-color: rgba(255, 138, 101, 0.4);
+        background-color: rgba(230, 81, 0, 0.10);
+        border-color: rgba(230, 81, 0, 0.3);
         color: {STATUS_COLORS["in_review"]};
     }}
 
     .status-btn.success {{
-        background-color: rgba(129, 199, 132, 0.15);
-        border-color: rgba(129, 199, 132, 0.4);
+        background-color: rgba(46, 125, 50, 0.10);
+        border-color: rgba(46, 125, 50, 0.3);
         color: {STATUS_COLORS["success"]};
     }}
 
     .status-btn.failed {{
-        background-color: rgba(229, 115, 115, 0.15);
-        border-color: rgba(229, 115, 115, 0.4);
+        background-color: rgba(198, 40, 40, 0.10);
+        border-color: rgba(198, 40, 40, 0.3);
         color: {STATUS_COLORS["failed"]};
     }}
 
     .status-btn.expired {{
-        background-color: rgba(144, 164, 174, 0.15);
-        border-color: rgba(144, 164, 174, 0.4);
+        background-color: rgba(84, 110, 122, 0.10);
+        border-color: rgba(84, 110, 122, 0.3);
         color: {STATUS_COLORS["expired"]};
     }}
 
@@ -184,26 +184,26 @@ def get_custom_css() -> str:
     }}
 
     .status-badge.success {{
-        background-color: rgba(129, 199, 132, 0.15);
-        border-color: rgba(129, 199, 132, 0.4);
+        background-color: rgba(46, 125, 50, 0.10);
+        border-color: rgba(46, 125, 50, 0.3);
         color: {STATUS_COLORS["success"]};
     }}
 
     .status-badge.warning {{
-        background-color: rgba(255, 183, 77, 0.15);
-        border-color: rgba(255, 183, 77, 0.4);
+        background-color: rgba(230, 168, 23, 0.10);
+        border-color: rgba(230, 168, 23, 0.3);
         color: {STATUS_COLORS["pending"]};
     }}
 
     .status-badge.error {{
-        background-color: rgba(229, 115, 115, 0.15);
-        border-color: rgba(229, 115, 115, 0.4);
+        background-color: rgba(198, 40, 40, 0.10);
+        border-color: rgba(198, 40, 40, 0.3);
         color: {STATUS_COLORS["failed"]};
     }}
 
     .status-badge.info {{
-        background-color: rgba(100, 181, 246, 0.15);
-        border-color: rgba(100, 181, 246, 0.4);
+        background-color: rgba(25, 118, 210, 0.10);
+        border-color: rgba(25, 118, 210, 0.3);
         color: {STATUS_COLORS["in_progress"]};
     }}
 
@@ -276,7 +276,7 @@ def get_custom_css() -> str:
 
     [data-testid="stFileUploader"]:hover {{
         border-color: {COLORS["accent"]};
-        background-color: rgba(84, 76, 70, 0.8);
+        background-color: rgba(232, 217, 160, 0.2);
     }}
 
     /* Selectbox */
@@ -337,7 +337,7 @@ def get_custom_css() -> str:
 
     .kpi-card:hover {{
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         border-color: {COLORS["surface_light"]};
     }}
 
@@ -385,7 +385,7 @@ def get_custom_css() -> str:
 
     /* Info box styling */
     .info-box {{
-        background-color: rgba(138, 129, 124, 0.15);
+        background-color: rgba(138, 129, 124, 0.10);
         border-left: 3px solid {COLORS["info"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -399,7 +399,7 @@ def get_custom_css() -> str:
 
     /* Warning box styling */
     .warning-box {{
-        background-color: rgba(201, 162, 39, 0.15);
+        background-color: rgba(201, 162, 39, 0.10);
         border-left: 3px solid {COLORS["warning"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -413,7 +413,7 @@ def get_custom_css() -> str:
 
     /* Error box styling */
     .error-box {{
-        background-color: rgba(229, 115, 115, 0.15);
+        background-color: rgba(198, 40, 40, 0.10);
         border-left: 3px solid {COLORS["error"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -427,7 +427,7 @@ def get_custom_css() -> str:
 
     /* Success box styling */
     .success-box {{
-        background-color: rgba(129, 199, 132, 0.15);
+        background-color: rgba(46, 125, 50, 0.10);
         border-left: 3px solid {COLORS["primary"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
@@ -480,7 +480,7 @@ def get_custom_css() -> str:
         }}
     }}
 
-    /* Scrollbar styling for dark theme */
+    /* Scrollbar styling for light theme */
     ::-webkit-scrollbar {{
         width: 8px;
         height: 8px;
@@ -637,7 +637,7 @@ def get_custom_css() -> str:
         font-weight: 600 !important;
     }}
 
-    /* Selected state - dim-grey rectangle with accent border */
+    /* Selected state - light rectangle with accent border */
     /* Modern CSS :has() selector for checked radio */
     [data-testid="stSidebar"] .stRadio > div > label:has(input:checked) {{
         background-color: {COLORS["surface_light"]} !important;
@@ -950,7 +950,7 @@ def get_custom_css() -> str:
     .pipeline-indicator.success::after {{
         content: '✓';
         font-size: 8px;
-        color: {COLORS["background"]};
+        color: white;
         font-weight: bold;
     }}
 

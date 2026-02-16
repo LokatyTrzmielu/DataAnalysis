@@ -13,7 +13,7 @@ from src.ui.layout import (
     render_card_container,
     render_chart_container,
     get_plotly_layout_defaults,
-    apply_plotly_dark_theme,
+    apply_plotly_theme,
 )
 
 __all__ = [
@@ -33,5 +33,5 @@ __all__ = [
     "render_card_container",
     "render_chart_container",
     "get_plotly_layout_defaults",
-    "apply_plotly_dark_theme",
+    "apply_plotly_theme",
 ]

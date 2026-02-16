@@ -50,7 +50,7 @@ src/
 ├── reporting/  # Raporty CSV, manifest, ZIP
 └── ui/         # Streamlit UI
     ├── app.py      # Główna aplikacja (sidebar nav, ~420 linii)
-    ├── theme.py    # Dark theme, paleta kolorów, CSS, sidebar styling
+    ├── theme.py    # Light theme, paleta kolorów, CSS, sidebar styling
     ├── layout.py   # Komponenty UI (KPI cards, badges, sekcje)
     └── views/      # Widoki zakładek
         ├── import_view.py                # Import danych z mapowaniem
@@ -126,7 +126,7 @@ python -m pytest tests/ -v
 | 8 | Finalizacja i testy | ✅ |
 
 **Zmiany Etapu 1:**
-- Dark theme (#121212, #1E1E1E, #4CAF50)
+- Light theme (jasny motyw ze złotym akcentem)
 - `theme.py` - paleta kolorów, CSS
 - `layout.py` - komponenty KPI, badges, sekcje
 - `views/` - katalog na widoki
@@ -167,7 +167,7 @@ python -m pytest tests/ -v
     - Stacked bar chart FIT/BORDERLINE/NOT_FIT per carrier
     - Histogram wag
   - **Results Table**: filtry status + carrier, eksport CSV
-- Wykresy Plotly z dark theme (`apply_plotly_dark_theme()`)
+- Wykresy Plotly z theme (`apply_plotly_theme()`)
 - Zachowano istniejące elementy: Carrier management, Exclusion settings, Analysis mode
 
 **Zmiany Etapu 6:**
@@ -177,7 +177,7 @@ python -m pytest tests/ -v
     - Daily activity line chart (2 osie Y: lines + orders)
     - Hourly heatmap (dzień tygodnia × godzina)
     - Order structure histogram (lines per order)
-- Wykresy Plotly z dark theme
+- Wykresy Plotly z theme
 - Zachowano istniejące elementy: Shift configuration (Default/Custom/YAML/None)
 
 **Zmiany Etapu 7:**
@@ -220,30 +220,34 @@ python -m pytest tests/ -v
 
 ---
 
-## Aktualizacja Palety Kolorów i Przycisków (2026-01-10)
+## Aktualizacja Palety Kolorów i Przycisków (2026-01-10, zaktualizowane 2026-02-16)
 
-### Nowa Paleta Kawowo-Brązowa
+### Aktualna Paleta — Jasny Motyw ze Złotym Akcentem
 **Plan:** `Dev/UI_COLOR_BUTTONS_PLAN.md`
 
 | Kolor | Hex | Rola |
 |-------|-----|------|
-| coffee-bean | `#20100e` | Główne tło |
-| graphite | `#323232` | Powierzchnie |
-| dim-grey | `#5f605b` | Hover states |
-| espresso | `#5e3123` | Bordery |
-| rust-brown | `#923b1b` | Hover przycisków |
-| burnt-caramel | `#b7622c` | Główny akcent |
+| warm beige | `#f0ede8` | Sidebar bg |
+| near-white | `#faf9f6` | Główne tło aplikacji |
+| white | `#ffffff` | Karty, inputy |
+| light warm | `#e8e4de` | Hover, wyróżnienia |
+| gold | `#c9a227` | Główny akcent |
+| dark gold | `#a8861f` | Hover przycisków |
+| light gold | `#e8d9a0` | Subtelne bordery |
+| dark brown | `#2d2926` | Tekst główny |
+| warm gray | `#6b6560` | Tekst drugorzędny |
+| border | `#d5d0c8` | Bordery |
 
-### Nowe Przyciski Statusu (7 typów)
+### Przyciski Statusu (7 typów — ciemniejsze warianty dla jasnego tła)
 | Status | Kolor | Ikona |
 |--------|-------|-------|
-| pending | `#FFB74D` żółty | Triangle warning |
-| in_progress | `#64B5F6` niebieski | Dashed circle |
-| submitted | `#BA68C8` fioletowy | Paper plane |
-| in_review | `#FF8A65` pomarańczowy | Circular arrows |
-| success | `#81C784` zielony | Checkmark circle |
-| failed | `#E57373` czerwony | X circle |
-| expired | `#90A4AE` szary | Clock |
+| pending | `#e6a817` żółty | Triangle warning |
+| in_progress | `#1976D2` niebieski | Dashed circle |
+| submitted | `#7B1FA2` fioletowy | Paper plane |
+| in_review | `#E65100` pomarańczowy | Circular arrows |
+| success | `#2E7D32` zielony | Checkmark circle |
+| failed | `#C62828` czerwony | X circle |
+| expired | `#546E7A` szary | Clock |
 
 ### Zmienione Pliki
 - `src/ui/theme.py` - COLORS, STATUS_COLORS, STATUS_ICONS, CSS `.status-btn`
@@ -320,5 +324,5 @@ pl.col("length").cast(pl.Float64, strict=False) * factor
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-02-16
-**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + performance module + validation split + numeric cleaning
+**Data:** 2026-02-17
+**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + performance module + validation split + numeric cleaning + light theme

@@ -37,7 +37,7 @@ def render_demo_chart() -> None:
     try:
         import plotly.graph_objects as go
 
-        from src.ui.layout import apply_plotly_dark_theme, render_plotly_chart
+        from src.ui.layout import apply_plotly_theme, render_plotly_chart
 
         fig = go.Figure(
             data=[
@@ -48,7 +48,7 @@ def render_demo_chart() -> None:
                 )
             ]
         )
-        apply_plotly_dark_theme(fig)
+        apply_plotly_theme(fig)
         fig.update_layout(height=250)
         render_plotly_chart(fig, "demo_chart", width="stretch")
     except ImportError:
@@ -279,7 +279,7 @@ def render_components_demo() -> None:
     # Section 9: Colors Reference
     render_section_header("Color Palette Reference", icon="🎨")
 
-    st.markdown("**COLORS dictionary - paleta kawowo-brązowa:**")
+    st.markdown("**COLORS dictionary - jasny motyw ze złotym akcentem:**")
     color_cols = st.columns(5)
     for i, (name, hex_value) in enumerate(COLORS.items()):
         with color_cols[i % 5]:

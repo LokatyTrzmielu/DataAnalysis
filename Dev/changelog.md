@@ -11,6 +11,30 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-17] - Minor
+- **Zmiana na jasny motyw (Light Theme)**:
+  - Zamiana ciemnego motywu (dark theme) na jasny (light theme) z zachowaniem złotego akcentu (`#c9a227`)
+  - Nowe tła: beżowy `#f0ede8` (sidebar), prawie-biały `#faf9f6` (main), biały `#ffffff` (karty)
+  - Nowy tekst: ciemny brąz `#2d2926` (główny), ciepły szary `#6b6560` (drugorzędny)
+  - STATUS_COLORS: ciemniejsze warianty dla lepszego kontrastu na jasnym tle
+  - Dostosowanie ~20 hardcoded `rgba()` w CSS (opacity 0.15→0.10, cienie 0.3→0.08)
+  - Checkmark w pipeline indicator: zmiana koloru na biały
+  - File uploader hover: jasny overlay `rgba(232, 217, 160, 0.2)`
+  - Rename `apply_plotly_dark_theme()` → `apply_plotly_theme()` (6 plików)
+- Pliki: `src/ui/theme.py`, `.streamlit/config.toml`, `src/ui/layout.py`, `src/ui/__init__.py`, `src/ui/views/capacity_view.py`, `src/ui/views/performance_view.py`, `src/ui/views/components_demo.py`
+- Branch: main (minor)
+
+### [2026-02-16] - Minor
+- **Podmiana palety kolorów na ciepłą neutralną ze złotym akcentem**:
+  - Zamiana kawowo-brązowej palety (coffee-bean `#20100e`, burnt-caramel `#b7622c`) na ciepłą neutralną (`#463f3a` base) ze złotym akcentem (`#c9a227`)
+  - Nowe tła: `#2d2926` / `#463f3a` / `#544c46` / `#635b54`
+  - Nowe akcenty: złoty `#c9a227` / `#a8861f` / `#6b5a2a`
+  - Nowy tekst: kremowa biel `#f4f3ee`, jasny beż `#bcb8b1`
+  - Zaktualizowano hardcoded `rgba()` w CSS (info-box, warning-box, file uploader hover)
+  - STATUS_COLORS bez zmian (kolory funkcyjne)
+- Plik: `src/ui/theme.py`
+- Branch: main (minor)
+
 ### [2026-02-16] - Refactor
 - **Ujednolicenie obsługi formatów numerycznych w pipeline**:
   - Nowy moduł `src/ingest/cleaning.py` z uniwersalną funkcją `clean_numeric_column()`

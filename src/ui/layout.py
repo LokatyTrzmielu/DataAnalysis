@@ -217,7 +217,7 @@ def render_chart_container(
 
 
 def get_plotly_layout_defaults() -> dict:
-    """Return default Plotly layout settings for dark theme.
+    """Return default Plotly layout settings for light theme.
 
     Returns:
         Dict with Plotly layout configuration
@@ -242,8 +242,8 @@ def get_plotly_layout_defaults() -> dict:
     }
 
 
-def apply_plotly_dark_theme(fig) -> None:
-    """Apply dark theme to a Plotly figure.
+def apply_plotly_theme(fig) -> None:
+    """Apply theme to a Plotly figure.
 
     Args:
         fig: Plotly figure object to modify in-place

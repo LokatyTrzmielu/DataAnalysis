@@ -9,7 +9,7 @@ import streamlit as st
 
 from src.core.types import CarrierConfig
 from src.ui.layout import (
-    apply_plotly_dark_theme,
+    apply_plotly_theme,
     render_bold_label,
     render_chart_download_button,
     render_divider,
@@ -507,7 +507,7 @@ def _render_dimensions_histogram() -> None:
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
 
-    apply_plotly_dark_theme(fig)
+    apply_plotly_theme(fig)
     render_plotly_chart(fig, "dimensions_distribution", width="stretch")
     render_chart_download_button(fig, "dimensions_distribution")
 
@@ -563,7 +563,7 @@ def _render_carrier_fit_chart() -> None:
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
 
-    apply_plotly_dark_theme(fig)
+    apply_plotly_theme(fig)
     render_plotly_chart(fig, "carrier_fit", width="stretch")
     render_chart_download_button(fig, "carrier_fit")
 
@@ -590,7 +590,7 @@ def _render_weight_histogram() -> None:
         showlegend=False,
     )
 
-    apply_plotly_dark_theme(fig)
+    apply_plotly_theme(fig)
     render_plotly_chart(fig, "weight_distribution", width="stretch")
     render_chart_download_button(fig, "weight_distribution")
 

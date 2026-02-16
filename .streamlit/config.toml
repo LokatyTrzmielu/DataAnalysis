@@ -3,15 +3,15 @@ headless = true
 port = 8501
 
 [theme]
-primaryColor = "#b7622c"              # burnt-caramel akcent
-backgroundColor = "#323232"           # graphite tło
-secondaryBackgroundColor = "#20100e"  # coffee-bean tło paneli
-textColor = "#F5F0E8"                 # ciepła biel
+primaryColor = "#c9a227"
+backgroundColor = "#faf9f6"
+secondaryBackgroundColor = "#f0ede8"
+textColor = "#2d2926"
 font = "sans serif"
 
 [theme.sidebar]
-backgroundColor = "#20100e"           # coffee-bean
-secondaryBackgroundColor = "#323232"  # graphite (używany jako widget background)
-primaryColor = "#b7622c"              # burnt-caramel
-textColor = "#F5F0E8"                 # ciepła biel
-borderColor = "#4a3c39"               # obramowanie
+backgroundColor = "#f0ede8"
+secondaryBackgroundColor = "#faf9f6"
+primaryColor = "#c9a227"
+textColor = "#2d2926"
+borderColor = "#d5d0c8"
