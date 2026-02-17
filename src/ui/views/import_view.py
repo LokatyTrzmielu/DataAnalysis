@@ -10,6 +10,7 @@ import streamlit as st
 
 from src.ui.layout import (
     render_error_box,
+    render_forward_guidance,
     render_section_header,
     render_spacer,
     render_status_button,
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 
 
 def _get_field_status_html(is_mapped: bool) -> str:
-    """Return HTML for field status indicator with colored background (dark theme).
+    """Return HTML for field status indicator with colored background.
 
     Args:
         is_mapped: Whether this field has a column mapped to it
@@ -30,13 +31,11 @@ def _get_field_status_html(is_mapped: bool) -> str:
         HTML string for the status indicator
     """
     if is_mapped:
-        # Green - field is mapped (dark theme)
-        return f"""<div style="background-color: rgba(76, 175, 80, 0.15); padding: 6px 10px;
+        return f"""<div style="background-color: rgba(46, 125, 50, 0.08); padding: 6px 10px;
                   border-radius: 4px; border-left: 4px solid {COLORS["primary"]}; margin-bottom: 4px;">
                   <small style="color: {COLORS["primary"]}; font-weight: 500;">✓ Done</small></div>"""
     else:
-        # Red - field is not mapped (dark theme)
-        return f"""<div style="background-color: rgba(244, 67, 54, 0.15); padding: 6px 10px;
+        return f"""<div style="background-color: rgba(198, 40, 40, 0.08); padding: 6px 10px;
                   border-radius: 4px; border-left: 4px solid {COLORS["error"]}; margin-bottom: 4px;">
                   <small style="color: {COLORS["error"]}; font-weight: 500;">⚠ Missing</small></div>"""
 
@@ -326,6 +325,22 @@ def render_masterdata_import() -> None:
         )
 
         if masterdata_file is not None:
+            # Quick data preview before proceeding
+            try:
+                from src.ingest import FileReader
+                suffix = Path(masterdata_file.name).suffix
+                import tempfile as _tf
+                with _tf.NamedTemporaryFile(delete=False, suffix=suffix) as _tmp:
+                    _tmp.write(masterdata_file.read())
+                    _preview_path = _tmp.name
+                masterdata_file.seek(0)  # Reset for later read
+                reader = FileReader(_preview_path)
+                preview_df = reader.get_preview(n_rows=5)
+                with st.expander(f"👁️ Preview — {len(preview_df)} rows", expanded=True):
+                    st.dataframe(preview_df.to_pandas(), use_container_width=True)
+            except Exception:
+                pass  # Don't block upload flow if preview fails
+
             if st.button("Next - Column mapping", key="md_to_mapping"):
                 with st.spinner("Analyzing file..."):
                     try:
@@ -464,6 +479,11 @@ def render_masterdata_import() -> None:
         if st.session_state.masterdata_df is not None:
             # Status button with count
             render_status_button(f"{len(st.session_state.masterdata_df)} SKU imported", "success")
+
+            # Forward guidance
+            if st.session_state.get("quality_result") is None:
+                render_forward_guidance("Proceed to the Validation tab to validate data quality")
+
             render_spacer(10)
 
             with st.expander("👁️ Data preview", expanded=False):
@@ -472,16 +492,43 @@ def render_masterdata_import() -> None:
                     width="stretch",
                 )
 
-        if st.button("Import new file", key="md_new_import"):
-            st.session_state.masterdata_mapping_step = "upload"
-            st.session_state.masterdata_file_columns = None
-            st.session_state.masterdata_mapping_result = None
-            st.session_state.masterdata_temp_path = None
-            st.session_state.masterdata_df = None
-            # Reset Capacity pipeline statuses
-            st.session_state.quality_result = None
-            st.session_state.capacity_result = None
-            st.rerun()
+        # Two-step confirmation for reimport
+        has_analysis = (
+            st.session_state.get("quality_result") is not None
+            or st.session_state.get("capacity_result") is not None
+        )
+
+        if not st.session_state.get("md_confirm_reimport"):
+            if st.button("Import new file", key="md_new_import"):
+                if has_analysis:
+                    st.session_state.md_confirm_reimport = True
+                    st.rerun()
+                else:
+                    # No analysis to lose — reimport directly
+                    st.session_state.masterdata_mapping_step = "upload"
+                    st.session_state.masterdata_file_columns = None
+                    st.session_state.masterdata_mapping_result = None
+                    st.session_state.masterdata_temp_path = None
+                    st.session_state.masterdata_df = None
+                    st.rerun()
+        else:
+            st.warning("Importing a new file will reset Validation and Capacity Analysis results.")
+            col_yes, col_no = st.columns(2)
+            with col_yes:
+                if st.button("Confirm reimport", key="md_confirm_yes", type="primary"):
+                    st.session_state.md_confirm_reimport = False
+                    st.session_state.masterdata_mapping_step = "upload"
+                    st.session_state.masterdata_file_columns = None
+                    st.session_state.masterdata_mapping_result = None
+                    st.session_state.masterdata_temp_path = None
+                    st.session_state.masterdata_df = None
+                    st.session_state.quality_result = None
+                    st.session_state.capacity_result = None
+                    st.rerun()
+            with col_no:
+                if st.button("Cancel", key="md_confirm_no"):
+                    st.session_state.md_confirm_reimport = False
+                    st.rerun()
 
 
 def render_orders_import() -> None:
@@ -508,6 +555,22 @@ def render_orders_import() -> None:
         )
 
         if orders_file is not None:
+            # Quick data preview before proceeding
+            try:
+                from src.ingest import FileReader
+                suffix = Path(orders_file.name).suffix
+                import tempfile as _tf
+                with _tf.NamedTemporaryFile(delete=False, suffix=suffix) as _tmp:
+                    _tmp.write(orders_file.read())
+                    _preview_path = _tmp.name
+                orders_file.seek(0)  # Reset for later read
+                reader = FileReader(_preview_path)
+                preview_df = reader.get_preview(n_rows=5)
+                with st.expander(f"👁️ Preview — {len(preview_df)} rows", expanded=True):
+                    st.dataframe(preview_df.to_pandas(), use_container_width=True)
+            except Exception:
+                pass  # Don't block upload flow if preview fails
+
             if st.button("Next - Column mapping", key="orders_to_mapping"):
                 with st.spinner("Analyzing file..."):
                     try:
@@ -625,6 +688,11 @@ def render_orders_import() -> None:
         if st.session_state.orders_df is not None:
             # Status button with count
             render_status_button(f"{len(st.session_state.orders_df)} lines imported", "success")
+
+            # Forward guidance
+            if st.session_state.get("performance_result") is None:
+                render_forward_guidance("Proceed to the Analysis tab to run performance analysis")
+
             render_spacer(10)
 
             with st.expander("👁️ Data preview", expanded=False):
@@ -633,15 +701,38 @@ def render_orders_import() -> None:
                     width="stretch",
                 )
 
-        if st.button("Import new file", key="orders_new_import"):
-            st.session_state.orders_mapping_step = "upload"
-            st.session_state.orders_file_columns = None
-            st.session_state.orders_mapping_result = None
-            st.session_state.orders_temp_path = None
-            st.session_state.orders_df = None
-            # Reset Performance pipeline status
-            st.session_state.performance_result = None
-            st.rerun()
+        # Two-step confirmation for reimport
+        has_analysis = st.session_state.get("performance_result") is not None
+
+        if not st.session_state.get("orders_confirm_reimport"):
+            if st.button("Import new file", key="orders_new_import"):
+                if has_analysis:
+                    st.session_state.orders_confirm_reimport = True
+                    st.rerun()
+                else:
+                    st.session_state.orders_mapping_step = "upload"
+                    st.session_state.orders_file_columns = None
+                    st.session_state.orders_mapping_result = None
+                    st.session_state.orders_temp_path = None
+                    st.session_state.orders_df = None
+                    st.rerun()
+        else:
+            st.warning("Importing a new file will reset Performance Analysis results.")
+            col_yes, col_no = st.columns(2)
+            with col_yes:
+                if st.button("Confirm reimport", key="orders_confirm_yes", type="primary"):
+                    st.session_state.orders_confirm_reimport = False
+                    st.session_state.orders_mapping_step = "upload"
+                    st.session_state.orders_file_columns = None
+                    st.session_state.orders_mapping_result = None
+                    st.session_state.orders_temp_path = None
+                    st.session_state.orders_df = None
+                    st.session_state.performance_result = None
+                    st.rerun()
+            with col_no:
+                if st.button("Cancel", key="orders_confirm_no"):
+                    st.session_state.orders_confirm_reimport = False
+                    st.rerun()
 
 
 def render_import_view() -> None:

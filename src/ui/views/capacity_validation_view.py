@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.ui.layout import render_bold_label, render_divider, render_section_header
+from src.ui.layout import render_bold_label, render_divider, render_forward_guidance, render_section_header
 
 
 def render_capacity_validation_view(show_header: bool = True) -> None:
@@ -124,6 +124,10 @@ def _render_capacity_validation_results() -> None:
             st.success(f"{name}: 0")
 
     st.caption("Outliers (SKUs not fitting any carrier) shown in Capacity Analysis results")
+
+    # Forward guidance to Analysis
+    if st.session_state.get("capacity_result") is None:
+        render_forward_guidance("Validation complete — proceed to the Analysis tab to run capacity analysis")
 
     # Validation help section
     with st.expander("❓ Validation help", expanded=False):

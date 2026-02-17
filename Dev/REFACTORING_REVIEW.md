@@ -251,36 +251,40 @@ Poniższe punkty korygują błędne lub niepełne twierdzenia z oryginalnej anal
 
 Oryginalna lista 10 priorytetów zastąpiona listą 19 elementów pogrupowanych w tiery:
 
-#### TIER 1 - Bugfixy i quick wins (1-2 sesje)
+#### TIER 1 - Bugfixy i quick wins (1-2 sesje) ✅ DONE (2026-02-17)
 
-| # | Zadanie | Lokalizacja | Złożoność | Uzasadnienie |
+| # | Zadanie | Lokalizacja | Złożoność | Status |
 |---|---|---|---|---|
-| 1 | Napraw `warning` = `accent` kolizję kolorów | `theme.py:19` | Trivial | Warning i accent to ten sam kolor - alerty ostrzegawcze wyglądają jak branding |
-| 2 | Napraw stale dark-theme kolory | `import_view.py:34-40` | Trivial | Hardcoded ciemne kolory po migracji na light theme |
-| 3 | Napraw broken `help_text` w `render_kpi_card()` | `layout.py:37-48` | Trivial | Parametr akceptowany ale nigdy renderowany |
-| 4 | Dodaj font Inter | `theme.py` (2 linie CSS) | Trivial | Profesjonalny font systemowy, zero kosztu |
-| 5 | Dodaj CSS dla `.card-container` | `theme.py` (5-8 linii) | Trivial | `render_card_container()` istnieje ale bez stylowania |
-| 6 | Napraw hover sidebar nav | `theme.py:631` | Trivial | Brak `background-color` na hover - elementy nie reagują wizualnie |
+| 1 | Napraw `warning` = `accent` kolizję kolorów | `theme.py:19` | Trivial | ✅ Zmieniono warning na `#e6a817` (ciepły bursztynowy) |
+| 2 | Napraw stale dark-theme kolory | `import_view.py:34-40` | Trivial | ✅ rgba opacity 0.15→0.08, usunięto "dark theme" komentarze |
+| 3 | Napraw broken `help_text` w `render_kpi_card()` | `layout.py:37-48` | Trivial | ✅ Dodano renderowanie `help_text` + CSS `.help-text` |
+| 4 | Dodaj font Inter | `theme.py` | Trivial | ✅ @import Inter + font-family na .stApp |
+| 5 | Dodaj CSS dla `.card-container` | `theme.py` | Trivial | ⏭️ Już istnieje (linie 308-314) - pominięto |
+| 6 | Napraw hover sidebar nav | `theme.py:631` | Trivial | ✅ transparent → surface_light na hover |
 
-#### TIER 2 - Krytyczne UX (2-3 sesje)
+#### TIER 2 - Krytyczne UX (2-3 sesje) ✅ DONE (2026-02-17)
 
-| # | Zadanie | Lokalizacja | Złożoność | Uzasadnienie |
+| # | Zadanie | Lokalizacja | Złożoność | Status |
 |---|---|---|---|---|
-| 7 | Dashboard "Getting Started" guidance | `app.py:363-390` | Niska | Pusty dashboard bez danych nie mówi użytkownikowi co robić |
-| 8 | Forward guidance banners między tabami | Views + `layout.py` | Niska | Po imporcie → "przejdź do Validation", po validation → "przejdź do Analysis" |
-| 9 | Napraw misleading pipeline status labels | `app.py:166-178, 252-257` | Niska | "success" oznacza "kliknąłeś tab", nie "przetwarzanie zakończone" |
-| 10 | Fix two-click download anti-pattern | `reports_view.py:347-360` | Niska | "Generate" → "Download" wymaga 2 kroków zamiast 1 |
-| 11 | Data preview po upload | `import_view.py` | Średnia | Użytkownik nie widzi danych przed mappingiem (df.head(5)) |
-| 12 | Ostrzeżenie przy "Import new file" | `import_view.py` | Niska | Brak ostrzeżenia o utracie wszystkich wyników analizy |
+| 7 | Dashboard "Getting Started" guidance | `app.py` | Niska | ✅ Dodano Getting Started z krokami, ukrywa się po załadowaniu danych |
+| 8 | Forward guidance banners między tabami | Views + `layout.py` | Niska | ✅ Nowy `render_forward_guidance()` + bannery po import/validation |
+| 9 | Napraw misleading pipeline status labels | `app.py` | Niska | ✅ Status oparty na stanie danych, nie aktywnej zakładce. Usunięto `active_tab` tracking |
+| 10 | Fix two-click download anti-pattern | `reports_view.py` | Niska | ✅ Bezpośredni `st.download_button` zamiast button→download |
+| 11 | Data preview po upload | `import_view.py` | Średnia | ✅ `df.head(5)` preview w expander po upload, przed "Next" |
+| 12 | Ostrzeżenie przy "Import new file" | `import_view.py` | Niska | ✅ Dwuetapowe potwierdzenie gdy istnieją wyniki analizy |
 
-#### TIER 3 - Wartościowe ulepszenia (3-5 sesji)
+#### TIER 3 - Wartościowe ulepszenia (3-5 sesji) ✅ DONE (2026-02-17)
 
-| # | Zadanie | Lokalizacja | Złożoność | Uzasadnienie |
+| # | Zadanie | Lokalizacja | Złożoność | Status |
 |---|---|---|---|---|
-| 13 | Dashboard KPI cards z realnymi wynikami | `app.py` | Średnia | Po analizie dashboard powinien pokazywać prawdziwe KPI |
-| 14 | Alert banner dla threshold violations | `layout.py` + views | Średnia | Utilization > 90%, error rate > 5% - widoczne alerty |
-| 15 | Insight Layer / Key Findings | Views analizy | Średnia-wysoka | Sekcja podsumowania na górze wyników analizy |
-| 16 | Executive summary na Dashboard | `app.py` | Średnia | Zamiast osobnego Demo Mode - rozbudowany Dashboard |
+| 13 | Dashboard KPI cards z realnymi wynikami | `app.py` | Średnia | ✅ Prawdziwe KPI z capacity/performance na Dashboard po analizie |
+| 14 | Alert banner dla threshold violations | `layout.py` + views | Średnia | ✅ `render_alert_banner()` + `render_alerts_from_data()` - alerty na Dashboard |
+| 15 | Insight Layer / Key Findings | Views analizy | Średnia-wysoka | ✅ `insights.py` - auto-generowane insights na górze wyników Capacity i Performance |
+| 16 | Executive summary na Dashboard | `app.py` | Średnia | ✅ Executive Summary z połączonymi insights z obu analiz |
+
+**Dodatkowe zmiany w ramach TIER 3:**
+- Dekompozycja `performance_view.py` (771→196 linii) - wydzielono `performance_results.py` (~500 linii chartów i statystyk)
+- Nowy moduł `src/ui/insights.py` z logiką generowania insightów (Capacity + Performance)
 
 #### TIER 4 - Nice-to-have (opcjonalne)
 

@@ -16,7 +16,7 @@ COLORS = {
     # === FUNKCJONALNE ===
     "primary": "#2e7d32",          # ciemniejszy zielony (lepszy kontrast na jasnym)
     "error": "#c62828",            # ciemniejszy czerwony
-    "warning": "#c9a227",          # złoty (= accent)
+    "warning": "#e6a817",          # ciepły bursztynowy (odrębny od accent)
     "info": "#8a817c",             # ciepły szary
 
     # === TEKST ===
@@ -54,9 +54,12 @@ def get_custom_css() -> str:
     """Return custom CSS for light theme styling."""
     return f"""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
     /* Główne tło i tekst */
     .stApp {{
         background-color: {COLORS["surface"]};
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }}
 
     /* Karty KPI */
@@ -95,6 +98,13 @@ def get_custom_css() -> str:
 
     .kpi-card .delta.negative {{
         color: {COLORS["error"]};
+    }}
+
+    .kpi-card .help-text {{
+        color: {COLORS["text_secondary"]};
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        margin-bottom: 0;
     }}
 
     /* Nagłówki sekcji */
@@ -439,6 +449,23 @@ def get_custom_css() -> str:
         margin: 0;
     }}
 
+    /* Forward guidance banner */
+    .forward-guidance {{
+        background-color: rgba(201, 162, 39, 0.08);
+        border: 1px solid {COLORS["accent_muted"]};
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+        color: {COLORS["text"]};
+        font-size: 0.9rem;
+        font-weight: 500;
+    }}
+
+    .forward-guidance .arrow {{
+        color: {COLORS["accent"]};
+        margin-right: 0.5rem;
+    }}
+
     /* Responsive grid for KPI cards */
     @media (max-width: 768px) {{
         /* Force 2 columns on tablet */
@@ -627,9 +654,9 @@ def get_custom_css() -> str:
         font-size: 0.95rem !important;
     }}
 
-    /* Hover state - dark gold color */
+    /* Hover state - subtle background + dark gold color */
     [data-testid="stSidebar"] .stRadio > div > label:hover {{
-        background-color: transparent !important;
+        background-color: {COLORS["surface_light"]} !important;
     }}
 
     [data-testid="stSidebar"] .stRadio > div > label:hover > div:last-child {{

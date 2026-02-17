@@ -689,6 +689,8 @@ def _render_capacity_table() -> None:
 
 def _render_capacity_results() -> None:
     """Display capacity analysis results."""
+    from src.ui.insights import generate_capacity_insights, render_insights
+
     result = st.session_state.capacity_result
     is_prioritized = st.session_state.get("capacity_prioritization_mode", False)
 
@@ -704,12 +706,18 @@ def _render_capacity_results() -> None:
 
     render_divider()
 
-    # === NEW: KPI Section ===
+    # === Key Findings / Insight Layer ===
+    insights = generate_capacity_insights()
+    render_insights(insights, title="Key Findings")
+
+    render_divider()
+
+    # === KPI Section ===
     _render_capacity_kpi()
 
     render_divider()
 
-    # === NEW: Charts Section ===
+    # === Charts Section ===
     _render_capacity_charts()
 
     render_divider()
