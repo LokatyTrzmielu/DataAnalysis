@@ -310,19 +310,19 @@ Oryginalna lista 10 priorytetów zastąpiona listą 19 elementów pogrupowanych 
 
 ---
 
-### Sekcja 4: Nowe odkrycia (pominięte w oryginalnej analizie)
+### Sekcja 4: Nowe odkrycia (pominięte w oryginalnej analizie) ✅ RESOLVED (2026-02-17)
 
 Audyt ujawnił istotne problemy nieomówione w żadnej z 5 faz:
 
-1. **`performance_view.py` to 771-liniowy monolith** - cały plik to jedna funkcja. Wymaga dekompozycji **przed** dodawaniem Insight Layer (TIER 3 #15), inaczej plik rozrośnie się do 1000+ linii.
+1. **`performance_view.py` to 771-liniowy monolith** - ✅ Rozwiązane w TIER 3 (dekompozycja → `performance_results.py`).
 
-2. **Brak testów UI** - 0 ze 152 testów dotyczy modułu `ui/`. Każda zmiana UI (TIER 1-3) nie ma safety net. Nie blokuje pracy, ale zwiększa ryzyko regresji.
+2. **Brak testów UI** - ✅ Dodano `tests/test_ui.py` z 39 testami: COLORS/STATUS_COLORS validation, `get_plotly_layout_defaults()`, `Insight` dataclass, `generate_capacity_insights()` i `generate_performance_insights()` z mock session_state. Łącznie 191 testów (152 + 39).
 
-3. **Asymetryczny validation pattern** - Capacity validation wymaga kliknięcia "Validate" (manual), Performance validation uruchamia się automatycznie. Niespójne UX, ale niski priorytet.
+3. **Asymetryczny validation pattern** - ✅ Capacity validation teraz auto-uruchamia się przy pierwszym wejściu (`quality_result is None`), spójnie z Performance. Przycisk "Re-run validation" pozwala na ponowne uruchomienie po zmianie ustawień.
 
-4. **Client name ukryty w expander Validation** - Nazwa klienta jest ustawiana głęboko w ekspanderze Validation, ale potem używana prominentnie w Reports. Użytkownik może nie wiedzieć gdzie ją zmienić.
+4. **Client name ukryty w expander Validation** - ✅ Przeniesiono `client_name` do sidebar (zawsze widoczny z każdej sekcji). Usunięto z expander "Validation Settings".
 
-5. **Overall UI grade: B** - Aplikacja jest profesjonalna i funkcjonalna. Kilka targeted improvements z TIER 1-2 podniesie ją do A- bez masywnych zmian.
+5. **Overall UI grade: B → A-** - Po wszystkich zmianach TIER 1-4 + rozwiązaniu odkryć audytu, aplikacja osiąga poziom A-.
 
 ---
 

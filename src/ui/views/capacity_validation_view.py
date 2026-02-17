@@ -20,7 +20,11 @@ def render_capacity_validation_view(show_header: bool = True) -> None:
         st.info("Import Masterdata in the Import tab first")
         return
 
-    if st.button("Run validation", key="run_validation", type="primary"):
+    # Auto-run validation on first visit (consistent with Performance auto-validation)
+    manual_run = st.button("Re-run validation", key="run_validation", type="primary")
+    auto_run = st.session_state.quality_result is None
+
+    if manual_run or auto_run:
         with st.spinner("Validation in progress..."):
             try:
                 from src.quality import run_quality_pipeline
@@ -42,7 +46,8 @@ def render_capacity_validation_view(show_header: bool = True) -> None:
                 st.session_state.quality_result = result
                 st.session_state.masterdata_df = result.df
 
-                st.toast("Validation complete", icon="✅")
+                if manual_run:
+                    st.toast("Validation complete", icon="✅")
                 st.rerun()
 
             except Exception as e:
