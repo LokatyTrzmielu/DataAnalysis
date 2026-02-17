@@ -69,6 +69,7 @@ def get_custom_css() -> str:
         padding: 1rem 1.25rem;
         border: 1px solid {COLORS["border"]};
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        height: 100%;
     }}
 
     .kpi-card h3 {{

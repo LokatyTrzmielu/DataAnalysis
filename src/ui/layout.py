@@ -36,19 +36,19 @@ def render_kpi_card(
     """
     delta_class = delta_color if delta else ""
     icon_html = f'<span class="icon">{icon}</span>' if icon else ""
-    delta_html = f'<p class="delta {delta_class}">{delta}</p>' if delta else ""
-    help_html = f'<p class="help-text">{help_text}</p>' if help_text else ""
 
-    card_html = f"""
-    <div class="kpi-card">
-        <h3>{icon_html}{title}</h3>
-        <p class="value">{value}</p>
-        {delta_html}
-        {help_html}
-    </div>
-    """
+    parts = [
+        '<div class="kpi-card">',
+        f'<h3>{icon_html}{title}</h3>',
+        f'<p class="value">{value}</p>',
+    ]
+    if delta:
+        parts.append(f'<p class="delta {delta_class}">{delta}</p>')
+    if help_text:
+        parts.append(f'<p class="help-text">{help_text}</p>')
+    parts.append("</div>")
 
-    st.markdown(card_html, unsafe_allow_html=True)
+    st.markdown("\n".join(parts), unsafe_allow_html=True)
 
 
 def render_kpi_section(metrics: list[dict]) -> None:
