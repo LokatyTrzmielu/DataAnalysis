@@ -9,44 +9,52 @@ Modernizacja UI aplikacji DataAnalysis:
 
 ---
 
-## 1. Nowa Paleta Kolorów
+## 1. Paleta Kolorów
 
-### Kolory wejściowe
+### Historia zmian
+- **2026-01-10:** Paleta kawowo-brązowa (coffee-bean, burnt-caramel)
+- **2026-02-16:** Podmiana na ciepłą neutralną ze złotym akcentem
+
+### Aktualna paleta (2026-02-16)
 | Nazwa | Hex | Rola UI |
 |-------|-----|---------|
-| coffee-bean | `#20100e` | Główne tło aplikacji |
-| graphite | `#323232` | Karty, kontenery, powierzchnie |
-| dim-grey | `#5f605b` | Hover states, elevated surfaces |
-| espresso | `#5e3123` | Bordery, subtle akcenty |
-| rust-brown | `#923b1b` | Hover przycisków |
-| burnt-caramel | `#b7622c` | Główny akcent marki |
+| dark neutral | `#2d2926` | Sidebar, deepest bg |
+| warm brown | `#463f3a` | Główne tło aplikacji |
+| elevated | `#544c46` | Karty, inputy |
+| light neutral | `#635b54` | Hover, bordery |
+| gold | `#c9a227` | Główny akcent |
+| dark gold | `#a8861f` | Hover przycisków |
+| muted gold | `#6b5a2a` | Subtelne bordery |
+| cream white | `#f4f3ee` | Tekst główny |
+| light beige | `#bcb8b1` | Tekst drugorzędny |
 
-### Nowy słownik COLORS w `theme.py`
+### Aktualny słownik COLORS w `theme.py`
 
 ```python
 COLORS = {
     # === TŁA ===
-    "background": "#20100e",      # coffee-bean
-    "surface": "#323232",         # graphite
-    "surface_light": "#5f605b",   # dim-grey
+    "background": "#2d2926",       # ciemniejszy wariant - sidebar, deepest bg
+    "surface": "#463f3a",          # główne tło aplikacji
+    "surface_elevated": "#544c46", # karty, inputy
+    "surface_light": "#635b54",    # hover, subtelne wyróżnienia
 
     # === AKCENTY ===
-    "accent": "#b7622c",          # burnt-caramel - główny
-    "accent_dark": "#923b1b",     # rust-brown - hover
-    "accent_muted": "#5e3123",    # espresso - subtle
+    "accent": "#c9a227",           # złoty - główny akcent
+    "accent_dark": "#a8861f",      # ciemniejsze złoto - hover
+    "accent_muted": "#6b5a2a",     # stonowane złoto - subtelne bordery
 
     # === FUNKCJONALNE ===
-    "primary": "#4CAF50",         # Zielony sukces (zachowany)
-    "error": "#E57373",           # Ciepły czerwony
-    "warning": "#b7622c",         # burnt-caramel
-    "info": "#8D6E63",            # Ciepły brąz
+    "primary": "#4CAF50",          # zielony sukces (bez zmian)
+    "error": "#E57373",            # czerwony błąd (bez zmian)
+    "warning": "#c9a227",          # złoty (= accent)
+    "info": "#8a817c",             # ciepły szary
 
     # === TEKST ===
-    "text": "#F5F0E8",            # Ciepła biel
-    "text_secondary": "#A89F94",  # Ciepły taupe
+    "text": "#f4f3ee",             # kremowa biel
+    "text_secondary": "#bcb8b1",   # jasny beż
 
     # === BORDERY ===
-    "border": "#5e3123",          # espresso
+    "border": "#635b54",           # ciepły szary border
 }
 ```
 
