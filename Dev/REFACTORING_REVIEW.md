@@ -286,13 +286,13 @@ Oryginalna lista 10 priorytetów zastąpiona listą 19 elementów pogrupowanych 
 - Dekompozycja `performance_view.py` (771→196 linii) - wydzielono `performance_results.py` (~500 linii chartów i statystyk)
 - Nowy moduł `src/ui/insights.py` z logiką generowania insightów (Capacity + Performance)
 
-#### TIER 4 - Nice-to-have (opcjonalne)
+#### TIER 4 - Nice-to-have (opcjonalne) ✅ DONE (2026-02-17)
 
-| # | Zadanie | Lokalizacja | Złożoność | Uzasadnienie |
+| # | Zadanie | Lokalizacja | Złożoność | Status |
 |---|---|---|---|---|
-| 17 | Standaryzacja wysokości Plotly charts | Views analizy | Niska | Wykresy mają różne wysokości - niespójne |
-| 18 | Fix heatmap colorscale | Views analizy | Niska | Obecna skala nie jest colorblind-friendly |
-| 19 | Collapse carrier expanders domyślnie | Views analizy | Trivial | Otwierać tylko pierwszy expander, resztę collapsed |
+| 17 | Standaryzacja wysokości Plotly charts | `layout.py:244` | Niska | ✅ Dodano `height: 400` do `get_plotly_layout_defaults()` - wszystkie wykresy mają spójną wysokość |
+| 18 | Fix heatmap colorscale | `performance_results.py:292` | Niska | ✅ Zmieniono na sekwencyjną 5-punktową skalę warm (luminance-based) - colorblind-friendly |
+| 19 | Collapse carrier expanders domyślnie | `capacity_view.py:803` | Trivial | ✅ Pierwszy carrier `expanded=True`, reszta `expanded=False`. "NONE" (nie pasuje) zawsze expanded |
 
 ---
 

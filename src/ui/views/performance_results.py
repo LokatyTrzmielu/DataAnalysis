@@ -290,9 +290,11 @@ def render_hourly_heatmap() -> None:
         x=[f"{h:02d}:00" for h in hours],
         y=days,
         colorscale=[
-            [0, COLORS["surface"]],
-            [0.5, COLORS["warning"]],
-            [1, COLORS["primary"]],
+            [0, "#faf9f6"],
+            [0.25, "#e8d9a0"],
+            [0.5, "#c9a227"],
+            [0.75, "#a8861f"],
+            [1, "#6b5a1e"],
         ],
         hovertemplate="Day: %{y}<br>Hour: %{x}<br>Lines: %{z}<extra></extra>",
     ))

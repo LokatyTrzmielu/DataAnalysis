@@ -241,6 +241,7 @@ def get_plotly_layout_defaults() -> dict:
             "font": {"color": COLORS["text"]},
         },
         "margin": {"l": 40, "r": 40, "t": 40, "b": 40},
+        "height": 400,
     }
 
 
