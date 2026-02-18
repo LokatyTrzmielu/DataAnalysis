@@ -517,6 +517,63 @@ def get_custom_css() -> str:
         }}
     }}
 
+    /* ===== Mapping row status indicators ===== */
+
+    /* Missing (unmapped) field */
+    [data-testid="stElementContainer"]:has(span.fsm-missing) + [data-testid="stElementContainer"] .stSelectbox {{
+        border-left: 3px solid {COLORS["error"]} !important;
+        background: rgba(198, 40, 40, 0.05) !important;
+        border-radius: 4px !important;
+        padding-left: 6px !important;
+    }}
+
+    /* Mapped field */
+    [data-testid="stElementContainer"]:has(span.fsm-mapped) + [data-testid="stElementContainer"] .stSelectbox {{
+        border-left: 3px solid {COLORS["primary"]} !important;
+        background: rgba(46, 125, 50, 0.04) !important;
+        border-radius: 4px !important;
+        padding-left: 6px !important;
+    }}
+
+    /* ===== Custom subtab navigation — matches native st.tabs() appearance ===== */
+
+    /* Container: mimic tab-list background */
+    [data-testid="stElementContainer"]:has(.subtab-nav-marker) + [data-testid="stElementContainer"]
+    [data-testid="stHorizontalBlock"] {{
+        background-color: {COLORS["surface_elevated"]};
+        border-radius: 8px;
+        padding: 0.25rem;
+        gap: 0.5rem;
+        width: fit-content;
+    }}
+
+    /* Inactive tab button */
+    [data-testid="stElementContainer"]:has(.subtab-nav-marker) + [data-testid="stElementContainer"] button {{
+        background: transparent !important;
+        color: {COLORS["text_secondary"]} !important;
+        border: none !important;
+        border-radius: 6px !important;
+        padding: 0.5rem 1rem !important;
+        font-weight: 400 !important;
+        min-width: auto !important;
+        width: auto !important;
+        box-shadow: none !important;
+    }}
+
+    /* Active tab button (type="primary") */
+    [data-testid="stElementContainer"]:has(.subtab-nav-marker) + [data-testid="stElementContainer"] button[kind="primary"] {{
+        background-color: {COLORS["surface_light"]} !important;
+        color: {COLORS["text"]} !important;
+        font-weight: 600 !important;
+        border: none !important;
+    }}
+
+    /* Hover state */
+    [data-testid="stElementContainer"]:has(.subtab-nav-marker) + [data-testid="stElementContainer"] button:hover {{
+        background-color: {COLORS["surface_light"]} !important;
+        color: {COLORS["text"]} !important;
+    }}
+
     /* Scrollbar styling for light theme */
     ::-webkit-scrollbar {{
         width: 8px;
@@ -819,7 +876,7 @@ def get_custom_css() -> str:
 
     /* 3. Przyciski - naturalna szerokość (bez stretch) */
     .stButton > button {{
-        width: auto !important;
+        width: auto;
         min-width: 120px !important;
     }}
 

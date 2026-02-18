@@ -55,7 +55,8 @@ def init_session_state() -> None:
     defaults = {
         # Navigation state
         "active_section": "Dashboard",
-        "active_subtab": "import",
+        "capacity_subtab": "Import",
+        "performance_subtab": "Import",
         # Data state
         "client_name": "",
         "masterdata_df": None,
@@ -70,13 +71,11 @@ def init_session_state() -> None:
         "masterdata_mapping_result": None,
         "masterdata_original_mapping": None,
         "masterdata_temp_path": None,
-        "masterdata_mapping_step": "upload",
         # Orders mapping state
         "orders_file_columns": None,
         "orders_mapping_result": None,
         "orders_original_mapping": None,
         "orders_temp_path": None,
-        "orders_mapping_step": "upload",
         # Mapping history service (singleton)
         "mapping_history_service": None,
         # Custom carriers for capacity analysis
@@ -132,7 +131,6 @@ def get_capacity_status() -> list[dict]:
     masterdata_df = st.session_state.get("masterdata_df")
     quality_result = st.session_state.get("quality_result")
     capacity_result = st.session_state.get("capacity_result")
-    mapping_step = st.session_state.get("masterdata_mapping_step", "upload")
 
     # Step 1: Masterdata
     if masterdata_df is not None:
@@ -142,7 +140,7 @@ def get_capacity_status() -> list[dict]:
             "status": "success",
             "detail": f"{count:,} SKU loaded",
         })
-    elif mapping_step == "mapping":
+    elif st.session_state.get("masterdata_file_columns") is not None:
         steps.append({
             "name": "Masterdata",
             "status": "in_progress",
@@ -211,7 +209,6 @@ def get_performance_status() -> list[dict]:
     steps = []
     orders_df = st.session_state.get("orders_df")
     performance_result = st.session_state.get("performance_result")
-    mapping_step = st.session_state.get("orders_mapping_step", "upload")
 
     # Step 1: Orders
     if orders_df is not None:
@@ -221,7 +218,7 @@ def get_performance_status() -> list[dict]:
             "status": "success",
             "detail": f"{count:,} lines loaded",
         })
-    elif mapping_step == "mapping":
+    elif st.session_state.get("orders_file_columns") is not None:
         steps.append({
             "name": "Orders",
             "status": "in_progress",
@@ -587,17 +584,28 @@ def _render_executive_summary(has_capacity: bool, has_performance: bool) -> None
 
 
 def _render_capacity_section() -> None:
-    """Render Capacity section with sub-tabs."""
+    """Render Capacity section with custom session-state-driven tabs."""
     st.header("Capacity")
-    tabs = st.tabs(["Import", "Validation", "Analysis"])
-
-    with tabs[0]:
+    tab_labels = ["Import", "Validation", "Analysis"]
+    st.markdown('<div class="subtab-nav-marker"></div>', unsafe_allow_html=True)
+    cols = st.columns([1, 1, 1, 5])
+    for col, label in zip(cols[:3], tab_labels):
+        with col:
+            is_active = st.session_state.capacity_subtab == label
+            if st.button(
+                label,
+                key=f"cap_{label.lower()}",
+                type="primary" if is_active else "secondary",
+            ):
+                st.session_state.capacity_subtab = label
+                st.rerun()
+    render_divider()
+    subtab = st.session_state.capacity_subtab
+    if subtab == "Import":
         _render_capacity_import()
-
-    with tabs[1]:
+    elif subtab == "Validation":
         _render_capacity_validation()
-
-    with tabs[2]:
+    else:
         render_capacity_view()
 
 
@@ -650,17 +658,28 @@ def _render_capacity_validation() -> None:
 
 
 def _render_performance_section() -> None:
-    """Render Performance section with sub-tabs."""
+    """Render Performance section with custom session-state-driven tabs."""
     st.header("Performance")
-    tabs = st.tabs(["Import", "Validation", "Analysis"])
-
-    with tabs[0]:
+    tab_labels = ["Import", "Validation", "Analysis"]
+    st.markdown('<div class="subtab-nav-marker"></div>', unsafe_allow_html=True)
+    cols = st.columns([1, 1, 1, 5])
+    for col, label in zip(cols[:3], tab_labels):
+        with col:
+            is_active = st.session_state.performance_subtab == label
+            if st.button(
+                label,
+                key=f"perf_{label.lower()}",
+                type="primary" if is_active else "secondary",
+            ):
+                st.session_state.performance_subtab = label
+                st.rerun()
+    render_divider()
+    subtab = st.session_state.performance_subtab
+    if subtab == "Import":
         _render_performance_import()
-
-    with tabs[1]:
+    elif subtab == "Validation":
         _render_performance_validation()
-
-    with tabs[2]:
+    else:
         render_performance_view()
 
 
