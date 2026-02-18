@@ -585,9 +585,8 @@ def _render_executive_summary(has_capacity: bool, has_performance: bool) -> None
 
 def _render_capacity_section() -> None:
     """Render Capacity section with custom session-state-driven tabs."""
-    st.header("Capacity")
+    st.markdown('<div class="subtab-sticky-header"><h2 class="section-title-inline">Capacity</h2></div>', unsafe_allow_html=True)
     tab_labels = ["Import", "Validation", "Analysis"]
-    st.markdown('<div class="subtab-nav-marker"></div>', unsafe_allow_html=True)
     cols = st.columns([1, 1, 1, 5])
     for col, label in zip(cols[:3], tab_labels):
         with col:
@@ -599,7 +598,6 @@ def _render_capacity_section() -> None:
             ):
                 st.session_state.capacity_subtab = label
                 st.rerun()
-    render_divider()
     subtab = st.session_state.capacity_subtab
     if subtab == "Import":
         _render_capacity_import()
@@ -628,9 +626,8 @@ def _render_capacity_validation() -> None:
 
 def _render_performance_section() -> None:
     """Render Performance section with custom session-state-driven tabs."""
-    st.header("Performance")
+    st.markdown('<div class="subtab-sticky-header"><h2 class="section-title-inline">Performance</h2></div>', unsafe_allow_html=True)
     tab_labels = ["Import", "Validation", "Analysis"]
-    st.markdown('<div class="subtab-nav-marker"></div>', unsafe_allow_html=True)
     cols = st.columns([1, 1, 1, 5])
     for col, label in zip(cols[:3], tab_labels):
         with col:
@@ -642,7 +639,6 @@ def _render_performance_section() -> None:
             ):
                 st.session_state.performance_subtab = label
                 st.rerun()
-    render_divider()
     subtab = st.session_state.performance_subtab
     if subtab == "Import":
         _render_performance_import()

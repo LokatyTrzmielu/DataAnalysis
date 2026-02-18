@@ -535,43 +535,76 @@ def get_custom_css() -> str:
         padding-left: 6px !important;
     }}
 
-    /* ===== Custom subtab navigation — matches native st.tabs() appearance ===== */
+    /* ===== Section header and tab navigation ===== */
 
-    /* Container: mimic tab-list background */
-    [data-testid="stElementContainer"]:has(.subtab-nav-marker) + [data-testid="stElementContainer"]
-    [data-testid="stHorizontalBlock"] {{
-        background-color: {COLORS["surface_elevated"]};
-        border-radius: 8px;
-        padding: 0.25rem;
-        gap: 0.5rem;
-        width: fit-content;
+    /* Title bar spacing */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) {{
+        background-color: {COLORS["surface"]};
+        padding-top: 0.75rem;
     }}
 
-    /* Inactive tab button */
-    [data-testid="stElementContainer"]:has(.subtab-nav-marker) + [data-testid="stElementContainer"] button {{
+    /* Section title inline styling — let Streamlit's native h2 control size/weight */
+    .subtab-sticky-header .section-title-inline {{
+        margin: 0;
+        padding: 0;
+        color: {COLORS["text"]};
+        letter-spacing: -0.02em;
+    }}
+
+    /* Buttons row wrapper */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"] {{
+        background-color: {COLORS["surface"]};
+    }}
+
+    /* Tab row container — no border line, light vertical padding */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    [data-testid="stHorizontalBlock"] {{
+        background-color: transparent;
+        border-bottom: none;
+        padding: 0.5rem 0;
+        gap: 0.25rem;
+        width: 100%;
+    }}
+
+    /* Base (inactive) pill button */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"] button {{
         background: transparent !important;
         color: {COLORS["text_secondary"]} !important;
-        border: none !important;
-        border-radius: 6px !important;
-        padding: 0.5rem 1rem !important;
+        border: 1px solid transparent !important;
+        border-radius: 20px !important;
+        padding: 0.35rem 1.1rem !important;
         font-weight: 400 !important;
         min-width: auto !important;
         width: auto !important;
         box-shadow: none !important;
+        transition: all 0.15s ease !important;
     }}
 
-    /* Active tab button (type="primary") */
-    [data-testid="stElementContainer"]:has(.subtab-nav-marker) + [data-testid="stElementContainer"] button[kind="primary"] {{
-        background-color: {COLORS["surface_light"]} !important;
+    /* Active pill — gold fill, dark text */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    button[kind="primary"] {{
+        background: {COLORS["accent"]} !important;
         color: {COLORS["text"]} !important;
         font-weight: 600 !important;
-        border: none !important;
+        border: 1px solid {COLORS["accent_dark"]} !important;
+        box-shadow: 0 2px 6px rgba(201,162,39,0.25) !important;
     }}
 
-    /* Hover state */
-    [data-testid="stElementContainer"]:has(.subtab-nav-marker) + [data-testid="stElementContainer"] button:hover {{
-        background-color: {COLORS["surface_light"]} !important;
+    /* Hover — warm gold tint + micro-lift */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    button:hover {{
+        background: {COLORS["accent_muted"]} !important;
         color: {COLORS["text"]} !important;
+        border-color: {COLORS["accent_muted"]} !important;
+        transform: translateY(-1px) !important;
+    }}
+
+    /* Active hover — slightly darker gold */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    button[kind="primary"]:hover {{
+        background: {COLORS["accent_dark"]} !important;
+        border-color: {COLORS["accent_dark"]} !important;
+        transform: translateY(-1px) !important;
     }}
 
     /* Scrollbar styling for light theme */
