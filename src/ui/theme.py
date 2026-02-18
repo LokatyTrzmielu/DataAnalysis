@@ -62,14 +62,23 @@ def get_custom_css() -> str:
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }}
 
-    /* Karty KPI */
+    /* Karty KPI — equal height in column rows */
+    [data-testid="stColumn"]:has(.kpi-card) > div,
+    [data-testid="stColumn"]:has(.kpi-card) > div > div,
+    [data-testid="stColumn"]:has(.kpi-card) > div > div > div,
+    [data-testid="stColumn"]:has(.kpi-card) > div > div > div > div,
+    [data-testid="stColumn"]:has(.kpi-card) > div > div > div > div > div {{
+        height: 100%;
+    }}
+
     .kpi-card {{
         background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
-        padding: 1rem 1.25rem;
+        padding: 1.25rem;
         border: 1px solid {COLORS["border"]};
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
         height: 100%;
+        box-sizing: border-box;
     }}
 
     .kpi-card h3 {{

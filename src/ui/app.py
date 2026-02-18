@@ -430,7 +430,6 @@ def _render_dashboard() -> None:
 
     # --- Capacity KPIs (when analysis complete) ---
     if has_capacity:
-        render_divider()
         _render_dashboard_capacity_kpis()
 
     # --- Performance KPIs (when analysis complete) ---
