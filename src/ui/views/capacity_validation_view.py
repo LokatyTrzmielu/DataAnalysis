@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.ui.insights import generate_validation_insights, render_insights
-from src.ui.layout import render_divider, render_forward_guidance, render_section_header
+from src.ui.layout import render_divider, render_forward_guidance, render_kpi_section, render_section_header
 from src.ui.theme import COLORS
 
 
@@ -23,33 +22,21 @@ def render_capacity_validation_view(show_header: bool = True) -> None:
         return
 
     # Auto-run validation on first visit (consistent with Performance auto-validation)
-    manual_run = st.button("Re-run validation", key="run_validation", type="primary")
     auto_run = st.session_state.quality_result is None
 
-    if manual_run or auto_run:
+    if auto_run:
         with st.spinner("Validation in progress..."):
             try:
                 from src.quality import run_quality_pipeline
                 from src.quality.impute import ImputationMethod
 
-                # Determine imputation method
-                imputation_method_str = st.session_state.get("imputation_method", "Median")
-                imputation_method = (
-                    ImputationMethod.MEAN if imputation_method_str == "Average"
-                    else ImputationMethod.MEDIAN
-                )
-
-                # Run validation pipeline (outlier detection moved to Capacity Analysis)
                 result = run_quality_pipeline(
                     st.session_state.masterdata_df,
-                    enable_imputation=st.session_state.get("imputation_enabled", True),
-                    imputation_method=imputation_method,
+                    enable_imputation=True,
+                    imputation_method=ImputationMethod.MEDIAN,
                 )
                 st.session_state.quality_result = result
                 st.session_state.masterdata_df = result.df
-
-                if manual_run:
-                    st.toast("Validation complete", icon="✅")
                 st.rerun()
 
             except Exception as e:
@@ -64,42 +51,26 @@ def _render_capacity_validation_results() -> None:
     """Display capacity validation results."""
     result = st.session_state.quality_result
 
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric(
-            "Quality Score",
-            f"{result.quality_score:.1f}%",
-            help=(
+    render_section_header("Masterdata summary", "📋")
+    metrics = [
+        {
+            "title": "Quality Score",
+            "value": f"{result.quality_score:.1f}%",
+            "help_text": (
                 "Weighted average of data coverage: dimensions (40%), weight (30%), "
                 "stock (30%), minus penalty for detected issues (0.5 point per issue, max 30). "
                 "Higher score indicates better data quality."
             ),
-        )
-    with col2:
-        st.metric(
-            "Records",
-            result.total_records,
-            help="Total number of SKU records in the masterdata file",
-        )
-    with col3:
-        st.metric(
-            "Valid",
-            result.valid_records,
-            help="Records with complete dimensions and weight data",
-        )
-    with col4:
-        st.metric(
-            "Imputed",
-            result.imputed_records,
-            help="Records with missing values filled using imputation",
-        )
-
-    render_divider()
-
-    # Key Findings
-    insights = generate_validation_insights(result)
-    render_insights(insights, title="Key Findings")
+        },
+        {"title": "Records", "value": result.total_records, "help_text": "Total SKU records"},
+        {"title": "Valid", "value": result.valid_records, "help_text": "Records with complete data"},
+        {
+            "title": "Imputed",
+            "value": result.imputed_records,
+            "help_text": "Records with missing values filled using the median of each field across the dataset.",
+        },
+    ]
+    render_kpi_section(metrics)
     render_divider()
 
     # Coverage comparison table
@@ -161,8 +132,6 @@ def _render_capacity_validation_results() -> None:
             st.warning(f"{name}: {count}")
         else:
             st.success(f"{name}: 0")
-
-    st.caption("Outliers (SKUs not fitting any carrier) shown in Capacity Analysis results")
 
     # Forward guidance to Analysis
     if st.session_state.get("capacity_result") is None:

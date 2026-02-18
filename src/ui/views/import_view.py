@@ -15,29 +15,10 @@ from src.ui.layout import (
     render_spacer,
     render_status_button,
 )
-from src.ui.theme import COLORS
 
 if TYPE_CHECKING:
     from src.ingest import MappingResult
 
-
-def _get_field_status_html(is_mapped: bool) -> str:
-    """Return HTML for field status indicator with colored background.
-
-    Args:
-        is_mapped: Whether this field has a column mapped to it
-
-    Returns:
-        HTML string for the status indicator
-    """
-    if is_mapped:
-        return f"""<div style="background-color: rgba(46, 125, 50, 0.08); padding: 6px 10px;
-                  border-radius: 4px; border-left: 4px solid {COLORS["primary"]}; margin-bottom: 4px;">
-                  <small style="color: {COLORS["primary"]}; font-weight: 500;">✓ Done</small></div>"""
-    else:
-        return f"""<div style="background-color: rgba(198, 40, 40, 0.08); padding: 6px 10px;
-                  border-radius: 4px; border-left: 4px solid {COLORS["error"]}; margin-bottom: 4px;">
-                  <small style="color: {COLORS["error"]}; font-weight: 500;">⚠ Missing</small></div>"""
 
 
 def build_mapping_result_from_selections(
@@ -104,30 +85,30 @@ def render_mapping_ui(
     mapping_result: "MappingResult",
     schema: dict,
     key_prefix: str = "md",
+    required_left_fields: list[str] | None = None,
+    optional_inline: bool = False,
 ) -> "MappingResult":
-    """Render column mapping UI with two-column layout.
+    """Render column mapping UI with configurable layout.
 
     Args:
         file_columns: Columns from loaded file
         mapping_result: Auto-mapping result
         schema: MASTERDATA_SCHEMA or ORDERS_SCHEMA
         key_prefix: Prefix for widget keys
+        required_left_fields: If set, splits required fields into left/right columns
+        optional_inline: If True, renders optional fields in a right column beside required
 
     Returns:
         Updated MappingResult with user selections
     """
     render_section_header("Column mapping", "🔗")
 
-    # Get required fields only
     required_fields = [f for f, cfg in schema.items() if cfg["required"]]
-
-    # Dropdown options: none + columns from file
+    optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
     dropdown_options = ["-- Don't map --"] + list(file_columns)
-
     user_mappings = {}
 
-    # Required fields section - narrower status column
-    for field_name in required_fields:
+    def render_field(field_name: str) -> None:
         field_cfg = schema[field_name]
         widget_key = f"{key_prefix}_map_{field_name}"
 
@@ -144,68 +125,55 @@ def render_mapping_ui(
         if current_selection is None:
             is_mapped = current_value is not None
 
-        col_status, col_dropdown = st.columns([1, 3])
+        marker_class = "fsm-mapped" if is_mapped else "fsm-missing"
+        st.markdown(f'<span class="{marker_class}" style="display:none;"></span>', unsafe_allow_html=True)
+        selected = st.selectbox(
+            field_name,
+            options=dropdown_options,
+            index=default_idx,
+            key=widget_key,
+            help=field_cfg["description"],
+        )
 
-        with col_status:
-            st.markdown(
-                _get_field_status_html(is_mapped),
-                unsafe_allow_html=True,
-            )
+        if selected != "-- Don't map --":
+            user_mappings[field_name] = selected
 
-        with col_dropdown:
-            selected = st.selectbox(
-                field_name,
-                options=dropdown_options,
-                index=default_idx,
-                key=widget_key,
-                help=field_cfg["description"],
-            )
+    if required_left_fields is not None:
+        # Branch A: 2-column split for required fields (Masterdata)
+        left_fields = [f for f in required_fields if f in required_left_fields]
+        right_fields = [f for f in required_fields if f not in required_left_fields]
+        col_left, col_right = st.columns([1, 1])
+        with col_left:
+            for fn in left_fields:
+                render_field(fn)
+        with col_right:
+            for fn in right_fields:
+                render_field(fn)
+        if optional_fields:
+            with st.expander("⏱ Optional fields", expanded=False):
+                for fn in optional_fields:
+                    render_field(fn)
 
-            if selected != "-- Don't map --":
-                user_mappings[field_name] = selected
+    elif optional_inline and optional_fields:
+        # Branch B: required left | optional right (Orders)
+        col_req, col_opt = st.columns([1, 1])
+        with col_req:
+            for fn in required_fields:
+                render_field(fn)
+        with col_opt:
+            render_section_header("Optional fields", "⏱")
+            for fn in optional_fields:
+                render_field(fn)
 
-    # Optional fields section
-    optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
-    if optional_fields:
-        with st.expander("⏱ Optional fields", expanded=False):
-            for field_name in optional_fields:
-                field_cfg = schema[field_name]
-                widget_key = f"{key_prefix}_map_{field_name}"
+    else:
+        # Branch C: original single-column behavior (default)
+        for fn in required_fields:
+            render_field(fn)
+        if optional_fields:
+            with st.expander("⏱ Optional fields", expanded=False):
+                for fn in optional_fields:
+                    render_field(fn)
 
-                current_mapping = mapping_result.mappings.get(field_name)
-                current_value = current_mapping.source_column if current_mapping else None
-
-                if current_value and current_value in file_columns:
-                    default_idx = file_columns.index(current_value) + 1
-                else:
-                    default_idx = 0
-
-                current_selection = st.session_state.get(widget_key)
-                is_mapped = current_selection is not None and current_selection != "-- Don't map --"
-                if current_selection is None:
-                    is_mapped = current_value is not None
-
-                col_status, col_dropdown = st.columns([1, 3])
-
-                with col_status:
-                    st.markdown(
-                        _get_field_status_html(is_mapped),
-                        unsafe_allow_html=True,
-                    )
-
-                with col_dropdown:
-                    selected = st.selectbox(
-                        field_name,
-                        options=dropdown_options,
-                        index=default_idx,
-                        key=widget_key,
-                        help=field_cfg["description"],
-                    )
-
-                    if selected != "-- Don't map --":
-                        user_mappings[field_name] = selected
-
-    # Build updated MappingResult
     return build_mapping_result_from_selections(user_mappings, file_columns, schema, mapping_result)
 
 
@@ -237,7 +205,7 @@ def render_mapping_status(mapping_result: "MappingResult") -> bool:
 
 
 def render_masterdata_import() -> None:
-    """Import Masterdata with mapping step."""
+    """Import Masterdata — persistent uploader with inline mapping."""
     from src.ingest import (
         FileReader,
         MASTERDATA_SCHEMA,
@@ -250,69 +218,53 @@ def render_masterdata_import() -> None:
 
     st.header("📁 Masterdata Import")
 
-    step = st.session_state.get("masterdata_mapping_step", "upload")
+    # File uploader — always visible
+    masterdata_file = st.file_uploader(
+        "",
+        type=["xlsx", "csv", "txt"],
+        key="masterdata_upload",
+        label_visibility="collapsed",
+    )
 
-    # Step 1: File upload
-    if step == "upload":
-        masterdata_file = st.file_uploader(
-            "Select Masterdata file",
-            type=["xlsx", "csv", "txt"],
-            key="masterdata_upload",
-        )
+    if masterdata_file is not None:
+        file_id = f"{masterdata_file.name}_{masterdata_file.size}"
+        if st.session_state.get("masterdata_last_file_id") != file_id:
+            st.session_state.masterdata_last_file_id = file_id
+            with st.spinner("Analyzing file..."):
+                try:
+                    suffix = Path(masterdata_file.name).suffix
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                        tmp.write(masterdata_file.read())
+                        tmp_path = tmp.name
 
-        if masterdata_file is not None:
-            # Quick data preview before proceeding
-            try:
-                from src.ingest import FileReader
-                suffix = Path(masterdata_file.name).suffix
-                import tempfile as _tf
-                with _tf.NamedTemporaryFile(delete=False, suffix=suffix) as _tmp:
-                    _tmp.write(masterdata_file.read())
-                    _preview_path = _tmp.name
-                masterdata_file.seek(0)  # Reset for later read
-                reader = FileReader(_preview_path)
-                preview_df = reader.get_preview(n_rows=5)
-                with st.expander(f"👁️ Preview — {len(preview_df)} rows", expanded=True):
-                    st.dataframe(preview_df.to_pandas(), use_container_width=True)
-            except Exception:
-                pass  # Don't block upload flow if preview fails
+                    reader = FileReader(tmp_path)
+                    columns = reader.get_columns()
 
-            if st.button("Next - Column mapping", key="md_to_mapping"):
-                with st.spinner("Analyzing file..."):
-                    try:
-                        # Save to temporary file
-                        suffix = Path(masterdata_file.name).suffix
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                            tmp.write(masterdata_file.read())
-                            tmp_path = tmp.name
+                    wizard = create_masterdata_wizard(history_service)
+                    client_name = st.session_state.get("client_name", "")
+                    auto_mapping = wizard.auto_map(columns, client_name)
 
-                        # Load columns and run auto-mapping
-                        reader = FileReader(tmp_path)
-                        columns = reader.get_columns()
+                    st.session_state.masterdata_temp_path = tmp_path
+                    st.session_state.masterdata_file_columns = columns
+                    st.session_state.masterdata_mapping_result = auto_mapping
+                    st.session_state.masterdata_original_mapping = auto_mapping
+                    # Reset downstream data for new file
+                    st.session_state.masterdata_df = None
+                    st.session_state.quality_result = None
+                    st.session_state.capacity_result = None
+                    st.rerun()
 
-                        wizard = create_masterdata_wizard(history_service)
-                        client_name = st.session_state.get("client_name", "")
-                        auto_mapping = wizard.auto_map(columns, client_name)
+                except Exception as e:
+                    st.error(f"File analysis error: {e}")
 
-                        # Save in session state
-                        st.session_state.masterdata_temp_path = tmp_path
-                        st.session_state.masterdata_file_columns = columns
-                        st.session_state.masterdata_mapping_result = auto_mapping
-                        st.session_state.masterdata_original_mapping = auto_mapping
-                        st.session_state.masterdata_mapping_step = "mapping"
-                        st.rerun()
-
-                    except Exception as e:
-                        st.error(f"File analysis error: {e}")
-
-    # Step 2: Column mapping
-    elif step == "mapping":
+    # Show mapping UI when a file has been analyzed
+    if st.session_state.get("masterdata_file_columns") is not None:
         columns = st.session_state.masterdata_file_columns
         mapping = st.session_state.masterdata_mapping_result
 
-        # Data preview - constrained width at top
+        # Data preview
         st.markdown('<div class="data-preview-container">', unsafe_allow_html=True)
-        with st.expander("👁️ Data preview", expanded=False):
+        with st.expander("👁️ Data preview", expanded=True):
             reader = FileReader(st.session_state.masterdata_temp_path)
             preview_df = reader.get_preview(n_rows=5)
             st.dataframe(preview_df.to_pandas(), use_container_width=True)
@@ -320,12 +272,13 @@ def render_masterdata_import() -> None:
 
         render_spacer(8)
 
-        # Mapping UI (two-column layout with summary on right)
+        # Mapping UI
         updated_mapping = render_mapping_ui(
             file_columns=columns,
             mapping_result=mapping,
             schema=MASTERDATA_SCHEMA,
             key_prefix="md",
+            required_left_fields=["sku", "weight", "stock"],
         )
 
         # Save updated mapping
@@ -336,7 +289,7 @@ def render_masterdata_import() -> None:
 
         render_spacer(12)
 
-        # Weight unit selection - constrained width
+        # Weight unit selection
         weight_col, _ = st.columns([2, 3])
         with weight_col:
             weight_unit_option = st.selectbox(
@@ -347,16 +300,8 @@ def render_masterdata_import() -> None:
                 help="Select unit if auto-detection fails for light items",
             )
 
-        # Action buttons - aligned with Weight unit selectbox width
-        btn_col_back, btn_col_import = st.columns([1, 1])
-
-        with btn_col_back:
-            if st.button("Back", key="md_back_to_upload"):
-                st.session_state.masterdata_mapping_step = "upload"
-                st.session_state.masterdata_file_columns = None
-                st.session_state.masterdata_mapping_result = None
-                st.rerun()
-
+        # Import button on the left
+        btn_col_import, _ = st.columns([1, 4])
         with btn_col_import:
             import_disabled = not updated_mapping.is_complete or has_mapping_errors
             if st.button(
@@ -364,10 +309,10 @@ def render_masterdata_import() -> None:
                 key="md_do_import",
                 disabled=import_disabled,
                 type="primary",
+                use_container_width=True,
             ):
                 with st.spinner("Importing..."):
                     try:
-                        # Map weight unit selection
                         weight_unit_map = {
                             "Auto-detect": None,
                             "Grams (g)": WeightUnit.G,
@@ -384,8 +329,7 @@ def render_masterdata_import() -> None:
                         )
 
                         st.session_state.masterdata_df = result.df
-                        st.session_state.masterdata_mapping_step = "complete"
-                        # Reset Capacity pipeline statuses (new data invalidates previous results)
+                        # Reset Capacity pipeline statuses
                         st.session_state.quality_result = None
                         st.session_state.capacity_result = None
 
@@ -399,76 +343,20 @@ def render_masterdata_import() -> None:
                             )
                             history_service.save_history()
 
-                        st.success(f"Imported {result.rows_imported} rows")
-
                         if result.warnings:
                             for warning in result.warnings:
                                 st.warning(warning)
 
+                        # Auto-navigate to Validation tab
+                        st.session_state.capacity_subtab = "Validation"
                         st.rerun()
 
                     except Exception as e:
                         st.error(f"Import error: {e}")
 
-    # Step 3: Import complete
-    elif step == "complete":
-        if st.session_state.masterdata_df is not None:
-            # Status button with count
-            render_status_button(f"{len(st.session_state.masterdata_df)} SKU imported", "success")
-
-            # Forward guidance
-            if st.session_state.get("quality_result") is None:
-                render_forward_guidance("Proceed to the Validation tab to validate data quality")
-
-            render_spacer(10)
-
-            with st.expander("👁️ Data preview", expanded=False):
-                st.dataframe(
-                    st.session_state.masterdata_df.head(20).to_pandas(),
-                    width="stretch",
-                )
-
-        # Two-step confirmation for reimport
-        has_analysis = (
-            st.session_state.get("quality_result") is not None
-            or st.session_state.get("capacity_result") is not None
-        )
-
-        if not st.session_state.get("md_confirm_reimport"):
-            if st.button("Import new file", key="md_new_import"):
-                if has_analysis:
-                    st.session_state.md_confirm_reimport = True
-                    st.rerun()
-                else:
-                    # No analysis to lose — reimport directly
-                    st.session_state.masterdata_mapping_step = "upload"
-                    st.session_state.masterdata_file_columns = None
-                    st.session_state.masterdata_mapping_result = None
-                    st.session_state.masterdata_temp_path = None
-                    st.session_state.masterdata_df = None
-                    st.rerun()
-        else:
-            st.warning("Importing a new file will reset Validation and Capacity Analysis results.")
-            col_yes, col_no = st.columns(2)
-            with col_yes:
-                if st.button("Confirm reimport", key="md_confirm_yes", type="primary"):
-                    st.session_state.md_confirm_reimport = False
-                    st.session_state.masterdata_mapping_step = "upload"
-                    st.session_state.masterdata_file_columns = None
-                    st.session_state.masterdata_mapping_result = None
-                    st.session_state.masterdata_temp_path = None
-                    st.session_state.masterdata_df = None
-                    st.session_state.quality_result = None
-                    st.session_state.capacity_result = None
-                    st.rerun()
-            with col_no:
-                if st.button("Cancel", key="md_confirm_no"):
-                    st.session_state.md_confirm_reimport = False
-                    st.rerun()
-
 
 def render_orders_import() -> None:
-    """Import Orders with mapping step."""
+    """Import Orders — persistent uploader with inline mapping."""
     from src.ingest import (
         FileReader,
         ORDERS_SCHEMA,
@@ -480,70 +368,52 @@ def render_orders_import() -> None:
 
     st.header("📝 Orders Import")
 
-    step = st.session_state.get("orders_mapping_step", "upload")
+    # File uploader — always visible
+    orders_file = st.file_uploader(
+        "",
+        type=["xlsx", "csv", "txt"],
+        key="orders_upload",
+        label_visibility="collapsed",
+    )
 
-    # Step 1: File upload
-    if step == "upload":
-        orders_file = st.file_uploader(
-            "Select Orders file",
-            type=["xlsx", "csv", "txt"],
-            key="orders_upload",
-        )
+    if orders_file is not None:
+        file_id = f"{orders_file.name}_{orders_file.size}"
+        if st.session_state.get("orders_last_file_id") != file_id:
+            st.session_state.orders_last_file_id = file_id
+            with st.spinner("Analyzing file..."):
+                try:
+                    suffix = Path(orders_file.name).suffix
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                        tmp.write(orders_file.read())
+                        tmp_path = tmp.name
 
-        if orders_file is not None:
-            # Quick data preview before proceeding
-            try:
-                from src.ingest import FileReader
-                suffix = Path(orders_file.name).suffix
-                import tempfile as _tf
-                with _tf.NamedTemporaryFile(delete=False, suffix=suffix) as _tmp:
-                    _tmp.write(orders_file.read())
-                    _preview_path = _tmp.name
-                orders_file.seek(0)  # Reset for later read
-                reader = FileReader(_preview_path)
-                preview_df = reader.get_preview(n_rows=5)
-                with st.expander(f"👁️ Preview — {len(preview_df)} rows", expanded=True):
-                    st.dataframe(preview_df.to_pandas(), use_container_width=True)
-            except Exception:
-                pass  # Don't block upload flow if preview fails
+                    reader = FileReader(tmp_path)
+                    columns = reader.get_columns()
 
-            if st.button("Next - Column mapping", key="orders_to_mapping"):
-                with st.spinner("Analyzing file..."):
-                    try:
-                        # Save to temporary file
-                        suffix = Path(orders_file.name).suffix
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                            tmp.write(orders_file.read())
-                            tmp_path = tmp.name
+                    wizard = create_orders_wizard(history_service)
+                    client_name = st.session_state.get("client_name", "")
+                    auto_mapping = wizard.auto_map(columns, client_name)
 
-                        # Load columns and run auto-mapping
-                        reader = FileReader(tmp_path)
-                        columns = reader.get_columns()
+                    st.session_state.orders_temp_path = tmp_path
+                    st.session_state.orders_file_columns = columns
+                    st.session_state.orders_mapping_result = auto_mapping
+                    st.session_state.orders_original_mapping = auto_mapping
+                    # Reset downstream data for new file
+                    st.session_state.orders_df = None
+                    st.session_state.performance_result = None
+                    st.rerun()
 
-                        wizard = create_orders_wizard(history_service)
-                        client_name = st.session_state.get("client_name", "")
-                        auto_mapping = wizard.auto_map(columns, client_name)
+                except Exception as e:
+                    st.error(f"File analysis error: {e}")
 
-                        # Save in session state
-                        st.session_state.orders_temp_path = tmp_path
-                        st.session_state.orders_file_columns = columns
-                        st.session_state.orders_mapping_result = auto_mapping
-                        st.session_state.orders_original_mapping = auto_mapping
-                        st.session_state.orders_mapping_step = "mapping"
-                        st.rerun()
-
-                    except Exception as e:
-                        st.error(f"File analysis error: {e}")
-
-    # Step 2: Column mapping
-    elif step == "mapping":
+    # Show mapping UI when a file has been analyzed
+    if st.session_state.get("orders_file_columns") is not None:
         columns = st.session_state.orders_file_columns
         mapping = st.session_state.orders_mapping_result
 
-        # Data preview - constrained width at top
+        # Data preview
         st.markdown('<div class="data-preview-container">', unsafe_allow_html=True)
-        with st.expander("👁️ Data preview", expanded=False):
-            from src.ingest import FileReader
+        with st.expander("👁️ Data preview", expanded=True):
             reader = FileReader(st.session_state.orders_temp_path)
             preview_df = reader.get_preview(n_rows=5)
             st.dataframe(preview_df.to_pandas(), use_container_width=True)
@@ -551,12 +421,13 @@ def render_orders_import() -> None:
 
         render_spacer(8)
 
-        # Mapping UI (two-column layout with summary on right)
+        # Mapping UI
         updated_mapping = render_mapping_ui(
             file_columns=columns,
             mapping_result=mapping,
             schema=ORDERS_SCHEMA,
             key_prefix="orders",
+            optional_inline=True,
         )
 
         # Save updated mapping
@@ -567,16 +438,8 @@ def render_orders_import() -> None:
 
         render_spacer(12)
 
-        # Action buttons - simplified layout
-        btn_col_back, btn_col_import = st.columns([1, 1])
-
-        with btn_col_back:
-            if st.button("Back", key="orders_back_to_upload"):
-                st.session_state.orders_mapping_step = "upload"
-                st.session_state.orders_file_columns = None
-                st.session_state.orders_mapping_result = None
-                st.rerun()
-
+        # Import button on the left
+        btn_col_import, _ = st.columns([1, 4])
         with btn_col_import:
             import_disabled = not updated_mapping.is_complete or has_mapping_errors
             if st.button(
@@ -584,6 +447,7 @@ def render_orders_import() -> None:
                 key="orders_do_import",
                 disabled=import_disabled,
                 type="primary",
+                use_container_width=True,
             ):
                 with st.spinner("Importing..."):
                     try:
@@ -594,8 +458,7 @@ def render_orders_import() -> None:
                         )
 
                         st.session_state.orders_df = result.df
-                        st.session_state.orders_mapping_step = "complete"
-                        # Reset Performance pipeline status (new data invalidates previous results)
+                        # Reset Performance pipeline status
                         st.session_state.performance_result = None
 
                         # Record user corrections to history
@@ -608,67 +471,16 @@ def render_orders_import() -> None:
                             )
                             history_service.save_history()
 
-                        st.success(f"Imported {result.rows_imported} rows")
-
                         if result.warnings:
                             for warning in result.warnings:
                                 st.warning(warning)
 
+                        # Auto-navigate to Validation tab
+                        st.session_state.performance_subtab = "Validation"
                         st.rerun()
 
                     except Exception as e:
                         st.error(f"Import error: {e}")
-
-    # Step 3: Import complete
-    elif step == "complete":
-        if st.session_state.orders_df is not None:
-            # Status button with count
-            render_status_button(f"{len(st.session_state.orders_df)} lines imported", "success")
-
-            # Forward guidance
-            if st.session_state.get("performance_result") is None:
-                render_forward_guidance("Proceed to the Analysis tab to run performance analysis")
-
-            render_spacer(10)
-
-            with st.expander("👁️ Data preview", expanded=False):
-                st.dataframe(
-                    st.session_state.orders_df.head(20).to_pandas(),
-                    width="stretch",
-                )
-
-        # Two-step confirmation for reimport
-        has_analysis = st.session_state.get("performance_result") is not None
-
-        if not st.session_state.get("orders_confirm_reimport"):
-            if st.button("Import new file", key="orders_new_import"):
-                if has_analysis:
-                    st.session_state.orders_confirm_reimport = True
-                    st.rerun()
-                else:
-                    st.session_state.orders_mapping_step = "upload"
-                    st.session_state.orders_file_columns = None
-                    st.session_state.orders_mapping_result = None
-                    st.session_state.orders_temp_path = None
-                    st.session_state.orders_df = None
-                    st.rerun()
-        else:
-            st.warning("Importing a new file will reset Performance Analysis results.")
-            col_yes, col_no = st.columns(2)
-            with col_yes:
-                if st.button("Confirm reimport", key="orders_confirm_yes", type="primary"):
-                    st.session_state.orders_confirm_reimport = False
-                    st.session_state.orders_mapping_step = "upload"
-                    st.session_state.orders_file_columns = None
-                    st.session_state.orders_mapping_result = None
-                    st.session_state.orders_temp_path = None
-                    st.session_state.orders_df = None
-                    st.session_state.performance_result = None
-                    st.rerun()
-            with col_no:
-                if st.button("Cancel", key="orders_confirm_no"):
-                    st.session_state.orders_confirm_reimport = False
-                    st.rerun()
 
 
 def render_import_view() -> None:

@@ -1,11 +1,11 @@
 version: '1.0'
-last_updated: '2026-02-18T14:08:12.704542'
+last_updated: '2026-02-18T23:55:24.184392'
 masterdata_mappings:
 - source_column: nazwa_indeksu
   target_field: sku
   client_pattern: ''
-  use_count: 1
-  last_used: '2026-02-01T21:25:11.892353'
+  use_count: 3
+  last_used: '2026-02-18T15:59:51.676920'
   is_user_correction: true
 - source_column: stock_quantity__max
   target_field: stock
