@@ -7,7 +7,7 @@ from datetime import date, timedelta
 import polars as pl
 import streamlit as st
 
-from src.ui.layout import render_bold_label, render_divider, render_section_header
+from src.ui.layout import render_bold_label, render_divider, render_kpi_section, render_section_header
 
 
 def render_performance_validation_view() -> None:
@@ -21,34 +21,22 @@ def render_performance_validation_view() -> None:
     # --- Orders data summary ---
     render_section_header("Orders data summary", "📋")
 
-    # Row 1: 3 columns
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total records", len(df))
-    with col2:
-        if "order_date" in df.columns:
-            date_min = df["order_date"].min()
-            date_max = df["order_date"].max()
-            st.metric("Date range", f"{date_min} - {date_max}")
-        else:
-            st.metric("Date range", "N/A")
-    with col3:
-        has_hourly = "order_hour" in df.columns and df["order_hour"].n_unique() > 1
-        st.metric("Hourly data", "Yes" if has_hourly else "No")
+    date_range = "N/A"
+    if "order_date" in df.columns:
+        date_min = df["order_date"].min()
+        date_max = df["order_date"].max()
+        date_range = f"{date_min} – {date_max}"
 
-    # Row 2: 3 columns (last one empty)
-    col4, col5, _col6 = st.columns(3)
-    with col4:
-        if "sku" in df.columns:
-            st.metric("Unique SKUs", df["sku"].n_unique())
-        else:
-            st.metric("Unique SKUs", "N/A")
-    with col5:
-        if "order_date" in df.columns:
-            st.metric("Unique days", df["order_date"].n_unique())
-        else:
-            st.metric("Unique days", "N/A")
+    has_hourly = "order_hour" in df.columns and df["order_hour"].n_unique() > 1
 
+    metrics = [
+        {"title": "Total records", "value": len(df), "help_text": "Total order lines imported"},
+        {"title": "Date range", "value": date_range, "help_text": "First and last order date in the dataset"},
+        {"title": "Unique SKUs", "value": df["sku"].n_unique() if "sku" in df.columns else "N/A", "help_text": "Number of distinct SKUs in the orders"},
+        {"title": "Unique days", "value": df["order_date"].n_unique() if "order_date" in df.columns else "N/A", "help_text": "Number of distinct order dates"},
+        {"title": "Hourly data", "value": "Yes" if has_hourly else "No", "help_text": "Whether the data contains hourly order timestamps"},
+    ]
+    render_kpi_section(metrics)
     render_divider()
 
     # --- Missing SKUs ---
