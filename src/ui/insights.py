@@ -204,6 +204,60 @@ def generate_performance_insights() -> list[Insight]:
     return insights
 
 
+def generate_validation_insights(result) -> list[Insight]:
+    """Generate insights from capacity validation result.
+
+    Returns:
+        List of Insight objects describing data quality findings.
+    """
+    insights: list[Insight] = []
+
+    dim_after = result.metrics_after.dimensions_coverage_pct
+    wgt_after = result.metrics_after.weight_coverage_pct
+    dim_before = result.metrics_before.dimensions_coverage_pct
+    wgt_before = result.metrics_before.weight_coverage_pct
+    score = result.quality_score
+
+    # Overall quality score
+    if score >= 90:
+        insights.append(Insight(f"Quality score {score:.1f}% — excellent data quality", "positive"))
+    elif score >= 70:
+        insights.append(Insight(f"Quality score {score:.1f}% — acceptable, some issues detected", "info"))
+    else:
+        insights.append(Insight(f"Quality score {score:.1f}% — significant data quality issues", "warning"))
+
+    # Coverage after imputation
+    if dim_after == 100 and wgt_after == 100:
+        insights.append(Insight("All records complete after imputation (100% coverage)", "positive"))
+    else:
+        if dim_after < 100:
+            insights.append(Insight(f"Dimensions coverage {dim_after:.1f}% — some records still incomplete", "warning"))
+        if wgt_after < 100:
+            insights.append(Insight(f"Weight coverage {wgt_after:.1f}% — some records still incomplete", "warning"))
+
+    # Imputation gains
+    if result.imputed_records > 0:
+        dim_gained = dim_after - dim_before
+        insights.append(Insight(
+            f"{result.imputed_records} records imputed"
+            + (f" — dimensions coverage improved by {dim_gained:.1f}pp" if dim_gained > 0 else ""),
+            "info",
+        ))
+
+    # Issue counts
+    dq = result.dq_lists
+    if len(dq.missing_critical) > 0:
+        insights.append(Insight(f"{len(dq.missing_critical)} records with missing critical fields — manual correction needed", "warning"))
+    if len(dq.duplicates) > 0:
+        insights.append(Insight(f"{len(dq.duplicates)} duplicate SKUs detected", "warning"))
+    if len(dq.conflicts) > 0:
+        insights.append(Insight(f"{len(dq.conflicts)} conflicting dimension records", "warning"))
+    if len(dq.missing_critical) == 0 and len(dq.duplicates) == 0 and len(dq.conflicts) == 0:
+        insights.append(Insight("No critical issues detected in masterdata", "positive"))
+
+    return insights
+
+
 def render_insights(insights: list[Insight], title: str = "Key Findings") -> None:
     """Render a list of insights as styled cards.
 

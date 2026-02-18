@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.ui.layout import render_bold_label, render_divider, render_forward_guidance, render_section_header
+from src.ui.insights import generate_validation_insights, render_insights
+from src.ui.layout import render_divider, render_forward_guidance, render_section_header
+from src.ui.theme import COLORS
 
 
 def render_capacity_validation_view(show_header: bool = True) -> None:
@@ -95,23 +97,55 @@ def _render_capacity_validation_results() -> None:
 
     render_divider()
 
-    # Coverage
+    # Key Findings
+    insights = generate_validation_insights(result)
+    render_insights(insights, title="Key Findings")
+    render_divider()
+
+    # Coverage comparison table
     render_section_header("Data coverage", "📊")
-    col1, col2 = st.columns(2)
 
-    with col1:
-        render_bold_label("Before imputation:", "⬅️")
-        st.progress(result.metrics_before.dimensions_coverage_pct / 100,
-                   text=f"Dimensions: {result.metrics_before.dimensions_coverage_pct:.1f}%")
-        st.progress(result.metrics_before.weight_coverage_pct / 100,
-                   text=f"Weight: {result.metrics_before.weight_coverage_pct:.1f}%")
+    def _coverage_color(pct: float) -> str:
+        if pct >= 100:
+            return COLORS["primary"]
+        if pct >= 90:
+            return COLORS["accent"]
+        return COLORS["error"]
 
-    with col2:
-        render_bold_label("After imputation:", "➡️")
-        st.progress(result.metrics_after.dimensions_coverage_pct / 100,
-                   text=f"Dimensions: {result.metrics_after.dimensions_coverage_pct:.1f}%")
-        st.progress(result.metrics_after.weight_coverage_pct / 100,
-                   text=f"Weight: {result.metrics_after.weight_coverage_pct:.1f}%")
+    def _delta_color(delta: float) -> str:
+        return COLORS["primary"] if delta > 0 else COLORS["info"]
+
+    rows = [
+        ("Dimensions", result.metrics_before.dimensions_coverage_pct, result.metrics_after.dimensions_coverage_pct),
+        ("Weight", result.metrics_before.weight_coverage_pct, result.metrics_after.weight_coverage_pct),
+    ]
+
+    table_rows_html = ""
+    for label, before, after in rows:
+        delta = after - before
+        delta_str = f"+{delta:.1f}pp" if delta > 0 else f"{delta:.1f}pp"
+        table_rows_html += (
+            f'<tr>'
+            f'<td style="padding:0.5rem 0.75rem; color:{COLORS["text"]};">{label}</td>'
+            f'<td style="padding:0.5rem 0.75rem; text-align:center; font-weight:600; color:{_coverage_color(before)};">{before:.1f}%</td>'
+            f'<td style="padding:0.5rem 0.75rem; text-align:center; font-weight:600; color:{_coverage_color(after)};">{after:.1f}%</td>'
+            f'<td style="padding:0.5rem 0.75rem; text-align:center; font-weight:600; color:{_delta_color(delta)};">{delta_str}</td>'
+            f'</tr>'
+        )
+
+    header_style = f'background:{COLORS["surface_light"]}; padding:0.5rem 0.75rem; color:{COLORS["text_secondary"]}; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;'
+    table_html = (
+        f'<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">'
+        f'<thead><tr>'
+        f'<th style="{header_style} text-align:left;">Metric</th>'
+        f'<th style="{header_style} text-align:center;">Before</th>'
+        f'<th style="{header_style} text-align:center;">After</th>'
+        f'<th style="{header_style} text-align:center;">Delta</th>'
+        f'</tr></thead>'
+        f'<tbody>{table_rows_html}</tbody>'
+        f'</table>'
+    )
+    st.markdown(table_html, unsafe_allow_html=True)
 
     # Issues (Outliers and Borderline moved to Capacity Analysis)
     render_section_header("Detected issues", "⚠️")
