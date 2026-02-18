@@ -126,148 +126,84 @@ def render_mapping_ui(
 
     user_mappings = {}
 
-    # Calculate mapped count for progress bar
-    mapped_required = 0
+    # Required fields section - narrower status column
     for field_name in required_fields:
+        field_cfg = schema[field_name]
         widget_key = f"{key_prefix}_map_{field_name}"
+
+        current_mapping = mapping_result.mappings.get(field_name)
+        current_value = current_mapping.source_column if current_mapping else None
+
+        if current_value and current_value in file_columns:
+            default_idx = file_columns.index(current_value) + 1
+        else:
+            default_idx = 0
+
         current_selection = st.session_state.get(widget_key)
-        if current_selection is not None and current_selection != "-- Don't map --":
-            mapped_required += 1
-        elif current_selection is None:
-            if mapping_result.mappings.get(field_name):
-                mapped_required += 1
+        is_mapped = current_selection is not None and current_selection != "-- Don't map --"
+        if current_selection is None:
+            is_mapped = current_value is not None
 
-    total_required = len(required_fields)
+        col_status, col_dropdown = st.columns([1, 3])
 
-    # Two-column layout: mapping (60%) | summary (40%)
-    col_mapping, col_summary = st.columns([3, 2])
-
-    with col_mapping:
-        # Progress bar (constrained width via CSS class)
-        st.markdown('<div class="mapping-progress">', unsafe_allow_html=True)
-        st.progress(
-            mapped_required / total_required if total_required > 0 else 0,
-            text=f"Required: {mapped_required}/{total_required} mapped",
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # Required fields section - narrower status column
-        for field_name in required_fields:
-            field_cfg = schema[field_name]
-            widget_key = f"{key_prefix}_map_{field_name}"
-
-            current_mapping = mapping_result.mappings.get(field_name)
-            current_value = current_mapping.source_column if current_mapping else None
-
-            if current_value and current_value in file_columns:
-                default_idx = file_columns.index(current_value) + 1
-            else:
-                default_idx = 0
-
-            current_selection = st.session_state.get(widget_key)
-            is_mapped = current_selection is not None and current_selection != "-- Don't map --"
-            if current_selection is None:
-                is_mapped = current_value is not None
-
-            # Row layout: narrower status | dropdown (was [1, 4], now [1, 3])
-            col_status, col_dropdown = st.columns([1, 3])
-
-            with col_status:
-                st.markdown(
-                    _get_field_status_html(is_mapped),
-                    unsafe_allow_html=True,
-                )
-
-            with col_dropdown:
-                selected = st.selectbox(
-                    field_name,
-                    options=dropdown_options,
-                    index=default_idx,
-                    key=widget_key,
-                    help=field_cfg["description"],
-                )
-
-                if selected != "-- Don't map --":
-                    user_mappings[field_name] = selected
-
-        # Optional fields section
-        optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
-        if optional_fields:
-            with st.expander("⏱ Optional fields", expanded=False):
-                for field_name in optional_fields:
-                    field_cfg = schema[field_name]
-                    widget_key = f"{key_prefix}_map_{field_name}"
-
-                    current_mapping = mapping_result.mappings.get(field_name)
-                    current_value = current_mapping.source_column if current_mapping else None
-
-                    if current_value and current_value in file_columns:
-                        default_idx = file_columns.index(current_value) + 1
-                    else:
-                        default_idx = 0
-
-                    current_selection = st.session_state.get(widget_key)
-                    is_mapped = current_selection is not None and current_selection != "-- Don't map --"
-                    if current_selection is None:
-                        is_mapped = current_value is not None
-
-                    col_status, col_dropdown = st.columns([1, 3])
-
-                    with col_status:
-                        st.markdown(
-                            _get_field_status_html(is_mapped),
-                            unsafe_allow_html=True,
-                        )
-
-                    with col_dropdown:
-                        selected = st.selectbox(
-                            field_name,
-                            options=dropdown_options,
-                            index=default_idx,
-                            key=widget_key,
-                            help=field_cfg["description"],
-                        )
-
-                        if selected != "-- Don't map --":
-                            user_mappings[field_name] = selected
-
-    with col_summary:
-        # Mapping summary - always visible (no expander)
-        st.markdown(
-            f'<div class="mapping-summary-panel">'
-            f'<p style="font-weight: 600; margin-bottom: 0.75rem; color: {COLORS["text"]};">📋 Mapping summary</p>',
-            unsafe_allow_html=True,
-        )
-        for field_name, col_map in mapping_result.mappings.items():
-            source = col_map.source_column
-            badge_color = COLORS["primary"] if col_map.is_auto else COLORS["info"]
-            badge_text = "auto" if col_map.is_auto else "manual"
+        with col_status:
             st.markdown(
-                f'<div style="padding: 3px 0; color: {COLORS["text"]}; font-size: 0.85rem;">'
-                f'<strong>{field_name}</strong> ← <code style="background: {COLORS["surface_light"]}; '
-                f'padding: 2px 5px; border-radius: 3px; font-size: 0.8rem;">{source}</code> '
-                f'<span style="color: {badge_color}; font-size: 0.75rem;">({badge_text})</span>'
-                f'</div>',
+                _get_field_status_html(is_mapped),
                 unsafe_allow_html=True,
             )
-        st.markdown('</div>', unsafe_allow_html=True)
 
-        render_spacer(8)
-
-        # Unmapped columns - always visible below summary
-        # Build from user_mappings to get current state
-        used_columns = set(user_mappings.values())
-        unmapped = [c for c in file_columns if c not in used_columns]
-        if unmapped:
-            st.markdown(
-                f'<div class="mapping-summary-panel">'
-                f'<p style="font-weight: 600; margin-bottom: 0.5rem; color: {COLORS["text"]};">'
-                f'📁 Unmapped columns ({len(unmapped)})</p>'
-                f'<p style="color: {COLORS["text_secondary"]}; font-size: 0.8rem; line-height: 1.4;">'
-                f'{", ".join(unmapped)}</p>'
-                f'</div>',
-                unsafe_allow_html=True,
+        with col_dropdown:
+            selected = st.selectbox(
+                field_name,
+                options=dropdown_options,
+                index=default_idx,
+                key=widget_key,
+                help=field_cfg["description"],
             )
+
+            if selected != "-- Don't map --":
+                user_mappings[field_name] = selected
+
+    # Optional fields section
+    optional_fields = [f for f, cfg in schema.items() if not cfg["required"]]
+    if optional_fields:
+        with st.expander("⏱ Optional fields", expanded=False):
+            for field_name in optional_fields:
+                field_cfg = schema[field_name]
+                widget_key = f"{key_prefix}_map_{field_name}"
+
+                current_mapping = mapping_result.mappings.get(field_name)
+                current_value = current_mapping.source_column if current_mapping else None
+
+                if current_value and current_value in file_columns:
+                    default_idx = file_columns.index(current_value) + 1
+                else:
+                    default_idx = 0
+
+                current_selection = st.session_state.get(widget_key)
+                is_mapped = current_selection is not None and current_selection != "-- Don't map --"
+                if current_selection is None:
+                    is_mapped = current_value is not None
+
+                col_status, col_dropdown = st.columns([1, 3])
+
+                with col_status:
+                    st.markdown(
+                        _get_field_status_html(is_mapped),
+                        unsafe_allow_html=True,
+                    )
+
+                with col_dropdown:
+                    selected = st.selectbox(
+                        field_name,
+                        options=dropdown_options,
+                        index=default_idx,
+                        key=widget_key,
+                        help=field_cfg["description"],
+                    )
+
+                    if selected != "-- Don't map --":
+                        user_mappings[field_name] = selected
 
     # Build updated MappingResult
     return build_mapping_result_from_selections(user_mappings, file_columns, schema, mapping_result)

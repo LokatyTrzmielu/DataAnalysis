@@ -860,30 +860,6 @@ def get_custom_css() -> str:
         max-width: 100% !important;
     }}
 
-    /* Progress bar in mapping section - shorter */
-    .mapping-progress {{
-        max-width: 400px !important;
-    }}
-
-    .mapping-progress .stProgress {{
-        max-width: 100% !important;
-    }}
-
-    /* Mapping summary panel - right column styling */
-    .mapping-summary-panel {{
-        background-color: {COLORS["surface_elevated"]};
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        border: 1px solid {COLORS["border"]};
-        margin-bottom: 0.5rem;
-    }}
-
-    /* Compact field status badges */
-    .mapping-progress + div .stColumns > div:first-child {{
-        max-width: 90px !important;
-        min-width: 70px !important;
-    }}
-
     /* ===== Sidebar Pipeline Status Styling ===== */
 
     /* Status section container */
