@@ -258,17 +258,18 @@ def generate_validation_insights(result) -> list[Insight]:
     return insights
 
 
-def render_insights(insights: list[Insight], title: str = "Key Findings") -> None:
+def render_insights(insights: list[Insight], title: str | None = "Key Findings") -> None:
     """Render a list of insights as styled cards.
 
     Args:
         insights: List of Insight objects to display
-        title: Section title
+        title: Section title, or None to suppress the header
     """
     if not insights:
         return
 
-    render_section_header(title, "💡")
+    if title:
+        render_section_header(title, "💡")
 
     type_config = {
         "positive": {"icon": "✅", "border": COLORS["primary"], "bg": "#e8f5e9"},

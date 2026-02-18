@@ -578,7 +578,7 @@ def _render_executive_summary(has_capacity: bool, has_performance: bool) -> None
         # Sort: warnings first, then info, then positive
         priority = {"warning": 0, "info": 1, "positive": 2}
         all_insights.sort(key=lambda i: priority.get(i.type, 3))
-        render_insights(all_insights, title="All Findings")
+        render_insights(all_insights, title=None)
     else:
         st.info("Run analyses to see findings here.")
 
