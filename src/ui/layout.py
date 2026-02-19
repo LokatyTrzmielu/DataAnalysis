@@ -36,17 +36,19 @@ def render_kpi_card(
     """
     delta_class = delta_color if delta else ""
     icon_html = f'<span class="icon">{icon}</span>' if icon else ""
-    delta_html = f'<p class="delta {delta_class}">{delta}</p>' if delta else ""
 
-    card_html = f"""
-    <div class="kpi-card">
-        <h3>{icon_html}{title}</h3>
-        <p class="value">{value}</p>
-        {delta_html}
-    </div>
-    """
+    parts = [
+        '<div class="kpi-card">',
+        f'<h3>{icon_html}{title}</h3>',
+        f'<p class="value">{value}</p>',
+    ]
+    if delta:
+        parts.append(f'<p class="delta {delta_class}">{delta}</p>')
+    if help_text:
+        parts.append(f'<p class="help-text">{help_text}</p>')
+    parts.append("</div>")
 
-    st.markdown(card_html, unsafe_allow_html=True)
+    st.markdown("\n".join(parts), unsafe_allow_html=True)
 
 
 def render_kpi_section(metrics: list[dict]) -> None:
@@ -239,6 +241,7 @@ def get_plotly_layout_defaults() -> dict:
             "font": {"color": COLORS["text"]},
         },
         "margin": {"l": 40, "r": 40, "t": 40, "b": 40},
+        "height": 400,
     }
 
 
@@ -322,6 +325,119 @@ def render_error_box(message: str) -> None:
 def render_success_box(message: str) -> None:
     """Render a success message box (green accent)."""
     render_message_box(message, "success")
+
+
+def render_forward_guidance(message: str) -> None:
+    """Render a forward guidance banner directing user to next step.
+
+    Args:
+        message: Guidance text (e.g. "Proceed to the Validation tab")
+    """
+    st.markdown(
+        f'<div class="forward-guidance"><span class="arrow">&#10132;</span> {message}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_alert_banner(
+    title: str,
+    message: str,
+    severity: Literal["critical", "warning", "info"] = "warning",
+) -> None:
+    """Render an alert banner for threshold violations or important findings.
+
+    Args:
+        title: Short alert title (e.g. "Low Fit Rate")
+        message: Detailed alert description
+        severity: Alert severity (critical=red, warning=amber, info=blue)
+    """
+    severity_config = {
+        "critical": {"bg": "#fde8e8", "border": COLORS["error"], "icon": "&#9888;", "title_color": COLORS["error"]},
+        "warning": {"bg": "#fef3cd", "border": COLORS["warning"], "icon": "&#9888;", "title_color": COLORS["warning"]},
+        "info": {"bg": "#e8f0fe", "border": STATUS_COLORS["in_progress"], "icon": "&#8505;", "title_color": STATUS_COLORS["in_progress"]},
+    }
+    cfg = severity_config.get(severity, severity_config["warning"])
+    st.markdown(
+        f'<div style="background:{cfg["bg"]}; border-left: 4px solid {cfg["border"]}; '
+        f'border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.75rem;">'
+        f'<strong style="color:{cfg["title_color"]};">{cfg["icon"]} {title}</strong>'
+        f'<p style="color:{COLORS["text"]}; margin: 0.25rem 0 0 0; font-size: 0.9rem;">{message}</p>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_alerts_from_data() -> None:
+    """Check analysis results and render alert banners for threshold violations.
+
+    Checks:
+    - Capacity: fit rate < 70% (warning), < 50% (critical)
+    - Capacity: not-fit SKU > 10% (warning), > 25% (critical)
+    - Performance: P95 throughput very high vs avg (warning if > 3x)
+    """
+    alerts: list[tuple[str, str, str]] = []  # (title, message, severity)
+
+    # --- Capacity alerts ---
+    capacity_result = st.session_state.get("capacity_result")
+    if capacity_result is not None:
+        # Average fit rate across carriers
+        fit_rates = []
+        for cid, stats in capacity_result.carrier_stats.items():
+            if cid != "NONE":
+                fit_rates.append(stats.fit_percentage)
+
+        if fit_rates:
+            avg_fit = sum(fit_rates) / len(fit_rates)
+            if avg_fit < 50:
+                alerts.append((
+                    "Low Fit Rate",
+                    f"Average fit rate is {avg_fit:.1f}% — less than half of SKU fit the carriers. "
+                    "Consider adding larger carriers or reviewing SKU dimensions.",
+                    "critical",
+                ))
+            elif avg_fit < 70:
+                alerts.append((
+                    "Below Target Fit Rate",
+                    f"Average fit rate is {avg_fit:.1f}% — below the 70% target. "
+                    "Some carriers may be undersized for the product mix.",
+                    "warning",
+                ))
+
+        # Not-fit SKU in prioritized/best-fit mode
+        none_stats = capacity_result.carrier_stats.get("NONE")
+        if none_stats and capacity_result.total_sku > 0:
+            not_fit_pct = none_stats.not_fit_count / capacity_result.total_sku * 100
+            if not_fit_pct > 25:
+                alerts.append((
+                    "High Not-Fit Rate",
+                    f"{none_stats.not_fit_count} SKU ({not_fit_pct:.0f}%) don't fit any carrier.",
+                    "critical",
+                ))
+            elif not_fit_pct > 10:
+                alerts.append((
+                    "Notable Not-Fit Rate",
+                    f"{none_stats.not_fit_count} SKU ({not_fit_pct:.0f}%) don't fit any carrier.",
+                    "warning",
+                ))
+
+    # --- Performance alerts ---
+    perf_result = st.session_state.get("performance_result")
+    if perf_result is not None:
+        kpi = perf_result.kpi
+        if perf_result.has_hourly_data and kpi.avg_lines_per_hour > 0:
+            peak_ratio = kpi.p95_lines_per_hour / kpi.avg_lines_per_hour
+            if peak_ratio > 3.0:
+                alerts.append((
+                    "High Peak Variability",
+                    f"P95 throughput ({kpi.p95_lines_per_hour:.0f} lines/h) is {peak_ratio:.1f}x "
+                    f"the average ({kpi.avg_lines_per_hour:.0f} lines/h). "
+                    "Consider peak staffing or load balancing.",
+                    "warning",
+                ))
+
+    # Render all alerts
+    for title, message, severity in alerts:
+        render_alert_banner(title, message, severity)
 
 
 @contextmanager

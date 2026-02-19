@@ -218,3 +218,122 @@ Jedyne wartościowe elementy:
 | **F3** (Design System) | ~40% zrobione | Umiarkowana | Wybrane elementy (Card, spacing) |
 | **F4** (Demo Mode) | 0% zrobione | Wysoka, ale ambitna | Uprość do rozszerzonego Dashboard |
 | **F5** (SOA) | **~80% zrobione** | Minimalna | Praktycznie pomiń |
+
+---
+
+## AUDYT AGENTÓW - REWIZJA PLANU
+
+**Data audytu**: 2026-02-17
+**Przeprowadzony przez**: 3 niezależne agenty (krytyczny, UI, UX)
+**Cel**: Weryfikacja twierdzeń powyższej analizy vs rzeczywisty kod + identyfikacja pominiętych problemów
+
+---
+
+### Sekcja 1: Korekty do obecnej analizy
+
+Poniższe punkty korygują błędne lub niepełne twierdzenia z oryginalnej analizy powyżej:
+
+| # | Twierdzenie w analizie | Stan faktyczny | Korekta |
+|---|---|---|---|
+| 1 | "Navigation buttons - do rozważenia" | `render_navigation_buttons()` **już istnieje** w `layout.py:478` (57 linii) - ale jest **nieużywany** w żadnym widoku | Nie trzeba tworzyć - trzeba podłączyć istniejący |
+| 2 | "Card component (ogólny) - Wartościowe" | `render_card_container()` **już istnieje** w `layout.py:188` - ale brak odpowiadającego CSS w `theme.py` | Nie trzeba tworzyć - trzeba dodać CSS (5-8 linii) |
+| 3 | Struktura `ui/components/` i `ui/pages/` sugerowana jako istniejąca | Oba foldery to **puste stuby** - zawierają tylko `__init__.py` bez żadnego kodu | Nie liczyć jako "istniejącą infrastrukturę" |
+| 4 | "Pipeline status istnieje (7 statusów)" | Pipeline status labels ("in_progress"/"success") odzwierciedlają **aktywną zakładkę**, nie rzeczywisty postęp przetwarzania | Misleading - użytkownik widzi "success" gdy tylko kliknie tab |
+| 5 | "KPI card component - Już zrealizowane" | `render_kpi_card()` akceptuje parametr `help_text` ale **nigdy go nie renderuje** (bug) | Istniejący komponent ma buga - parametr jest martwy |
+
+**Wpływ na oceny faz:**
+- FAZA 1 stan: skorygowany z "~60% zrobione" do **~50% zrobione** (puste stuby nie liczą się)
+- FAZA 3 stan: skorygowany z "~40% zrobione" do **~45% zrobione** (Card istnieje, ale bez CSS)
+
+---
+
+### Sekcja 2: Zrewidowana lista priorytetów
+
+Oryginalna lista 10 priorytetów zastąpiona listą 19 elementów pogrupowanych w tiery:
+
+#### TIER 1 - Bugfixy i quick wins (1-2 sesje) ✅ DONE (2026-02-17)
+
+| # | Zadanie | Lokalizacja | Złożoność | Status |
+|---|---|---|---|---|
+| 1 | Napraw `warning` = `accent` kolizję kolorów | `theme.py:19` | Trivial | ✅ Zmieniono warning na `#e6a817` (ciepły bursztynowy) |
+| 2 | Napraw stale dark-theme kolory | `import_view.py:34-40` | Trivial | ✅ rgba opacity 0.15→0.08, usunięto "dark theme" komentarze |
+| 3 | Napraw broken `help_text` w `render_kpi_card()` | `layout.py:37-48` | Trivial | ✅ Dodano renderowanie `help_text` + CSS `.help-text` |
+| 4 | Dodaj font Inter | `theme.py` | Trivial | ✅ @import Inter + font-family na .stApp |
+| 5 | Dodaj CSS dla `.card-container` | `theme.py` | Trivial | ⏭️ Już istnieje (linie 308-314) - pominięto |
+| 6 | Napraw hover sidebar nav | `theme.py:631` | Trivial | ✅ transparent → surface_light na hover |
+
+#### TIER 2 - Krytyczne UX (2-3 sesje) ✅ DONE (2026-02-17)
+
+| # | Zadanie | Lokalizacja | Złożoność | Status |
+|---|---|---|---|---|
+| 7 | Dashboard "Getting Started" guidance | `app.py` | Niska | ✅ Dodano Getting Started z krokami, ukrywa się po załadowaniu danych |
+| 8 | Forward guidance banners między tabami | Views + `layout.py` | Niska | ✅ Nowy `render_forward_guidance()` + bannery po import/validation |
+| 9 | Napraw misleading pipeline status labels | `app.py` | Niska | ✅ Status oparty na stanie danych, nie aktywnej zakładce. Usunięto `active_tab` tracking |
+| 10 | Fix two-click download anti-pattern | `reports_view.py` | Niska | ✅ Bezpośredni `st.download_button` zamiast button→download |
+| 11 | Data preview po upload | `import_view.py` | Średnia | ✅ `df.head(5)` preview w expander po upload, przed "Next" |
+| 12 | Ostrzeżenie przy "Import new file" | `import_view.py` | Niska | ✅ Dwuetapowe potwierdzenie gdy istnieją wyniki analizy |
+
+#### TIER 3 - Wartościowe ulepszenia (3-5 sesji) ✅ DONE (2026-02-17)
+
+| # | Zadanie | Lokalizacja | Złożoność | Status |
+|---|---|---|---|---|
+| 13 | Dashboard KPI cards z realnymi wynikami | `app.py` | Średnia | ✅ Prawdziwe KPI z capacity/performance na Dashboard po analizie |
+| 14 | Alert banner dla threshold violations | `layout.py` + views | Średnia | ✅ `render_alert_banner()` + `render_alerts_from_data()` - alerty na Dashboard |
+| 15 | Insight Layer / Key Findings | Views analizy | Średnia-wysoka | ✅ `insights.py` - auto-generowane insights na górze wyników Capacity i Performance |
+| 16 | Executive summary na Dashboard | `app.py` | Średnia | ✅ Executive Summary z połączonymi insights z obu analiz |
+
+**Dodatkowe zmiany w ramach TIER 3:**
+- Dekompozycja `performance_view.py` (771→196 linii) - wydzielono `performance_results.py` (~500 linii chartów i statystyk)
+- Nowy moduł `src/ui/insights.py` z logiką generowania insightów (Capacity + Performance)
+
+#### TIER 4 - Nice-to-have (opcjonalne) ✅ DONE (2026-02-17)
+
+| # | Zadanie | Lokalizacja | Złożoność | Status |
+|---|---|---|---|---|
+| 17 | Standaryzacja wysokości Plotly charts | `layout.py:244` | Niska | ✅ Dodano `height: 400` do `get_plotly_layout_defaults()` - wszystkie wykresy mają spójną wysokość |
+| 18 | Fix heatmap colorscale | `performance_results.py:292` | Niska | ✅ Zmieniono na sekwencyjną 5-punktową skalę warm (luminance-based) - colorblind-friendly |
+| 19 | Collapse carrier expanders domyślnie | `capacity_view.py:803` | Trivial | ✅ Pierwszy carrier `expanded=True`, reszta `expanded=False`. "NONE" (nie pasuje) zawsze expanded |
+
+---
+
+### Sekcja 3: Elementy usunięte z planu (z uzasadnieniem)
+
+| Usunięty element | Źródło | Powód usunięcia |
+|---|---|---|
+| ~~Stepper component~~ | F1, Priorytet #5 | `render_navigation_buttons()` + forward banners (TIER 2 #8) wystarczą do prowadzenia użytkownika |
+| ~~General Card component~~ | F3, Priorytet #6 | `render_card_container()` już istnieje - potrzeba tylko CSS (TIER 1 #5) |
+| ~~Sales/Technical Mode toggle~~ | F2, Priorytet #2 | Zbyt złożone dla wartości - zastąpione prostszym Insight Layer (#15) + executive summary (#16) |
+| ~~Demo Mode (5 slajdów)~~ | F4, Priorytet #7 | Zbyt ambitne - zastąpione executive summary na Dashboard (#16) |
+| ~~Spacing/typography system~~ | F3, Priorytet #9 | Walka z Streamlit - `render_spacer()` + natywne `st.header()` wystarczą |
+| ~~API layer placeholder~~ | F5, Priorytet #10 | Zero wartości runtime - można dodać w 5 minut gdy będzie potrzebny |
+| ~~Reorganizacja folderów~~ | F1 | Obecna struktura jest lepsza niż proponowana |
+
+---
+
+### Sekcja 4: Nowe odkrycia (pominięte w oryginalnej analizie) ✅ RESOLVED (2026-02-17)
+
+Audyt ujawnił istotne problemy nieomówione w żadnej z 5 faz:
+
+1. **`performance_view.py` to 771-liniowy monolith** - ✅ Rozwiązane w TIER 3 (dekompozycja → `performance_results.py`).
+
+2. **Brak testów UI** - ✅ Dodano `tests/test_ui.py` z 39 testami: COLORS/STATUS_COLORS validation, `get_plotly_layout_defaults()`, `Insight` dataclass, `generate_capacity_insights()` i `generate_performance_insights()` z mock session_state. Łącznie 191 testów (152 + 39).
+
+3. **Asymetryczny validation pattern** - ✅ Capacity validation teraz auto-uruchamia się przy pierwszym wejściu (`quality_result is None`), spójnie z Performance. Przycisk "Re-run validation" pozwala na ponowne uruchomienie po zmianie ustawień.
+
+4. **Client name ukryty w expander Validation** - ✅ Przeniesiono `client_name` do sidebar (zawsze widoczny z każdej sekcji). Usunięto z expander "Validation Settings".
+
+5. **Overall UI grade: B → A-** - Po wszystkich zmianach TIER 1-4 + rozwiązaniu odkryć audytu, aplikacja osiąga poziom A-.
+
+---
+
+### Porównanie: Oryginalny plan vs Zrewidowany
+
+| Aspekt | Oryginalny plan | Zrewidowany plan |
+|---|---|---|
+| Liczba priorytetów | 10 | 19 (ale mniejsze, bardziej konkretne) |
+| Szacowany nakład | ~15-20 sesji | ~10-13 sesji (mniejsze zadania, mniej over-engineeringu) |
+| Pierwsza widoczna zmiana | Po FAZA 2 (kilka sesji) | Po TIER 1 (1 sesja - 6 bugfixów) |
+| Podejście do Demo Mode | Osobny tryb (5 slajdów) | Executive summary na Dashboard |
+| Podejście do nawigacji | Stepper component | Istniejące nav buttons + forward banners |
+| Podejście do kart | Nowy Card component | CSS dla istniejącego `render_card_container()` |
+| Elementy usunięte | 0 | 7 (zbędne lub over-engineered) |

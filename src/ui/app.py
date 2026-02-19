@@ -35,8 +35,8 @@ from src.ui.views import (
     render_performance_view,
     render_reports_view,
 )
-from src.ui.theme import apply_theme
-from src.ui.layout import render_divider, render_sidebar_status_section
+from src.ui.theme import apply_theme, COLORS
+from src.ui.layout import render_divider, render_sidebar_status_section, render_alerts_from_data
 
 # Navigation constants
 SECTIONS = {
@@ -55,7 +55,8 @@ def init_session_state() -> None:
     defaults = {
         # Navigation state
         "active_section": "Dashboard",
-        "active_subtab": "import",
+        "capacity_subtab": "Import",
+        "performance_subtab": "Import",
         # Data state
         "client_name": "",
         "masterdata_df": None,
@@ -70,16 +71,11 @@ def init_session_state() -> None:
         "masterdata_mapping_result": None,
         "masterdata_original_mapping": None,
         "masterdata_temp_path": None,
-        "masterdata_mapping_step": "upload",
         # Orders mapping state
         "orders_file_columns": None,
         "orders_mapping_result": None,
         "orders_original_mapping": None,
         "orders_temp_path": None,
-        "orders_mapping_step": "upload",
-        # Active tab tracking for in_progress status
-        "capacity_active_tab": "import",
-        "performance_active_tab": "import",
         # Mapping history service (singleton)
         "mapping_history_service": None,
         # Custom carriers for capacity analysis
@@ -125,6 +121,8 @@ def init_session_state() -> None:
 def get_capacity_status() -> list[dict]:
     """Calculate capacity pipeline status from session_state.
 
+    Status is based on actual data state, not which tab is active.
+
     Returns:
         List of step dicts with name, status, and detail fields.
         Status can be: "success", "in_progress", or "pending".
@@ -133,8 +131,6 @@ def get_capacity_status() -> list[dict]:
     masterdata_df = st.session_state.get("masterdata_df")
     quality_result = st.session_state.get("quality_result")
     capacity_result = st.session_state.get("capacity_result")
-    mapping_step = st.session_state.get("masterdata_mapping_step", "upload")
-    active_tab = st.session_state.get("capacity_active_tab", "import")
 
     # Step 1: Masterdata
     if masterdata_df is not None:
@@ -144,7 +140,7 @@ def get_capacity_status() -> list[dict]:
             "status": "success",
             "detail": f"{count:,} SKU loaded",
         })
-    elif mapping_step == "mapping":
+    elif st.session_state.get("masterdata_file_columns") is not None:
         steps.append({
             "name": "Masterdata",
             "status": "in_progress",
@@ -163,12 +159,6 @@ def get_capacity_status() -> list[dict]:
             "name": "Validation",
             "status": "success",
             "detail": "complete",
-        })
-    elif masterdata_df is not None and active_tab == "validation":
-        steps.append({
-            "name": "Validation",
-            "status": "in_progress",
-            "detail": "configuring...",
         })
     elif masterdata_df is not None:
         steps.append({
@@ -190,12 +180,6 @@ def get_capacity_status() -> list[dict]:
             "status": "success",
             "detail": "complete",
         })
-    elif quality_result is not None and active_tab == "analysis":
-        steps.append({
-            "name": "Analysis",
-            "status": "in_progress",
-            "detail": "configuring...",
-        })
     elif quality_result is not None:
         steps.append({
             "name": "Analysis",
@@ -216,6 +200,7 @@ def get_performance_status() -> list[dict]:
     """Calculate performance pipeline status from session_state.
 
     Performance has its own independent pipeline, separate from Capacity.
+    Status is based on actual data state, not which tab is active.
 
     Returns:
         List of step dicts with name, status, and detail fields.
@@ -224,8 +209,6 @@ def get_performance_status() -> list[dict]:
     steps = []
     orders_df = st.session_state.get("orders_df")
     performance_result = st.session_state.get("performance_result")
-    mapping_step = st.session_state.get("orders_mapping_step", "upload")
-    active_tab = st.session_state.get("performance_active_tab", "import")
 
     # Step 1: Orders
     if orders_df is not None:
@@ -235,7 +218,7 @@ def get_performance_status() -> list[dict]:
             "status": "success",
             "detail": f"{count:,} lines loaded",
         })
-    elif mapping_step == "mapping":
+    elif st.session_state.get("orders_file_columns") is not None:
         steps.append({
             "name": "Orders",
             "status": "in_progress",
@@ -248,18 +231,12 @@ def get_performance_status() -> list[dict]:
             "detail": "pending",
         })
 
-    # Step 2: Validation
-    if orders_df is not None and active_tab == "validation":
-        steps.append({
-            "name": "Validation",
-            "status": "in_progress",
-            "detail": "configuring...",
-        })
-    elif orders_df is not None:
+    # Step 2: Validation (auto-validated on import for performance)
+    if orders_df is not None:
         steps.append({
             "name": "Validation",
             "status": "success",
-            "detail": "ready",
+            "detail": "auto-validated",
         })
     else:
         steps.append({
@@ -274,12 +251,6 @@ def get_performance_status() -> list[dict]:
             "name": "Analysis",
             "status": "success",
             "detail": "complete",
-        })
-    elif orders_df is not None and active_tab == "analysis":
-        steps.append({
-            "name": "Analysis",
-            "status": "in_progress",
-            "detail": "configuring...",
         })
     elif orders_df is not None:
         steps.append({
@@ -334,6 +305,16 @@ def render_sidebar() -> None:
 
         render_divider()
 
+        # Client name (visible from all sections, used in Reports)
+        st.session_state.client_name = st.text_input(
+            "Client name",
+            value=st.session_state.client_name,
+            placeholder="e.g. Client_ABC",
+            key="sidebar_client_name",
+        )
+
+        render_divider()
+
         # Pipeline status sections
         st.markdown("### Status")
         render_sidebar_status()
@@ -361,50 +342,268 @@ def render_main_content() -> None:
 
 
 def _render_dashboard() -> None:
-    """Render Dashboard with status overview."""
-    from src.ui.layout import render_kpi_card
+    """Render Dashboard with status overview and real KPIs after analysis."""
+    from src.ui.layout import render_kpi_card, render_kpi_section, render_divider, render_section_header
 
     st.header("Dashboard")
 
-    # Status cards - 4 columns
-    cols = st.columns(4)
+    has_masterdata = st.session_state.masterdata_df is not None
+    has_orders = st.session_state.orders_df is not None
+    has_capacity = st.session_state.capacity_result is not None
+    has_performance = st.session_state.performance_result is not None
+    has_any_data = has_masterdata or has_orders
 
-    with cols[0]:
-        masterdata_count = len(st.session_state.masterdata_df) if st.session_state.masterdata_df is not None else 0
-        value = f"{masterdata_count} SKU" if masterdata_count > 0 else "Not loaded"
-        render_kpi_card("Masterdata", value)
+    # Getting Started guidance when no data loaded
+    if not has_any_data:
+        st.markdown(
+            f"""
+            <div style="background-color: {COLORS["surface_elevated"]}; border: 1px solid {COLORS["accent_muted"]};
+                        border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                <h3 style="color: {COLORS["text"]}; margin-top: 0;">Getting Started</h3>
+                <p style="color: {COLORS["text_secondary"]}; margin-bottom: 1rem;">
+                    Follow these steps to analyze your warehouse data:
+                </p>
+                <ol style="color: {COLORS["text"]}; line-height: 2;">
+                    <li><strong>Capacity</strong> &rarr; Import tab &rarr; Upload Masterdata file (SKU dimensions & weights)</li>
+                    <li><strong>Capacity</strong> &rarr; Validation tab &rarr; Validate and clean data quality</li>
+                    <li><strong>Capacity</strong> &rarr; Analysis tab &rarr; Run capacity analysis against carriers</li>
+                    <li><strong>Performance</strong> &rarr; Import tab &rarr; Upload Orders file (optional)</li>
+                    <li><strong>Reports</strong> &rarr; Download all generated reports</li>
+                </ol>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
 
-    with cols[1]:
-        orders_count = len(st.session_state.orders_df) if st.session_state.orders_df is not None else 0
-        value = f"{orders_count} lines" if orders_count > 0 else "Not loaded"
-        render_kpi_card("Orders", value)
+    # --- Data loaded: show pipeline status KPIs ---
+    render_section_header("Data Overview", "📋")
 
-    with cols[2]:
-        capacity_done = st.session_state.capacity_result is not None
-        value = "Complete" if capacity_done else "Pending"
-        render_kpi_card("Capacity Analysis", value)
+    overview_metrics = []
 
-    with cols[3]:
-        performance_done = st.session_state.performance_result is not None
-        value = "Complete" if performance_done else "Pending"
-        render_kpi_card("Performance Analysis", value)
+    # Masterdata
+    if has_masterdata:
+        masterdata_count = len(st.session_state.masterdata_df)
+        overview_metrics.append({
+            "title": "Masterdata",
+            "value": f"{masterdata_count:,} SKU",
+            "icon": "📦",
+        })
+    else:
+        overview_metrics.append({"title": "Masterdata", "value": "Not loaded", "icon": "📦"})
+
+    # Validation
+    has_validation = st.session_state.quality_result is not None
+    if has_validation:
+        overview_metrics.append({"title": "Validation", "value": "Complete", "icon": "✅"})
+    elif has_masterdata:
+        overview_metrics.append({"title": "Validation", "value": "Ready", "icon": "⏳"})
+
+    # Orders
+    if has_orders:
+        orders_count = len(st.session_state.orders_df)
+        overview_metrics.append({
+            "title": "Orders",
+            "value": f"{orders_count:,} lines",
+            "icon": "📋",
+        })
+    else:
+        overview_metrics.append({"title": "Orders", "value": "Not loaded", "icon": "📋"})
+
+    # Analysis status
+    if has_capacity and has_performance:
+        overview_metrics.append({"title": "Analysis", "value": "Both complete", "icon": "✅"})
+    elif has_capacity:
+        overview_metrics.append({"title": "Analysis", "value": "Capacity done", "icon": "📊"})
+    elif has_performance:
+        overview_metrics.append({"title": "Analysis", "value": "Performance done", "icon": "📈"})
+
+    render_kpi_section(overview_metrics)
+
+    # --- Alerts (when any analysis complete) ---
+    if has_capacity or has_performance:
+        render_divider()
+        render_alerts_from_data()
+
+    # --- Capacity KPIs (when analysis complete) ---
+    if has_capacity:
+        _render_dashboard_capacity_kpis()
+
+    # --- Performance KPIs (when analysis complete) ---
+    if has_performance:
+        render_divider()
+        _render_dashboard_performance_kpis()
+
+    # --- Executive Summary (when both analyses complete) ---
+    if has_capacity or has_performance:
+        render_divider()
+        _render_executive_summary(has_capacity, has_performance)
+
+
+def _render_dashboard_capacity_kpis() -> None:
+    """Render capacity analysis KPIs on dashboard."""
+    from src.ui.layout import render_kpi_section, render_section_header
+
+    import polars as pl
+
+    result = st.session_state.capacity_result
+    df = st.session_state.masterdata_df
+
+    render_section_header("Capacity Analysis", "📦")
+
+    # Average fit % across carriers (excluding NONE)
+    fit_percentages = []
+    for carrier_id, stats in result.carrier_stats.items():
+        if carrier_id != "NONE":
+            fit_percentages.append(stats.fit_percentage)
+    avg_fit_pct = sum(fit_percentages) / len(fit_percentages) if fit_percentages else 0
+
+    # Count carriers analyzed (excluding NONE)
+    carriers_count = sum(1 for cid in result.carriers_analyzed if cid != "NONE")
+
+    # Not-fit count (in prioritized/best-fit mode)
+    none_stats = result.carrier_stats.get("NONE")
+    not_fit_count = none_stats.not_fit_count if none_stats else 0
+
+    # Average dimensions
+    avg_length = df.select(pl.col("length_mm").mean()).item() or 0
+    avg_width = df.select(pl.col("width_mm").mean()).item() or 0
+    avg_weight = df.select(pl.col("weight_kg").mean()).item() or 0
+
+    metrics = [
+        {
+            "title": "SKU Analyzed",
+            "value": f"{result.total_sku:,}",
+            "help_text": "Total SKU in capacity analysis",
+        },
+        {
+            "title": "Avg Fit Rate",
+            "value": f"{avg_fit_pct:.1f}%",
+            "help_text": f"Average fit % across {carriers_count} carrier(s)",
+        },
+        {
+            "title": "Carriers",
+            "value": str(carriers_count),
+            "help_text": "Number of carriers analyzed",
+        },
+        {
+            "title": "Avg Weight",
+            "value": f"{avg_weight:.1f} kg",
+            "help_text": "Average SKU weight",
+        },
+    ]
+
+    # Replace last metric with not-fit count if relevant
+    if not_fit_count > 0:
+        metrics[3] = {
+            "title": "Not Fitting",
+            "value": f"{not_fit_count}",
+            "help_text": "SKU not fitting any carrier",
+            "delta": f"{not_fit_count / result.total_sku * 100:.1f}% of total",
+            "delta_color": "negative",
+        }
+
+    render_kpi_section(metrics)
+
+
+def _render_dashboard_performance_kpis() -> None:
+    """Render performance analysis KPIs on dashboard."""
+    from src.ui.layout import render_kpi_section, render_section_header
+
+    result = st.session_state.performance_result
+    kpi = result.kpi
+
+    render_section_header("Performance Analysis", "📈")
+
+    metrics = [
+        {
+            "title": "Total Orders",
+            "value": f"{kpi.total_orders:,}",
+            "help_text": "Total unique orders",
+        },
+        {
+            "title": "Total Lines",
+            "value": f"{kpi.total_lines:,}",
+            "help_text": "Total order lines",
+        },
+        {
+            "title": "Avg Lines/Order",
+            "value": f"{kpi.avg_lines_per_order:.1f}",
+            "help_text": "Average lines per order",
+        },
+    ]
+
+    # Add hourly KPI if available
+    if result.has_hourly_data:
+        metrics.append({
+            "title": "Avg Lines/Hour",
+            "value": f"{kpi.avg_lines_per_hour:.0f}",
+            "help_text": "Average throughput per hour",
+        })
+    else:
+        metrics.append({
+            "title": "Unique SKU",
+            "value": f"{kpi.unique_sku:,}",
+            "help_text": "Unique SKU in orders",
+        })
+
+    render_kpi_section(metrics)
+
+
+def _render_executive_summary(has_capacity: bool, has_performance: bool) -> None:
+    """Render executive summary combining insights from all analyses.
+
+    Args:
+        has_capacity: Whether capacity analysis is available
+        has_performance: Whether performance analysis is available
+    """
+    from src.ui.insights import (
+        generate_capacity_insights,
+        generate_performance_insights,
+        render_insights,
+    )
+    from src.ui.layout import render_section_header
+
+    render_section_header("Executive Summary", "📋")
+
+    all_insights = []
+
+    if has_capacity:
+        all_insights.extend(generate_capacity_insights())
+
+    if has_performance:
+        all_insights.extend(generate_performance_insights())
+
+    if all_insights:
+        # Sort: warnings first, then info, then positive
+        priority = {"warning": 0, "info": 1, "positive": 2}
+        all_insights.sort(key=lambda i: priority.get(i.type, 3))
+        render_insights(all_insights, title=None)
+    else:
+        st.info("Run analyses to see findings here.")
 
 
 def _render_capacity_section() -> None:
-    """Render Capacity section with sub-tabs."""
-    st.header("Capacity")
-    tabs = st.tabs(["Import", "Validation", "Analysis"])
-
-    with tabs[0]:
-        st.session_state.capacity_active_tab = "import"
+    """Render Capacity section with custom session-state-driven tabs."""
+    st.markdown('<div class="subtab-sticky-header"><h2 class="section-title-inline">Capacity</h2></div>', unsafe_allow_html=True)
+    tab_labels = ["Import", "Validation", "Analysis"]
+    cols = st.columns([1, 1, 1, 5])
+    for col, label in zip(cols[:3], tab_labels):
+        with col:
+            is_active = st.session_state.capacity_subtab == label
+            if st.button(
+                label,
+                key=f"cap_{label.lower()}",
+                type="primary" if is_active else "secondary",
+            ):
+                st.session_state.capacity_subtab = label
+                st.rerun()
+    subtab = st.session_state.capacity_subtab
+    if subtab == "Import":
         _render_capacity_import()
-
-    with tabs[1]:
-        st.session_state.capacity_active_tab = "validation"
+    elif subtab == "Validation":
         _render_capacity_validation()
-
-    with tabs[2]:
-        st.session_state.capacity_active_tab = "analysis"
+    else:
         render_capacity_view()
 
 
@@ -415,73 +614,37 @@ def _render_capacity_import() -> None:
 
 
 def _render_capacity_validation() -> None:
-    """Render Capacity Validation sub-tab with settings."""
+    """Render Capacity Validation sub-tab."""
     st.header("✅ Validation")
 
     if st.session_state.masterdata_df is None:
         st.info("Import Masterdata in the Import tab first")
         return
 
-    # Validation Settings section (simplified - outliers moved to Capacity Analysis)
-    with st.expander("⚙️ Validation Settings", expanded=False):
-        col1, col2 = st.columns(2)
-
-        with col1:
-            # Client name
-            st.session_state.client_name = st.text_input(
-                "Client name",
-                value=st.session_state.client_name,
-                placeholder="e.g. Client_ABC",
-            )
-
-        with col2:
-            # Imputation
-            st.session_state.imputation_enabled = st.checkbox(
-                "Enable imputation",
-                value=st.session_state.get("imputation_enabled", True),
-                help="Fill missing values with selected method",
-            )
-
-            if st.session_state.imputation_enabled:
-                st.session_state.imputation_method = st.selectbox(
-                    "Imputation method",
-                    options=["Median", "Average"],
-                    index=0 if st.session_state.get("imputation_method", "Median") == "Median" else 1,
-                    key="capacity_imputation_method_select",
-                    help=(
-                        "Median: Each field (length, width, height, weight, quantity) gets its own "
-                        "global median calculated from all valid values in the dataset. "
-                        "Values ≤0 and null are treated as missing and replaced with this median. "
-                        "More robust to outliers.\n\n"
-                        "Average: Each field gets its own global mean calculated from all valid values. "
-                        "Values ≤0 and null are treated as missing and replaced with this average. "
-                        "More sensitive to extreme values."
-                    ),
-                )
-
-        st.caption("Outliers (SKUs not fitting any carrier) are detected automatically during analysis")
-
-    render_divider()
-
-    # Use existing capacity validation view (without header, already shown above)
     render_capacity_validation_view(show_header=False)
 
 
 def _render_performance_section() -> None:
-    """Render Performance section with sub-tabs."""
-    st.header("Performance")
-    tabs = st.tabs(["Import", "Validation", "Analysis"])
-
-    with tabs[0]:
-        st.session_state.performance_active_tab = "import"
+    """Render Performance section with custom session-state-driven tabs."""
+    st.markdown('<div class="subtab-sticky-header"><h2 class="section-title-inline">Performance</h2></div>', unsafe_allow_html=True)
+    tab_labels = ["Import", "Validation", "Analysis"]
+    cols = st.columns([1, 1, 1, 5])
+    for col, label in zip(cols[:3], tab_labels):
+        with col:
+            is_active = st.session_state.performance_subtab == label
+            if st.button(
+                label,
+                key=f"perf_{label.lower()}",
+                type="primary" if is_active else "secondary",
+            ):
+                st.session_state.performance_subtab = label
+                st.rerun()
+    subtab = st.session_state.performance_subtab
+    if subtab == "Import":
         _render_performance_import()
-
-    with tabs[1]:
-        st.session_state.performance_active_tab = "validation"
+    elif subtab == "Validation":
         _render_performance_validation()
-
-    with tabs[2]:
-        st.session_state.performance_active_tab = "analysis"
+    else:
         render_performance_view()
 
 

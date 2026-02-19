@@ -324,5 +324,5 @@ pl.col("length").cast(pl.Float64, strict=False) * factor
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-02-17
-**Status:** MVP kompletne, **modernizacja UI zakończona** + nawigacja sidebar + performance module + validation split + numeric cleaning + light theme
+**Data:** 2026-02-19
+**Status:** MVP kompletne, **UX Redesign w toku** (branch: `feature/ux-redesign`) — gold pill tabs, KPI cards w walidacji, uproszczony Capacity Validation UI

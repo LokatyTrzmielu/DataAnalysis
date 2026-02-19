@@ -329,7 +329,7 @@ def _render_category_section(
 
 
 def _render_report_card(report: dict) -> None:
-    """Render a single report card with download button."""
+    """Render a single report card with direct download button."""
     col1, col2 = st.columns([4, 1])
 
     with col1:
@@ -345,19 +345,19 @@ def _render_report_card(report: dict) -> None:
 
     with col2:
         if report["available"]:
-            if st.button("Download", key=f"download_{report['name']}", width="stretch"):
-                try:
-                    filename, data = generate_individual_report(report["name"])
-                    if data:
-                        st.download_button(
-                            label=f"Save {filename}",
-                            data=data,
-                            file_name=filename,
-                            mime="text/csv",
-                            key=f"save_{report['name']}",
-                        )
-                except Exception as e:
-                    st.error(f"Error: {e}")
+            try:
+                filename, data = generate_individual_report(report["name"])
+                if data:
+                    st.download_button(
+                        label="Download",
+                        data=data,
+                        file_name=filename,
+                        mime="text/csv",
+                        key=f"download_{report['name']}",
+                        use_container_width=True,
+                    )
+            except Exception as e:
+                st.error(f"Error: {e}")
 
 
 def _render_bulk_download() -> None:

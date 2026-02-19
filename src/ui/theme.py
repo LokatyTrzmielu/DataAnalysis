@@ -16,7 +16,7 @@ COLORS = {
     # === FUNKCJONALNE ===
     "primary": "#2e7d32",          # ciemniejszy zielony (lepszy kontrast na jasnym)
     "error": "#c62828",            # ciemniejszy czerwony
-    "warning": "#c9a227",          # złoty (= accent)
+    "warning": "#e6a817",          # ciepły bursztynowy (odrębny od accent)
     "info": "#8a817c",             # ciepły szary
 
     # === TEKST ===
@@ -54,18 +54,31 @@ def get_custom_css() -> str:
     """Return custom CSS for light theme styling."""
     return f"""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
     /* Główne tło i tekst */
     .stApp {{
         background-color: {COLORS["surface"]};
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }}
 
-    /* Karty KPI */
+    /* Karty KPI — equal height in column rows */
+    [data-testid="stColumn"]:has(.kpi-card) > div,
+    [data-testid="stColumn"]:has(.kpi-card) > div > div,
+    [data-testid="stColumn"]:has(.kpi-card) > div > div > div,
+    [data-testid="stColumn"]:has(.kpi-card) > div > div > div > div,
+    [data-testid="stColumn"]:has(.kpi-card) > div > div > div > div > div {{
+        height: 100%;
+    }}
+
     .kpi-card {{
         background-color: {COLORS["surface_elevated"]};
         border-radius: 8px;
-        padding: 1rem 1.25rem;
+        padding: 1.25rem;
         border: 1px solid {COLORS["border"]};
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        height: 100%;
+        box-sizing: border-box;
     }}
 
     .kpi-card h3 {{
@@ -95,6 +108,13 @@ def get_custom_css() -> str:
 
     .kpi-card .delta.negative {{
         color: {COLORS["error"]};
+    }}
+
+    .kpi-card .help-text {{
+        color: {COLORS["text_secondary"]};
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        margin-bottom: 0;
     }}
 
     /* Nagłówki sekcji */
@@ -439,6 +459,23 @@ def get_custom_css() -> str:
         margin: 0;
     }}
 
+    /* Forward guidance banner */
+    .forward-guidance {{
+        background-color: rgba(201, 162, 39, 0.08);
+        border: 1px solid {COLORS["accent_muted"]};
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+        color: {COLORS["text"]};
+        font-size: 0.9rem;
+        font-weight: 500;
+    }}
+
+    .forward-guidance .arrow {{
+        color: {COLORS["accent"]};
+        margin-right: 0.5rem;
+    }}
+
     /* Responsive grid for KPI cards */
     @media (max-width: 768px) {{
         /* Force 2 columns on tablet */
@@ -478,6 +515,96 @@ def get_custom_css() -> str:
         .kpi-card h3 {{
             font-size: 0.75rem;
         }}
+    }}
+
+    /* ===== Mapping row status indicators ===== */
+
+    /* Missing (unmapped) field */
+    [data-testid="stElementContainer"]:has(span.fsm-missing) + [data-testid="stElementContainer"] .stSelectbox {{
+        border-left: 3px solid {COLORS["error"]} !important;
+        background: rgba(198, 40, 40, 0.05) !important;
+        border-radius: 4px !important;
+        padding-left: 6px !important;
+    }}
+
+    /* Mapped field */
+    [data-testid="stElementContainer"]:has(span.fsm-mapped) + [data-testid="stElementContainer"] .stSelectbox {{
+        border-left: 3px solid {COLORS["primary"]} !important;
+        background: rgba(46, 125, 50, 0.04) !important;
+        border-radius: 4px !important;
+        padding-left: 6px !important;
+    }}
+
+    /* ===== Section header and tab navigation ===== */
+
+    /* Title bar spacing */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) {{
+        background-color: {COLORS["surface"]};
+        padding-top: 0.75rem;
+    }}
+
+    /* Section title inline styling — let Streamlit's native h2 control size/weight */
+    .subtab-sticky-header .section-title-inline {{
+        margin: 0;
+        padding: 0;
+        color: {COLORS["text"]};
+        letter-spacing: -0.02em;
+    }}
+
+    /* Buttons row wrapper */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"] {{
+        background-color: {COLORS["surface"]};
+    }}
+
+    /* Tab row container — no border line, light vertical padding */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    [data-testid="stHorizontalBlock"] {{
+        background-color: transparent;
+        border-bottom: none;
+        padding: 0.5rem 0;
+        gap: 0.25rem;
+        width: 100%;
+    }}
+
+    /* Base (inactive) pill button */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"] button {{
+        background: transparent !important;
+        color: {COLORS["text_secondary"]} !important;
+        border: 1px solid transparent !important;
+        border-radius: 20px !important;
+        padding: 0.35rem 1.1rem !important;
+        font-weight: 400 !important;
+        min-width: auto !important;
+        width: auto !important;
+        box-shadow: none !important;
+        transition: all 0.15s ease !important;
+    }}
+
+    /* Active pill — gold fill, dark text */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    button[kind="primary"] {{
+        background: {COLORS["accent"]} !important;
+        color: {COLORS["text"]} !important;
+        font-weight: 600 !important;
+        border: 1px solid {COLORS["accent_dark"]} !important;
+        box-shadow: 0 2px 6px rgba(201,162,39,0.25) !important;
+    }}
+
+    /* Hover — warm gold tint + micro-lift */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    button:hover {{
+        background: {COLORS["accent_muted"]} !important;
+        color: {COLORS["text"]} !important;
+        border-color: {COLORS["accent_muted"]} !important;
+        transform: translateY(-1px) !important;
+    }}
+
+    /* Active hover — slightly darker gold */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    button[kind="primary"]:hover {{
+        background: {COLORS["accent_dark"]} !important;
+        border-color: {COLORS["accent_dark"]} !important;
+        transform: translateY(-1px) !important;
     }}
 
     /* Scrollbar styling for light theme */
@@ -627,9 +754,9 @@ def get_custom_css() -> str:
         font-size: 0.95rem !important;
     }}
 
-    /* Hover state - dark gold color */
+    /* Hover state - subtle background + dark gold color */
     [data-testid="stSidebar"] .stRadio > div > label:hover {{
-        background-color: transparent !important;
+        background-color: {COLORS["surface_light"]} !important;
     }}
 
     [data-testid="stSidebar"] .stRadio > div > label:hover > div:last-child {{
@@ -782,7 +909,7 @@ def get_custom_css() -> str:
 
     /* 3. Przyciski - naturalna szerokość (bez stretch) */
     .stButton > button {{
-        width: auto !important;
+        width: auto;
         min-width: 120px !important;
     }}
 
@@ -821,30 +948,6 @@ def get_custom_css() -> str:
 
     .data-preview-container .streamlit-expanderHeader {{
         max-width: 100% !important;
-    }}
-
-    /* Progress bar in mapping section - shorter */
-    .mapping-progress {{
-        max-width: 400px !important;
-    }}
-
-    .mapping-progress .stProgress {{
-        max-width: 100% !important;
-    }}
-
-    /* Mapping summary panel - right column styling */
-    .mapping-summary-panel {{
-        background-color: {COLORS["surface_elevated"]};
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        border: 1px solid {COLORS["border"]};
-        margin-bottom: 0.5rem;
-    }}
-
-    /* Compact field status badges */
-    .mapping-progress + div .stColumns > div:first-child {{
-        max-width: 90px !important;
-        min-width: 70px !important;
     }}
 
     /* ===== Sidebar Pipeline Status Styling ===== */

@@ -689,6 +689,8 @@ def _render_capacity_table() -> None:
 
 def _render_capacity_results() -> None:
     """Display capacity analysis results."""
+    from src.ui.insights import generate_capacity_insights, render_insights
+
     result = st.session_state.capacity_result
     is_prioritized = st.session_state.get("capacity_prioritization_mode", False)
 
@@ -704,12 +706,18 @@ def _render_capacity_results() -> None:
 
     render_divider()
 
-    # === NEW: KPI Section ===
+    # === Key Findings / Insight Layer ===
+    insights = generate_capacity_insights()
+    render_insights(insights, title="Key Findings")
+
+    render_divider()
+
+    # === KPI Section ===
     _render_capacity_kpi()
 
     render_divider()
 
-    # === NEW: Charts Section ===
+    # === Charts Section ===
     _render_capacity_charts()
 
     render_divider()
@@ -742,7 +750,8 @@ def _render_capacity_results() -> None:
                         key=f"exclude_borderline_{carrier_id}",
                     )
 
-    # Display results for each carrier separately
+    # Display results for each carrier separately (first carrier expanded, rest collapsed)
+    carrier_display_idx = 0
     for carrier_id in result.carriers_analyzed:
         stats = result.carrier_stats.get(carrier_id)
         if stats:
@@ -790,10 +799,12 @@ def _render_capacity_results() -> None:
                 borderline_help = "SKU fitting but with margin < threshold (risk of fitting issues)"
 
             # In prioritized or best_fit mode, show "Assigned SKU" instead of FIT/NOT_FIT
+            is_first = carrier_display_idx == 0
+            carrier_display_idx += 1
             if is_prioritized or is_best_fit:
                 assigned_count = stats.fit_count + stats.borderline_count
                 mode_label = "best filling rate" if is_best_fit else "smallest fitting"
-                with st.expander(f"📦 {stats.carrier_name} ({carrier_id})", expanded=True):
+                with st.expander(f"📦 {stats.carrier_name} ({carrier_id})", expanded=is_first):
                     col1, col2, col3, col4 = st.columns(4)
                     with col1:
                         st.metric(
@@ -822,7 +833,7 @@ def _render_capacity_results() -> None:
                             help="Sum of (unit volume × stock quantity) for assigned SKU"
                         )
             else:
-                with st.expander(f"📦 {stats.carrier_name} ({carrier_id})", expanded=True):
+                with st.expander(f"📦 {stats.carrier_name} ({carrier_id})", expanded=is_first):
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         st.metric(
