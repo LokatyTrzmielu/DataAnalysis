@@ -570,60 +570,92 @@ def get_custom_css(theme_mode: str = "light") -> str:
         letter-spacing: -0.02em;
     }}
 
-    /* Buttons row wrapper */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"] {{
+    /* Buttons row wrapper — allows tab overflow */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"] {{
         background-color: {C["surface"]};
+        overflow: visible;
     }}
 
-    /* Tab row container — no border line, light vertical padding */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    /* Tab rail — border-bottom creates the separator line tabs sit on */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
     [data-testid="stHorizontalBlock"] {{
         background-color: transparent;
-        border-bottom: none;
-        padding: 0.5rem 0;
-        gap: 0.25rem;
+        border-bottom: 2px solid {C["border"]};
+        padding: 0.75rem 0 0 0;
+        gap: 0;
         width: 100%;
+        align-items: flex-end;
+        overflow: visible;
     }}
 
-    /* Base (inactive) pill button */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"] button {{
-        background: transparent !important;
+    /* Remove column padding inside tab rail so tabs are edge-to-edge */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+        padding: 0 !important;
+        min-width: 0 !important;
+    }}
+
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] [data-testid="stVerticalBlock"] {{
+        gap: 0 !important;
+    }}
+
+    /* Stretch button containers to fill column width */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] [data-testid="stElementContainer"],
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] [data-testid="stButton"] {{
+        width: 100% !important;
+    }}
+
+    /* Base (inactive) tab — rounded top, square bottom, matches rail */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"] button {{
+        background: {C["background"]} !important;
         color: {C["text_secondary"]} !important;
-        border: 1px solid transparent !important;
-        border-radius: 20px !important;
-        padding: 0.35rem 1.1rem !important;
+        border: 1px solid {C["border"]} !important;
+        border-bottom: 2px solid {C["border"]} !important;
+        border-radius: 8px 8px 0 0 !important;
+        padding: 0.45rem 1.3rem !important;
         font-weight: 400 !important;
+        font-size: 0.875rem !important;
         min-width: auto !important;
-        width: auto !important;
+        width: 100% !important;
         box-shadow: none !important;
-        transition: all 0.15s ease !important;
+        transition: background 0.15s ease, color 0.15s ease !important;
+        margin-right: -1px !important;
+        margin-bottom: -2px !important;
+        position: relative !important;
+        z-index: 0 !important;
     }}
 
-    /* Active pill — gold fill, dark text */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    /* Active tab — white bg, gold top accent, open bottom (covers rail border) */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
     button[kind="primary"] {{
-        background: {C["accent"]} !important;
+        background: {C["surface_elevated"]} !important;
         color: {C["text"]} !important;
         font-weight: 600 !important;
-        border: 1px solid {C["accent_dark"]} !important;
-        box-shadow: 0 2px 6px rgba(201,162,39,0.25) !important;
+        border: 1px solid {C["border"]} !important;
+        border-top: 2.5px solid {C["accent"]} !important;
+        border-bottom: 2px solid {C["surface"]} !important;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.06) !important;
+        z-index: 2 !important;
     }}
 
-    /* Hover — warm gold tint + micro-lift */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    /* Inactive hover — warm surface lift */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
     button:hover {{
-        background: {C["accent_muted"]} !important;
+        background: {C["surface_light"]} !important;
         color: {C["text"]} !important;
-        border-color: {C["accent_muted"]} !important;
-        transform: translateY(-1px) !important;
+        border-color: {C["border"]} !important;
+        border-bottom: 2px solid {C["border"]} !important;
     }}
 
-    /* Active hover — slightly darker gold */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    /* Active hover — darken gold accent only */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
     button[kind="primary"]:hover {{
-        background: {C["accent_dark"]} !important;
-        border-color: {C["accent_dark"]} !important;
-        transform: translateY(-1px) !important;
+        background: {C["surface_elevated"]} !important;
+        border-top-color: {C["accent_dark"]} !important;
+        border-bottom-color: {C["surface"]} !important;
     }}
 
     /* Scrollbar styling for light theme */
