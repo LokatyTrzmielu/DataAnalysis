@@ -11,6 +11,20 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-19] - Feature (feature/ux-redesign)
+- **UX Redesign — uproszczenie Capacity Validation UI**:
+  - Zamiana progress barów walidacji na karty "Key Findings" i tabelę pokrycia danych
+  - Uproszczenie Capacity Validation: usunięcie settings expandera, przycisku re-run, dodanie KPI cards
+  - Zastąpienie `st.metric()` bloków w Orders Validation summary przez `render_kpi_section()` KPI cards
+  - Usunięcie redundantnego nagłówka z Dashboard Executive Summary
+  - Przeprojektowanie przycisków zakładek jako złote pill buttons; usunięcie wskaźników statusu
+- **Drobne czyszczenie UI Capacity Validation**:
+  - Usunięcie blue forward-guidance box ("Validation complete — proceed to the Analysis tab…")
+  - Usunięcie noty "Outlier and Borderline detection has been moved to Capacity Analysis…"
+  - Usunięcie zbędnego separatora `---` na końcu sekcji Validation help
+- Pliki: `src/ui/views/capacity_validation_view.py`, `src/ui/views/performance_validation_view.py`, `src/ui/app.py`, `src/ui/theme.py`, `src/ui/layout.py`, `src/ui/views/dashboard_view.py`
+- Branch: `feature/ux-redesign`
+
 ### [2026-02-17] - Minor
 - **Zmiana na jasny motyw (Light Theme)**:
   - Zamiana ciemnego motywu (dark theme) na jasny (light theme) z zachowaniem złotego akcentu (`#c9a227`)

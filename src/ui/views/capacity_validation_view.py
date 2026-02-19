@@ -133,10 +133,6 @@ def _render_capacity_validation_results() -> None:
         else:
             st.success(f"{name}: 0")
 
-    # Forward guidance to Analysis
-    if st.session_state.get("capacity_result") is None:
-        render_forward_guidance("Validation complete — proceed to the Analysis tab to run capacity analysis")
-
     # Validation help section
     with st.expander("❓ Validation help", expanded=False):
         st.markdown("""
@@ -148,9 +144,4 @@ Each SKU should appear only once with consistent dimension data.
 
 **Conflicts** - Same SKU with different dimension or weight values across records.
 Indicates inconsistent data that needs to be resolved.
-
----
-
-**Note:** Outlier and Borderline detection has been moved to **Capacity Analysis**.
-This ensures outliers are detected using the configured carriers with rotation-aware fitting.
         """)
