@@ -88,7 +88,6 @@ def init_session_state() -> None:
         "carriers_loaded": False,
         # Settings
         "theme_mode": "light",
-        "confirm_reset": False,
     }
 
     for key, value in defaults.items():
@@ -282,83 +281,6 @@ def render_sidebar_status() -> None:
     render_sidebar_status_section("PERFORMANCE", performance_steps, icon="📈")
 
 
-def reset_session_data() -> None:
-    """Clear all data session state, preserve services/config."""
-    keys_to_clear = [
-        "masterdata_df", "orders_df", "quality_result",
-        "capacity_result", "performance_result", "capacity_dq_result",
-        "masterdata_file_columns", "orders_file_columns",
-        "masterdata_mapping_result", "orders_mapping_result",
-        "masterdata_original_mapping", "orders_original_mapping",
-        "masterdata_temp_path", "orders_temp_path",
-        "masterdata_last_file_id", "orders_last_file_id",
-        "analysis_complete", "current_step", "client_name",
-    ]
-    for key in keys_to_clear:
-        if key in st.session_state:
-            del st.session_state[key]
-    st.session_state.active_section = "Dashboard"
-    st.session_state.capacity_subtab = "Import"
-    st.session_state.performance_subtab = "Import"
-    st.session_state.confirm_reset = False
-    st.rerun()
-
-
-@st.dialog("Potwierdź reset sesji")
-def _show_reset_dialog() -> None:
-    """Centered modal confirmation for session reset."""
-    st.warning("Zostaną wyczyszczone wszystkie dane analizy. Kontynuować?")
-    col_yes, col_no = st.columns([3, 1])
-    with col_yes:
-        if st.button("Tak, resetuj", type="primary", use_container_width=True):
-            reset_session_data()
-    with col_no:
-        if st.button("Anuluj", use_container_width=True):
-            st.session_state.confirm_reset = False
-            st.rerun()
-
-
-def render_settings_section() -> None:
-    """Render 3-icon settings bar, sticky at sidebar bottom."""
-    st.markdown('<div class="sidebar-settings-bottom">', unsafe_allow_html=True)
-    render_divider()
-
-    is_dark = st.session_state.theme_mode == "dark"
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        if st.button(
-            "☀️" if is_dark else "🌙",
-            key="btn_theme",
-            help="Przełącz tryb ciemny / jasny",
-            use_container_width=True,
-        ):
-            st.session_state.theme_mode = "dark" if not is_dark else "light"
-            st.rerun()
-
-    with col2:
-        if st.button(
-            "🔄",
-            key="btn_reset_icon",
-            help="Zresetuj sesję",
-            use_container_width=True,
-        ):
-            st.session_state.confirm_reset = True
-            st.rerun()
-
-    with col3:
-        if st.button(
-            "⚙️",
-            key="btn_settings_icon",
-            help="Ustawienia",
-            use_container_width=True,
-        ):
-            st.session_state.active_section = "Settings"
-            st.rerun()
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
 
 def _on_nav_change() -> None:
     st.session_state.active_section = SECTIONS[st.session_state.section_nav]
@@ -373,14 +295,7 @@ def render_sidebar() -> None:
         # Section navigation
         st.markdown("### Navigation")
 
-        # Fall back to Dashboard when active section is Settings (not in radio)
-        nav_active = st.session_state.active_section
-        if nav_active not in SECTIONS.values():
-            nav_active = "Dashboard"
-        current_key = next(
-            (k for k, v in SECTIONS.items() if v == nav_active),
-            "Dashboard"
-        )
+        current_key = st.session_state.active_section
 
         st.radio(
             "Section",
@@ -407,9 +322,6 @@ def render_sidebar() -> None:
         st.markdown("### Status")
         render_sidebar_status()
 
-        # Settings bar (3 ikony)
-        render_settings_section()
-
 
 def render_main_content() -> None:
     """Render main content based on active section.
@@ -430,8 +342,6 @@ def render_main_content() -> None:
         _render_performance_section()
     elif section == "Reports":
         _render_reports_section()
-    elif section == "Settings":
-        _render_settings_view()
 
 
 def _render_dashboard() -> None:
@@ -764,41 +674,6 @@ def _render_reports_section() -> None:
     render_reports_view()
 
 
-def _render_settings_view() -> None:
-    """Render Settings page."""
-    from src.ui.layout import render_divider
-
-    st.header("Settings")
-
-    st.markdown("### Analiza")
-    new_threshold = st.number_input(
-        "Próg borderline (mm)",
-        min_value=0.5,
-        max_value=10.0,
-        value=st.session_state.borderline_threshold,
-        step=0.5,
-        key="settings_page_threshold",
-        help="Produkty mieszczące się z dokładnością ±N mm uznawane za 'borderline'",
-    )
-    if new_threshold != st.session_state.borderline_threshold:
-        st.session_state.borderline_threshold = new_threshold
-        st.session_state.capacity_result = None  # invalidate cache
-
-    render_divider()
-
-    st.markdown("### Wygląd")
-    theme_choice = st.radio(
-        "Motyw",
-        options=["light", "dark"],
-        index=0 if st.session_state.theme_mode == "light" else 1,
-        format_func=lambda x: "☀️ Jasny" if x == "light" else "🌙 Ciemny",
-        horizontal=True,
-        key="settings_page_theme",
-    )
-    if theme_choice != st.session_state.theme_mode:
-        st.session_state.theme_mode = theme_choice
-        st.rerun()
-
 
 def main() -> None:
     """Main application entry point."""
@@ -810,10 +685,6 @@ def main() -> None:
 
     # Render sidebar with navigation
     render_sidebar()
-
-    # Show reset confirmation dialog (must be outside sidebar context)
-    if st.session_state.confirm_reset:
-        _show_reset_dialog()
 
     # Render main content based on active section
     render_main_content()
