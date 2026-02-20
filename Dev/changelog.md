@@ -11,6 +11,16 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-20] - Minor (main)
+- **Analiza frameworków UI — ocena alternatyw dla Streamlit**:
+  - Zidentyfikowano 4 główne problemy z obecnym Streamlit: brak kontroli layoutu, ograniczone custom komponenty, powolne reruns, walka z CSS
+  - Potwierdzenie problemu: `theme.py` ma 1179 linii (masowe CSS injektowanie)
+  - Udokumentowano 3 alternatywy: Dash, FastAPI+Vue 3, Reflex — z oceną wysiłku migracji, kontroli UI, dojrzałości
+  - Rekomendacja: Dash (100% Python, dojrzały, natywny Plotly) lub FastAPI+Vue (maksymalna swoboda)
+- Utworzono `Dev/FRAMEWORK_MIGRATION_ANALYSIS.md` z pełną analizą i tabelami porównawczymi
+- Pliki: `Dev/FRAMEWORK_MIGRATION_ANALYSIS.md` (nowy)
+- Branch: main (minor — dokumentacja)
+
 ### [2026-02-19] - Feature (feature/ux-redesign)
 - **UX Redesign — uproszczenie Capacity Validation UI**:
   - Zamiana progress barów walidacji na karty "Key Findings" i tabelę pokrycia danych

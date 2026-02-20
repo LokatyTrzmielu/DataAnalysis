@@ -358,6 +358,7 @@ aby załadować nośniki z polem priority.
 - [x] Dashboard z wykresami (Plotly) → Faza 13
 - [ ] Przywrócenie utilization sliders
 - [ ] Rozszerzenie optional fields
+- [ ] **Migracja frameworku UI** — ocena: Dash vs FastAPI+Vue (patrz `Dev/FRAMEWORK_MIGRATION_ANALYSIS.md`)
 
 ---
 

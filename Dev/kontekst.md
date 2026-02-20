@@ -322,7 +322,22 @@ pl.col("length").cast(pl.Float64, strict=False) * factor
 
 ---
 
+## Analiza Frameworków UI (2026-02-20)
+
+**Dokument:** `Dev/FRAMEWORK_MIGRATION_ANALYSIS.md`
+
+Przeprowadzono ocenę czy Streamlit jest odpowiednim frameworkiem długoterminowo. Zidentyfikowane problemy: brak kontroli layoutu, ograniczone custom komponenty, powolne reruns, walka z CSS (1179-liniowy theme.py).
+
+Przeanalizowane alternatywy:
+- **Dash** — Python-native, natywna integracja Plotly, callbacks zamiast reruns, dobra kontrola CSS. Rekomendowany jeśli 100% Python.
+- **FastAPI + Vue 3** — pełna kontrola, backend już gotowy na API (Pydantic, analytics, reporting). Rekomendowany jeśli dostępna wiedza JS.
+- **Reflex** — Python → React, nowoczesny, ale młody projekt (2023).
+
+Decyzja o migracji odłożona — na etapie analizy opcji.
+
+---
+
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-02-19
-**Status:** MVP kompletne, **UX Redesign w toku** (branch: `feature/ux-redesign`) — gold pill tabs, KPI cards w walidacji, uproszczony Capacity Validation UI
+**Data:** 2026-02-20
+**Status:** MVP kompletne, UX Redesign zakończony (feature/ux-redesign merged). Trwa analiza strategiczna frameworku UI (Streamlit vs alternatywy).
