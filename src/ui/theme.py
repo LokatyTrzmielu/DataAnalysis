@@ -50,15 +50,34 @@ STATUS_ICONS = {
 }
 
 
-def get_custom_css() -> str:
-    """Return custom CSS for light theme styling."""
+def get_custom_css(theme_mode: str = "light") -> str:
+    """Return custom CSS for the specified theme mode."""
+    if theme_mode == "dark":
+        C = {
+            "background":       "#211f1c",
+            "surface":          "#1a1917",
+            "surface_elevated": "#2a2825",
+            "surface_light":    "#333028",
+            "accent":           "#c9a227",
+            "accent_dark":      "#a8861f",
+            "accent_muted":     "#4a3e10",
+            "primary":          "#4caf50",
+            "error":            "#ef5350",
+            "warning":          "#ffb300",
+            "info":             "#9e9e9e",
+            "text":             "#f0ede8",
+            "text_secondary":   "#a09890",
+            "border":           "#3a3733",
+        }
+    else:
+        C = COLORS
     return f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
     /* Główne tło i tekst */
     .stApp {{
-        background-color: {COLORS["surface"]};
+        background-color: {C["surface"]};
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }}
 
@@ -72,17 +91,17 @@ def get_custom_css() -> str:
     }}
 
     .kpi-card {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
         border-radius: 8px;
         padding: 1.25rem;
-        border: 1px solid {COLORS["border"]};
+        border: 1px solid {C["border"]};
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
         height: 100%;
         box-sizing: border-box;
     }}
 
     .kpi-card h3 {{
-        color: {COLORS["text_secondary"]};
+        color: {C["text_secondary"]};
         font-size: 0.85rem;
         font-weight: 500;
         margin: 0 0 0.5rem 0;
@@ -91,7 +110,7 @@ def get_custom_css() -> str:
     }}
 
     .kpi-card .value {{
-        color: {COLORS["text"]};
+        color: {C["text"]};
         font-size: 1.75rem;
         font-weight: 600;
         margin: 0;
@@ -103,15 +122,15 @@ def get_custom_css() -> str:
     }}
 
     .kpi-card .delta.positive {{
-        color: {COLORS["primary"]};
+        color: {C["primary"]};
     }}
 
     .kpi-card .delta.negative {{
-        color: {COLORS["error"]};
+        color: {C["error"]};
     }}
 
     .kpi-card .help-text {{
-        color: {COLORS["text_secondary"]};
+        color: {C["text_secondary"]};
         font-size: 0.75rem;
         margin-top: 0.25rem;
         margin-bottom: 0;
@@ -119,12 +138,12 @@ def get_custom_css() -> str:
 
     /* Nagłówki sekcji */
     .section-header {{
-        color: {COLORS["text"]};
+        color: {C["text"]};
         font-size: 1.1rem;
         font-weight: 600;
         padding-bottom: 0.5rem;
         margin-bottom: 1rem;
-        border-bottom: 1px solid {COLORS["border"]};
+        border-bottom: 1px solid {C["border"]};
     }}
 
     .section-header .icon {{
@@ -229,27 +248,27 @@ def get_custom_css() -> str:
 
     /* Stylizacja tabel */
     .stDataFrame {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
     }}
 
     .stDataFrame [data-testid="stDataFrameResizable"] {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
     }}
 
     /* Expanders */
     .streamlit-expanderHeader {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
         border-radius: 8px;
     }}
 
     .streamlit-expanderContent {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
         border-radius: 0 0 8px 8px;
     }}
 
     /* Buttons */
     .stButton > button {{
-        background-color: {COLORS["accent"]};
+        background-color: {C["accent"]};
         color: white;
         border: none;
         border-radius: 6px;
@@ -258,18 +277,18 @@ def get_custom_css() -> str:
     }}
 
     .stButton > button:hover {{
-        background-color: {COLORS["accent_dark"]};
+        background-color: {C["accent_dark"]};
     }}
 
     /* Sidebar styling */
     [data-testid="stSidebar"] {{
-        background-color: {COLORS["background"]};
-        border-right: 1px solid {COLORS["border"]};
+        background-color: {C["background"]};
+        border-right: 1px solid {C["border"]};
     }}
 
     /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
         border-radius: 8px;
         padding: 0.25rem;
         gap: 0.5rem;
@@ -277,72 +296,72 @@ def get_custom_css() -> str:
 
     .stTabs [data-baseweb="tab"] {{
         background-color: transparent;
-        color: {COLORS["text_secondary"]};
+        color: {C["text_secondary"]};
         border-radius: 6px;
         padding: 0.5rem 1rem;
     }}
 
     .stTabs [aria-selected="true"] {{
-        background-color: {COLORS["surface_light"]};
-        color: {COLORS["text"]};
+        background-color: {C["surface_light"]};
+        color: {C["text"]};
     }}
 
     /* File uploader - improved contrast */
     [data-testid="stFileUploader"] {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
         border-radius: 8px;
-        border: 2px dashed {COLORS["accent_muted"]};
+        border: 2px dashed {C["accent_muted"]};
     }}
 
     [data-testid="stFileUploader"]:hover {{
-        border-color: {COLORS["accent"]};
+        border-color: {C["accent"]};
         background-color: rgba(232, 217, 160, 0.2);
     }}
 
     /* Selectbox */
     .stSelectbox [data-baseweb="select"] {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
     }}
 
     /* Number input */
     .stNumberInput input {{
-        background-color: {COLORS["surface_elevated"]};
-        color: {COLORS["text"]};
+        background-color: {C["surface_elevated"]};
+        color: {C["text"]};
     }}
 
     /* Progress bar */
     .stProgress > div > div {{
-        background-color: {COLORS["accent"]};
+        background-color: {C["accent"]};
     }}
 
     /* Metric styling */
     [data-testid="stMetricValue"] {{
-        color: {COLORS["text"]};
+        color: {C["text"]};
     }}
 
     [data-testid="stMetricLabel"] {{
-        color: {COLORS["text_secondary"]};
+        color: {C["text_secondary"]};
     }}
 
     /* Container cards */
     .card-container {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
         border-radius: 8px;
         padding: 1.5rem;
-        border: 1px solid {COLORS["border"]};
+        border: 1px solid {C["border"]};
         margin-bottom: 1rem;
     }}
 
     /* Chart containers */
     .chart-container {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
         border-radius: 8px;
         padding: 1rem;
-        border: 1px solid {COLORS["border"]};
+        border: 1px solid {C["border"]};
     }}
 
     .chart-container h4 {{
-        color: {COLORS["text"]};
+        color: {C["text"]};
         margin: 0 0 1rem 0;
         font-size: 1rem;
         font-weight: 500;
@@ -358,7 +377,7 @@ def get_custom_css() -> str:
     .kpi-card:hover {{
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        border-color: {COLORS["surface_light"]};
+        border-color: {C["surface_light"]};
     }}
 
     /* Status btn/badge hover */
@@ -377,7 +396,7 @@ def get_custom_css() -> str:
     }}
 
     .card-container:hover {{
-        border-color: {COLORS["surface_light"]};
+        border-color: {C["surface_light"]};
     }}
 
     /* Section header with icon alignment */
@@ -389,15 +408,15 @@ def get_custom_css() -> str:
 
     /* Table container styling */
     .table-container {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
         border-radius: 8px;
         padding: 1rem;
-        border: 1px solid {COLORS["border"]};
+        border: 1px solid {C["border"]};
         overflow-x: auto;
     }}
 
     .table-container h4 {{
-        color: {COLORS["text"]};
+        color: {C["text"]};
         margin: 0 0 1rem 0;
         font-size: 1rem;
         font-weight: 500;
@@ -406,73 +425,73 @@ def get_custom_css() -> str:
     /* Info box styling */
     .info-box {{
         background-color: rgba(138, 129, 124, 0.10);
-        border-left: 3px solid {COLORS["info"]};
+        border-left: 3px solid {C["info"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
         margin: 1rem 0;
     }}
 
     .info-box p {{
-        color: {COLORS["text"]};
+        color: {C["text"]};
         margin: 0;
     }}
 
     /* Warning box styling */
     .warning-box {{
         background-color: rgba(201, 162, 39, 0.10);
-        border-left: 3px solid {COLORS["warning"]};
+        border-left: 3px solid {C["warning"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
         margin: 1rem 0;
     }}
 
     .warning-box p {{
-        color: {COLORS["text"]};
+        color: {C["text"]};
         margin: 0;
     }}
 
     /* Error box styling */
     .error-box {{
         background-color: rgba(198, 40, 40, 0.10);
-        border-left: 3px solid {COLORS["error"]};
+        border-left: 3px solid {C["error"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
         margin: 1rem 0;
     }}
 
     .error-box p {{
-        color: {COLORS["text"]};
+        color: {C["text"]};
         margin: 0;
     }}
 
     /* Success box styling */
     .success-box {{
         background-color: rgba(46, 125, 50, 0.10);
-        border-left: 3px solid {COLORS["primary"]};
+        border-left: 3px solid {C["primary"]};
         padding: 1rem;
         border-radius: 0 8px 8px 0;
         margin: 1rem 0;
     }}
 
     .success-box p {{
-        color: {COLORS["text"]};
+        color: {C["text"]};
         margin: 0;
     }}
 
     /* Forward guidance banner */
     .forward-guidance {{
         background-color: rgba(201, 162, 39, 0.08);
-        border: 1px solid {COLORS["accent_muted"]};
+        border: 1px solid {C["accent_muted"]};
         border-radius: 8px;
         padding: 0.75rem 1rem;
         margin: 1rem 0;
-        color: {COLORS["text"]};
+        color: {C["text"]};
         font-size: 0.9rem;
         font-weight: 500;
     }}
 
     .forward-guidance .arrow {{
-        color: {COLORS["accent"]};
+        color: {C["accent"]};
         margin-right: 0.5rem;
     }}
 
@@ -521,7 +540,7 @@ def get_custom_css() -> str:
 
     /* Missing (unmapped) field */
     [data-testid="stElementContainer"]:has(span.fsm-missing) + [data-testid="stElementContainer"] .stSelectbox {{
-        border-left: 3px solid {COLORS["error"]} !important;
+        border-left: 3px solid {C["error"]} !important;
         background: rgba(198, 40, 40, 0.05) !important;
         border-radius: 4px !important;
         padding-left: 6px !important;
@@ -529,7 +548,7 @@ def get_custom_css() -> str:
 
     /* Mapped field */
     [data-testid="stElementContainer"]:has(span.fsm-mapped) + [data-testid="stElementContainer"] .stSelectbox {{
-        border-left: 3px solid {COLORS["primary"]} !important;
+        border-left: 3px solid {C["primary"]} !important;
         background: rgba(46, 125, 50, 0.04) !important;
         border-radius: 4px !important;
         padding-left: 6px !important;
@@ -539,7 +558,7 @@ def get_custom_css() -> str:
 
     /* Title bar spacing */
     [data-testid="stElementContainer"]:has(.subtab-sticky-header) {{
-        background-color: {COLORS["surface"]};
+        background-color: {C["surface"]};
         padding-top: 0.75rem;
     }}
 
@@ -547,64 +566,96 @@ def get_custom_css() -> str:
     .subtab-sticky-header .section-title-inline {{
         margin: 0;
         padding: 0;
-        color: {COLORS["text"]};
+        color: {C["text"]};
         letter-spacing: -0.02em;
     }}
 
-    /* Buttons row wrapper */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"] {{
-        background-color: {COLORS["surface"]};
+    /* Buttons row wrapper — allows tab overflow */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"] {{
+        background-color: {C["surface"]};
+        overflow: visible;
     }}
 
-    /* Tab row container — no border line, light vertical padding */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    /* Tab rail — border-bottom creates the separator line tabs sit on */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
     [data-testid="stHorizontalBlock"] {{
         background-color: transparent;
-        border-bottom: none;
-        padding: 0.5rem 0;
-        gap: 0.25rem;
+        border-bottom: 2px solid {C["border"]};
+        padding: 0.75rem 0 0 0;
+        gap: 0;
         width: 100%;
+        align-items: flex-end;
+        overflow: visible;
     }}
 
-    /* Base (inactive) pill button */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"] button {{
-        background: transparent !important;
-        color: {COLORS["text_secondary"]} !important;
-        border: 1px solid transparent !important;
-        border-radius: 20px !important;
-        padding: 0.35rem 1.1rem !important;
+    /* Remove column padding inside tab rail so tabs are edge-to-edge */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+        padding: 0 !important;
+        min-width: 0 !important;
+    }}
+
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] [data-testid="stVerticalBlock"] {{
+        gap: 0 !important;
+    }}
+
+    /* Stretch button containers to fill column width */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] [data-testid="stElementContainer"],
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] [data-testid="stButton"] {{
+        width: 100% !important;
+    }}
+
+    /* Base (inactive) tab — rounded top, square bottom, matches rail */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"] button {{
+        background: {C["background"]} !important;
+        color: {C["text_secondary"]} !important;
+        border: 1px solid {C["border"]} !important;
+        border-bottom: 2px solid {C["border"]} !important;
+        border-radius: 8px 8px 0 0 !important;
+        padding: 0.45rem 1.3rem !important;
         font-weight: 400 !important;
+        font-size: 0.875rem !important;
         min-width: auto !important;
-        width: auto !important;
+        width: 100% !important;
         box-shadow: none !important;
-        transition: all 0.15s ease !important;
+        transition: background 0.15s ease, color 0.15s ease !important;
+        margin-right: -1px !important;
+        margin-bottom: -2px !important;
+        position: relative !important;
+        z-index: 0 !important;
     }}
 
-    /* Active pill — gold fill, dark text */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    /* Active tab — white bg, gold top accent, open bottom (covers rail border) */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
     button[kind="primary"] {{
-        background: {COLORS["accent"]} !important;
-        color: {COLORS["text"]} !important;
+        background: {C["surface_elevated"]} !important;
+        color: {C["text"]} !important;
         font-weight: 600 !important;
-        border: 1px solid {COLORS["accent_dark"]} !important;
-        box-shadow: 0 2px 6px rgba(201,162,39,0.25) !important;
+        border: 1px solid {C["border"]} !important;
+        border-top: 2.5px solid {C["accent"]} !important;
+        border-bottom: 2px solid {C["surface"]} !important;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.06) !important;
+        z-index: 2 !important;
     }}
 
-    /* Hover — warm gold tint + micro-lift */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    /* Inactive hover — warm surface lift */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
     button:hover {{
-        background: {COLORS["accent_muted"]} !important;
-        color: {COLORS["text"]} !important;
-        border-color: {COLORS["accent_muted"]} !important;
-        transform: translateY(-1px) !important;
+        background: {C["surface_light"]} !important;
+        color: {C["text"]} !important;
+        border-color: {C["border"]} !important;
+        border-bottom: 2px solid {C["border"]} !important;
     }}
 
-    /* Active hover — slightly darker gold */
-    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stElementContainer"]
+    /* Active hover — darken gold accent only */
+    [data-testid="stElementContainer"]:has(.subtab-sticky-header) + [data-testid="stLayoutWrapper"]
     button[kind="primary"]:hover {{
-        background: {COLORS["accent_dark"]} !important;
-        border-color: {COLORS["accent_dark"]} !important;
-        transform: translateY(-1px) !important;
+        background: {C["surface_elevated"]} !important;
+        border-top-color: {C["accent_dark"]} !important;
+        border-bottom-color: {C["surface"]} !important;
     }}
 
     /* Scrollbar styling for light theme */
@@ -614,26 +665,26 @@ def get_custom_css() -> str:
     }}
 
     ::-webkit-scrollbar-track {{
-        background: {COLORS["background"]};
+        background: {C["background"]};
     }}
 
     ::-webkit-scrollbar-thumb {{
-        background: {COLORS["surface_light"]};
+        background: {C["surface_light"]};
         border-radius: 4px;
     }}
 
     ::-webkit-scrollbar-thumb:hover {{
-        background: {COLORS["border"]};
+        background: {C["border"]};
     }}
 
     /* Loading spinner override */
     .stSpinner > div {{
-        border-top-color: {COLORS["accent"]} !important;
+        border-top-color: {C["accent"]} !important;
     }}
 
     /* Toast/notification styling */
     .stAlert {{
-        background-color: {COLORS["surface_elevated"]};
+        background-color: {C["surface_elevated"]};
         border-radius: 8px;
     }}
 
@@ -655,13 +706,13 @@ def get_custom_css() -> str:
     .report-category-header .category-name {{
         font-size: 1rem;
         font-weight: 600;
-        color: {COLORS["text"]};
+        color: {C["text"]};
     }}
 
     .report-category-header .category-count {{
         font-size: 0.75rem;
-        color: {COLORS["text_secondary"]};
-        background-color: {COLORS["surface_light"]};
+        color: {C["text_secondary"]};
+        background-color: {C["surface_light"]};
         padding: 0.15rem 0.5rem;
         border-radius: 10px;
         margin-left: auto;
@@ -669,14 +720,14 @@ def get_custom_css() -> str:
 
     .category-desc {{
         font-size: 0.85rem;
-        color: {COLORS["text_secondary"]};
+        color: {C["text_secondary"]};
         margin: 0 0 0.75rem 0;
     }}
 
     /* Report card */
     .report-card {{
-        background-color: {COLORS["surface_elevated"]};
-        border: 1px solid {COLORS["border"]};
+        background-color: {C["surface_elevated"]};
+        border: 1px solid {C["border"]};
         border-radius: 8px;
         padding: 0.75rem 1rem;
         margin-bottom: 0.5rem;
@@ -684,20 +735,20 @@ def get_custom_css() -> str:
     }}
 
     .report-card:hover {{
-        border-color: {COLORS["surface_light"]};
+        border-color: {C["surface_light"]};
         transform: translateX(2px);
     }}
 
     .report-card .report-name {{
         font-size: 0.9rem;
         font-weight: 600;
-        color: {COLORS["text"]};
+        color: {C["text"]};
         margin-bottom: 0.25rem;
     }}
 
     .report-card .report-desc {{
         font-size: 0.8rem;
-        color: {COLORS["text_secondary"]};
+        color: {C["text_secondary"]};
         line-height: 1.3;
     }}
 
@@ -707,7 +758,7 @@ def get_custom_css() -> str:
         justify-content: space-between;
         align-items: center;
         padding: 0.5rem 0;
-        border-bottom: 1px solid {COLORS["border"]};
+        border-bottom: 1px solid {C["border"]};
     }}
 
     .preview-metric:last-child {{
@@ -716,13 +767,13 @@ def get_custom_css() -> str:
 
     .preview-metric .metric-label {{
         font-size: 0.85rem;
-        color: {COLORS["text_secondary"]};
+        color: {C["text_secondary"]};
     }}
 
     .preview-metric .metric-value {{
         font-size: 1rem;
         font-weight: 600;
-        color: {COLORS["text"]};
+        color: {C["text"]};
     }}
 
     /* ===== Sidebar Navigation Styling ===== */
@@ -750,51 +801,51 @@ def get_custom_css() -> str:
 
     /* Style the text */
     [data-testid="stSidebar"] .stRadio > div > label > div:last-child {{
-        color: {COLORS["text"]} !important;
+        color: {C["text"]} !important;
         font-size: 0.95rem !important;
     }}
 
     /* Hover state - subtle background + dark gold color */
     [data-testid="stSidebar"] .stRadio > div > label:hover {{
-        background-color: {COLORS["surface_light"]} !important;
+        background-color: {C["surface_light"]} !important;
     }}
 
     [data-testid="stSidebar"] .stRadio > div > label:hover > div:last-child {{
-        color: {COLORS["accent_dark"]} !important;
+        color: {C["accent_dark"]} !important;
         font-weight: 600 !important;
     }}
 
     /* Selected state - light rectangle with accent border */
     /* Modern CSS :has() selector for checked radio */
     [data-testid="stSidebar"] .stRadio > div > label:has(input:checked) {{
-        background-color: {COLORS["surface_light"]} !important;
-        border: 2px solid {COLORS["accent"]} !important;
+        background-color: {C["surface_light"]} !important;
+        border: 2px solid {C["accent"]} !important;
     }}
 
     [data-testid="stSidebar"] .stRadio > div > label:has(input:checked) > div:last-child {{
-        color: {COLORS["text"]} !important;
+        color: {C["text"]} !important;
         font-weight: 600 !important;
     }}
 
     /* Fallback: aria-checked attribute */
     [data-testid="stSidebar"] .stRadio > div > label[aria-checked="true"] {{
-        background-color: {COLORS["surface_light"]} !important;
-        border: 2px solid {COLORS["accent"]} !important;
+        background-color: {C["surface_light"]} !important;
+        border: 2px solid {C["accent"]} !important;
     }}
 
     [data-testid="stSidebar"] .stRadio > div > label[aria-checked="true"] > div:last-child {{
-        color: {COLORS["text"]} !important;
+        color: {C["text"]} !important;
         font-weight: 600 !important;
     }}
 
     /* Fallback: data-checked attribute */
     [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] {{
-        background-color: {COLORS["surface_light"]} !important;
-        border: 2px solid {COLORS["accent"]} !important;
+        background-color: {C["surface_light"]} !important;
+        border: 2px solid {C["accent"]} !important;
     }}
 
     [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] > div:last-child {{
-        color: {COLORS["text"]} !important;
+        color: {C["text"]} !important;
         font-weight: 600 !important;
     }}
 
@@ -802,18 +853,18 @@ def get_custom_css() -> str:
 
     /* Tytuł w sidebarze */
     [data-testid="stSidebar"] h1 {{
-        color: {COLORS["text"]} !important;
+        color: {C["text"]} !important;
     }}
 
     /* Nagłówki markdown w sidebarze */
     [data-testid="stSidebar"] h3 {{
-        color: {COLORS["text"]} !important;
+        color: {C["text"]} !important;
         font-size: 0.9rem !important;
     }}
 
     /* Alerty (st.success, st.info) w sidebarze - usunięcie obramowania */
     [data-testid="stSidebar"] .stAlert {{
-        background-color: {COLORS["background"]} !important;
+        background-color: {C["background"]} !important;
         border-radius: 6px !important;
         padding: 0.5rem 0.75rem !important;
         margin: 0.25rem 0 !important;
@@ -828,13 +879,13 @@ def get_custom_css() -> str:
     }}
 
     [data-testid="stSidebar"] .stAlert p {{
-        color: {COLORS["text"]} !important;
+        color: {C["text"]} !important;
         font-size: 0.85rem !important;
     }}
 
     /* Alternatywne selektory dla alertów */
     [data-testid="stSidebar"] [data-testid="stAlert"] {{
-        background-color: {COLORS["background"]} !important;
+        background-color: {C["background"]} !important;
         border: none !important;
         border-left: none !important;
         box-shadow: none !important;
@@ -954,7 +1005,7 @@ def get_custom_css() -> str:
 
     /* Status section container */
     .sidebar-status-section {{
-        background-color: {COLORS["background"]};
+        background-color: {C["background"]};
         border-radius: 8px;
         padding: 0.75rem;
         margin-bottom: 0.75rem;
@@ -966,7 +1017,7 @@ def get_custom_css() -> str:
         gap: 0.5rem;
         font-size: 0.8rem;
         font-weight: 600;
-        color: {COLORS["text"]};
+        color: {C["text"]};
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 0.75rem;
@@ -1005,7 +1056,7 @@ def get_custom_css() -> str:
         top: 16px;
         width: 2px;
         height: calc(100% - 4px);
-        background-color: {COLORS["border"]};
+        background-color: {C["border"]};
         transition: background-color 0.3s ease;
     }}
 
@@ -1066,13 +1117,13 @@ def get_custom_css() -> str:
     .pipeline-step-name {{
         font-size: 0.8rem;
         font-weight: 500;
-        color: {COLORS["text"]};
+        color: {C["text"]};
         line-height: 1.2;
     }}
 
     .pipeline-step-detail {{
         font-size: 0.7rem;
-        color: {COLORS["text_secondary"]};
+        color: {C["text_secondary"]};
         margin-top: 0.15rem;
         line-height: 1.2;
     }}
@@ -1088,6 +1139,34 @@ def get_custom_css() -> str:
             transform: scale(0.9);
         }}
     }}
+
+    /* ===== Settings icon bar ===== */
+    [data-testid="stSidebar"] .settings-icon-bar {{
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }}
+
+    /* Każdy przycisk-ikona: kwadrat 44×44 */
+    [data-testid="stSidebar"] .settings-icon-bar button {{
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        padding: 0 !important;
+        font-size: 1.2rem !important;
+        line-height: 1 !important;
+        border-radius: 8px !important;
+        background: transparent !important;
+        border: 1px solid {C["border"]} !important;
+        color: {C["text"]} !important;
+    }}
+
+    [data-testid="stSidebar"] .settings-icon-bar button:hover {{
+        background: {C["surface_light"]} !important;
+        border-color: {C["accent"]} !important;
+    }}
+
+    {"[data-testid='stSidebar'], .stApp { color-scheme: dark; background-color: " + C["surface"] + "; color: " + C["text"] + "; }" if theme_mode == "dark" else ""}
     </style>
     """
 
@@ -1095,4 +1174,5 @@ def get_custom_css() -> str:
 def apply_theme() -> None:
     """Apply custom CSS theme to the Streamlit app."""
     import streamlit as st
-    st.markdown(get_custom_css(), unsafe_allow_html=True)
+    theme_mode = st.session_state.get("theme_mode", "light")
+    st.markdown(get_custom_css(theme_mode), unsafe_allow_html=True)

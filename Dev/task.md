@@ -35,6 +35,10 @@
 | 22 | Performance Validation UI/UX | poprawki layoutu, kolumn, outliers, working pattern | ✅ |
 | 23 | Units→Pieces & Throughput | rename labels, 18 nowych metryk throughput | ✅ |
 | 24 | Numeric cleaning | uniwersalna clean_numeric_column() | ✅ |
+| 25 | Sidebar Settings Bar | dark mode toggle, session reset, settings panel (3 ikony) | ✅ |
+| 26 | Sidebar Settings Bar — UX redesign | sticky bar, modal reset, Settings page, layout fix | ✅ |
+| 27 | True Fixed Toolbar — HTML injection | replace st.columns with pure HTML div, zero layout impact | ✅ |
+| 28 | Chrome-style Browser Tabs | replace gold pill buttons with browser-tab CSS (rounded top, rail separator, gold accent) | ✅ |
 
 ---
 
@@ -262,6 +266,88 @@ aby załadować nośniki z polem priority.
 
 **GitHub Issue:** #26
 **Branch:** `feature/numeric-cleaning`
+
+---
+
+## Sidebar Settings Bar (Faza 25) - ZAKOŃCZONA
+
+**Cel:** 3 przyciski-ikony na dole sidebara: dark mode toggle, reset sesji, ustawienia.
+
+| Plik | Zmiana |
+|------|--------|
+| `src/ui/theme.py` | `get_custom_css(theme_mode)` — dark/light resolver, CSS dla icon bar |
+| `src/ui/theme.py` | `apply_theme()` — odczytuje `theme_mode` z session state |
+| `src/ui/app.py` | Nowe klucze defaults: `theme_mode`, `confirm_reset`, `settings_open` |
+| `src/ui/app.py` | `reset_session_data()` — czyści dane, zachowuje serwisy/config |
+| `src/ui/app.py` | `render_settings_section()` — pasek 3 ikon + inline panele |
+
+**Funkcje:**
+- 🌙/☀️ — przełącza `theme_mode` light/dark; CSS dark override via `color-scheme`
+- 🔄 — inline confirm (Tak, resetuj / Anuluj); toggle — zamknięte gdy otwarte ⚙️
+- ⚙️ — inline panel z `borderline_threshold`; zmiana invaliduje `capacity_result`
+
+---
+
+## Sidebar Settings Bar UX Redesign (Faza 26) - ZAKOŃCZONA
+
+**Cel:** Naprawa 4 problemów UX w settings barze.
+
+| Problem | Rozwiązanie |
+|---------|-------------|
+| Reset button wyżej niż pozostałe (misalignment) | Usunięto `<div class="icon-active">` wewnątrz kolumn |
+| Settings bar znika przy scrollu | CSS `.sidebar-settings-bottom` z `position: sticky; bottom: 0` |
+| ⚙️ otwierało inline panel | Nawiguje do sekcji "Settings" (pełna strona) |
+| 🔄 otwierało inline confirm | `@st.dialog` — centralny modal overlay |
+
+| Plik | Zmiana |
+|------|--------|
+| `src/ui/theme.py` | Zastąpienie `.icon-active button` na `.sidebar-settings-bottom` sticky CSS |
+| `src/ui/app.py` | Dodanie "Settings" do SECTIONS dict |
+| `src/ui/app.py` | Usunięcie `settings_open` z defaults |
+| `src/ui/app.py` | Nowa funkcja `_show_reset_dialog()` z `@st.dialog` |
+| `src/ui/app.py` | Przepisanie `render_settings_section()` — bez icon-active wrapperów |
+| `src/ui/app.py` | Wywołanie `_show_reset_dialog()` w `main()` poza sidebar context |
+| `src/ui/app.py` | Routing `Settings` w `render_main_content()` |
+| `src/ui/app.py` | Nowa funkcja `_render_settings_view()` z threshold + theme radio |
+
+---
+
+## True Fixed Toolbar — HTML Injection (Faza 27) - ZAKOŃCZONA
+
+**Problem:** `st.columns(3)` tworzyło prawdziwe widgety Streamlit → ghost height + `padding-top: 3.5rem` hack; fragile CSS selectors targeting Streamlit internals.
+
+**Rozwiązanie:** Pure HTML injection via `st.markdown(..., unsafe_allow_html=True)` z `position: fixed` div.
+
+| Plik | Zmiana |
+|------|--------|
+| `src/ui/app.py` | Przepisanie `render_topright_toolbar()` — HTML `<a href="?_toolbar=...">` + query param handler |
+| `src/ui/theme.py` | Zastąpienie fragile CSS selektorów klasami `.topright-toolbar` i `.toolbar-btn`; usunięcie `padding-top: 3.5rem` |
+
+**Mechanizm kliknięć:** `st.query_params["_toolbar"]` → action handling → `del st.query_params["_toolbar"]` → `st.rerun()`
+
+**Korzyści:**
+- Zero layout impact (HTML div nie zajmuje miejsca w flow)
+- Stabilne klasy CSS zamiast `stVerticalBlock > div:first-child` selektorów
+- Kompaktowe 28×28px ikony zamiast full-width przycisków Streamlit
+
+---
+
+## Chrome-style Browser Tabs (Faza 28) - ZAKOŃCZONA
+
+**Cel:** Zastąpienie złotych pill-buttonów eleganckim stylem kart przeglądarki (Chrome-tabs).
+
+| Plik | Zmiana |
+|------|--------|
+| `src/ui/theme.py` | Zastąpienie CSS pill (lines 573–627) nowym CSS z zakładkami: `border-radius: 8px 8px 0 0`, rail z `border-bottom`, aktywna zakładka z `border-top: 2.5px solid accent` i `margin-bottom: -2px` |
+| `Dev/task.md` | Dodano wpis Fazy 28 |
+
+**Mechanizm wizualny:**
+- Zakładki z zaokrąglonymi górnymi narożnikami, płaski dół (kształt zakładki)
+- Rail: `border-bottom: 2px solid border` na kontenerze rzędu
+- `margin-bottom: -2px` — zakładki zachodzą 2px na rail, tworząc efekt "siedzenia na szynie"
+- Aktywna zakładka: `border-bottom: 2px solid surface` — zakrywa szarą linię railem tłem zawartości
+- Aktywna zakładka: `border-top: 2.5px solid accent` — złota linia jako wskaźnik aktywności
+- `z-index: 2` na aktywnej — renderowana na wierzchu sąsiednich zakładek
 
 ---
 

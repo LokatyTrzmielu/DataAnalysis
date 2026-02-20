@@ -86,6 +86,8 @@ def init_session_state() -> None:
         "capacity_dq_result": None,
         # Carriers loaded flag
         "carriers_loaded": False,
+        # Settings
+        "theme_mode": "light",
     }
 
     for key, value in defaults.items():
@@ -279,6 +281,11 @@ def render_sidebar_status() -> None:
     render_sidebar_status_section("PERFORMANCE", performance_steps, icon="📈")
 
 
+
+def _on_nav_change() -> None:
+    st.session_state.active_section = SECTIONS[st.session_state.section_nav]
+
+
 def render_sidebar() -> None:
     """Render sidebar with navigation."""
     with st.sidebar:
@@ -288,20 +295,16 @@ def render_sidebar() -> None:
         # Section navigation
         st.markdown("### Navigation")
 
-        # Get current section key for radio
-        current_key = next(
-            (k for k, v in SECTIONS.items() if v == st.session_state.active_section),
-            "🏠 Dashboard"
-        )
+        current_key = st.session_state.active_section
 
-        selected = st.radio(
+        st.radio(
             "Section",
             list(SECTIONS.keys()),
             index=list(SECTIONS.keys()).index(current_key),
             label_visibility="collapsed",
-            key="section_nav"
+            key="section_nav",
+            on_change=_on_nav_change,
         )
-        st.session_state.active_section = SECTIONS[selected]
 
         render_divider()
 
@@ -669,6 +672,7 @@ def _render_performance_validation() -> None:
 def _render_reports_section() -> None:
     """Render Reports section."""
     render_reports_view()
+
 
 
 def main() -> None:
