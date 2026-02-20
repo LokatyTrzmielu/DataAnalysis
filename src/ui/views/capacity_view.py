@@ -28,37 +28,33 @@ def render_analysis_settings() -> None:
     Note: Outlier detection is now automatic during analysis.
     SKUs that don't fit any carrier are shown in results as "Does not fit any carrier".
     """
-    with st.expander("⚙️ Analysis Settings", expanded=False):
-        current_threshold = st.session_state.get("borderline_threshold", 2.0)
-        new_threshold = st.slider(
-            "Borderline threshold (mm)",
-            min_value=0.5,
-            max_value=10.0,
-            value=current_threshold,
-            step=0.5,
-            help="SKUs with dimensions within this margin of carrier limits are marked as BORDERLINE",
-            key="cap_borderline_threshold_slider",
-        )
+    current_threshold = st.session_state.get("borderline_threshold", 2.0)
+    new_threshold = st.slider(
+        "Borderline threshold (mm)",
+        min_value=0.5,
+        max_value=10.0,
+        value=current_threshold,
+        step=0.5,
+        help="SKUs with dimensions within this margin of carrier limits are marked as BORDERLINE",
+        key="cap_borderline_threshold_slider",
+    )
 
-        if new_threshold != current_threshold:
-            st.session_state.borderline_threshold = new_threshold
-            st.session_state.capacity_result = None  # Invalidate cache
-        elif "borderline_threshold" not in st.session_state:
-            st.session_state.borderline_threshold = new_threshold
+    if new_threshold != current_threshold:
+        st.session_state.borderline_threshold = new_threshold
+        st.session_state.capacity_result = None  # Invalidate cache
+    elif "borderline_threshold" not in st.session_state:
+        st.session_state.borderline_threshold = new_threshold
 
-        st.caption(
-            "SKUs that don't fit any carrier (dimensions or weight) "
-            "will be shown in results under 'Does not fit any carrier'."
-        )
+    st.caption(
+        "SKUs that don't fit any carrier (dimensions or weight) "
+        "will be shown in results under 'Does not fit any carrier'."
+    )
 
 
 def render_carrier_form() -> None:
     """Form for adding a new carrier."""
-    render_bold_label("Add new carrier:", "➕")
-
     with st.form("add_carrier_form", clear_on_submit=True):
-        render_bold_label("Internal dimensions (mm):", "📐")
-        col_w, col_l, col_h = st.columns(3)
+        col_w, col_l, col_h, col_wt = st.columns(4)
         with col_w:
             width_mm = st.number_input(
                 "Width (W)",
@@ -83,14 +79,14 @@ def render_carrier_form() -> None:
                 step=10,
                 help="Internal height in mm",
             )
-
-        max_weight = st.number_input(
-            "Max weight (kg)",
-            min_value=1,
-            value=100,
-            step=5,
-            help="Maximum allowed load weight in kg",
-        )
+        with col_wt:
+            max_weight = st.number_input(
+                "Max weight (kg)",
+                min_value=1,
+                value=100,
+                step=5,
+                help="Maximum allowed load weight in kg",
+            )
 
         # Optional ID and name fields
         with st.expander("🏷️ Optional: ID and name", expanded=False):
@@ -180,82 +176,87 @@ def render_carriers_table() -> None:
     # Header row
     header_cols = st.columns([1, 1, 3, 3, 2, 1, 1])
     with header_cols[0]:
-        render_bold_label("Active", size="small")
+        st.markdown('<div class="carrier-header-cell">Active</div>', unsafe_allow_html=True)
     with header_cols[1]:
-        render_bold_label("Priority", size="small")
+        st.markdown('<div class="carrier-header-cell">Priority</div>', unsafe_allow_html=True)
     with header_cols[2]:
-        render_bold_label("Carrier", size="small")
+        st.markdown('<div class="carrier-header-cell">Carrier</div>', unsafe_allow_html=True)
     with header_cols[3]:
-        render_bold_label("Dimensions (L×W×H)", size="small")
+        st.markdown('<div class="carrier-header-cell">Dimensions (L×W×H)</div>', unsafe_allow_html=True)
     with header_cols[4]:
-        render_bold_label("Max weight", size="small")
+        st.markdown('<div class="carrier-header-cell">Max weight</div>', unsafe_allow_html=True)
     with header_cols[5]:
-        render_bold_label("Type", size="small")
+        st.markdown('<div class="carrier-header-cell">Type</div>', unsafe_allow_html=True)
     with header_cols[6]:
-        st.markdown("")
+        st.markdown("", unsafe_allow_html=True)
 
     for i, carrier in enumerate(carriers):
         is_predefined = carrier.get("is_predefined", False)
         is_active = carrier.get("is_active", True)
         current_priority = carrier.get("priority")
-        cols = st.columns([1, 1, 3, 3, 2, 1, 1])
 
-        with cols[0]:
-            # Checkbox for activation/deactivation
-            new_active = st.checkbox(
-                "Active",
-                value=is_active,
-                key=f"carrier_active_{i}",
-                label_visibility="collapsed",
-                help="Include this carrier in analysis",
-            )
-            if new_active != is_active:
-                st.session_state.custom_carriers[i]["is_active"] = new_active
-                st.rerun()
+        with st.container(border=True):
+            cols = st.columns([1, 1, 3, 3, 2, 1, 1])
 
-        with cols[1]:
-            # Priority input (0 or empty = no priority = excluded from Prioritized mode)
-            new_priority = st.number_input(
-                "Priority",
-                min_value=0,
-                max_value=99,
-                value=current_priority if current_priority is not None else 0,
-                key=f"carrier_priority_{i}",
-                label_visibility="collapsed",
-                help="Priority for Prioritized mode (1=first, 0=excluded)",
-            )
-            # Convert 0 to None (no priority)
-            new_priority_value = new_priority if new_priority > 0 else None
-            if new_priority_value != current_priority:
-                st.session_state.custom_carriers[i]["priority"] = new_priority_value
-                st.rerun()
-
-        with cols[2]:
-            st.text(f"{carrier['carrier_id']}")
-            st.caption(carrier["name"])
-        with cols[3]:
-            dims = f"{int(carrier['inner_length_mm'])}×{int(carrier['inner_width_mm'])}×{int(carrier['inner_height_mm'])} mm"
-            st.text(dims)
-        with cols[4]:
-            st.text(f"{carrier['max_weight_kg']:.1f} kg")
-        with cols[5]:
-            if is_predefined:
-                render_status_button("Predef.", "in_progress", show_icon=False)
-            else:
-                render_status_button("Custom", "success", show_icon=False)
-        with cols[6]:
-            if is_predefined:
-                # Cannot delete predefined carriers
-                st.button(
-                    "🔒", key=f"lock_carrier_{i}", disabled=True, help="Predefined"
+            with cols[0]:
+                # Checkbox for activation/deactivation
+                new_active = st.checkbox(
+                    "Active",
+                    value=is_active,
+                    key=f"carrier_active_{i}",
+                    label_visibility="collapsed",
+                    help="Include this carrier in analysis",
                 )
-            else:
-                # Can delete custom carriers
-                if st.button(
-                    "✕", key=f"del_carrier_{i}", help=f"Delete {carrier['name']}"
-                ):
-                    st.session_state.custom_carriers.pop(i)
+                if new_active != is_active:
+                    st.session_state.custom_carriers[i]["is_active"] = new_active
                     st.rerun()
+
+            with cols[1]:
+                # Priority input (0 or empty = no priority = excluded from Prioritized mode)
+                new_priority = st.number_input(
+                    "Priority",
+                    min_value=0,
+                    max_value=99,
+                    value=current_priority if current_priority is not None else 0,
+                    key=f"carrier_priority_{i}",
+                    label_visibility="collapsed",
+                    help="Priority for Prioritized mode (1=first, 0=excluded)",
+                )
+                # Convert 0 to None (no priority)
+                new_priority_value = new_priority if new_priority > 0 else None
+                if new_priority_value != current_priority:
+                    st.session_state.custom_carriers[i]["priority"] = new_priority_value
+                    st.rerun()
+
+            with cols[2]:
+                st.markdown(
+                    f'<div class="carrier-cell-center"><b>{carrier["carrier_id"]}</b>'
+                    f' — <span class="carrier-sub">{carrier["name"]}</span></div>',
+                    unsafe_allow_html=True,
+                )
+            with cols[3]:
+                dims = f"{int(carrier['inner_length_mm'])}×{int(carrier['inner_width_mm'])}×{int(carrier['inner_height_mm'])} mm"
+                st.markdown(f'<div class="carrier-cell-center">{dims}</div>', unsafe_allow_html=True)
+            with cols[4]:
+                st.markdown(f'<div class="carrier-cell-center">{carrier["max_weight_kg"]:.1f} kg</div>', unsafe_allow_html=True)
+            with cols[5]:
+                if is_predefined:
+                    render_status_button("Predef.", "in_progress", show_icon=False)
+                else:
+                    render_status_button("Custom", "success", show_icon=False)
+            with cols[6]:
+                if is_predefined:
+                    # Cannot delete predefined carriers
+                    st.button(
+                        "🔒", key=f"lock_carrier_{i}", disabled=True, help="Predefined"
+                    )
+                else:
+                    # Can delete custom carriers
+                    if st.button(
+                        "✕", key=f"del_carrier_{i}", help=f"Delete {carrier['name']}"
+                    ):
+                        st.session_state.custom_carriers.pop(i)
+                        st.rerun()
 
 
 def render_capacity_view() -> None:
@@ -299,9 +300,6 @@ def render_capacity_view() -> None:
 
     render_divider()
 
-    # Analysis Settings (borderline threshold)
-    render_analysis_settings()
-
     # Analysis button
     carriers_defined = len(st.session_state.custom_carriers) > 0
 
@@ -309,7 +307,8 @@ def render_capacity_view() -> None:
         st.warning("Add at least one carrier for analysis")
 
     # Analysis mode selection
-    render_divider()
+    st.write("**Analysis mode**")
+    render_analysis_settings()
     analysis_mode = st.radio(
         "Analysis mode",
         options=["Independent (all carriers)", "Prioritized (by priority)", "Best Fit (optimal filling)"],
@@ -320,6 +319,7 @@ def render_capacity_view() -> None:
              "Best Fit: SKU assigned to carrier with highest filling rate (optimal space use). "
              "Carriers with priority=0 are excluded from Prioritized mode.",
         horizontal=True,
+        label_visibility="hidden",
     )
     prioritization_mode = analysis_mode == "Prioritized (by priority)"
     best_fit_mode = analysis_mode == "Best Fit (optimal filling)"
