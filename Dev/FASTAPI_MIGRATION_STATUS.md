@@ -51,9 +51,13 @@
 
 ---
 
-### Phase 4 🔜 PDF reports (WeasyPrint)
-Not started. Deps: `weasyprint>=60.0`, `kaleido>=0.2.1`, `jinja2>=3.0`.
-Endpoint: `GET /api/v1/runs/{id}/reports/pdf`
+### Phase 4 ✅ PDF reports (reportlab)
+- `api/pdf_generator.py` — A4 PDF with KPI summary + carrier breakdown table (reportlab, pure-Python)
+- `GET /api/v1/runs/{id}/reports/pdf` → `Response(content=pdf_bytes, media_type="application/pdf")`
+- Frontend: PDF download button in `ReportsTab.vue`
+
+Note: Used `reportlab` instead of `weasyprint` — WeasyPrint requires GTK on Windows.
+On Render.com (Linux) WeasyPrint works and can be added as upgrade later.
 
 ### Phase 5 🔜 Sharing + advanced features
 Not started.
