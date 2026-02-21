@@ -1,13 +1,12 @@
-"""Reports router: ZIP download for an analysis run."""
+"""Reports router: ZIP and PDF download for an analysis run."""
 
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_current_user, get_db
@@ -75,4 +74,39 @@ async def download_zip(
         media_type="application/zip",
         filename=f"{run.client_name or run.id}_report.zip",
         background=None,
+    )
+
+
+@router.get("/{run_id}/reports/pdf")
+async def download_pdf(
+    run_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    """Generate and return a PDF capacity analysis report for a run."""
+    result = await db.execute(select(AnalysisRun).where(AnalysisRun.id == run_id))
+    run = result.scalar_one_or_none()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if run.owner_id != current_user.id and not run.is_public:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if not run.capacity_result:
+        raise HTTPException(
+            status_code=422,
+            detail="No capacity results available. Run capacity analysis first.",
+        )
+
+    from api.pdf_generator import generate_capacity_pdf
+
+    pdf_bytes = generate_capacity_pdf(
+        client_name=run.client_name or run.id,
+        capacity_data=run.capacity_result,
+        run_id=run.id,
+    )
+
+    filename = f"{run.client_name or run.id}_capacity_report.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

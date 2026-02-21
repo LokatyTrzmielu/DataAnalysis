@@ -9,7 +9,14 @@
           :disabled="!run.capacity_result || downloading"
           class="bg-gray-700 hover:bg-gray-800 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
         >
-          {{ downloading ? 'Preparing…' : 'Download ZIP' }}
+          {{ downloadingZip ? 'Preparing…' : 'Download ZIP' }}
+        </button>
+        <button
+          @click="downloadPdf"
+          :disabled="!run.capacity_result || downloadingPdf"
+          class="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
+        >
+          {{ downloadingPdf ? 'Preparing…' : 'Download PDF' }}
         </button>
       </div>
 
@@ -28,24 +35,43 @@ import { runsApi } from '@/api/runs'
 
 const props = defineProps<{ run: RunDetail }>()
 
-const downloading = ref(false)
+const downloadingZip = ref(false)
+const downloadingPdf = ref(false)
+const downloading = downloadingZip  // alias for template backward compat
 const error = ref('')
 
 async function downloadZip() {
-  downloading.value = true
+  downloadingZip.value = true
   error.value = ''
   try {
     const { data } = await runsApi.downloadZip(props.run.id)
-    const url = URL.createObjectURL(data as Blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${props.run.client_name}_report.zip`
-    a.click()
-    URL.revokeObjectURL(url)
+    triggerDownload(data as Blob, `${props.run.client_name}_report.zip`)
   } catch {
-    error.value = 'Download failed.'
+    error.value = 'ZIP download failed.'
   } finally {
-    downloading.value = false
+    downloadingZip.value = false
   }
+}
+
+async function downloadPdf() {
+  downloadingPdf.value = true
+  error.value = ''
+  try {
+    const { data } = await runsApi.downloadPdf(props.run.id)
+    triggerDownload(data as Blob, `${props.run.client_name}_report.pdf`)
+  } catch {
+    error.value = 'PDF download failed.'
+  } finally {
+    downloadingPdf.value = false
+  }
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 </script>

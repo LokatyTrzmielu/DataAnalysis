@@ -94,4 +94,7 @@ export const runsApi = {
 
   downloadZip: (id: string) =>
     client.get(`/runs/${id}/reports/zip`, { responseType: 'blob' }),
+
+  downloadPdf: (id: string) =>
+    client.get(`/runs/${id}/reports/pdf`, { responseType: 'blob' }),
 }
