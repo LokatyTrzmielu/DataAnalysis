@@ -39,7 +39,7 @@
       <CapacityTab :run="run" @refreshed="loadRun" />
     </div>
     <div v-else-if="activeTab === 'performance'">
-      <div class="text-sm text-gray-400">Performance analysis — coming soon.</div>
+      <PerformanceTab :run="run" @refreshed="loadRun" />
     </div>
     <div v-else-if="activeTab === 'reports'">
       <ReportsTab :run="run" />
@@ -59,6 +59,7 @@ import StatusBadge from '@/components/shared/StatusBadge.vue'
 import ImportTab from '@/components/analysis/ImportTab.vue'
 import QualityTab from '@/components/analysis/QualityTab.vue'
 import CapacityTab from '@/components/analysis/CapacityTab.vue'
+import PerformanceTab from '@/components/analysis/PerformanceTab.vue'
 import ReportsTab from '@/components/analysis/ReportsTab.vue'
 
 const route = useRoute()

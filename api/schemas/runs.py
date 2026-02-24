@@ -10,11 +10,28 @@ class RunCreate(BaseModel):
     client_name: str
 
 
+class ColumnSuggestion(BaseModel):
+    source_column: str
+    suggested_target: Optional[str] = None
+    confidence: float
+
+
+class MappingInspectResponse(BaseModel):
+    run_id: str
+    file_columns: list[str]
+    suggestions: list[ColumnSuggestion]
+    missing_required: list[str]
+    preview_rows: list[dict]
+    schema_fields: list[dict]
+
+
 class RunResponse(BaseModel):
     id: str
     owner_id: str
     client_name: str
     status: str
+    masterdata_path: Optional[str] = None
+    orders_path: Optional[str] = None
     masterdata_mapping: Optional[dict[str, Any]] = None
     orders_mapping: Optional[dict[str, Any]] = None
     quality_result: Optional[dict[str, Any]] = None

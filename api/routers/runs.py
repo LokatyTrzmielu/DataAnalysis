@@ -11,8 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_current_user, get_db
 from api.models.analysis_run import AnalysisRun
 from api.models.user import User
-from api.schemas.runs import RunCreate, RunListItem, RunListResponse, RunResponse
+from api.schemas.runs import (
+    RunCreate, RunListItem, RunListResponse, RunResponse,
+    MappingInspectResponse, ColumnSuggestion,
+)
 from api.schemas.analysis import CapacityResponse
+import json
 
 import tempfile
 
@@ -27,6 +31,8 @@ def _run_to_response(run: AnalysisRun) -> RunResponse:
         owner_id=run.owner_id,
         client_name=run.client_name,
         status=run.status,
+        masterdata_path=run.masterdata_path,
+        orders_path=run.orders_path,
         masterdata_mapping=run.masterdata_mapping,
         orders_mapping=run.orders_mapping,
         quality_result=run.quality_result,
@@ -101,12 +107,73 @@ async def get_run(
     return _run_to_response(run)
 
 
+@router.post("/{run_id}/masterdata/inspect", response_model=MappingInspectResponse)
+async def inspect_masterdata(
+    run_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MappingInspectResponse:
+    """Upload masterdata file, save it and return column suggestions + preview rows."""
+    run = await _get_run_or_404(run_id, db, current_user)
+
+    suffix = Path(file.filename or "data.xlsx").suffix
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    persistent = UPLOAD_DIR / f"{run_id}_masterdata{suffix}"
+    content = await file.read()
+    persistent.write_bytes(content)
+    run.masterdata_path = str(persistent)
+    run.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    from src.ingest.readers import FileReader
+    from src.ingest.mapping import MappingWizard, MASTERDATA_SCHEMA
+
+    reader = FileReader(persistent)
+    preview_df = reader.read(n_rows=5)
+    columns = preview_df.columns
+
+    wizard = MappingWizard(MASTERDATA_SCHEMA, "masterdata")
+    mapping_result = wizard.auto_map(columns)
+
+    suggestions = []
+    for col in columns:
+        col_suggestions = wizard.get_suggestions(col)
+        best = col_suggestions[0] if col_suggestions else None
+        suggestions.append(ColumnSuggestion(
+            source_column=col,
+            suggested_target=best[0] if best else None,
+            confidence=best[1] if best else 0.0,
+        ))
+
+    schema_fields = [
+        {
+            "name": field_name,
+            "required": field_cfg["required"],
+            "description": field_cfg["description"],
+        }
+        for field_name, field_cfg in MASTERDATA_SCHEMA.items()
+    ]
+
+    preview_rows = preview_df.to_dicts()
+
+    return MappingInspectResponse(
+        run_id=run_id,
+        file_columns=columns,
+        suggestions=suggestions,
+        missing_required=mapping_result.missing_required,
+        preview_rows=preview_rows,
+        schema_fields=schema_fields,
+    )
+
+
 @router.post("/{run_id}/capacity", response_model=RunResponse)
 async def run_capacity(
     run_id: str,
     file: Optional[UploadFile] = File(default=None),
     prioritization_mode: bool = Form(default=False),
     best_fit_mode: bool = Form(default=False),
+    borderline_threshold: float = Form(default=2.0),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResponse:
@@ -152,7 +219,7 @@ async def run_capacity(
             raise HTTPException(status_code=422, detail=f"Missing columns: {missing}")
 
         carriers = [c for c in CarrierService().load_all_carriers() if c.is_active]
-        analyzer = CapacityAnalyzer(carriers)
+        analyzer = CapacityAnalyzer(carriers, borderline_threshold_mm=borderline_threshold)
         result = analyzer.analyze_dataframe(
             ingest_result.df,
             prioritization_mode=prioritization_mode,
@@ -187,6 +254,7 @@ async def run_capacity(
 async def run_quality(
     run_id: str,
     file: Optional[UploadFile] = File(default=None),
+    mapping_json: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResponse:
@@ -215,30 +283,85 @@ async def run_quality(
 
     try:
         from src.ingest.pipeline import MasterdataIngestPipeline
+        from src.ingest.mapping import MappingWizard, MappingResult, ColumnMapping, MASTERDATA_SCHEMA
         from src.quality.pipeline import QualityPipeline
-        from src.core.types import MasterdataRow
 
         ingest = MasterdataIngestPipeline()
-        ingest_result = ingest.run(source_path)
+
+        # Parse user-supplied mapping if provided
+        parsed_mapping: Optional[MappingResult] = None
+        if mapping_json:
+            raw = json.loads(mapping_json)  # dict: target_field -> source_column
+            mr = MappingResult()
+            for target_field, source_col in raw.items():
+                if source_col:
+                    mr.mappings[target_field] = ColumnMapping(
+                        target_field=target_field,
+                        source_column=source_col,
+                        confidence=1.0,
+                        is_auto=False,
+                    )
+            required_fields = [f for f, cfg in MASTERDATA_SCHEMA.items() if cfg["required"]]
+            mr.missing_required = [f for f in required_fields if f not in mr.mappings]
+            parsed_mapping = mr
+            run.masterdata_mapping = raw
+            run.updated_at = datetime.now(timezone.utc)
+
+        ingest_result = ingest.run(source_path, mapping=parsed_mapping)
 
         quality_pipeline = QualityPipeline()
         quality_result = quality_pipeline.run(ingest_result.df)
 
-        scorecard = quality_result.metrics_after
+        metrics = quality_result.metrics_after
+        dq = quality_result.dq_lists
+        imputation = quality_result.imputation
+
+        imputed_dims = sum(
+            s.imputed_count
+            for s in (imputation.stats if imputation else [])
+            if s.field_name in ("length_mm", "width_mm", "height_mm")
+        )
+        imputed_weight = sum(
+            s.imputed_count
+            for s in (imputation.stats if imputation else [])
+            if s.field_name == "weight_kg"
+        )
+
         run.quality_result = {
-            "total_records": scorecard.total_records,
-            "dimensions_coverage_pct": scorecard.dimensions_coverage_pct,
-            "weight_coverage_pct": scorecard.weight_coverage_pct,
-            "stock_coverage_pct": scorecard.stock_coverage_pct,
-            "missing_critical_count": scorecard.missing_critical_count,
-            "suspect_outliers_count": scorecard.suspect_outliers_count,
-            "high_risk_borderline_count": scorecard.high_risk_borderline_count,
-            "duplicates_count": scorecard.duplicates_count,
-            "conflicts_count": scorecard.conflicts_count,
-            "collisions_count": scorecard.collisions_count,
-            "imputed_dimensions_count": scorecard.imputed_dimensions_count,
-            "imputed_weight_count": scorecard.imputed_weight_count,
-            "overall_score": scorecard.overall_score,
+            "total_records": metrics.total_records,
+            "dimensions_coverage_pct": metrics.dimensions_coverage_pct,
+            "weight_coverage_pct": metrics.weight_coverage_pct,
+            "stock_coverage_pct": metrics.stock_coverage_pct,
+            "missing_critical_count": len(dq.missing_critical),
+            "suspect_outliers_count": len(dq.suspect_outliers),
+            "high_risk_borderline_count": len(dq.high_risk_borderline),
+            "duplicates_count": len(dq.duplicates),
+            "conflicts_count": len(dq.conflicts),
+            "collisions_count": len(dq.collisions),
+            "imputed_dimensions_count": imputed_dims,
+            "imputed_weight_count": imputed_weight,
+            "overall_score": quality_result.quality_score,
+            # Detailed DQ lists for CSV download
+            "missing_critical": [
+                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                for i in dq.missing_critical
+            ],
+            "suspect_outliers": [
+                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                for i in dq.suspect_outliers
+            ],
+            "high_risk_borderline": [
+                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                for i in dq.high_risk_borderline
+            ],
+            "duplicates": [
+                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                for i in dq.duplicates
+            ],
+            "conflicts": [
+                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                for i in dq.conflicts
+            ],
         }
         run.status = "quality_done"
         run.updated_at = datetime.now(timezone.utc)
@@ -249,6 +372,206 @@ async def run_quality(
     finally:
         if tmp_path:
             tmp_path.unlink(missing_ok=True)
+
+
+@router.post("/{run_id}/orders/inspect", response_model=MappingInspectResponse)
+async def inspect_orders(
+    run_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MappingInspectResponse:
+    """Upload orders file, save it and return column suggestions + preview rows."""
+    run = await _get_run_or_404(run_id, db, current_user)
+
+    suffix = Path(file.filename or "data.xlsx").suffix
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    persistent = UPLOAD_DIR / f"{run_id}_orders{suffix}"
+    content = await file.read()
+    persistent.write_bytes(content)
+    run.orders_path = str(persistent)
+    run.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    from src.ingest.readers import FileReader
+    from src.ingest.mapping import MappingWizard, ORDERS_SCHEMA
+
+    reader = FileReader(persistent)
+    preview_df = reader.read(n_rows=5)
+    columns = preview_df.columns
+
+    wizard = MappingWizard(ORDERS_SCHEMA, "orders")
+    mapping_result = wizard.auto_map(columns)
+
+    suggestions = []
+    for col in columns:
+        col_suggestions = wizard.get_suggestions(col)
+        best = col_suggestions[0] if col_suggestions else None
+        suggestions.append(ColumnSuggestion(
+            source_column=col,
+            suggested_target=best[0] if best else None,
+            confidence=best[1] if best else 0.0,
+        ))
+
+    schema_fields = [
+        {
+            "name": field_name,
+            "required": field_cfg["required"],
+            "description": field_cfg["description"],
+        }
+        for field_name, field_cfg in ORDERS_SCHEMA.items()
+    ]
+
+    return MappingInspectResponse(
+        run_id=run_id,
+        file_columns=columns,
+        suggestions=suggestions,
+        missing_required=mapping_result.missing_required,
+        preview_rows=preview_df.to_dicts(),
+        schema_fields=schema_fields,
+    )
+
+
+@router.post("/{run_id}/orders/ingest", response_model=RunResponse)
+async def ingest_orders(
+    run_id: str,
+    mapping_json: Optional[str] = Form(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunResponse:
+    """Ingest orders with the given column mapping."""
+    run = await _get_run_or_404(run_id, db, current_user)
+    if not run.orders_path:
+        raise HTTPException(status_code=422, detail="No orders file. Upload via /orders/inspect first.")
+
+    from src.ingest.pipeline import OrdersIngestPipeline
+    from src.ingest.mapping import MappingResult, ColumnMapping, ORDERS_SCHEMA
+
+    parsed_mapping: Optional[MappingResult] = None
+    if mapping_json:
+        raw = json.loads(mapping_json)
+        mr = MappingResult()
+        for target_field, source_col in raw.items():
+            if source_col:
+                mr.mappings[target_field] = ColumnMapping(
+                    target_field=target_field,
+                    source_column=source_col,
+                    confidence=1.0,
+                    is_auto=False,
+                )
+        required_fields = [f for f, cfg in ORDERS_SCHEMA.items() if cfg["required"]]
+        mr.missing_required = [f for f in required_fields if f not in mr.mappings]
+        parsed_mapping = mr
+        run.orders_mapping = raw
+
+    pipeline = OrdersIngestPipeline()
+    result = pipeline.run(Path(run.orders_path), mapping=parsed_mapping)
+
+    date_from = None
+    date_to = None
+    if "order_date" in result.df.columns and result.df.height > 0:
+        dates = result.df["order_date"].drop_nulls()
+        if dates.len() > 0:
+            date_from = str(dates.min())
+            date_to = str(dates.max())
+
+    run.analysis_config = {
+        **(run.analysis_config or {}),
+        "orders_rows": result.rows_imported,
+        "orders_has_hourly_data": result.has_hourly_data,
+        "orders_date_from": date_from,
+        "orders_date_to": date_to,
+    }
+    run.status = "orders_ingested"
+    run.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(run)
+    return _run_to_response(run)
+
+
+@router.post("/{run_id}/performance", response_model=RunResponse)
+async def run_performance(
+    run_id: str,
+    productive_hours: float = Form(default=7.0),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunResponse:
+    """Run performance analysis using saved orders file and mapping."""
+    run = await _get_run_or_404(run_id, db, current_user)
+    if not run.orders_path:
+        raise HTTPException(status_code=422, detail="No orders file. Use /orders/inspect first.")
+
+    from src.ingest.pipeline import OrdersIngestPipeline
+    from src.ingest.mapping import MappingResult, ColumnMapping, ORDERS_SCHEMA
+    from src.analytics.performance import PerformanceAnalyzer
+    from dataclasses import asdict
+
+    # Rebuild mapping from stored orders_mapping
+    parsed_mapping: Optional[MappingResult] = None
+    if run.orders_mapping:
+        mr = MappingResult()
+        for target_field, source_col in run.orders_mapping.items():
+            if source_col:
+                mr.mappings[target_field] = ColumnMapping(
+                    target_field=target_field,
+                    source_column=source_col,
+                    confidence=1.0,
+                    is_auto=False,
+                )
+        required_fields = [f for f, cfg in ORDERS_SCHEMA.items() if cfg["required"]]
+        mr.missing_required = [f for f in required_fields if f not in mr.mappings]
+        parsed_mapping = mr
+
+    pipeline = OrdersIngestPipeline()
+    ingest_result = pipeline.run(Path(run.orders_path), mapping=parsed_mapping)
+
+    analyzer = PerformanceAnalyzer(productive_hours_per_shift=productive_hours)
+    perf = analyzer.analyze(ingest_result.df)
+
+    run.performance_result = {
+        "kpi": {
+            "total_lines": perf.kpi.total_lines,
+            "total_orders": perf.kpi.total_orders,
+            "total_units": perf.kpi.total_units,
+            "unique_sku": perf.kpi.unique_sku,
+            "avg_lines_per_hour": perf.kpi.avg_lines_per_hour,
+            "avg_orders_per_hour": perf.kpi.avg_orders_per_hour,
+            "avg_units_per_hour": perf.kpi.avg_units_per_hour,
+            "avg_lines_per_order": perf.kpi.avg_lines_per_order,
+            "peak_lines_per_hour": perf.kpi.peak_lines_per_hour,
+            "p90_lines_per_hour": perf.kpi.p90_lines_per_hour,
+            "p95_lines_per_hour": perf.kpi.p95_lines_per_hour,
+            "p99_lines_per_hour": perf.kpi.p99_lines_per_hour,
+        },
+        "daily_metrics": [
+            {"date": str(d.date), "lines": d.lines, "orders": d.orders, "units": d.units}
+            for d in perf.daily_metrics
+        ],
+        "datehour_metrics": [
+            {"date": str(dh.date), "hour": dh.hour, "lines": dh.lines}
+            for dh in perf.datehour_metrics
+        ],
+        "sku_pareto": [
+            {
+                "sku": s.sku,
+                "total_lines": s.total_lines,
+                "total_units": s.total_units,
+                "total_orders": s.total_orders,
+                "frequency_rank": s.frequency_rank,
+                "cumulative_pct": s.cumulative_pct,
+                "abc_class": s.abc_class,
+            }
+            for s in perf.sku_pareto
+        ],
+        "date_from": str(perf.date_from),
+        "date_to": str(perf.date_to),
+        "has_hourly_data": perf.has_hourly_data,
+    }
+    run.status = "performance_done"
+    run.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(run)
+    return _run_to_response(run)
 
 
 async def _get_run_or_404(

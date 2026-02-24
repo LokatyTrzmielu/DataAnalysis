@@ -26,6 +26,7 @@ MASTERDATA_SCHEMA = {
             # Polish
             "artykul", "indeks", "kod", "nr", "numer", "numer_artykulu",
             "kod_produktu", "kod_towaru", "indeks_materialowy", "indeks_towarowy",
+            "nazwa_indeksu", "numer_indeksu", "indeks_towaru", "nazwa_artykulu",
             "symbol", "symbol_towaru", "towar", "produkt", "id_produktu", "id_towaru",
         ],
         "required": True,
@@ -338,7 +339,7 @@ class MappingWizard:
                         best_score = score
                         best_match = column
 
-        if best_match and best_score >= 0.5:
+        if best_match and best_score >= 0.4:
             return (best_match, best_score)
 
         return None
