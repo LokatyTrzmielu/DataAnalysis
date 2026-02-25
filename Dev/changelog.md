@@ -11,6 +11,15 @@ Rejestr zmian w projekcie DataAnalysis.
 
 ---
 
+### [2026-02-25] - Minor (main)
+- **Per Day stats dla trybu bez danych godzinowych (Performance)**:
+  - Problem: sekcja "Detailed Statistics" ukrywała tabele Orders/Order Lines/Pieces gdy plik nie zawierał kolumny czasu (`has_hourly_data = False`)
+  - Przyczyna: warunek `if result.has_hourly_data and result.daily_metrics:` pomijał przypadek bez godzin
+  - Rozwiązanie: dodano gałąź `elif result.daily_metrics:` wyświetlającą 3 tabele (Orders, Order Lines, Pieces) z kolumnami **Avg / Median / Min / Max** i wierszem "Per Day"
+  - Przeniesiono pomocniczą funkcję `_fmt()` przed oba bloki `if/elif`
+- Plik: `src/ui/views/performance_results.py`
+- Branch: main (minor)
+
 ### [2026-02-20] - Minor (main)
 - **Analiza frameworków UI — ocena alternatyw dla Streamlit**:
   - Zidentyfikowano 4 główne problemy z obecnym Streamlit: brak kontroli layoutu, ograniczone custom komponenty, powolne reruns, walka z CSS

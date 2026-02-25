@@ -48,6 +48,8 @@
 | 17 | Performance module (date/time import, analytics, UI) | ✅ |
 | 18 | Validation split (Capacity/Performance) | ✅ |
 | 19 | Performance Validation UI/UX fixes | ✅ |
+| 20–28 | UI redesign, numeric cleaning, sidebar toolbar, browser tabs | ✅ |
+| 29 | Performance Per Day stats dla trybu bez danych godzinowych | ✅ |
 
 ---
 
