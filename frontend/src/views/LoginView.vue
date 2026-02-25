@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50">
     <div class="bg-white shadow rounded-lg p-8 w-full max-w-sm">
-      <h1 class="text-xl font-semibold text-gray-800 mb-6">DataAnalysis</h1>
+      <h1 class="text-xl font-semibold text-gray-800 mb-6">Datavisor</h1>
 
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>

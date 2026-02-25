@@ -1,12 +1,12 @@
 [project]
-name = "dataanalysis"
+name = "datavisor"
 version = "0.1.0"
 description = "Aplikacja do analizy danych magazynowych - pojemnosciowa i wydajnosciowa"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "DataAnalysis Team"}
+    {name = "Datavisor Team"}
 ]
 keywords = ["warehouse", "analytics", "capacity", "performance", "kardex"]
 
@@ -46,7 +46,7 @@ dev = [
 ]
 
 [project.scripts]
-dataanalysis = "src.ui.app:main"
+datavisor = "src.ui.app:main"
 
 [build-system]
 requires = ["hatchling"]

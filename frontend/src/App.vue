@@ -4,7 +4,7 @@
     <nav v-if="auth.isAuthenticated" class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
         <div class="flex items-center gap-6">
-          <span class="font-semibold text-gray-800 text-sm tracking-wide">DataAnalysis</span>
+          <span class="font-semibold text-gray-800 text-sm tracking-wide">Datavisor</span>
           <RouterLink to="/" class="nav-link">Dashboard</RouterLink>
           <RouterLink to="/runs" class="nav-link">Analyses</RouterLink>
           <RouterLink to="/carriers" class="nav-link">Carriers</RouterLink>

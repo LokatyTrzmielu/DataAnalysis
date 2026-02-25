@@ -1,4 +1,4 @@
-"""Main DataAnalysis Streamlit application.
+"""Main Datavisor Streamlit application.
 
 Refactored to use modular views from src.ui.views package.
 Hierarchical navigation with sidebar sections and sub-tabs.

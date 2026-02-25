@@ -8,7 +8,7 @@ from sqlalchemy.orm import DeclarativeBase
 # Use SQLite for local dev, PostgreSQL for production
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "sqlite+aiosqlite:///./dataanalysis.db",
+    "sqlite+aiosqlite:///./datavisor.db",
 )
 
 # asyncpg doesn't use the +asyncpg scheme from Render's DATABASE_URL

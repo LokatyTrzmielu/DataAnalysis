@@ -1,4 +1,4 @@
-# DataAnalysis
+# Datavisor
 
 Aplikacja do analizy danych magazynowych - pojemnościowa i wydajnościowa.
 

@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="DataAnalysis API",
+    title="Datavisor API",
     description="Warehouse analytics API — capacity, quality, performance",
     version="1.0.0",
     lifespan=lifespan,
