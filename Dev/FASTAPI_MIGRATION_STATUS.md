@@ -1,7 +1,7 @@
-# FastAPI + Vue 3 Migration — Status
+# FastAPI + Vue 3 Migration — Status (Datavisor)
 
 **Branch:** `feature/fastapi-vue3-migration`
-**Date:** 2026-02-21
+**Date:** 2026-02-25
 
 ---
 
@@ -96,7 +96,7 @@ Not started.
 
 ```bash
 # Backend
-python -m api.seed admin@example.com password123 Admin  # one-time setup
+python -m api.seed admin@example.com password123 Admin  # jednorazowy setup (tworzy datavisor.db)
 uvicorn api.main:app --port 8000
 
 # Frontend (separate terminal)

@@ -1,6 +1,6 @@
 # Changelog
 
-Rejestr zmian w projekcie DataAnalysis.
+Rejestr zmian w projekcie Datavisor.
 
 ## Format wpisów
 ```
@@ -8,6 +8,22 @@ Rejestr zmian w projekcie DataAnalysis.
 - Opis zmiany
 - Branch/Commit: nazwa_brancha lub hash commita
 ```
+
+---
+
+### [2026-02-25] - Minor (feature/fastapi-vue3-migration)
+- **Zmiana nazwy aplikacji z DataAnalysis na Datavisor**:
+  - Zaktualizowano nazwę we wszystkich plikach kodu i dokumentacji (12 plików)
+  - `api/main.py` — tytuł API
+  - `api/database.py` — nazwa pliku bazy danych (`datavisor.db`)
+  - `api/pdf_generator.py` — stopka raportu PDF
+  - `frontend/src/App.vue` — navbar
+  - `frontend/src/views/LoginView.vue` — nagłówek strony logowania
+  - `pyproject.toml` — nazwa pakietu, autor, skrypt CLI (`datavisor`)
+  - `src/__init__.py`, `src/core/config.py`, `src/core/types.py`, `src/ui/app.py` — docstringi
+  - `src/reporting/readme.py` — nagłówek i stopka paczki raportów
+  - `README.md` — nagłówek główny
+- Branch: `feature/fastapi-vue3-migration`
 
 ---
 
