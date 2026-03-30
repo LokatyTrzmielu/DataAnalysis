@@ -611,6 +611,66 @@ def _render_capacity_charts() -> None:
     _render_weight_histogram()
 
 
+def _build_sku_abc_map() -> dict[str, str]:
+    """Build SKU → ABC class mapping from Performance result (if available)."""
+    perf = st.session_state.get("performance_result")
+    if perf is None or not hasattr(perf, "sku_pareto"):
+        return {}
+    return {s.sku: s.abc_class for s in perf.sku_pareto}
+
+
+def _render_abc_cross_stats(sku_abc_map: dict[str, str]) -> None:
+    """Render cross-analysis table: unique SKU per ABC class × fit status."""
+    result = st.session_state.capacity_result
+    if result.df is None or result.df.height == 0:
+        return
+
+    render_section_header("Capacity × ABC Class", "🔗")
+    st.caption("Unique SKU count per Pareto class. Click a class name to pre-filter the results table.")
+
+    # Deduplicate by SKU — take best status (FIT > BORDERLINE > NOT_FIT)
+    priority = {"FIT": 2, "BORDERLINE": 1, "NOT_FIT": 0}
+    sku_best: dict[str, str] = {}
+    for row in result.df.iter_rows(named=True):
+        sku = row["sku"]
+        status = row["fit_status"]
+        if sku not in sku_best or priority.get(status, 0) > priority.get(sku_best[sku], 0):
+            sku_best[sku] = status
+
+    # Aggregate per ABC class
+    stats: dict[str, dict] = {}
+    for sku, status in sku_best.items():
+        cls = sku_abc_map.get(sku, "Not in Performance")
+        if cls not in stats:
+            stats[cls] = {"fit": 0, "borderline": 0, "not_fit": 0, "total": 0}
+        stats[cls]["total"] += 1
+        if status == "FIT":
+            stats[cls]["fit"] += 1
+        elif status == "BORDERLINE":
+            stats[cls]["borderline"] += 1
+        else:
+            stats[cls]["not_fit"] += 1
+
+    # Sort: A, B, C, Not in Performance
+    order = ["A", "B", "C", "Not in Performance"]
+    sorted_stats = sorted(stats.items(), key=lambda x: order.index(x[0]) if x[0] in order else 99)
+
+    # Table header
+    header = st.columns([1, 1, 1, 1, 1, 1])
+    for col, label in zip(header, ["ABC Class", "SKU", "FIT", "BORDERLINE", "NOT FIT", "Fit %"]):
+        col.markdown(f"**{label}**")
+
+    for cls, s in sorted_stats:
+        fit_pct = (s["fit"] / s["total"] * 100) if s["total"] > 0 else 0
+        row_cols = st.columns([1, 1, 1, 1, 1, 1])
+        row_cols[0].write(cls)
+        row_cols[1].write(s["total"])
+        row_cols[2].write(s["fit"])
+        row_cols[3].write(s["borderline"])
+        row_cols[4].write(s["not_fit"])
+        row_cols[5].write(f"{fit_pct:.1f}%")
+
+
 def _render_capacity_table() -> None:
     """Render results table with filtering and CSV export."""
     result = st.session_state.capacity_result
@@ -624,11 +684,17 @@ def _render_capacity_table() -> None:
 
     results_df = result.df
 
+    # Build ABC class mapping from Performance (if available)
+    sku_abc_map = _build_sku_abc_map()
+    has_abc = len(sku_abc_map) > 0
+
     # Filter options
-    col_filter, col_carrier, col_export = st.columns([2, 2, 1])
+    if has_abc:
+        col_filter, col_carrier, col_abc, col_export = st.columns([2, 2, 2, 1])
+    else:
+        col_filter, col_carrier, col_export = st.columns([2, 2, 1])
 
     with col_filter:
-        # Status filter
         status_options = ["All", "FIT", "BORDERLINE", "NOT_FIT"]
         selected_status = st.selectbox(
             "Filter by status",
@@ -637,7 +703,6 @@ def _render_capacity_table() -> None:
         )
 
     with col_carrier:
-        # Carrier filter
         carrier_options = ["All"] + list(results_df["carrier_id"].unique().to_list())
         selected_carrier = st.selectbox(
             "Filter by carrier",
@@ -645,36 +710,68 @@ def _render_capacity_table() -> None:
             key="capacity_table_carrier_filter",
         )
 
+    selected_abc = "All"
+    if has_abc:
+        with col_abc:
+            abc_options = ["All", "A", "B", "C", "Not in Performance"]
+            selected_abc = st.selectbox(
+                "Filter by ABC class",
+                abc_options,
+                key="capacity_table_abc_filter",
+                help="Filter SKU by Pareto ABC class from Performance analysis",
+            )
+
     # Apply filters
     filtered_df = results_df
     if selected_status != "All":
         filtered_df = filtered_df.filter(pl.col("fit_status") == selected_status)
     if selected_carrier != "All":
         filtered_df = filtered_df.filter(pl.col("carrier_id") == selected_carrier)
+    if has_abc and selected_abc != "All":
+        if selected_abc == "Not in Performance":
+            skus_in_filter = [sku for sku in filtered_df["sku"].to_list() if sku not in sku_abc_map]
+        else:
+            skus_in_filter = [sku for sku, cls in sku_abc_map.items() if cls == selected_abc]
+        filtered_df = filtered_df.filter(pl.col("sku").is_in(skus_in_filter))
 
-    # Rename columns for display - include new location metrics
-    display_df = filtered_df.select([
-        pl.col("sku").alias("SKU"),
-        pl.col("carrier_id").alias("Carrier"),
-        pl.col("fit_status").alias("Status"),
-        pl.col("units_per_carrier").alias("Units/Carrier"),
-        pl.col("locations_required").alias("Locations Req."),
-        (pl.col("filling_rate") * 100).round(1).alias("Filling Rate (%)"),
-        pl.col("volume_m3").alias("Volume (m³)"),
-        pl.col("limiting_factor").alias("Limiting Factor"),
-    ])
+    # Add ABC class column if Performance data is available
+    if has_abc:
+        abc_series = filtered_df["sku"].map_elements(
+            lambda s: sku_abc_map.get(s, "—"), return_dtype=pl.String
+        )
+        filtered_df = filtered_df.with_columns(abc_series.alias("abc_class"))
+        display_df = filtered_df.select([
+            pl.col("sku").alias("SKU"),
+            pl.col("carrier_id").alias("Carrier"),
+            pl.col("fit_status").alias("Status"),
+            pl.col("abc_class").alias("ABC Class"),
+            pl.col("units_per_carrier").alias("Units/Carrier"),
+            pl.col("locations_required").alias("Locations Req."),
+            (pl.col("filling_rate") * 100).round(1).alias("Filling Rate (%)"),
+            pl.col("volume_m3").alias("Volume (m³)"),
+            pl.col("limiting_factor").alias("Limiting Factor"),
+        ])
+    else:
+        display_df = filtered_df.select([
+            pl.col("sku").alias("SKU"),
+            pl.col("carrier_id").alias("Carrier"),
+            pl.col("fit_status").alias("Status"),
+            pl.col("units_per_carrier").alias("Units/Carrier"),
+            pl.col("locations_required").alias("Locations Req."),
+            (pl.col("filling_rate") * 100).round(1).alias("Filling Rate (%)"),
+            pl.col("volume_m3").alias("Volume (m³)"),
+            pl.col("limiting_factor").alias("Limiting Factor"),
+        ])
 
-    # Display table
     st.dataframe(
         display_df.to_pandas(),
         width="stretch",
         height=400,
     )
 
-    # Export button
     with col_export:
-        render_spacer(20)  # Align with selectbox
-        render_spacer(10)  # Additional spacing
+        render_spacer(20)
+        render_spacer(10)
         csv_data = filtered_df.write_csv()
         st.download_button(
             label="📥 Export CSV",
@@ -722,7 +819,13 @@ def _render_capacity_results() -> None:
 
     render_divider()
 
-    # === NEW: Results Table ===
+    # === ABC Cross-analysis (only when Performance result is available) ===
+    sku_abc_map = _build_sku_abc_map()
+    if sku_abc_map:
+        _render_abc_cross_stats(sku_abc_map)
+        render_divider()
+
+    # === Results Table ===
     _render_capacity_table()
 
     render_divider()
