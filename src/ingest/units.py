@@ -106,21 +106,21 @@ class UnitDetector:
         max_val = max(clean_values)
         min_val = min(clean_values)
 
-        # Heuristics:
-        # - If median < 10 -> probably meters or cm
-        # - If median 10-100 -> probably cm
-        # - If median > 100 -> probably mm
+        # Heuristics (conservative - default to mm to avoid ×10 errors):
+        # - median < 5 and max < 20  → almost certainly meters (e.g. 0.3, 1.2, 3.0)
+        # - median < 10 and max < 50 → clearly cm-scale (e.g. 2, 5, 8, 12 cm)
+        # - everything else          → mm (values in tens/hundreds are mm, not cm)
 
-        if median < 5:
+        if median < 5 and max_val < 20:
             # Probably meters
             detected = LengthUnit.M
             confidence = 0.7
-        elif median < 100 and max_val < 500:
-            # Probably cm
+        elif median < 10 and max_val < 50:
+            # Probably cm (only unambiguously small values)
             detected = LengthUnit.CM
-            confidence = 0.75
+            confidence = 0.65
         else:
-            # Probably mm
+            # Default: mm
             detected = LengthUnit.MM
             confidence = 0.8
 

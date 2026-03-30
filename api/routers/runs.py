@@ -207,12 +207,29 @@ async def run_capacity(
 
     try:
         from src.ingest.pipeline import MasterdataIngestPipeline
+        from src.ingest.mapping import MappingResult, ColumnMapping, MASTERDATA_SCHEMA
         from src.analytics.capacity import CapacityAnalyzer
         from src.core.carriers import CarrierService
         from dataclasses import asdict
 
+        # Reconstruct saved column mapping (set during quality check)
+        parsed_mapping: Optional[MappingResult] = None
+        if run.masterdata_mapping:
+            mr = MappingResult()
+            for target_field, source_col in run.masterdata_mapping.items():
+                if source_col:
+                    mr.mappings[target_field] = ColumnMapping(
+                        target_field=target_field,
+                        source_column=source_col,
+                        confidence=1.0,
+                        is_auto=False,
+                    )
+            required_fields = [f for f, cfg in MASTERDATA_SCHEMA.items() if cfg["required"]]
+            mr.missing_required = [f for f in required_fields if f not in mr.mappings]
+            parsed_mapping = mr
+
         pipeline = MasterdataIngestPipeline()
-        ingest_result = pipeline.run(source_path)
+        ingest_result = pipeline.run(source_path, mapping=parsed_mapping)
 
         if not ingest_result.mapping_result.is_complete:
             missing = ", ".join(ingest_result.mapping_result.missing_required)
@@ -363,6 +380,7 @@ async def run_quality(
                 for i in dq.conflicts
             ],
         }
+        run.capacity_result = None
         run.status = "quality_done"
         run.updated_at = datetime.now(timezone.utc)
         await db.commit()
