@@ -374,6 +374,10 @@ class CapacityAnalyzer:
                     "filling_rate": round(filling_rate, 4),
                     "stored_volume_L": round(stored_volume_L, 2),
                     "carrier_volume_L": round(carrier_volume_L, 2),
+                    "length_mm": round(float(length), 2),
+                    "width_mm": round(float(width), 2),
+                    "height_mm": round(float(height), 2),
+                    "weight_kg": round(float(weight), 4),
                 }
 
                 if best_fit_mode:
@@ -413,6 +417,10 @@ class CapacityAnalyzer:
                     "filling_rate": 0.0,
                     "stored_volume_L": 0.0,
                     "carrier_volume_L": 0.0,
+                    "length_mm": round(float(length), 2),
+                    "width_mm": round(float(width), 2),
+                    "height_mm": round(float(height), 2),
+                    "weight_kg": round(float(weight), 4),
                 })
 
         # Create DataFrame with explicit schema for columns with None
@@ -431,6 +439,10 @@ class CapacityAnalyzer:
                 "filling_rate": pl.Float64,
                 "stored_volume_L": pl.Float64,
                 "carrier_volume_L": pl.Float64,
+                "length_mm": pl.Float64,
+                "width_mm": pl.Float64,
+                "height_mm": pl.Float64,
+                "weight_kg": pl.Float64,
             }
         )
 

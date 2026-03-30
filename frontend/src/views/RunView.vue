@@ -10,17 +10,17 @@
     </div>
 
     <!-- Tabs -->
-    <div class="border-b border-gray-200 mb-6">
-      <nav class="flex gap-0">
+    <div class="mb-0">
+      <nav class="flex gap-1 items-end">
         <button
           v-for="tab in tabs"
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="[
-            'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+            'px-4 py-2 text-sm font-medium rounded-t-md border transition-colors cursor-pointer',
             activeTab === tab.id
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700',
+              ? 'border-blue-400 bg-white text-blue-600 -mb-px relative z-10 border-b-white'
+              : 'border-gray-300 bg-gray-50 text-gray-500 hover:bg-white hover:text-gray-700',
           ]"
         >
           {{ tab.label }}
@@ -29,20 +29,22 @@
     </div>
 
     <!-- Tab content -->
-    <div v-if="activeTab === 'import'">
-      <ImportTab :run="run" @refreshed="loadRun" />
-    </div>
-    <div v-else-if="activeTab === 'quality'">
-      <QualityTab :run="run" @refreshed="loadRun" />
-    </div>
-    <div v-else-if="activeTab === 'capacity'">
-      <CapacityTab :run="run" @refreshed="loadRun" />
-    </div>
-    <div v-else-if="activeTab === 'performance'">
-      <PerformanceTab :run="run" @refreshed="loadRun" />
-    </div>
-    <div v-else-if="activeTab === 'reports'">
-      <ReportsTab :run="run" />
+    <div class="border border-gray-200 rounded-b-lg rounded-tr-lg mb-6">
+      <div v-if="activeTab === 'import'">
+        <ImportTab :run="run" @refreshed="loadRun" @navigate="activeTab = $event" />
+      </div>
+      <div v-else-if="activeTab === 'quality'">
+        <QualityTab :run="run" @refreshed="loadRun" />
+      </div>
+      <div v-else-if="activeTab === 'capacity'">
+        <CapacityTab :run="run" @refreshed="loadRun" />
+      </div>
+      <div v-else-if="activeTab === 'performance'">
+        <PerformanceTab :run="run" @refreshed="loadRun" />
+      </div>
+      <div v-else-if="activeTab === 'reports'">
+        <ReportsTab :run="run" />
+      </div>
     </div>
   </div>
 

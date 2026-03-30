@@ -283,7 +283,8 @@ def render_sidebar_status() -> None:
 
 
 def _on_nav_change() -> None:
-    st.session_state.active_section = SECTIONS[st.session_state.section_nav]
+    if "section_nav" in st.session_state:
+        st.session_state.active_section = SECTIONS[st.session_state.section_nav]
 
 
 def render_sidebar() -> None:

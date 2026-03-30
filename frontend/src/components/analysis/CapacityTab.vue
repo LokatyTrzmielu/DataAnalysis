@@ -3,18 +3,7 @@
     <!-- Upload + run capacity -->
     <div class="bg-white border border-gray-200 rounded-lg p-5">
       <h3 class="text-sm font-semibold text-gray-700 mb-3">Run capacity analysis</h3>
-      <div class="flex gap-4 flex-wrap items-end">
-        <div>
-          <label class="block text-xs text-gray-600 mb-1">Masterdata file</label>
-          <input
-            ref="fileInput"
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-            @change="onFileChange"
-          />
-        </div>
-
+      <div class="flex flex-col gap-3">
         <!-- Analysis mode (radio) -->
         <div>
           <label class="block text-xs text-gray-600 mb-1">Analysis mode</label>
@@ -32,7 +21,7 @@
         </div>
 
         <!-- Borderline threshold slider -->
-        <div class="min-w-40">
+        <div class="max-w-64">
           <label class="block text-xs text-gray-600 mb-1">Borderline threshold: <strong>{{ borderlineThreshold }}mm</strong></label>
           <input
             v-model.number="borderlineThreshold"
@@ -41,13 +30,15 @@
           />
         </div>
 
-        <button
-          @click="runCapacity"
-          :disabled="running || (!selectedFile && !run.masterdata_path)"
-          class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors self-end"
-        >
-          {{ running ? 'Analyzing…' : 'Run analysis' }}
-        </button>
+        <div>
+          <button
+            @click="runCapacity"
+            :disabled="running || !run.masterdata_path"
+            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
+          >
+            {{ running ? 'Analyzing…' : 'Run analysis' }}
+          </button>
+        </div>
       </div>
       <p v-if="error" class="text-red-600 text-sm mt-3">{{ error }}</p>
     </div>
@@ -78,6 +69,16 @@
         <div class="bg-white border border-gray-200 rounded-lg p-4">
           <h4 class="text-xs font-semibold text-gray-700 mb-2">Margin Distribution (mm, FIT + BORDERLINE)</h4>
           <div ref="weightChartEl" style="height:200px"></div>
+        </div>
+        <!-- Dimensions Distribution -->
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <h4 class="text-xs font-semibold text-gray-700 mb-2">Dimensions Distribution (mm)</h4>
+          <div ref="dimsDistChartEl" style="height:200px"></div>
+        </div>
+        <!-- Weight Distribution -->
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <h4 class="text-xs font-semibold text-gray-700 mb-2">Weight Distribution (kg)</h4>
+          <div ref="weightDistChartEl" style="height:200px"></div>
         </div>
       </div>
 
@@ -170,12 +171,13 @@ import type { RunDetail, CapacityResult } from '@/api/runs'
 import { runsApi } from '@/api/runs'
 import KpiCard from '@/components/shared/KpiCard.vue'
 import Plotly from 'plotly.js-dist-min'
+import { useNotificationsStore } from '@/stores/notifications'
+
+const notify = useNotificationsStore()
 
 const props = defineProps<{ run: RunDetail }>()
 const emit = defineEmits<{ (e: 'refreshed'): void }>()
 
-const fileInput = ref<HTMLInputElement>()
-const selectedFile = ref<File | null>(null)
 const running = ref(false)
 const error = ref('')
 const analysisMode = ref<'independent' | 'prioritized' | 'bestfit'>('independent')
@@ -186,6 +188,8 @@ const carrierFilter = ref('ALL')
 const carrierChartEl = ref<HTMLElement>()
 const dimsChartEl = ref<HTMLElement>()
 const weightChartEl = ref<HTMLElement>()
+const dimsDistChartEl = ref<HTMLElement>()
+const weightDistChartEl = ref<HTMLElement>()
 
 const cr = computed(() => props.run.capacity_result as CapacityResult | null)
 
@@ -225,8 +229,10 @@ function renderCharts(data: CapacityResult) {
     const notFitTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.not_fit_count), name: 'NOT FIT', type: 'bar' as const, marker: { color: '#ef4444' } }
     Plotly.newPlot(carrierChartEl.value, [fitTrace, borderTrace, notFitTrace], {
       barmode: 'stack',
-      margin: { t: 10, b: 60, l: 50, r: 10 },
-      legend: { orientation: 'h', y: -0.3 },
+      margin: { t: 10, b: 55, l: 80, r: 10 },
+      legend: { x: 1, xanchor: 'right', y: 1, yanchor: 'top' },
+      xaxis: { title: { text: 'Carrier' } },
+      yaxis: { title: { text: 'SKU count', standoff: 12 } },
     }, { responsive: true, displayModeBar: false })
   }
 
@@ -236,8 +242,9 @@ function renderCharts(data: CapacityResult) {
     Plotly.newPlot(dimsChartEl.value, [{
       x: volumes, type: 'histogram' as const, marker: { color: '#3b82f6' }, name: 'Volume'
     }], {
-      margin: { t: 10, b: 40, l: 50, r: 10 },
-      xaxis: { title: 'm³' },
+      margin: { t: 10, b: 55, l: 80, r: 10 },
+      xaxis: { title: { text: 'm³' } },
+      yaxis: { title: { text: 'SKU count', standoff: 12 } },
     }, { responsive: true, displayModeBar: false })
   }
 
@@ -249,28 +256,50 @@ function renderCharts(data: CapacityResult) {
     Plotly.newPlot(weightChartEl.value, [{
       x: margins, type: 'histogram' as const, marker: { color: '#8b5cf6' }, name: 'Margin'
     }], {
-      margin: { t: 10, b: 40, l: 50, r: 10 },
-      xaxis: { title: 'mm' },
+      margin: { t: 10, b: 55, l: 80, r: 10 },
+      xaxis: { title: { text: 'mm' } },
+      yaxis: { title: { text: 'SKU count', standoff: 12 } },
     }, { responsive: true, displayModeBar: false })
   }
-}
 
-function onFileChange(e: Event) {
-  const input = e.target as HTMLInputElement
-  selectedFile.value = input.files?.[0] ?? null
-  error.value = ''
+  // Dimensions distribution (length / width / height overlay)
+  if (dimsDistChartEl.value && data.rows.length > 0) {
+    Plotly.newPlot(dimsDistChartEl.value, [
+      { x: data.rows.map(r => r.length_mm), type: 'histogram' as const, name: 'Length', opacity: 0.6, marker: { color: '#3b82f6' } },
+      { x: data.rows.map(r => r.width_mm),  type: 'histogram' as const, name: 'Width',  opacity: 0.6, marker: { color: '#f59e0b' } },
+      { x: data.rows.map(r => r.height_mm), type: 'histogram' as const, name: 'Height', opacity: 0.6, marker: { color: '#10b981' } },
+    ], {
+      barmode: 'overlay',
+      margin: { t: 10, b: 55, l: 80, r: 10 },
+      legend: { x: 1, xanchor: 'right', y: 1, yanchor: 'top' },
+      xaxis: { title: { text: 'mm' } },
+      yaxis: { title: { text: 'SKU count', standoff: 12 } },
+    }, { responsive: true, displayModeBar: false })
+  }
+
+  // Weight distribution
+  if (weightDistChartEl.value && data.rows.length > 0) {
+    Plotly.newPlot(weightDistChartEl.value, [{
+      x: data.rows.map(r => r.weight_kg), type: 'histogram' as const, marker: { color: '#ec4899' }, name: 'Weight'
+    }], {
+      margin: { t: 10, b: 55, l: 80, r: 10 },
+      xaxis: { title: { text: 'kg' } },
+      yaxis: { title: { text: 'SKU count', standoff: 12 } },
+    }, { responsive: true, displayModeBar: false })
+  }
 }
 
 async function runCapacity() {
   running.value = true
   error.value = ''
   try {
-    await runsApi.runCapacity(props.run.id, selectedFile.value, {
+    await runsApi.runCapacity(props.run.id, null, {
       prioritization_mode: analysisMode.value === 'prioritized',
       best_fit_mode: analysisMode.value === 'bestfit',
       borderline_threshold: borderlineThreshold.value,
     })
     emit('refreshed')
+    notify.push({ type: 'success', title: 'Analysis complete' })
   } catch (e: unknown) {
     error.value = (e as Error).message || 'Analysis failed.'
   } finally {

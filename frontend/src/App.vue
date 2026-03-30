@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50">
+    <ToastContainer />
     <!-- Top nav (only when authenticated) -->
     <nav v-if="auth.isAuthenticated" class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
@@ -27,6 +28,7 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import ToastContainer from '@/components/shared/ToastContainer.vue'
 
 const auth = useAuthStore()
 </script>

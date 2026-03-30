@@ -21,7 +21,9 @@ client.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       const auth = useAuthStore()
-      auth.logout()
+      if (auth.token) {
+        auth.logout()
+      }
     }
     return Promise.reject(err)
   },

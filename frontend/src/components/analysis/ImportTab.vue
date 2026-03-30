@@ -13,15 +13,8 @@
         class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
         @change="onFileChange"
       />
+      <p v-if="inspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
       <p v-if="error" class="text-red-600 text-sm mt-3">{{ error }}</p>
-      <button
-        v-if="selectedFile"
-        @click="doInspect"
-        :disabled="inspecting"
-        class="mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
-      >
-        {{ inspecting ? 'Reading file…' : 'Inspect columns →' }}
-      </button>
       <p v-if="props.run.masterdata_path" class="text-xs text-gray-400 mt-4">
         Previously uploaded: <code>{{ fileName }}</code>
       </p>
@@ -38,13 +31,13 @@
         <!-- Required fields -->
         <div class="mb-4">
           <p class="text-xs font-medium text-gray-600 mb-2">Required fields</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div
               v-for="field in requiredFields"
               :key="field.name"
-              class="flex items-center gap-2"
+              class="flex flex-col gap-1"
             >
-              <label class="text-xs text-gray-600 w-24 shrink-0">
+              <label class="text-xs text-gray-600">
                 {{ field.name }}
                 <span v-if="isDuplicate(field.name)" class="text-yellow-600 ml-1" title="Duplicate mapping">⚠</span>
                 <span v-else-if="!userMapping[field.name]" class="text-red-500 ml-1">*</span>
@@ -52,7 +45,7 @@
               <select
                 v-model="userMapping[field.name]"
                 :class="[
-                  'flex-1 text-xs border rounded px-2 py-1',
+                  'w-full text-xs border rounded px-2 py-1',
                   !userMapping[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-300',
                 ]"
               >
@@ -66,16 +59,16 @@
         <!-- Optional fields (collapsible) -->
         <details class="mb-4">
           <summary class="text-xs font-medium text-gray-500 cursor-pointer mb-2">Optional fields</summary>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
             <div
               v-for="field in optionalFields"
               :key="field.name"
-              class="flex items-center gap-2"
+              class="flex flex-col gap-1"
             >
-              <label class="text-xs text-gray-600 w-24 shrink-0">{{ field.name }}</label>
+              <label class="text-xs text-gray-600">{{ field.name }}</label>
               <select
                 v-model="userMapping[field.name]"
-                class="flex-1 text-xs border border-gray-300 rounded px-2 py-1"
+                class="w-full text-xs border border-gray-300 rounded px-2 py-1"
               >
                 <option value="">— not mapped —</option>
                 <option v-for="col in inspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
@@ -128,15 +121,6 @@
       </div>
     </div>
 
-    <!-- Step 3: Done -->
-    <div v-else-if="step === 'done'" class="bg-white border border-gray-200 rounded-lg p-5">
-      <h3 class="text-sm font-semibold text-gray-700 mb-2">Quality check complete</h3>
-      <p class="text-green-600 text-sm mb-4">Masterdata imported and validated successfully.</p>
-      <button
-        @click="reset"
-        class="text-xs text-gray-500 hover:text-gray-700 underline"
-      >Re-upload with different file</button>
-    </div>
   </div>
 </template>
 
@@ -144,12 +128,19 @@
 import { ref, computed } from 'vue'
 import type { RunDetail, MappingInspectResponse } from '@/api/runs'
 import { runsApi } from '@/api/runs'
+import { useNotificationsStore } from '@/stores/notifications'
+
+const notify = useNotificationsStore()
 
 const props = defineProps<{ run: RunDetail }>()
-const emit = defineEmits<{ (e: 'refreshed'): void }>()
+const emit = defineEmits<{
+  (e: 'refreshed'): void
+  (e: 'navigate', tab: string): void
+}>()
 
 const fileInput = ref<HTMLInputElement>()
 const selectedFile = ref<File | null>(null)
+const uploadedFileName = ref('')
 const inspecting = ref(false)
 const running = ref(false)
 const error = ref('')
@@ -173,6 +164,12 @@ const missingRequired = computed(() =>
   requiredFields.value.filter(f => !userMapping.value[f.name]).map(f => f.name)
 )
 
+const mappingSummary = computed(() =>
+  requiredFields.value
+    .filter(f => userMapping.value[f.name])
+    .map(f => ({ field: f.name, col: userMapping.value[f.name] }))
+)
+
 const duplicateFields = computed(() => {
   const values = Object.values(userMapping.value).filter(Boolean)
   const seen = new Set<string>()
@@ -193,7 +190,9 @@ function isDuplicate(fieldName: string) {
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   selectedFile.value = input.files?.[0] ?? null
+  uploadedFileName.value = selectedFile.value?.name ?? ''
   error.value = ''
+  if (selectedFile.value) doInspect()
 }
 
 async function doInspect() {
@@ -223,10 +222,17 @@ async function doQuality() {
   error.value = ''
   try {
     await runsApi.runQualityWithMapping(props.run.id, null, userMapping.value)
-    step.value = 'done'
     emit('refreshed')
+    notify.push({
+      type: 'success',
+      title: 'Import complete',
+      message: `${uploadedFileName.value} · ${mappingSummary.value.length} columns mapped`,
+    })
+    emit('navigate', 'quality')
   } catch (e: unknown) {
-    error.value = (e as Error).message || 'Quality check failed.'
+    const msg = (e as Error).message || 'Quality check failed.'
+    error.value = msg
+    notify.push({ type: 'error', title: 'Quality check failed', message: msg })
   } finally {
     running.value = false
   }
@@ -238,6 +244,7 @@ function reset() {
   inspectResult.value = null
   userMapping.value = {}
   error.value = ''
+  uploadedFileName.value = ''
   if (fileInput.value) fileInput.value.value = ''
 }
 </script>

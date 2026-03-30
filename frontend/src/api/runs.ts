@@ -58,6 +58,10 @@ export interface CapacityRow {
   filling_rate: number
   stored_volume_L: number
   carrier_volume_L: number
+  length_mm: number
+  width_mm: number
+  height_mm: number
+  weight_kg: number
 }
 
 export interface RunListResponse {
