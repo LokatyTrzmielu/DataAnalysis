@@ -7,3 +7,15 @@ __pycache__/
 
 # Local Claude settings
 .claude/settings.local.json
+
+# Databases
+*.db
+
+# Uploaded files
+uploads/
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Embedded repos / skills
+ui-ux-pro-max-skill/

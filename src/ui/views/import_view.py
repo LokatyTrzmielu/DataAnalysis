@@ -212,7 +212,7 @@ def render_masterdata_import() -> None:
         create_masterdata_wizard,
         MasterdataIngestPipeline,
     )
-    from src.ingest.units import WeightUnit
+    from src.ingest.units import WeightUnit, LengthUnit
 
     history_service = st.session_state.mapping_history_service
 
@@ -289,8 +289,16 @@ def render_masterdata_import() -> None:
 
         render_spacer(12)
 
-        # Weight unit selection
-        weight_col, _ = st.columns([2, 3])
+        # Dimension and weight unit selection
+        dim_col, weight_col = st.columns([2, 2])
+        with dim_col:
+            dim_unit_option = st.selectbox(
+                "Dimension unit in source file",
+                options=["Auto-detect", "mm (millimeters)", "cm (centimeters)"],
+                index=0,
+                key="md_dim_unit",
+                help="Select 'mm' if auto-detection adds an extra zero to dimensions",
+            )
         with weight_col:
             weight_unit_option = st.selectbox(
                 "Weight unit in source file",
@@ -320,8 +328,16 @@ def render_masterdata_import() -> None:
                         }
                         selected_weight_unit = weight_unit_map.get(weight_unit_option)
 
+                        dim_unit_map = {
+                            "Auto-detect": None,
+                            "mm (millimeters)": LengthUnit.MM,
+                            "cm (centimeters)": LengthUnit.CM,
+                        }
+                        selected_dim_unit = dim_unit_map.get(dim_unit_option)
+
                         pipeline = MasterdataIngestPipeline(
                             weight_unit=selected_weight_unit,
+                            length_unit=selected_dim_unit,
                         )
                         result = pipeline.run(
                             st.session_state.masterdata_temp_path,
