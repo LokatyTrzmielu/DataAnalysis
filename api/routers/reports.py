@@ -116,7 +116,10 @@ async def download_csv_report(
     elif report_name == "SKU_Pareto":
         if not pr:
             raise HTTPException(status_code=422, detail="No performance results available.")
-        rows = pr.get("sku_pareto", [])
+        rows = [
+            {**r, "cumulative_pct": f"{r['cumulative_pct']:.2f}%"}
+            for r in pr.get("sku_pareto", [])
+        ]
 
     if not rows:
         # Return empty CSV with just headers (from first element or minimal)
