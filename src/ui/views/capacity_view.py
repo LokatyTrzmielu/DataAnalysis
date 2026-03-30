@@ -821,7 +821,13 @@ def _render_capacity_results() -> None:
 
     # === ABC Cross-analysis (only when Performance result is available) ===
     sku_abc_map = _build_sku_abc_map()
-    if sku_abc_map:
+    perf_result = st.session_state.get("performance_result")
+    if perf_result is not None and not sku_abc_map:
+        st.info(
+            "Performance analysis is available but contains no SKU Pareto data. "
+            "Re-run Performance analysis to enable ABC cross-filtering."
+        )
+    elif sku_abc_map:
         _render_abc_cross_stats(sku_abc_map)
         render_divider()
 
