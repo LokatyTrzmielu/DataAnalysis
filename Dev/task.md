@@ -39,6 +39,7 @@
 | 26 | Sidebar Settings Bar — UX redesign | sticky bar, modal reset, Settings page, layout fix | ✅ |
 | 27 | True Fixed Toolbar — HTML injection | replace st.columns with pure HTML div, zero layout impact | ✅ |
 | 28 | Chrome-style Browser Tabs | replace gold pill buttons with browser-tab CSS (rounded top, rail separator, gold accent) | ✅ |
+| 29 | Performance Per Day stats (no hourly) | wyświetlanie Avg/Median/Min/Max per dzień gdy brak danych godzinowych | ✅ |
 
 ---
 
@@ -361,6 +362,25 @@ aby załadować nośniki z polem priority.
 | Phase 4 | PDF reports (ReportLab) | ✅ |
 | Phase 5 | Full feature parity (Mapping Wizard, Performance, Capacity UX, CSV Reports, Dashboard KPIs) | ✅ |
 | Phase 6 | Sharing + advanced features | 🔜 |
+
+---
+
+## Performance Per Day stats — bez danych godzinowych (Faza 29) - ZAKOŃCZONA
+
+**Problem:** Gdy importowany plik Orders nie zawiera kolumny czasu (`has_hourly_data = False`), sekcja "Detailed Statistics" całkowicie ukrywała tabele Orders / Order Lines / Pieces, mimo że `daily_metrics` były zawsze obliczane.
+
+**Rozwiązanie:** Dodanie gałęzi `elif result.daily_metrics:` w `render_detailed_stats()`.
+
+| Plik | Zmiana |
+|------|--------|
+| `src/ui/views/performance_results.py` | Przeniesienie `_fmt()` przed oba bloki; nowy blok `elif` z 3 tabelami Per Day |
+
+**Nowe tabele (tryb bez godzin):**
+- **Orders** — Avg / Median / Min / Max (Per Day)
+- **Order Lines** — Avg / Median / Min / Max (Per Day)
+- **Pieces** — Avg / Median / Min / Max (Per Day)
+
+---
 
 ## Możliwe Przyszłe Rozszerzenia
 

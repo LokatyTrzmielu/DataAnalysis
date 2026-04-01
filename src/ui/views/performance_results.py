@@ -525,6 +525,9 @@ def render_detailed_stats() -> None:
             st.metric("P99 Lines/h", f"{kpi.p99_lines_per_hour:.0f}")
 
     # --- Throughput tables (Per Hour / Per Shift / Per Day) ---
+    def _fmt(v: float) -> str:
+        return f"{v:,.1f}" if v % 1 else f"{int(v):,}"
+
     if result.has_hourly_data and result.daily_metrics:
         daily = result.daily_metrics
         shifts_per_day = result.shifts_per_day
@@ -544,9 +547,6 @@ def render_detailed_stats() -> None:
         max_lines_shift = max_lines_day / shifts_per_day
         avg_units_shift = avg_units_day / shifts_per_day
         max_units_shift = max_units_day / shifts_per_day
-
-        def _fmt(v: float) -> str:
-            return f"{v:,.1f}" if v % 1 else f"{int(v):,}"
 
         index = ["Per Hour", "Per Shift", "Per Day"]
 
@@ -583,5 +583,39 @@ def render_detailed_stats() -> None:
                 },
                 index=index,
             ),
+            use_container_width=True,
+        )
+
+    elif result.daily_metrics:  # no hourly data, but daily metrics available
+        import statistics
+
+        daily = result.daily_metrics
+        orders_vals = [d.orders for d in daily]
+        lines_vals  = [d.lines  for d in daily]
+        units_vals  = [d.units  for d in daily]
+
+        def _day_stats(vals: list) -> dict:
+            return {
+                "Avg":    _fmt(sum(vals) / len(vals)),
+                "Median": _fmt(statistics.median(vals)),
+                "Min":    _fmt(min(vals)),
+                "Max":    _fmt(max(vals)),
+            }
+
+        st.markdown("**Orders**")
+        st.dataframe(
+            pd.DataFrame(_day_stats(orders_vals), index=["Per Day"]),
+            use_container_width=True,
+        )
+
+        st.markdown("**Order Lines**")
+        st.dataframe(
+            pd.DataFrame(_day_stats(lines_vals), index=["Per Day"]),
+            use_container_width=True,
+        )
+
+        st.markdown("**Pieces**")
+        st.dataframe(
+            pd.DataFrame(_day_stats(units_vals), index=["Per Day"]),
             use_container_width=True,
         )

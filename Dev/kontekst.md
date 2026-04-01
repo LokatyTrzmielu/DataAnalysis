@@ -357,7 +357,13 @@ Decyzja o migracji odłożona — na etapie analizy opcji.
 
 ---
 
+## Performance — tryb bez danych godzinowych (2026-02-25)
+
+Gdy plik Orders nie zawiera kolumny czasu (`has_hourly_data = False`), sekcja "Detailed Statistics" wyświetla teraz 3 tabele (Orders, Order Lines, Pieces) z metrykami **Avg / Median / Min / Max** per dzień. Zmiana w `src/ui/views/performance_results.py` — nowy blok `elif result.daily_metrics:`.
+
+---
+
 ## Ostatnia Aktualizacja
 
 **Data:** 2026-02-25
-**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Nazwa aplikacji zmieniona na Datavisor.
+**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Nazwa aplikacji zmieniona na Datavisor. Performance module: obsługa plików bez danych godzinowych (Per Day stats).
