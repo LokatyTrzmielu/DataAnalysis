@@ -1,4 +1,4 @@
-# DataAnalysis - Kontekst Projektu
+# Datavisor - Kontekst Projektu
 
 > Plik służy do zachowania kontekstu projektu przy przerwaniu sesji.
 
@@ -8,11 +8,11 @@
 
 | Parametr | Wartość |
 |----------|---------|
-| Nazwa projektu | DataAnalysis |
+| Nazwa projektu | Datavisor |
 | Katalog roboczy | `D:\VS\DataAnalysis` |
 | Data rozpoczęcia | 2026-01-03 |
-| Status | **MVP KOMPLETNE** - Modernizacja UI + nawigacja sidebar |
-| Testy | 152 (wszystkie przechodzą) |
+| Status | **FastAPI + Vue 3 Migration — Phases 1–5 kompletne** |
+| Testy | 191 (wszystkie przechodzą) |
 
 ---
 
@@ -27,49 +27,73 @@ Lokalna aplikacja do analizy danych magazynowych:
 
 ## Stack Technologiczny
 
+### Backend
 | Technologia | Zastosowanie |
 |-------------|--------------|
 | Python 3.11+ | Język programowania |
+| FastAPI | REST API |
+| SQLAlchemy (async) | ORM, SQLite (dev) / PostgreSQL (prod) |
 | Polars | Transformacje danych |
 | DuckDB | Agregacje SQL |
-| Streamlit | UI lokalne |
-| Plotly | Interaktywne wykresy |
 | Pydantic | Typy i walidacja |
+| ReportLab | Generowanie PDF |
+| JWT / bcrypt | Autentykacja |
+
+### Frontend
+| Technologia | Zastosowanie |
+|-------------|--------------|
+| Vue 3 + TypeScript | Framework UI |
+| Vite | Build tool |
+| Tailwind CSS v4 | Stylowanie |
+| Pinia | State management |
+| Vue Router 4 | Routing |
+| Axios | HTTP client |
+| Plotly.js | Interaktywne wykresy |
 
 ---
 
 ## Struktura Projektu
 
 ```
-src/
-├── core/       # Konfiguracja, typy, formatowanie, carriers
-├── ingest/     # Import danych, Mapping Wizard, cleaning numeryczny
-├── quality/    # Walidacja, DQ metrics, imputacja
-├── model/      # Masterdata, Orders processing
-├── analytics/  # DuckDB, capacity, performance
-├── reporting/  # Raporty CSV, manifest, ZIP
-└── ui/         # Streamlit UI
-    ├── app.py      # Główna aplikacja (sidebar nav, ~420 linii)
-    ├── theme.py    # Light theme, paleta kolorów, CSS, sidebar styling
-    ├── layout.py   # Komponenty UI (KPI cards, badges, sekcje)
-    └── views/      # Widoki zakładek
-        ├── import_view.py                # Import danych z mapowaniem
-        ├── capacity_validation_view.py   # Walidacja Masterdata
-        ├── performance_validation_view.py # Walidacja Orders (placeholder)
-        ├── capacity_view.py              # Analiza pojemnościowa
-        ├── performance_view.py           # Analiza wydajnościowa
-        ├── reports_view.py               # Raporty i eksport
-        └── components_demo.py            # Demo komponentów UI
+api/                    # FastAPI backend
+├── main.py             # App factory, CORS, lifespan
+├── database.py         # Async SQLAlchemy, datavisor.db (dev) / PostgreSQL (prod)
+├── dependencies.py     # get_db(), get_current_user() (JWT)
+├── seed.py             # CLI: init DB + seed carriers + create user
+├── pdf_generator.py    # ReportLab PDF generation
+├── models/             # ORM: User, AnalysisRun, Carrier, UploadStaging
+├── schemas/            # Pydantic schemas: auth, analysis, carriers, runs
+└── routers/            # auth, analyze, runs, carriers, reports
 
-# Nawigacja UI (sidebar)
-SIDEBAR:                    MAIN VIEW:
-├─ Dashboard         ───>   Status overview (4 KPI cards)
-├─ Capacity          ───>   [Import] [Validation] [Analysis]
-├─ Performance       ───>   [Import] [Validation] [Analysis]
-└─ Reports           ───>   Report generation
+frontend/               # Vue 3 + TypeScript
+├── src/
+│   ├── api/            # Axios client, auth/runs/carriers wrappers
+│   ├── stores/         # Pinia: auth, run, carriers
+│   ├── router/         # Vue Router (auth guard, 5 routes)
+│   └── views/          # LoginView, DashboardView, RunsView, RunView, CarriersView
+│       └── components/ # ImportTab, QualityTab, CapacityTab, PerformanceTab, ReportsTab
 
-tests/          # 143 testy jednostkowe + integracyjne
-runs/           # Wyniki analiz per klient
+src/                    # Core analytics (Python, bez zmian)
+├── core/               # Konfiguracja, typy, formatowanie, carriers
+├── ingest/             # Import danych, Mapping Wizard, cleaning numeryczny
+├── quality/            # Walidacja, DQ metrics, imputacja
+├── model/              # Masterdata, Orders processing
+├── analytics/          # DuckDB, capacity, performance
+└── reporting/          # Raporty CSV, manifest, ZIP
+
+tests/                  # 191 testów jednostkowych + integracyjnych
+```
+
+## Uruchomienie
+
+```bash
+# Backend (jednorazowo: seed bazy)
+python -m api.seed admin@example.com password123 Admin
+uvicorn api.main:app --port 8000
+
+# Frontend (osobny terminal)
+cd frontend && npm run dev
+# → http://localhost:5173 (proxy do :8000)
 ```
 
 ---
@@ -89,14 +113,10 @@ runs/           # Wyniki analiz per klient
 
 ---
 
-## Uruchomienie
+## Testy
 
 ```bash
-# Aplikacja
-streamlit run src/ui/app.py
-
-# Testy
-python -m pytest tests/ -v
+pytest tests/ -q  # → 191 passed
 ```
 
 ---
@@ -346,4 +366,4 @@ Gdy plik Orders nie zawiera kolumny czasu (`has_hourly_data = False`), sekcja "D
 ## Ostatnia Aktualizacja
 
 **Data:** 2026-02-25
-**Status:** MVP kompletne, UX Redesign zakończony. Analiza strategiczna frameworku UI (Streamlit vs alternatywy) w toku. Performance module: obsługa plików bez danych godzinowych (Per Day stats).
+**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Nazwa aplikacji zmieniona na Datavisor. Performance module: obsługa plików bez danych godzinowych (Per Day stats).

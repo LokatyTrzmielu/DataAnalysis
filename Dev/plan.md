@@ -1,12 +1,12 @@
-# Plan Implementacji DataAnalysis
+# Plan Implementacji Datavisor
 
 ## Podsumowanie
 
 | Parametr | Wartość |
 |----------|---------|
-| Stack | Python 3.11+, DuckDB, Polars, Streamlit, Pydantic |
-| Architektura | Backend-first, monolityczny UI |
-| Status | **Wszystkie fazy ukończone** |
+| Stack | Python 3.11+, FastAPI, Vue 3 + TypeScript, DuckDB, Polars, Pydantic |
+| Architektura | FastAPI REST API + Vue 3 SPA frontend |
+| Status | **FastAPI + Vue 3 Migration — Phases 1–5 ukończone** |
 
 ---
 

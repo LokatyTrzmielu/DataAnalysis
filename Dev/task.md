@@ -1,8 +1,8 @@
-# DataAnalysis - Lista Zadań
+# Datavisor - Lista Zadań
 
 ## Status Projektu
 
-**MVP KOMPLETNE** | 152 testy | Wszystkie fazy ukończone
+**FastAPI + Vue 3 Migration — Phases 1–5 ukończone** | 191 testów
 
 ---
 
@@ -352,6 +352,19 @@ aby załadować nośniki z polem priority.
 
 ---
 
+## FastAPI + Vue 3 Migration — Status
+
+| Faza | Nazwa | Status |
+|------|-------|--------|
+| Phase 1 | FastAPI PoC (stateless endpoint) | ✅ |
+| Phase 2 | Database + persistence (SQLAlchemy, JWT auth) | ✅ |
+| Phase 3 | Auth + Vue 3 frontend | ✅ |
+| Phase 4 | PDF reports (ReportLab) | ✅ |
+| Phase 5 | Full feature parity (Mapping Wizard, Performance, Capacity UX, CSV Reports, Dashboard KPIs) | ✅ |
+| Phase 6 | Sharing + advanced features | 🔜 |
+
+---
+
 ## Performance Per Day stats — bez danych godzinowych (Faza 29) - ZAKOŃCZONA
 
 **Problem:** Gdy importowany plik Orders nie zawiera kolumny czasu (`has_hourly_data = False`), sekcja "Detailed Statistics" całkowicie ukrywała tabele Orders / Order Lines / Pieces, mimo że `daily_metrics` były zawsze obliczane.
@@ -371,12 +384,10 @@ aby załadować nośniki z polem priority.
 
 ## Możliwe Przyszłe Rozszerzenia
 
+- [ ] Phase 6: Sharing + advanced features
 - [ ] Testy wydajnościowe (200k SKU, 2M orders)
 - [ ] Eksport do Excel z formatowaniem
-- [x] Dashboard z wykresami (Plotly) → Faza 13
 - [ ] Przywrócenie utilization sliders
-- [ ] Rozszerzenie optional fields
-- [ ] **Migracja frameworku UI** — ocena: Dash vs FastAPI+Vue (patrz `Dev/FRAMEWORK_MIGRATION_ANALYSIS.md`)
 
 ---
 

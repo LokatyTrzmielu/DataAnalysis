@@ -1,4 +1,4 @@
-"""DataAnalysis application configuration constants."""
+"""Datavisor application configuration constants."""
 
 from dataclasses import dataclass, field
 from typing import Final

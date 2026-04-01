@@ -1,4 +1,4 @@
-"""Pydantic data models for DataAnalysis application."""
+"""Pydantic data models for Datavisor application."""
 
 from datetime import datetime, time
 from enum import Enum
