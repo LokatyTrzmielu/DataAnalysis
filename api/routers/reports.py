@@ -151,7 +151,7 @@ async def download_zip(
     run_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> FileResponse:
+) -> Response:
     """Generate and return the ZIP report package for a run."""
     result = await db.execute(select(AnalysisRun).where(AnalysisRun.id == run_id))
     run = result.scalar_one_or_none()
