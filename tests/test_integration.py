@@ -136,7 +136,6 @@ def test_full_pipeline_masterdata_only():
     print("\n" + "="*60)
     print("TEST MASTERDATA ONLY: PASSED")
     print("="*60)
-    return True
 
 
 def test_full_pipeline_masterdata_with_orders():
@@ -214,7 +213,6 @@ def test_full_pipeline_masterdata_with_orders():
     print("\n" + "="*60)
     print("TEST MASTERDATA + ORDERS: PASSED")
     print("="*60)
-    return True
 
 
 def test_runs_directory_structure():
@@ -249,7 +247,6 @@ def test_runs_directory_structure():
     print("\n" + "="*60)
     print("TEST RUNS DIRECTORY: PASSED")
     print("="*60)
-    return True
 
 
 def test_report_consistency():
@@ -310,7 +307,6 @@ def test_report_consistency():
     print("\n" + "="*60)
     print("TEST REPORT CONSISTENCY: PASSED")
     print("="*60)
-    return True
 
 
 def run_all_tests():

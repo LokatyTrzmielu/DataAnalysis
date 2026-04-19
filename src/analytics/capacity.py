@@ -44,6 +44,10 @@ class CapacityAnalysisResult:
     fit_percentage: float
     carriers_analyzed: list[str]
     carrier_stats: dict[str, CarrierStats] = field(default_factory=dict)  # Statistics per carrier
+    avg_length_mm: float = 0.0
+    avg_width_mm: float = 0.0
+    avg_height_mm: float = 0.0
+    avg_weight_kg: float = 0.0
 
 
 class CapacityAnalyzer:
@@ -515,6 +519,12 @@ class CapacityAnalyzer:
         if (prioritization_mode or best_fit_mode) and "NONE" in carrier_stats:
             carriers_analyzed_ids.append("NONE")
 
+        unique_skus = result_df.unique(subset=["sku"])
+        avg_length = round(float(unique_skus["length_mm"].mean() or 0), 1)
+        avg_width  = round(float(unique_skus["width_mm"].mean()  or 0), 1)
+        avg_height = round(float(unique_skus["height_mm"].mean() or 0), 1)
+        avg_weight = round(float(unique_skus["weight_kg"].mean() or 0), 2)
+
         return CapacityAnalysisResult(
             df=result_df,
             total_sku=df["sku"].n_unique(),
@@ -524,6 +534,10 @@ class CapacityAnalyzer:
             fit_percentage=fit_percentage,
             carriers_analyzed=carriers_analyzed_ids,
             carrier_stats=carrier_stats,
+            avg_length_mm=avg_length,
+            avg_width_mm=avg_width,
+            avg_height_mm=avg_height,
+            avg_weight_kg=avg_weight,
         )
 
 

@@ -1,120 +1,21 @@
 <template>
   <div class="space-y-6">
 
-    <!-- Section 1: Orders Upload Wizard -->
-    <div class="bg-white border border-gray-200 rounded-lg p-5">
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">Step 1 — Upload orders file</h3>
-
-      <!-- Step: upload -->
-      <div v-if="ordersStep === 'upload'">
-        <p class="text-xs text-gray-500 mb-3">Upload an Excel or CSV file with order lines (order_id, sku, quantity, date).</p>
-        <input
-          ref="fileInput"
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-          @change="onFileChange"
-        />
-        <p v-if="uploadError" class="text-red-600 text-sm mt-2">{{ uploadError }}</p>
-        <button
-          v-if="selectedFile"
-          @click="doInspect"
-          :disabled="inspecting"
-          class="mt-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
-        >
-          {{ inspecting ? 'Reading file…' : 'Inspect columns →' }}
-        </button>
-        <p v-if="run.orders_path && !selectedFile" class="text-xs text-gray-400 mt-3">
-          Previously uploaded orders file on server.
-        </p>
-      </div>
-
-      <!-- Step: mapping -->
-      <div v-else-if="ordersStep === 'mapping' && inspectResult">
-        <div class="flex items-center justify-between mb-3">
-          <p class="text-xs font-medium text-gray-600">Map columns</p>
-          <button @click="ordersStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600">← Back</button>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <div v-for="field in requiredFields" :key="field.name" class="flex items-center gap-2">
-            <label class="text-xs text-gray-600 w-24 shrink-0">
-              {{ field.name }}
-              <span v-if="!ordersMapping[field.name]" class="text-red-500 ml-1">*</span>
-            </label>
-            <select
-              v-model="ordersMapping[field.name]"
-              :class="['flex-1 text-xs border rounded px-2 py-1', !ordersMapping[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-300']"
-            >
-              <option value="">— not mapped —</option>
-              <option v-for="col in inspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
-            </select>
-          </div>
-        </div>
-        <details class="mb-3">
-          <summary class="text-xs font-medium text-gray-500 cursor-pointer">Optional fields</summary>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-            <div v-for="field in optionalFields" :key="field.name" class="flex items-center gap-2">
-              <label class="text-xs text-gray-600 w-24 shrink-0">{{ field.name }}</label>
-              <select v-model="ordersMapping[field.name]" class="flex-1 text-xs border border-gray-300 rounded px-2 py-1">
-                <option value="">— not mapped —</option>
-                <option v-for="col in inspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
-              </select>
-            </div>
-          </div>
-        </details>
-        <!-- Preview -->
-        <div class="overflow-x-auto mb-3">
-          <table class="text-xs border border-gray-200 rounded w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th v-for="col in inspectResult.file_columns" :key="col" class="px-2 py-1 text-left text-gray-600 whitespace-nowrap">{{ col }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, i) in inspectResult.preview_rows" :key="i" class="border-b border-gray-100">
-                <td v-for="col in inspectResult.file_columns" :key="col" class="px-2 py-1 text-gray-700 whitespace-nowrap">{{ row[col] ?? '' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-if="missingRequired.length > 0" class="text-xs text-red-600 mb-2">Missing required: {{ missingRequired.join(', ') }}</p>
-        <p v-if="uploadError" class="text-red-600 text-sm mb-2">{{ uploadError }}</p>
-        <button
-          @click="doIngest"
-          :disabled="ingesting || missingRequired.length > 0"
-          class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
-        >
-          {{ ingesting ? 'Ingesting…' : 'Confirm mapping →' }}
-        </button>
-      </div>
-
-      <!-- Step: ingested -->
-      <div v-else-if="ordersStep === 'ingested'">
-        <p class="text-green-600 text-sm mb-3">Orders file ingested.</p>
-        <div v-if="run.analysis_config" class="grid grid-cols-3 gap-3 text-xs text-gray-600 mb-3">
-          <div><span class="font-medium block">{{ run.analysis_config['orders_rows'] }}</span> rows</div>
-          <div><span class="font-medium block">{{ run.analysis_config['orders_date_from'] }} — {{ run.analysis_config['orders_date_to'] }}</span> date range</div>
-          <div><span class="font-medium block">{{ run.analysis_config['orders_has_hourly_data'] ? 'Yes' : 'No' }}</span> hourly data</div>
-        </div>
-        <button @click="ordersStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600 underline">Re-upload</button>
-      </div>
-    </div>
-
-    <!-- Section 2: Settings (after ingested) -->
+    <!-- Section 2: Settings (after orders loaded) -->
     <div
-      v-if="ordersStep === 'ingested' || run.status === 'orders_ingested' || run.status === 'performance_done'"
+      v-if="ovr"
       class="bg-white border border-gray-200 rounded-lg p-5"
     >
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">Step 2 — Analysis settings</h3>
-      <div class="flex items-center gap-4 mb-4">
-        <label class="text-xs text-gray-600 w-36">Productive hours/shift: <strong>{{ productiveHours }}</strong>h</label>
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">Analysis settings</h3>
+      <div class="max-w-64 mb-4">
+        <label class="block text-xs text-gray-600 mb-1">Productive hours/shift: <strong>{{ productiveHours }}h</strong></label>
         <input
           v-model.number="productiveHours"
           type="range"
           min="4"
           max="8"
           step="0.5"
-          class="flex-1 accent-blue-600"
+          class="w-full accent-blue-600"
         />
       </div>
       <p v-if="analysisError" class="text-red-600 text-sm mb-2">{{ analysisError }}</p>
@@ -131,14 +32,14 @@
     <div v-if="pr" class="space-y-4">
       <!-- KPI grid -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <KpiCard label="Total Orders" :value="pr.kpi.total_orders.toLocaleString()" />
-        <KpiCard label="Total Lines" :value="pr.kpi.total_lines.toLocaleString()" />
-        <KpiCard label="Avg Lines/Order" :value="pr.kpi.avg_lines_per_order.toFixed(1)" />
-        <KpiCard label="Avg Lines/Hour" :value="pr.kpi.avg_lines_per_hour.toFixed(1)" />
-        <KpiCard label="Peak Lines/Hour" :value="pr.kpi.peak_lines_per_hour.toLocaleString()" />
-        <KpiCard label="P90 Lines/Hour" :value="pr.kpi.p90_lines_per_hour.toFixed(0)" />
-        <KpiCard label="Total Units" :value="pr.kpi.total_units.toLocaleString()" />
-        <KpiCard label="Unique SKU" :value="pr.kpi.unique_sku.toLocaleString()" />
+        <KpiCard label="Total Orders" :value="pr.kpi.total_orders.toLocaleString()" tooltip="Total number of distinct orders in the uploaded file." />
+        <KpiCard label="Total Lines" :value="pr.kpi.total_lines.toLocaleString()" tooltip="Total number of order lines (one SKU per line)." />
+        <KpiCard label="Avg Lines/Order" :value="pr.kpi.avg_lines_per_order.toFixed(1)" tooltip="Average number of SKU lines per order." />
+        <KpiCard label="Avg Lines/Hour" :value="pr.kpi.avg_lines_per_hour.toFixed(1)" tooltip="Average lines processed per productive hour, based on the configured hours/shift." />
+        <KpiCard label="Peak Lines/Hour" :value="pr.kpi.peak_lines_per_hour.toLocaleString()" tooltip="Maximum lines processed in a single hour across all data." />
+        <KpiCard label="P90 Lines/Hour" :value="pr.kpi.p90_lines_per_hour.toFixed(0)" tooltip="90th percentile of hourly throughput — useful for peak capacity planning." />
+        <KpiCard label="Total Pieces" :value="pr.kpi.total_units.toLocaleString()" tooltip="Total quantity of individual items across all order lines." />
+        <KpiCard label="Unique SKU" :value="pr.kpi.unique_sku.toLocaleString()" tooltip="Number of distinct SKUs that appeared in orders." />
       </div>
 
       <!-- Chart 1: Daily Activity -->
@@ -153,14 +54,44 @@
         <div ref="heatmapEl" style="height:300px"></div>
       </div>
 
-      <!-- SKU Pareto Table (top 50) -->
+      <!-- Chart 3: Hourly Throughput (only if has_hourly_data) -->
+      <div v-if="pr.has_hourly_data && pr.hourly_metrics?.length" class="bg-white border border-gray-200 rounded-lg p-4">
+        <h4 class="text-xs font-semibold text-gray-700 mb-2">Hourly Throughput</h4>
+        <div ref="hourlyThroughputEl" style="height:200px"></div>
+      </div>
+
+      <!-- Chart 4: Weekly Trend (only if multiple weeks) -->
+      <div v-if="pr.weekly_trends?.length > 1" class="bg-white border border-gray-200 rounded-lg p-4">
+        <h4 class="text-xs font-semibold text-gray-700 mb-2">Weekly Trend</h4>
+        <div ref="weeklyTrendEl" style="height:220px"></div>
+      </div>
+
+      <!-- Chart 5: Day-of-Week Profile -->
+      <div v-if="pr.weekday_profile?.length" class="bg-white border border-gray-200 rounded-lg p-4">
+        <h4 class="text-xs font-semibold text-gray-700 mb-2">Day-of-Week Profile (Avg Lines/Day)</h4>
+        <div ref="dowProfileEl" style="height:180px"></div>
+      </div>
+
+      <!-- Chart 6: Lines per Order Distribution -->
+      <div v-if="pr.lines_per_order_dist?.length" class="bg-white border border-gray-200 rounded-lg p-4">
+        <h4 class="text-xs font-semibold text-gray-700 mb-2">Lines per Order Distribution</h4>
+        <div ref="linesPerOrderEl" style="height:200px"></div>
+      </div>
+
+      <!-- SKU Pareto Table -->
       <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div class="px-4 py-3 border-b border-gray-200">
-          <h4 class="text-xs font-semibold text-gray-700">SKU Pareto (top 50)</h4>
+        <div class="px-4 py-3 border-b border-gray-200 flex flex-wrap gap-3 items-center justify-between">
+          <h4 class="text-xs font-semibold text-gray-700">SKU Pareto</h4>
+          <select v-model="paretoAbcFilter" class="text-xs border border-gray-300 rounded px-2 py-1">
+            <option value="ALL">All ABC classes</option>
+            <option value="A">Class A</option>
+            <option value="B">Class B</option>
+            <option value="C">Class C</option>
+          </select>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto max-h-80">
           <table class="w-full text-xs">
-            <thead class="bg-gray-50 border-b border-gray-200">
+            <thead class="bg-gray-50 border-b border-gray-200 sticky top-0">
               <tr>
                 <th class="px-3 py-2 text-left font-medium text-gray-600">Rank</th>
                 <th class="px-3 py-2 text-left font-medium text-gray-600">SKU</th>
@@ -170,7 +101,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr v-for="row in pr.sku_pareto.slice(0, 50)" :key="row.sku" class="hover:bg-gray-50">
+              <tr v-for="row in filteredPareto" :key="row.sku" class="hover:bg-gray-50">
                 <td class="px-3 py-1.5 text-gray-500">{{ row.frequency_rank }}</td>
                 <td class="px-3 py-1.5 font-medium text-gray-800">{{ row.sku }}</td>
                 <td class="px-3 py-1.5 text-right text-gray-700">{{ row.total_lines.toLocaleString() }}</td>
@@ -182,6 +113,7 @@
             </tbody>
           </table>
         </div>
+        <p class="text-xs text-gray-400 px-4 py-2">Showing {{ filteredPareto.length }} of {{ pr.sku_pareto.length }} SKUs</p>
       </div>
     </div>
   </div>
@@ -189,96 +121,47 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import type { RunDetail, MappingInspectResponse, PerformanceResult } from '@/api/runs'
+import type { RunDetail, PerformanceResult, OrdersValidationResult } from '@/api/runs'
 import { runsApi } from '@/api/runs'
 import KpiCard from '@/components/shared/KpiCard.vue'
 import Plotly from 'plotly.js-dist-min'
 
 const props = defineProps<{ run: RunDetail }>()
-const emit = defineEmits<{ (e: 'refreshed'): void }>()
+const emit = defineEmits<{
+  (e: 'refreshed'): void
+  (e: 'navigate', tab: string): void
+}>()
 
-// Orders wizard state
-const fileInput = ref<HTMLInputElement>()
-const selectedFile = ref<File | null>(null)
-const inspecting = ref(false)
-const ingesting = ref(false)
 const analyzing = ref(false)
-const uploadError = ref('')
 const analysisError = ref('')
-const ordersStep = ref<'upload' | 'mapping' | 'ingested'>('upload')
-const inspectResult = ref<MappingInspectResponse | null>(null)
-const ordersMapping = ref<Record<string, string>>({})
 const productiveHours = ref(7.0)
+const paretoAbcFilter = ref('ALL')
 
 // Chart refs
 const dailyChartEl = ref<HTMLElement>()
 const heatmapEl = ref<HTMLElement>()
+const hourlyThroughputEl = ref<HTMLElement>()
+const weeklyTrendEl = ref<HTMLElement>()
+const dowProfileEl = ref<HTMLElement>()
+const linesPerOrderEl = ref<HTMLElement>()
 
 const pr = computed(() => props.run.performance_result as PerformanceResult | null)
+const ovr = computed(() => props.run.orders_validation_result as OrdersValidationResult | null)
 
-const requiredFields = computed(() =>
-  (inspectResult.value?.schema_fields ?? []).filter(f => f.required)
-)
-const optionalFields = computed(() =>
-  (inspectResult.value?.schema_fields ?? []).filter(f => !f.required)
-)
-const missingRequired = computed(() =>
-  requiredFields.value.filter(f => !ordersMapping.value[f.name]).map(f => f.name)
-)
+const filteredPareto = computed(() => {
+  if (!pr.value) return []
+  const rows = pr.value.sku_pareto
+  if (paretoAbcFilter.value === 'ALL') return rows
+  return rows.filter(r => r.abc_class === paretoAbcFilter.value)
+})
 
 onMounted(() => {
-  // If orders already ingested on load, show ingested step
-  if (props.run.status === 'orders_ingested' || props.run.status === 'performance_done') {
-    ordersStep.value = 'ingested'
-  }
   if (pr.value) renderCharts(pr.value)
 })
 
 watch(pr, (val) => {
   if (val) renderCharts(val)
 })
-
-function onFileChange(e: Event) {
-  const input = e.target as HTMLInputElement
-  selectedFile.value = input.files?.[0] ?? null
-  uploadError.value = ''
-}
-
-async function doInspect() {
-  if (!selectedFile.value) return
-  inspecting.value = true
-  uploadError.value = ''
-  try {
-    const { data } = await runsApi.inspectOrders(props.run.id, selectedFile.value)
-    inspectResult.value = data
-    const mapping: Record<string, string> = {}
-    for (const field of data.schema_fields) {
-      const sug = data.suggestions.find(s => s.suggested_target === field.name)
-      mapping[field.name] = sug?.source_column ?? ''
-    }
-    ordersMapping.value = mapping
-    ordersStep.value = 'mapping'
-    emit('refreshed')
-  } catch (e: unknown) {
-    uploadError.value = (e as Error).message || 'Failed to read file.'
-  } finally {
-    inspecting.value = false
-  }
-}
-
-async function doIngest() {
-  ingesting.value = true
-  uploadError.value = ''
-  try {
-    await runsApi.ingestOrders(props.run.id, ordersMapping.value)
-    ordersStep.value = 'ingested'
-    emit('refreshed')
-  } catch (e: unknown) {
-    uploadError.value = (e as Error).message || 'Ingestion failed.'
-  } finally {
-    ingesting.value = false
-  }
-}
 
 async function doRunAnalysis() {
   analyzing.value = true
@@ -310,6 +193,67 @@ function renderCharts(data: PerformanceResult) {
     }, { responsive: true, displayModeBar: false })
   }
 
+  // Hourly Throughput
+  if (hourlyThroughputEl.value && data.has_hourly_data && data.hourly_metrics?.length > 0) {
+    const sorted = [...data.hourly_metrics].sort((a, b) => a.hour - b.hour)
+    Plotly.newPlot(hourlyThroughputEl.value, [{
+      x: sorted.map(h => `${String(h.hour).padStart(2, '0')}:00`),
+      y: sorted.map(h => h.lines),
+      type: 'bar' as const,
+      marker: { color: '#6366f1' },
+      name: 'Lines',
+    }], {
+      margin: { t: 10, b: 40, l: 50, r: 10 },
+      xaxis: { title: 'Hour of Day' },
+      yaxis: { title: 'Lines' },
+    }, { responsive: true, displayModeBar: false })
+  }
+
+  // Weekly Trend
+  if (weeklyTrendEl.value && data.weekly_trends?.length > 1) {
+    Plotly.newPlot(weeklyTrendEl.value, [{
+      x: data.weekly_trends.map(w => `W${String(w.week).padStart(2, '0')} ${w.year}`),
+      y: data.weekly_trends.map(w => w.lines),
+      type: 'bar' as const,
+      marker: { color: '#10b981' },
+      name: 'Lines',
+    }], {
+      margin: { t: 10, b: 60, l: 50, r: 10 },
+      xaxis: { title: 'Week', tickangle: -45 },
+      yaxis: { title: 'Lines' },
+    }, { responsive: true, displayModeBar: false })
+  }
+
+  // Day-of-Week Profile
+  if (dowProfileEl.value && data.weekday_profile?.length > 0) {
+    Plotly.newPlot(dowProfileEl.value, [{
+      x: data.weekday_profile.map(d => d.day),
+      y: data.weekday_profile.map(d => d.avg_lines),
+      type: 'bar' as const,
+      marker: { color: '#f59e0b' },
+      name: 'Avg Lines',
+    }], {
+      margin: { t: 10, b: 40, l: 50, r: 10 },
+      xaxis: { title: 'Day of Week' },
+      yaxis: { title: 'Avg Lines/Day' },
+    }, { responsive: true, displayModeBar: false })
+  }
+
+  // Lines per Order Distribution
+  if (linesPerOrderEl.value && data.lines_per_order_dist?.length > 0) {
+    Plotly.newPlot(linesPerOrderEl.value, [{
+      x: data.lines_per_order_dist.map(b => b.bin),
+      y: data.lines_per_order_dist.map(b => b.count),
+      type: 'bar' as const,
+      marker: { color: '#ec4899' },
+      name: 'Orders',
+    }], {
+      margin: { t: 10, b: 40, l: 50, r: 10 },
+      xaxis: { title: 'Lines per Order' },
+      yaxis: { title: 'Number of Orders' },
+    }, { responsive: true, displayModeBar: false })
+  }
+
   // Hourly Heatmap
   if (heatmapEl.value && data.has_hourly_data && data.datehour_metrics.length > 0) {
     const dates = [...new Set(data.datehour_metrics.map(d => d.date))].sort()
@@ -325,7 +269,8 @@ function renderCharts(data: PerformanceResult) {
       x: hours.map(h => `${String(h).padStart(2, '0')}:00`),
       y: dates,
       type: 'heatmap' as const,
-      colorscale: 'Blues',
+      colorscale: [[0, '#ffffff'], [0.001, '#dbeafe'], [0.5, '#3b82f6'], [1, '#1d4ed8']] as [number, string][],
+      zmin: 0,
       showscale: true,
     }
     Plotly.newPlot(heatmapEl.value, [trace], {

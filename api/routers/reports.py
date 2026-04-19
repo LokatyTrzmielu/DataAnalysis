@@ -1,8 +1,9 @@
 """Reports router: ZIP and PDF download for an analysis run."""
 
+import io
 import tempfile
+import zipfile
 from pathlib import Path
-from typing import Any
 
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException
@@ -27,25 +28,41 @@ CSV_REPORTS = {
     "SKU_Pareto",
 }
 
+# Known column headers per report type (used to write empty CSVs with headers)
+REPORT_COLUMNS: dict[str, list[str]] = {
+    "DQ_Summary": [
+        "total_records", "overall_score", "dimensions_coverage_pct",
+        "weight_coverage_pct", "stock_coverage_pct", "missing_critical_count",
+        "suspect_outliers_count", "high_risk_borderline_count",
+        "duplicates_count", "conflicts_count",
+        "imputed_dimensions_count", "imputed_weight_count",
+    ],
+    "DQ_MissingCritical": ["sku", "field", "details"],
+    "DQ_SuspectOutliers": ["sku", "field", "details"],
+    "DQ_HighRiskBorderline": ["sku", "field", "details"],
+    "DQ_Duplicates": ["sku", "field", "details"],
+    "DQ_Conflicts": ["sku", "field", "details"],
+    "Capacity_Results": [],  # dynamic — derived from stored rows schema
+    "SKU_Pareto": [
+        "sku", "total_lines", "total_units", "total_orders",
+        "frequency_rank", "cumulative_pct", "abc_class",
+    ],
+}
 
-def _rebuild_capacity_result(data: dict[str, Any]):
-    """Rebuild CapacityAnalysisResult from JSONB dict."""
-    from src.analytics.capacity import CapacityAnalysisResult, CarrierStats
 
-    carrier_stats = {
-        cid: CarrierStats(**cs) for cid, cs in data.get("carrier_stats", {}).items()
-    }
-    df = pl.DataFrame(data.get("rows", []))
-    return CapacityAnalysisResult(
-        df=df,
-        total_sku=data["total_sku"],
-        fit_count=data["fit_count"],
-        borderline_count=data["borderline_count"],
-        not_fit_count=data["not_fit_count"],
-        fit_percentage=data["fit_percentage"],
-        carriers_analyzed=data["carriers_analyzed"],
-        carrier_stats=carrier_stats,
-    )
+def _rows_to_csv_bytes(rows: list[dict], columns: list[str] | None = None) -> bytes:
+    """Convert a list of dicts to UTF-8 BOM CSV bytes (separator ';').
+
+    Always writes column headers. If rows is empty and columns is provided,
+    returns a header-only CSV.
+    """
+    if rows:
+        df = pl.DataFrame(rows)
+    elif columns:
+        df = pl.DataFrame({c: [] for c in columns})
+    else:
+        return b"\xef\xbb\xbf"
+    return b"\xef\xbb\xbf" + df.write_csv(separator=";").encode("utf-8")
 
 
 @router.get("/{run_id}/reports/csv/{report_name}")
@@ -121,12 +138,7 @@ async def download_csv_report(
             for r in pr.get("sku_pareto", [])
         ]
 
-    if not rows:
-        # Return empty CSV with just headers (from first element or minimal)
-        csv_bytes = "\uFEFF".encode("utf-8")
-    else:
-        df = pl.DataFrame(rows)
-        csv_bytes = b"\xef\xbb\xbf" + df.write_csv().encode("utf-8")
+    csv_bytes = _rows_to_csv_bytes(rows, REPORT_COLUMNS.get(report_name))
 
     filename = f"{run.client_name or run_id}_{report_name}.csv"
     return Response(
@@ -150,28 +162,70 @@ async def download_zip(
     if run.owner_id != current_user.id and not run.is_public:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    capacity_result = None
-    if run.capacity_result:
-        capacity_result = _rebuild_capacity_result(run.capacity_result)
+    qr = run.quality_result or {}
+    cr = run.capacity_result or {}
+    pr = run.performance_result or {}
+    client = run.client_name or run.id
 
-    from src.reporting.zip_export import ZipExporter
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        exporter = ZipExporter()
-        zip_path = exporter.export(
-            output_dir=Path(tmpdir),
-            client_name=run.client_name or run.id,
-            capacity_result=capacity_result,
-            run_id=run.id,
-        )
-        # Copy to a stable path that won't be cleaned up before response is sent
-        stable = Path(tempfile.mktemp(suffix=".zip"))
-        stable.write_bytes(zip_path.read_bytes())
+        # --- Capacity Results ---
+        if cr:
+            rows = cr.get("rows", [])
+            zf.writestr(
+                f"{client}_Capacity_Results.csv",
+                _rows_to_csv_bytes(rows, REPORT_COLUMNS.get("Capacity_Results")),
+            )
+
+        # --- DQ reports ---
+        if qr:
+            dq_map = {
+                "DQ_Summary": [{
+                    "total_records": qr.get("total_records"),
+                    "overall_score": qr.get("overall_score"),
+                    "dimensions_coverage_pct": qr.get("dimensions_coverage_pct"),
+                    "weight_coverage_pct": qr.get("weight_coverage_pct"),
+                    "stock_coverage_pct": qr.get("stock_coverage_pct"),
+                    "missing_critical_count": qr.get("missing_critical_count"),
+                    "suspect_outliers_count": qr.get("suspect_outliers_count"),
+                    "high_risk_borderline_count": qr.get("high_risk_borderline_count"),
+                    "duplicates_count": qr.get("duplicates_count"),
+                    "conflicts_count": qr.get("conflicts_count"),
+                    "imputed_dimensions_count": qr.get("imputed_dimensions_count"),
+                    "imputed_weight_count": qr.get("imputed_weight_count"),
+                }],
+                "DQ_MissingCritical": qr.get("missing_critical", []),
+                "DQ_SuspectOutliers": qr.get("suspect_outliers", []),
+                "DQ_HighRiskBorderline": qr.get("high_risk_borderline", []),
+                "DQ_Duplicates": qr.get("duplicates", []),
+                "DQ_Conflicts": qr.get("conflicts", []),
+            }
+            for name, rows in dq_map.items():
+                zf.writestr(
+                    f"{client}_{name}.csv",
+                    _rows_to_csv_bytes(rows, REPORT_COLUMNS.get(name)),
+                )
+
+        # --- SKU Pareto ---
+        if pr:
+            pareto_rows = [
+                {**r, "cumulative_pct": f"{r['cumulative_pct']:.2f}%"}
+                for r in pr.get("sku_pareto", [])
+            ]
+            zf.writestr(
+                f"{client}_SKU_Pareto.csv",
+                _rows_to_csv_bytes(pareto_rows, REPORT_COLUMNS.get("SKU_Pareto")),
+            )
+
+    zip_bytes = buf.getvalue()
+    stable = Path(tempfile.mktemp(suffix=".zip"))
+    stable.write_bytes(zip_bytes)
 
     return FileResponse(
         path=str(stable),
         media_type="application/zip",
-        filename=f"{run.client_name or run.id}_report.zip",
+        filename=f"{client}_report.zip",
         background=None,
     )
 

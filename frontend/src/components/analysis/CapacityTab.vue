@@ -46,11 +46,13 @@
     <!-- Results -->
     <div v-if="cr">
       <!-- Summary KPIs -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
         <KpiCard label="Total SKU" :value="cr.total_sku" />
         <KpiCard label="Fit %" :value="`${cr.fit_percentage.toFixed(1)}%`" />
         <KpiCard label="FIT" :value="cr.fit_count" />
         <KpiCard label="NOT FIT" :value="cr.not_fit_count" />
+        <KpiCard label="Avg Dimensions" :value="avgStats?.dims" />
+        <KpiCard label="Avg Weight" :value="avgStats?.weight" />
       </div>
 
       <!-- Plotly Charts -->
@@ -93,7 +95,9 @@
               <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">BORDERLINE</th>
               <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">NOT FIT</th>
               <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Locations</th>
-              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Avg fill</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Volume (m³)</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Stock vol. (m³)</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Filling rate</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
@@ -104,6 +108,8 @@
               <td class="px-4 py-2 text-right text-yellow-600">{{ stats.borderline_count }}</td>
               <td class="px-4 py-2 text-right text-red-600">{{ stats.not_fit_count }}</td>
               <td class="px-4 py-2 text-right text-gray-700">{{ stats.total_locations_required }}</td>
+              <td class="px-4 py-2 text-right text-gray-700">{{ stats.total_volume_m3.toFixed(3) }}</td>
+              <td class="px-4 py-2 text-right text-gray-700">{{ stats.stock_volume_m3.toFixed(3) }}</td>
               <td class="px-4 py-2 text-right text-gray-700">{{ (stats.avg_filling_rate * 100).toFixed(1) }}%</td>
             </tr>
           </tbody>
@@ -246,6 +252,27 @@ const dimsDistChartEl = ref<HTMLElement>()
 const weightDistChartEl = ref<HTMLElement>()
 
 const cr = computed(() => props.run.capacity_result as CapacityResult | null)
+
+const avgStats = computed(() => {
+  const rows = cr.value?.rows
+  if (!rows?.length) return null
+  const seen = new Set<string>()
+  let sumL = 0, sumW = 0, sumH = 0, sumWt = 0, count = 0
+  for (const row of rows) {
+    if (seen.has(row.sku)) continue
+    seen.add(row.sku)
+    sumL += row.length_mm
+    sumW += row.width_mm
+    sumH += row.height_mm
+    sumWt += row.weight_kg
+    count++
+  }
+  if (!count) return null
+  return {
+    dims: `${(sumL / count).toFixed(1)} × ${(sumW / count).toFixed(1)} × ${(sumH / count).toFixed(1)} mm`,
+    weight: `${(sumWt / count).toFixed(2)} kg`,
+  }
+})
 
 // ABC class map from Performance pareto data
 const skuAbcMap = computed(() => {

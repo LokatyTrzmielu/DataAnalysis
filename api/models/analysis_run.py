@@ -40,7 +40,9 @@ class AnalysisRun(Base):
     capacity_result: Mapped[dict | None] = mapped_column(_JSON, nullable=True)
     performance_result: Mapped[dict | None] = mapped_column(_JSON, nullable=True)
     analysis_config: Mapped[dict | None] = mapped_column(_JSON, nullable=True)
+    orders_validation_result: Mapped[dict | None] = mapped_column(_JSON, nullable=True)
 
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -52,3 +54,4 @@ class AnalysisRun(Base):
     )
 
     owner: Mapped["User"] = relationship("User", back_populates="runs")  # type: ignore[name-defined]
+    shares: Mapped[list["RunShare"]] = relationship("RunShare", back_populates="run", cascade="all, delete-orphan")  # type: ignore[name-defined]

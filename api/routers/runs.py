@@ -11,9 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_current_user, get_db
 from api.models.analysis_run import AnalysisRun
 from api.models.user import User
+from api.models.run_share import RunShare
 from api.schemas.runs import (
-    RunCreate, RunListItem, RunListResponse, RunResponse,
-    MappingInspectResponse, ColumnSuggestion,
+    RunCreate, RunPatch, RunListItem, RunListResponse, RunResponse,
+    MappingInspectResponse, ColumnSuggestion, ShareRequest, RunShareItem,
 )
 from api.schemas.analysis import CapacityResponse
 import json
@@ -39,6 +40,8 @@ def _run_to_response(run: AnalysisRun) -> RunResponse:
         capacity_result=run.capacity_result,
         performance_result=run.performance_result,
         analysis_config=run.analysis_config,
+        orders_validation_result=run.orders_validation_result,
+        notes=run.notes,
         is_public=run.is_public,
         created_at=run.created_at,
         updated_at=run.updated_at,
@@ -63,17 +66,39 @@ async def list_runs(
     my_only: bool = True,
     page: int = 1,
     page_size: int = 20,
+    search: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    sort: str = "date_desc",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunListResponse:
-    query = select(AnalysisRun)
+    shared_run_ids_q = select(RunShare.run_id).where(
+        RunShare.shared_with_user_id == current_user.id
+    )
     if my_only:
-        query = query.where(AnalysisRun.owner_id == current_user.id)
-    else:
-        query = query.where(
-            (AnalysisRun.owner_id == current_user.id) | (AnalysisRun.is_public.is_(True))
+        query = select(AnalysisRun).where(
+            (AnalysisRun.owner_id == current_user.id)
+            | (AnalysisRun.id.in_(shared_run_ids_q))
         )
-    query = query.order_by(AnalysisRun.created_at.desc())
+    else:
+        query = select(AnalysisRun).where(
+            (AnalysisRun.owner_id == current_user.id)
+            | (AnalysisRun.is_public.is_(True))
+            | (AnalysisRun.id.in_(shared_run_ids_q))
+        )
+    if search:
+        query = query.where(AnalysisRun.client_name.ilike(f"%{search}%"))
+    if status_filter:
+        query = query.where(AnalysisRun.status == status_filter)
+
+    if sort == "date_asc":
+        query = query.order_by(AnalysisRun.created_at.asc())
+    elif sort == "name_asc":
+        query = query.order_by(AnalysisRun.client_name.asc())
+    elif sort == "name_desc":
+        query = query.order_by(AnalysisRun.client_name.desc())
+    else:
+        query = query.order_by(AnalysisRun.created_at.desc())
 
     count_q = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_q)).scalar_one()
@@ -88,6 +113,7 @@ async def list_runs(
                 client_name=r.client_name,
                 status=r.status,
                 is_public=r.is_public,
+                notes=r.notes,
                 created_at=r.created_at,
                 updated_at=r.updated_at,
             )
@@ -501,6 +527,19 @@ async def ingest_orders(
         "orders_date_to": date_to,
     }
     run.status = "orders_ingested"
+
+    # Run orders validation automatically (same pattern as masterdata quality check)
+    try:
+        from src.analytics.orders_validation import OrdersValidator
+        val_result = OrdersValidator().validate(
+            result.df,
+            masterdata_path=Path(run.masterdata_path) if run.masterdata_path else None,
+            masterdata_mapping=run.masterdata_mapping,
+        )
+        run.orders_validation_result = val_result
+    except Exception:
+        run.orders_validation_result = None
+
     run.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(run)
@@ -546,6 +585,24 @@ async def run_performance(
     analyzer = PerformanceAnalyzer(productive_hours_per_shift=productive_hours)
     perf = analyzer.analyze(ingest_result.df)
 
+    # Compute lines-per-order histogram
+    import polars as _pl
+    _order_lines = (
+        ingest_result.df
+        .group_by("order_id")
+        .agg(_pl.len().alias("n"))
+        ["n"]
+        .to_list()
+    )
+    _bins = [("1", 1, 1), ("2", 2, 2), ("3", 3, 3), ("4", 4, 4), ("5", 5, 5),
+             ("6–10", 6, 10), ("11–20", 11, 20), ("21+", 21, 10**9)]
+    _lpo_dist = [
+        {"bin": label, "count": sum(1 for n in _order_lines if lo <= n <= hi)}
+        for label, lo, hi in _bins
+    ]
+
+    _dow_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
     run.performance_result = {
         "kpi": {
             "total_lines": perf.kpi.total_lines,
@@ -569,6 +626,19 @@ async def run_performance(
             {"date": str(dh.date), "hour": dh.hour, "lines": dh.lines}
             for dh in perf.datehour_metrics
         ],
+        "hourly_metrics": [
+            {"hour": h.hour, "lines": h.lines}
+            for h in perf.hourly_metrics
+        ],
+        "weekly_trends": [
+            {"year": w.year, "week": w.week_number, "lines": w.lines, "avg_lines_per_hour": w.avg_lines_per_hour}
+            for w in perf.weekly_trends
+        ],
+        "weekday_profile": [
+            {"day": _dow_labels[wd], "avg_lines": avg}
+            for wd, avg in sorted(perf.weekday_profile.items())
+        ],
+        "lines_per_order_dist": _lpo_dist,
         "sku_pareto": [
             {
                 "sku": s.sku,
@@ -593,12 +663,152 @@ async def run_performance(
 
 
 async def _get_run_or_404(
-    run_id: str, db: AsyncSession, current_user: User
+    run_id: str, db: AsyncSession, current_user: User, owner_only: bool = False
 ) -> AnalysisRun:
     result = await db.execute(select(AnalysisRun).where(AnalysisRun.id == run_id))
     run = result.scalar_one_or_none()
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
-    if run.owner_id != current_user.id and not run.is_public:
+    if run.owner_id == current_user.id:
+        return run
+    if owner_only:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if run.is_public:
+        return run
+    share = await db.execute(
+        select(RunShare).where(
+            RunShare.run_id == run_id,
+            RunShare.shared_with_user_id == current_user.id,
+        )
+    )
+    if share.scalar_one_or_none() is None:
         raise HTTPException(status_code=403, detail="Access denied")
     return run
+
+
+@router.delete("/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_run(
+    run_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    run = await _get_run_or_404(run_id, db, current_user, owner_only=True)
+    for path in [run.masterdata_path, run.orders_path]:
+        if path:
+            Path(path).unlink(missing_ok=True)
+    await db.delete(run)
+    await db.commit()
+
+
+@router.patch("/{run_id}", response_model=RunResponse)
+async def patch_run(
+    run_id: str,
+    body: RunPatch,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunResponse:
+    run = await _get_run_or_404(run_id, db, current_user, owner_only=True)
+    if body.client_name is not None:
+        run.client_name = body.client_name
+    if body.is_public is not None:
+        run.is_public = body.is_public
+    if body.notes is not None:
+        run.notes = body.notes
+    run.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(run)
+    return _run_to_response(run)
+
+
+@router.post("/{run_id}/duplicate", response_model=RunResponse, status_code=status.HTTP_201_CREATED)
+async def duplicate_run(
+    run_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunResponse:
+    run = await _get_run_or_404(run_id, db, current_user)
+    new_run = AnalysisRun(
+        owner_id=current_user.id,
+        client_name=f"{run.client_name} (copy)",
+        masterdata_mapping=run.masterdata_mapping,
+        orders_mapping=run.orders_mapping,
+        analysis_config=run.analysis_config,
+        status="created",
+    )
+    db.add(new_run)
+    await db.commit()
+    await db.refresh(new_run)
+    return _run_to_response(new_run)
+
+
+@router.get("/{run_id}/shares", response_model=list[RunShareItem])
+async def list_shares(
+    run_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[RunShareItem]:
+    await _get_run_or_404(run_id, db, current_user, owner_only=True)
+    result = await db.execute(
+        select(RunShare).where(RunShare.run_id == run_id)
+    )
+    shares = result.scalars().all()
+    items = []
+    for s in shares:
+        user_result = await db.execute(select(User).where(User.id == s.shared_with_user_id))
+        u = user_result.scalar_one_or_none()
+        if u:
+            items.append(RunShareItem(
+                user_id=u.id, email=u.email, name=u.name, shared_at=s.created_at
+            ))
+    return items
+
+
+@router.post("/{run_id}/shares", response_model=RunShareItem, status_code=status.HTTP_201_CREATED)
+async def add_share(
+    run_id: str,
+    body: ShareRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunShareItem:
+    await _get_run_or_404(run_id, db, current_user, owner_only=True)
+    user_result = await db.execute(select(User).where(User.email == body.email))
+    target_user = user_result.scalar_one_or_none()
+    if target_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target_user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot share with yourself")
+    existing = await db.execute(
+        select(RunShare).where(
+            RunShare.run_id == run_id, RunShare.shared_with_user_id == target_user.id
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Already shared with this user")
+    share = RunShare(run_id=run_id, shared_with_user_id=target_user.id)
+    db.add(share)
+    await db.commit()
+    await db.refresh(share)
+    return RunShareItem(
+        user_id=target_user.id, email=target_user.email,
+        name=target_user.name, shared_at=share.created_at,
+    )
+
+
+@router.delete("/{run_id}/shares/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_share(
+    run_id: str,
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    await _get_run_or_404(run_id, db, current_user, owner_only=True)
+    result = await db.execute(
+        select(RunShare).where(
+            RunShare.run_id == run_id, RunShare.shared_with_user_id == user_id
+        )
+    )
+    share = result.scalar_one_or_none()
+    if share is None:
+        raise HTTPException(status_code=404, detail="Share not found")
+    await db.delete(share)
+    await db.commit()

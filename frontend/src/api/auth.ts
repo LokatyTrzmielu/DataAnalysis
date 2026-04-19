@@ -21,4 +21,13 @@ export const authApi = {
     client.post<TokenResponse>('/auth/login', { email, password }),
 
   me: () => client.get<UserResponse>('/auth/me'),
+
+  changePassword: (old_password: string, new_password: string) =>
+    client.post<void>('/auth/change-password', { old_password, new_password }),
+
+  createUser: (email: string, name: string, password: string) =>
+    client.post<UserResponse>('/auth/users', { email, name, password }),
+
+  listUsers: () =>
+    client.get<UserResponse[]>('/auth/users'),
 }

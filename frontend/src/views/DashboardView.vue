@@ -32,7 +32,10 @@
 
     <!-- Latest run summary -->
     <div v-if="latestRun" class="mb-8">
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">Latest analysis: <span class="text-blue-600">{{ latestRun.client_name }}</span></h3>
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">
+        Latest analysis: <span class="text-blue-600">{{ latestRun.client_name }}</span>
+        <RouterLink :to="`/runs/${latestRun.id}`" class="ml-2 text-xs font-normal text-blue-400 hover:text-blue-600">Open →</RouterLink>
+      </h3>
 
       <!-- Pipeline status steps -->
       <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
@@ -60,32 +63,31 @@
 
       <!-- KPI summary -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <template v-if="latestRun.quality_result">
-          <div class="bg-white border border-gray-200 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Total SKUs</p>
-            <p class="text-lg font-semibold text-gray-800">{{ (latestRun.quality_result as any).total_records?.toLocaleString() ?? '—' }}</p>
-          </div>
-          <div class="bg-white border border-gray-200 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Quality Score</p>
-            <p class="text-lg font-semibold text-gray-800">{{ (latestRun.quality_result as any).overall_score?.toFixed(1) ?? '—' }}%</p>
-          </div>
-        </template>
-        <template v-if="latestRun.capacity_result">
-          <div class="bg-white border border-gray-200 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Fit %</p>
-            <p class="text-lg font-semibold text-green-600">{{ (latestRun.capacity_result as any).fit_percentage?.toFixed(1) ?? '—' }}%</p>
-          </div>
-        </template>
-        <template v-if="latestRun.performance_result">
-          <div class="bg-white border border-gray-200 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Total Lines</p>
-            <p class="text-lg font-semibold text-gray-800">{{ (latestRun.performance_result as any).kpi?.total_lines?.toLocaleString() ?? '—' }}</p>
-          </div>
-          <div class="bg-white border border-gray-200 rounded-lg p-3">
-            <p class="text-xs text-gray-500">Avg Lines/Hour</p>
-            <p class="text-lg font-semibold text-gray-800">{{ (latestRun.performance_result as any).kpi?.avg_lines_per_hour?.toFixed(1) ?? '—' }}</p>
-          </div>
-        </template>
+        <div class="bg-white border border-gray-200 rounded-lg p-3">
+          <p class="text-xs text-gray-500">Total SKUs</p>
+          <p v-if="latestRun.quality_result" class="text-lg font-semibold text-gray-800">{{ (latestRun.quality_result as any).total_records?.toLocaleString() ?? '—' }}</p>
+          <p v-else class="text-xs text-gray-400 mt-1">Quality not run</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-3">
+          <p class="text-xs text-gray-500">Quality Score</p>
+          <p v-if="latestRun.quality_result" class="text-lg font-semibold text-gray-800">{{ (latestRun.quality_result as any).overall_score?.toFixed(1) ?? '—' }}%</p>
+          <p v-else class="text-xs text-gray-400 mt-1">Quality not run</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-3">
+          <p class="text-xs text-gray-500">Fit %</p>
+          <p v-if="latestRun.capacity_result" class="text-lg font-semibold text-green-600">{{ (latestRun.capacity_result as any).fit_percentage?.toFixed(1) ?? '—' }}%</p>
+          <p v-else class="text-xs text-gray-400 mt-1">Capacity not run</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-3">
+          <p class="text-xs text-gray-500">Total Lines</p>
+          <p v-if="latestRun.performance_result" class="text-lg font-semibold text-gray-800">{{ (latestRun.performance_result as any).kpi?.total_lines?.toLocaleString() ?? '—' }}</p>
+          <p v-else class="text-xs text-gray-400 mt-1">Performance not run</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg p-3">
+          <p class="text-xs text-gray-500">Avg Lines/Hour</p>
+          <p v-if="latestRun.performance_result" class="text-lg font-semibold text-gray-800">{{ (latestRun.performance_result as any).kpi?.avg_lines_per_hour?.toFixed(1) ?? '—' }}</p>
+          <p v-else class="text-xs text-gray-400 mt-1">Performance not run</p>
+        </div>
       </div>
     </div>
 
@@ -97,18 +99,38 @@
         No analyses yet. Create one above.
       </div>
       <div v-else class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
-        <RouterLink
-          v-for="run in runStore.runs.slice(0, 5)"
-          :key="run.id"
-          :to="`/runs/${run.id}`"
-          class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
-        >
-          <div>
-            <span class="text-sm font-medium text-gray-800">{{ run.client_name }}</span>
-            <span class="ml-2 text-xs text-gray-400">{{ formatDate(run.created_at) }}</span>
+        <div v-for="run in runStore.runs.slice(0, 5)" :key="run.id">
+          <div
+            :class="['flex items-center justify-between px-4 py-3 transition-colors cursor-pointer', selectedRunId === run.id ? 'bg-blue-50' : 'hover:bg-gray-50']"
+            @dblclick="router.push(`/runs/${run.id}`)"
+          >
+            <button @click="selectRun(run.id)" class="flex-1 min-w-0 text-left">
+              <span class="text-sm font-medium text-gray-800">{{ run.client_name }}</span>
+              <span class="ml-2 text-xs text-gray-400">{{ formatDate(run.created_at) }}</span>
+            </button>
+            <div class="flex items-center gap-1 shrink-0 ml-3">
+              <StatusBadge :status="run.status" />
+              <button
+                @click="toggleNotes(run.id)"
+                :class="['p-1.5 rounded transition-colors', openNotesId === run.id || run.notes ? 'text-blue-500 hover:bg-blue-50' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100']"
+                title="Notes"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+                </svg>
+              </button>
+            </div>
           </div>
-          <StatusBadge :status="run.status" />
-        </RouterLink>
+          <div v-if="openNotesId === run.id" class="px-4 pb-3">
+            <textarea
+              :value="run.notes ?? ''"
+              @input="onDashboardNotesInput(run.id, ($event.target as HTMLTextAreaElement).value)"
+              placeholder="Add notes about this analysis…"
+              rows="2"
+              class="w-full text-sm text-gray-700 border border-gray-200 rounded p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -132,17 +154,35 @@ const runStore = useRunStore()
 const router = useRouter()
 const showModal = ref(false)
 const latestRun = ref<RunDetail | null>(null)
+const selectedRunId = ref<string | null>(null)
+const openNotesId = ref<string | null>(null)
+let dashboardNotesTimer: ReturnType<typeof setTimeout> | null = null
+
+function toggleNotes(id: string) {
+  openNotesId.value = openNotesId.value === id ? null : id
+}
+
+function onDashboardNotesInput(id: string, value: string) {
+  if (dashboardNotesTimer) clearTimeout(dashboardNotesTimer)
+  dashboardNotesTimer = setTimeout(async () => {
+    await runStore.patchRun(id, { notes: value })
+  }, 500)
+}
+
+async function selectRun(id: string) {
+  selectedRunId.value = id
+  try {
+    const { data } = await runsApi.get(id)
+    latestRun.value = data
+  } catch {
+    // ignore
+  }
+}
 
 onMounted(async () => {
   await runStore.fetchRuns()
-  // Fetch full detail of latest run for KPIs
   if (runStore.runs.length > 0) {
-    try {
-      const { data } = await runsApi.get(runStore.runs[0].id)
-      latestRun.value = data
-    } catch {
-      // ignore
-    }
+    await selectRun(runStore.runs[0].id)
   }
 })
 

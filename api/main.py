@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from api.database import Base, engine
 from api.models import *  # noqa: F401, F403 — register all ORM models with Base
@@ -23,6 +24,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Create DB tables on startup (no-op if already exist)."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Add notes column to existing DBs that predate this field
+        try:
+            await conn.execute(text("ALTER TABLE analysis_runs ADD COLUMN notes TEXT"))
+        except Exception:
+            pass  # Column already exists
+        try:
+            await conn.execute(text("ALTER TABLE analysis_runs ADD COLUMN orders_validation_result JSON"))
+        except Exception:
+            pass  # Column already exists
     yield
 
 

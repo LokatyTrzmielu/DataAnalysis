@@ -24,3 +24,14 @@ class UserResponse(BaseModel):
     name: str
     is_active: bool
     created_at: datetime
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
+class CreateUserRequest(BaseModel):
+    email: EmailStr
+    name: str
+    password: str

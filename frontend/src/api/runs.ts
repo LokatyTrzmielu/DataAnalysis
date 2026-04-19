@@ -5,8 +5,62 @@ export interface RunListItem {
   client_name: string
   status: string
   is_public: boolean
+  notes: string | null
   created_at: string
   updated_at: string
+}
+
+export interface RunPatch {
+  client_name?: string
+  is_public?: boolean
+  notes?: string
+}
+
+export interface RunShareItem {
+  user_id: string
+  email: string
+  name: string
+  shared_at: string
+}
+
+export interface DateGap {
+  from: string
+  to: string
+  days: number
+}
+
+export interface OrdersValidationResult {
+  // Summary KPIs
+  total_rows: number
+  date_from: string | null
+  date_to: string | null
+  unique_days: number
+  has_hourly_data: boolean
+  // Missing SKUs
+  missing_sku_count: number
+  missing_sku_pct: number
+  // Date gaps
+  date_coverage_pct: number
+  total_calendar_days: number
+  gap_count: number
+  max_gap_days: number
+  gap_list: DateGap[]
+  // Quantity anomalies
+  qty_null_count: number
+  qty_zero_count: number
+  qty_negative_count: number
+  qty_outlier_count: number
+  qty_outlier_threshold: number
+  // SKU cross-validation
+  sku_xval_available: boolean
+  orders_skus_not_in_masterdata_count: number
+  orders_skus_not_in_masterdata: string[]
+  masterdata_skus_not_in_orders_count: number
+  masterdata_skus_not_in_orders: string[]
+  // Weekday distribution
+  weekday_distribution: Record<string, number>
+  most_active_weekday: number | null
+  least_active_weekday: number | null
 }
 
 export interface RunDetail extends RunListItem {
@@ -19,6 +73,7 @@ export interface RunDetail extends RunListItem {
   capacity_result: CapacityResult | null
   performance_result: PerformanceResult | null
   analysis_config: Record<string, unknown> | null
+  orders_validation_result: OrdersValidationResult | null
 }
 
 export interface CapacityResult {
@@ -27,6 +82,10 @@ export interface CapacityResult {
   borderline_count: number
   not_fit_count: number
   fit_percentage: number
+  avg_length_mm: number
+  avg_width_mm: number
+  avg_height_mm: number
+  avg_weight_kg: number
   carriers_analyzed: string[]
   carrier_stats: Record<string, CarrierStats>
   rows: CapacityRow[]
@@ -122,10 +181,36 @@ export interface PerformanceSKUPareto {
   abc_class: string
 }
 
+export interface PerformanceHourlyMetric {
+  hour: number
+  lines: number
+}
+
+export interface PerformanceWeeklyTrend {
+  year: number
+  week: number
+  lines: number
+  avg_lines_per_hour: number
+}
+
+export interface PerformanceWeekdayPoint {
+  day: string
+  avg_lines: number
+}
+
+export interface PerformanceLinesPerOrderBin {
+  bin: string
+  count: number
+}
+
 export interface PerformanceResult {
   kpi: PerformanceKPI
   daily_metrics: PerformanceDailyMetric[]
   datehour_metrics: PerformanceDateHourMetric[]
+  hourly_metrics: PerformanceHourlyMetric[]
+  weekly_trends: PerformanceWeeklyTrend[]
+  weekday_profile: PerformanceWeekdayPoint[]
+  lines_per_order_dist: PerformanceLinesPerOrderBin[]
   sku_pareto: PerformanceSKUPareto[]
   date_from: string
   date_to: string
@@ -133,13 +218,31 @@ export interface PerformanceResult {
 }
 
 export const runsApi = {
-  list: (params?: { my_only?: boolean; page?: number; page_size?: number }) =>
+  list: (params?: { my_only?: boolean; page?: number; page_size?: number; search?: string; status_filter?: string; sort?: string }) =>
     client.get<RunListResponse>('/runs', { params }),
 
   get: (id: string) => client.get<RunDetail>(`/runs/${id}`),
 
   create: (client_name: string) =>
     client.post<RunDetail>('/runs', { client_name }),
+
+  delete: (id: string) =>
+    client.delete<void>(`/runs/${id}`),
+
+  patch: (id: string, data: RunPatch) =>
+    client.patch<RunDetail>(`/runs/${id}`, data),
+
+  duplicate: (id: string) =>
+    client.post<RunDetail>(`/runs/${id}/duplicate`),
+
+  getShares: (id: string) =>
+    client.get<RunShareItem[]>(`/runs/${id}/shares`),
+
+  addShare: (id: string, email: string) =>
+    client.post<RunShareItem>(`/runs/${id}/shares`, { email }),
+
+  removeShare: (id: string, userId: string) =>
+    client.delete<void>(`/runs/${id}/shares/${userId}`),
 
   runCapacity: (id: string, file: File | null, opts?: { prioritization_mode?: boolean; best_fit_mode?: boolean; borderline_threshold?: number }) => {
     const fd = new FormData()

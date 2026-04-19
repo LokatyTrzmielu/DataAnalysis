@@ -236,7 +236,7 @@ class TestUnitDetector:
     def test_detect_length_cm(self):
         """Test detekcji jednostki cm."""
         detector = UnitDetector()
-        values = [10, 20, 30, 40, 50]  # Typowe wartosci w cm
+        values = [2, 5, 8, 12, 15]  # Unambiguously small values → cm (median=8<10, max=15<50)
         result = detector.detect_length_unit(values)
 
         assert result.detected_unit == LengthUnit.CM

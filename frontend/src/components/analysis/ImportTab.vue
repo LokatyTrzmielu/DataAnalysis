@@ -1,123 +1,241 @@
 <template>
   <div class="space-y-6">
-    <!-- Step 1: Upload -->
-    <div v-if="step === 'upload'" class="bg-white border border-gray-200 rounded-lg p-5">
-      <h3 class="text-sm font-semibold text-gray-700 mb-2">Step 1 — Upload masterdata file</h3>
-      <p class="text-xs text-gray-500 mb-4">
-        Upload an Excel (XLSX) or CSV file with product dimensions, weight, and stock data.
-      </p>
-      <input
-        ref="fileInput"
-        type="file"
-        accept=".xlsx,.xls,.csv"
-        class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-        @change="onFileChange"
-      />
-      <p v-if="inspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
-      <p v-if="error" class="text-red-600 text-sm mt-3">{{ error }}</p>
-      <p v-if="props.run.masterdata_path" class="text-xs text-gray-400 mt-4">
-        Previously uploaded: <code>{{ fileName }}</code>
-      </p>
+
+    <!-- ── Masterdata Section ── -->
+    <div class="bg-white border border-gray-200 rounded-lg p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-gray-700">Masterdata</h3>
+        <span v-if="run.quality_result" class="flex items-center gap-1 text-xs text-green-600 font-medium">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          Imported
+        </span>
+      </div>
+
+      <!-- Done state -->
+      <div v-if="run.quality_result && mdStep === 'done'" class="space-y-2">
+        <p class="text-xs text-gray-600"><code>{{ mdUploadedFileName || mdFileName }}</code></p>
+        <button @click="mdStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600 underline">Re-upload</button>
+      </div>
+
+      <!-- Step: upload -->
+      <div v-else-if="mdStep === 'upload'">
+        <p class="text-xs text-gray-500 mb-4">
+          Upload an Excel (XLSX) or CSV file with product dimensions, weight, and stock data.
+        </p>
+        <input
+          ref="mdFileInput"
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+          @change="onMdFileChange"
+        />
+        <p v-if="mdInspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
+        <p v-if="mdError" class="text-red-600 text-sm mt-3">{{ mdError }}</p>
+        <p v-if="run.masterdata_path && !mdSelectedFile" class="text-xs text-gray-400 mt-4">
+          Previously uploaded: <code>{{ mdFileName }}</code>
+        </p>
+      </div>
+
+      <!-- Step: mapping -->
+      <div v-else-if="mdStep === 'mapping' && mdInspectResult" class="space-y-4">
+        <div class="bg-white rounded">
+          <div class="flex items-center justify-between mb-4">
+            <p class="text-xs font-medium text-gray-600">Map columns</p>
+            <button @click="mdStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600">← Back</button>
+          </div>
+
+          <!-- Required fields -->
+          <div class="mb-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-700 mb-2">Required fields</p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div v-for="field in mdRequiredFields" :key="field.name" class="flex flex-col gap-1">
+                <label class="text-xs text-gray-600">
+                  {{ field.name }}
+                  <span v-if="mdIsDuplicate(field.name)" class="text-yellow-600 ml-1" title="Duplicate mapping">⚠</span>
+                  <span v-else-if="!mdUserMapping[field.name]" class="text-red-500 ml-1">*</span>
+                </label>
+                <select
+                  v-model="mdUserMapping[field.name]"
+                  :class="['w-full text-xs border rounded px-2 py-1', !mdUserMapping[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-300']"
+                >
+                  <option value="">— not mapped —</option>
+                  <option v-for="col in mdInspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional fields (collapsible) -->
+          <details class="mb-4">
+            <summary class="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer mb-2">Optional fields</summary>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+              <div v-for="field in mdOptionalFields" :key="field.name" class="flex flex-col gap-1">
+                <label class="text-xs text-gray-600">{{ field.name }}</label>
+                <select v-model="mdUserMapping[field.name]" class="w-full text-xs border border-gray-300 rounded px-2 py-1">
+                  <option value="">— not mapped —</option>
+                  <option v-for="col in mdInspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
+                </select>
+              </div>
+            </div>
+          </details>
+
+          <!-- Preview table -->
+          <div class="overflow-x-auto mb-4">
+            <p class="text-xs font-medium text-gray-600 mb-1">File preview (5 rows)</p>
+            <table class="text-xs border border-gray-200 rounded w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th v-for="col in mdInspectResult.file_columns" :key="col" class="px-2 py-1 text-left text-gray-600 font-medium border-b border-gray-200 whitespace-nowrap">{{ col }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, i) in mdInspectResult.preview_rows" :key="i" class="border-b border-gray-100">
+                  <td v-for="col in mdInspectResult.file_columns" :key="col" class="px-2 py-1 text-gray-700 whitespace-nowrap">{{ row[col] ?? '' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p v-if="mdMissingRequired.length > 0" class="text-xs text-red-600 mb-3">Missing required: {{ mdMissingRequired.join(', ') }}</p>
+          <p v-if="mdDuplicateFields.length > 0" class="text-xs text-yellow-600 mb-3">Duplicate mappings: {{ mdDuplicateFields.join(', ') }}</p>
+          <p v-if="mdError" class="text-red-600 text-sm mb-3">{{ mdError }}</p>
+
+          <button
+            @click="doMdQuality"
+            :disabled="mdRunning || mdMissingRequired.length > 0 || mdDuplicateFields.length > 0"
+            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
+          >
+            {{ mdRunning ? 'Running quality check…' : 'Run quality check →' }}
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Step 2: Column mapping -->
-    <div v-else-if="step === 'mapping' && inspectResult" class="space-y-4">
-      <div class="bg-white border border-gray-200 rounded-lg p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-gray-700">Step 2 — Map columns</h3>
-          <button @click="step = 'upload'" class="text-xs text-gray-400 hover:text-gray-600">← Back</button>
-        </div>
+    <!-- ── Orders Section ── -->
+    <div class="bg-white border border-gray-200 rounded-lg p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-gray-700">Orders</h3>
+        <span v-if="run.orders_validation_result" class="flex items-center gap-1 text-xs text-green-600 font-medium">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          Imported
+        </span>
+      </div>
 
+      <!-- Done state -->
+      <div v-if="run.orders_validation_result && ordersStep === 'done'" class="space-y-2">
+        <p class="text-xs text-gray-600"><code>{{ ordersUploadedFileName || ordersFileName }}</code></p>
+        <button @click="ordersStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600 underline">Re-upload</button>
+      </div>
+
+      <!-- Step: upload -->
+      <div v-else-if="ordersStep === 'upload'">
+        <p class="text-xs text-gray-500 mb-3">Upload an Excel or CSV file with order lines (order_id, sku, quantity, date).</p>
+        <input
+          ref="ordersFileInput"
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+          @change="onOrdersFileChange"
+        />
+        <p v-if="ordersInspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
+        <p v-if="ordersUploadError" class="text-red-600 text-sm mt-2">{{ ordersUploadError }}</p>
+        <p v-if="run.orders_path && !ordersSelectedFile" class="text-xs text-gray-400 mt-4">
+          Previously uploaded: <code>{{ ordersFileName }}</code>
+        </p>
+      </div>
+
+      <!-- Step: mapping -->
+      <div v-else-if="ordersStep === 'mapping' && ordersInspectResult">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-medium text-gray-600">Map columns</p>
+          <button @click="ordersStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600">← Back</button>
+        </div>
         <!-- Required fields -->
         <div class="mb-4">
-          <p class="text-xs font-medium text-gray-600 mb-2">Required fields</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-700 mb-2">Required fields</p>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div
-              v-for="field in requiredFields"
-              :key="field.name"
-              class="flex flex-col gap-1"
-            >
+            <div v-for="field in ordersRequiredFields" :key="field.name" class="flex flex-col gap-1">
               <label class="text-xs text-gray-600">
                 {{ field.name }}
-                <span v-if="isDuplicate(field.name)" class="text-yellow-600 ml-1" title="Duplicate mapping">⚠</span>
-                <span v-else-if="!userMapping[field.name]" class="text-red-500 ml-1">*</span>
+                <span v-if="!ordersMapping[field.name]" class="text-red-500 ml-1">*</span>
               </label>
               <select
-                v-model="userMapping[field.name]"
-                :class="[
-                  'w-full text-xs border rounded px-2 py-1',
-                  !userMapping[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-300',
-                ]"
+                v-model="ordersMapping[field.name]"
+                :class="['w-full text-xs border rounded px-2 py-1', !ordersMapping[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-300']"
               >
                 <option value="">— not mapped —</option>
-                <option v-for="col in inspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
+                <option v-for="col in ordersInspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
               </select>
             </div>
           </div>
         </div>
-
         <!-- Optional fields (collapsible) -->
         <details class="mb-4">
-          <summary class="text-xs font-medium text-gray-500 cursor-pointer mb-2">Optional fields</summary>
+          <summary class="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer mb-2">Optional fields</summary>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-            <div
-              v-for="field in optionalFields"
-              :key="field.name"
-              class="flex flex-col gap-1"
-            >
+            <div v-for="field in ordersOptionalFields" :key="field.name" class="flex flex-col gap-1">
               <label class="text-xs text-gray-600">{{ field.name }}</label>
-              <select
-                v-model="userMapping[field.name]"
-                class="w-full text-xs border border-gray-300 rounded px-2 py-1"
-              >
+              <select v-model="ordersMapping[field.name]" class="w-full text-xs border border-gray-300 rounded px-2 py-1">
                 <option value="">— not mapped —</option>
-                <option v-for="col in inspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
+                <option v-for="col in ordersInspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
               </select>
             </div>
           </div>
         </details>
-
-        <!-- Preview table -->
-        <div class="overflow-x-auto mb-4">
-          <p class="text-xs font-medium text-gray-600 mb-1">File preview (5 rows)</p>
+        <!-- Preview -->
+        <div class="overflow-x-auto mb-3">
           <table class="text-xs border border-gray-200 rounded w-full">
             <thead class="bg-gray-50">
               <tr>
-                <th
-                  v-for="col in inspectResult.file_columns"
-                  :key="col"
-                  class="px-2 py-1 text-left text-gray-600 font-medium border-b border-gray-200 whitespace-nowrap"
-                >{{ col }}</th>
+                <th v-for="col in ordersInspectResult.file_columns" :key="col" class="px-2 py-1 text-left text-gray-600 whitespace-nowrap">{{ col }}</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, i) in inspectResult.preview_rows" :key="i" class="border-b border-gray-100">
-                <td
-                  v-for="col in inspectResult.file_columns"
-                  :key="col"
-                  class="px-2 py-1 text-gray-700 whitespace-nowrap"
-                >{{ row[col] ?? '' }}</td>
+              <tr v-for="(row, i) in ordersInspectResult.preview_rows" :key="i" class="border-b border-gray-100">
+                <td v-for="col in ordersInspectResult.file_columns" :key="col" class="px-2 py-1 text-gray-700 whitespace-nowrap">{{ row[col] ?? '' }}</td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <!-- Validation warnings -->
-        <p v-if="missingRequired.length > 0" class="text-xs text-red-600 mb-3">
-          Missing required: {{ missingRequired.join(', ') }}
-        </p>
-        <p v-if="duplicateFields.length > 0" class="text-xs text-yellow-600 mb-3">
-          Duplicate mappings: {{ duplicateFields.join(', ') }}
-        </p>
-        <p v-if="error" class="text-red-600 text-sm mb-3">{{ error }}</p>
-
+        <p v-if="ordersMissingRequired.length > 0" class="text-xs text-red-600 mb-2">Missing required: {{ ordersMissingRequired.join(', ') }}</p>
+        <p v-if="ordersUploadError" class="text-red-600 text-sm mb-2">{{ ordersUploadError }}</p>
         <button
-          @click="doQuality"
-          :disabled="running || missingRequired.length > 0 || duplicateFields.length > 0"
+          @click="doOrdersIngest"
+          :disabled="ordersIngesting || ordersMissingRequired.length > 0"
           class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
         >
-          {{ running ? 'Running quality check…' : 'Run quality check →' }}
+          {{ ordersIngesting ? 'Running quality check…' : 'Run quality check →' }}
         </button>
+      </div>
+    </div>
+
+    <!-- ── Proceed without full import modal ── -->
+    <div
+      v-if="showProceedModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      @click.self="showProceedModal = false"
+    >
+      <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+        <h3 class="text-sm font-semibold text-gray-800 mb-2">Missing import</h3>
+        <p class="text-sm text-gray-600 mb-5">{{ proceedModalMessage }} Proceed to Validation anyway?</p>
+        <div class="flex justify-end gap-2">
+          <button
+            @click="showProceedModal = false"
+            class="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="onProceedConfirm"
+            class="text-sm px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+          >
+            Proceed
+          </button>
+        </div>
       </div>
     </div>
 
@@ -125,7 +243,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import type { RunDetail, MappingInspectResponse } from '@/api/runs'
 import { runsApi } from '@/api/runs'
 import { useNotificationsStore } from '@/stores/notifications'
@@ -138,40 +256,39 @@ const emit = defineEmits<{
   (e: 'navigate', tab: string): void
 }>()
 
-const fileInput = ref<HTMLInputElement>()
-const selectedFile = ref<File | null>(null)
-const uploadedFileName = ref('')
-const inspecting = ref(false)
-const running = ref(false)
-const error = ref('')
-const step = ref<'upload' | 'mapping' | 'done'>('upload')
-const inspectResult = ref<MappingInspectResponse | null>(null)
-const userMapping = ref<Record<string, string>>({})
+// ── Masterdata wizard ────────────────────────────────────────────────────────
 
-const fileName = computed(() => {
+const mdFileInput = ref<HTMLInputElement>()
+const mdSelectedFile = ref<File | null>(null)
+const mdUploadedFileName = ref('')
+const mdInspecting = ref(false)
+const mdRunning = ref(false)
+const mdError = ref('')
+const mdStep = ref<'upload' | 'mapping' | 'done'>('upload')
+const mdInspectResult = ref<MappingInspectResponse | null>(null)
+const mdUserMapping = ref<Record<string, string>>({})
+
+const mdFileName = computed(() => {
   if (!props.run.masterdata_path) return ''
   return props.run.masterdata_path.split(/[\\/]/).pop() ?? ''
 })
 
-const requiredFields = computed(() =>
-  (inspectResult.value?.schema_fields ?? []).filter(f => f.required)
+const mdRequiredFields = computed(() =>
+  (mdInspectResult.value?.schema_fields ?? []).filter(f => f.required)
 )
-const optionalFields = computed(() =>
-  (inspectResult.value?.schema_fields ?? []).filter(f => !f.required)
+const mdOptionalFields = computed(() =>
+  (mdInspectResult.value?.schema_fields ?? []).filter(f => !f.required)
 )
-
-const missingRequired = computed(() =>
-  requiredFields.value.filter(f => !userMapping.value[f.name]).map(f => f.name)
+const mdMissingRequired = computed(() =>
+  mdRequiredFields.value.filter(f => !mdUserMapping.value[f.name]).map(f => f.name)
 )
-
-const mappingSummary = computed(() =>
-  requiredFields.value
-    .filter(f => userMapping.value[f.name])
-    .map(f => ({ field: f.name, col: userMapping.value[f.name] }))
+const mdMappingSummary = computed(() =>
+  mdRequiredFields.value
+    .filter(f => mdUserMapping.value[f.name])
+    .map(f => ({ field: f.name, col: mdUserMapping.value[f.name] }))
 )
-
-const duplicateFields = computed(() => {
-  const values = Object.values(userMapping.value).filter(Boolean)
+const mdDuplicateFields = computed(() => {
+  const values = Object.values(mdUserMapping.value).filter(Boolean)
   const seen = new Set<string>()
   const dups = new Set<string>()
   for (const v of values) {
@@ -181,70 +298,171 @@ const duplicateFields = computed(() => {
   return [...dups]
 })
 
-function isDuplicate(fieldName: string) {
-  const col = userMapping.value[fieldName]
+function mdIsDuplicate(fieldName: string) {
+  const col = mdUserMapping.value[fieldName]
   if (!col) return false
-  return duplicateFields.value.includes(col)
+  return mdDuplicateFields.value.includes(col)
 }
 
-function onFileChange(e: Event) {
+function onMdFileChange(e: Event) {
   const input = e.target as HTMLInputElement
-  selectedFile.value = input.files?.[0] ?? null
-  uploadedFileName.value = selectedFile.value?.name ?? ''
-  error.value = ''
-  if (selectedFile.value) doInspect()
+  mdSelectedFile.value = input.files?.[0] ?? null
+  mdUploadedFileName.value = mdSelectedFile.value?.name ?? ''
+  mdError.value = ''
+  if (mdSelectedFile.value) doMdInspect()
 }
 
-async function doInspect() {
-  if (!selectedFile.value) return
-  inspecting.value = true
-  error.value = ''
+async function doMdInspect() {
+  if (!mdSelectedFile.value) return
+  mdInspecting.value = true
+  mdError.value = ''
   try {
-    const { data } = await runsApi.inspectMasterdata(props.run.id, selectedFile.value)
-    inspectResult.value = data
-    // Pre-fill mapping from suggestions
+    const { data } = await runsApi.inspectMasterdata(props.run.id, mdSelectedFile.value)
+    mdInspectResult.value = data
     const mapping: Record<string, string> = {}
     for (const field of data.schema_fields) {
       const sug = data.suggestions.find(s => s.suggested_target === field.name)
       mapping[field.name] = sug?.source_column ?? ''
     }
-    userMapping.value = mapping
-    step.value = 'mapping'
+    mdUserMapping.value = mapping
+    mdStep.value = 'mapping'
   } catch (e: unknown) {
-    error.value = (e as Error).message || 'Failed to read file.'
+    mdError.value = (e as Error).message || 'Failed to read file.'
   } finally {
-    inspecting.value = false
+    mdInspecting.value = false
   }
 }
 
-async function doQuality() {
-  running.value = true
-  error.value = ''
+async function doMdQuality() {
+  mdRunning.value = true
+  mdError.value = ''
   try {
-    await runsApi.runQualityWithMapping(props.run.id, null, userMapping.value)
+    await runsApi.runQualityWithMapping(props.run.id, null, mdUserMapping.value)
+    mdStep.value = 'done'
     emit('refreshed')
     notify.push({
       type: 'success',
       title: 'Import complete',
-      message: `${uploadedFileName.value} · ${mappingSummary.value.length} columns mapped`,
+      message: `${mdUploadedFileName.value} · ${mdMappingSummary.value.length} columns mapped`,
     })
-    emit('navigate', 'quality')
+    if (props.run.orders_validation_result) {
+      emit('navigate', 'quality')
+    } else {
+      proceedModalMessage.value = 'Orders have not been imported yet.'
+      showProceedModal.value = true
+    }
   } catch (e: unknown) {
     const msg = (e as Error).message || 'Quality check failed.'
-    error.value = msg
+    mdError.value = msg
     notify.push({ type: 'error', title: 'Quality check failed', message: msg })
   } finally {
-    running.value = false
+    mdRunning.value = false
   }
 }
 
-function reset() {
-  step.value = 'upload'
-  selectedFile.value = null
-  inspectResult.value = null
-  userMapping.value = {}
-  error.value = ''
-  uploadedFileName.value = ''
-  if (fileInput.value) fileInput.value.value = ''
+// ── Orders wizard ────────────────────────────────────────────────────────────
+
+const ordersFileInput = ref<HTMLInputElement>()
+const ordersSelectedFile = ref<File | null>(null)
+const ordersUploadedFileName = ref('')
+const ordersInspecting = ref(false)
+const ordersIngesting = ref(false)
+const ordersUploadError = ref('')
+const ordersStep = ref<'upload' | 'mapping' | 'done'>('upload')
+const ordersInspectResult = ref<MappingInspectResponse | null>(null)
+const ordersMapping = ref<Record<string, string>>({})
+
+const ordersFileName = computed(() => {
+  if (!props.run.orders_path) return ''
+  return props.run.orders_path.split(/[\\/]/).pop() ?? ''
+})
+
+const ordersRequiredFields = computed(() =>
+  (ordersInspectResult.value?.schema_fields ?? []).filter(f => f.required)
+)
+const ordersOptionalFields = computed(() =>
+  (ordersInspectResult.value?.schema_fields ?? []).filter(f => !f.required)
+)
+const ordersMissingRequired = computed(() =>
+  ordersRequiredFields.value.filter(f => !ordersMapping.value[f.name]).map(f => f.name)
+)
+const ordersMappingSummary = computed(() =>
+  ordersRequiredFields.value
+    .filter(f => ordersMapping.value[f.name])
+    .map(f => ({ field: f.name, col: ordersMapping.value[f.name] }))
+)
+
+function onOrdersFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  ordersSelectedFile.value = input.files?.[0] ?? null
+  ordersUploadedFileName.value = ordersSelectedFile.value?.name ?? ''
+  ordersUploadError.value = ''
+  if (ordersSelectedFile.value) doOrdersInspect()
 }
+
+async function doOrdersInspect() {
+  if (!ordersSelectedFile.value) return
+  ordersInspecting.value = true
+  ordersUploadError.value = ''
+  try {
+    const { data } = await runsApi.inspectOrders(props.run.id, ordersSelectedFile.value)
+    ordersInspectResult.value = data
+    const mapping: Record<string, string> = {}
+    for (const field of data.schema_fields) {
+      const sug = data.suggestions.find(s => s.suggested_target === field.name)
+      mapping[field.name] = sug?.source_column ?? ''
+    }
+    ordersMapping.value = mapping
+    ordersStep.value = 'mapping'
+    emit('refreshed')
+  } catch (e: unknown) {
+    ordersUploadError.value = (e as Error).message || 'Failed to read file.'
+  } finally {
+    ordersInspecting.value = false
+  }
+}
+
+async function doOrdersIngest() {
+  ordersIngesting.value = true
+  ordersUploadError.value = ''
+  try {
+    await runsApi.ingestOrders(props.run.id, ordersMapping.value)
+    ordersStep.value = 'done'
+    emit('refreshed')
+    notify.push({
+      type: 'success',
+      title: 'Import complete',
+      message: `${ordersUploadedFileName.value} · ${ordersMappingSummary.value.length} columns mapped`,
+    })
+    if (props.run.quality_result) {
+      emit('navigate', 'quality')
+    } else {
+      proceedModalMessage.value = 'Masterdata has not been imported yet.'
+      showProceedModal.value = true
+    }
+  } catch (e: unknown) {
+    const msg = (e as Error).message || 'Ingestion failed.'
+    ordersUploadError.value = msg
+    notify.push({ type: 'error', title: 'Import failed', message: msg })
+  } finally {
+    ordersIngesting.value = false
+  }
+}
+
+// ── Proceed modal ────────────────────────────────────────────────────────────
+
+const showProceedModal = ref(false)
+const proceedModalMessage = ref('')
+
+function onProceedConfirm() {
+  showProceedModal.value = false
+  emit('navigate', 'quality')
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+onMounted(() => {
+  if (props.run.quality_result) mdStep.value = 'done'
+  if (props.run.orders_validation_result) ordersStep.value = 'done'
+})
 </script>

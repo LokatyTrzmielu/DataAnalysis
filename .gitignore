@@ -1,5 +1,9 @@
 nul
+=5.18.0
 tmpclaude-*-cwd
+
+# Streamlit logs
+streamlit_logs/
 
 # Python bytecode
 __pycache__/
