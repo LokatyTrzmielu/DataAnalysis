@@ -91,14 +91,28 @@ const dqReports = [
   { name: 'DQ_Conflicts', label: 'Conflicts' },
 ]
 
+async function blobErrorMessage(err: unknown): Promise<string> {
+  try {
+    const e = err as { response?: { data?: Blob; status?: number } }
+    if (e?.response?.data instanceof Blob) {
+      const text = await e.response.data.text()
+      const parsed = JSON.parse(text)
+      return parsed?.detail ?? text
+    }
+    return (e?.response?.status ? `HTTP ${e.response.status}` : String(err))
+  } catch {
+    return String(err)
+  }
+}
+
 async function downloadZip() {
   downloadingZip.value = true
   error.value = ''
   try {
     const { data } = await runsApi.downloadZip(props.run.id)
     triggerDownload(data as Blob, `${props.run.client_name}_report.zip`)
-  } catch {
-    error.value = 'ZIP download failed.'
+  } catch (e) {
+    error.value = 'ZIP download failed: ' + await blobErrorMessage(e)
   } finally {
     downloadingZip.value = false
   }
@@ -110,8 +124,8 @@ async function downloadPdf() {
   try {
     const { data } = await runsApi.downloadPdf(props.run.id)
     triggerDownload(data as Blob, `${props.run.client_name}_report.pdf`)
-  } catch {
-    error.value = 'PDF download failed.'
+  } catch (e) {
+    error.value = 'PDF download failed: ' + await blobErrorMessage(e)
   } finally {
     downloadingPdf.value = false
   }
@@ -123,8 +137,8 @@ async function downloadCsv(reportName: string) {
   try {
     const { data } = await runsApi.downloadCsvReport(props.run.id, reportName)
     triggerDownload(data as Blob, `${props.run.client_name}_${reportName}.csv`)
-  } catch {
-    error.value = `Failed to download ${reportName}.`
+  } catch (e) {
+    error.value = `Failed to download ${reportName}: ` + await blobErrorMessage(e)
   } finally {
     downloading.value = null
   }

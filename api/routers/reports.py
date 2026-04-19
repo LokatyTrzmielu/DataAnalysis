@@ -1,13 +1,11 @@
 """Reports router: ZIP and PDF download for an analysis run."""
 
 import io
-import tempfile
 import zipfile
-from pathlib import Path
 
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_current_user, get_db
@@ -218,15 +216,10 @@ async def download_zip(
                 _rows_to_csv_bytes(pareto_rows, REPORT_COLUMNS.get("SKU_Pareto")),
             )
 
-    zip_bytes = buf.getvalue()
-    stable = Path(tempfile.mktemp(suffix=".zip"))
-    stable.write_bytes(zip_bytes)
-
-    return FileResponse(
-        path=str(stable),
+    return Response(
+        content=buf.getvalue(),
         media_type="application/zip",
-        filename=f"{client}_report.zip",
-        background=None,
+        headers={"Content-Disposition": f'attachment; filename="{client}_report.zip"'},
     )
 
 
