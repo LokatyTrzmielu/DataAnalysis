@@ -467,7 +467,7 @@ function exportCsv() {
     row.locations_required,
     (row.filling_rate * 100).toFixed(1) + '%',
   ])
-  const csv = '\uFEFF' + [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+  const csv = '\uFEFF' + [headers, ...rows].map(r => r.map(v => typeof v === 'string' && /^\d{10,}$/.test(v) ? `"=""${v}"""` : `"${v}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
