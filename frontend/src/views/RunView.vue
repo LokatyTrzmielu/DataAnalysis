@@ -3,9 +3,9 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <RouterLink to="/runs" class="text-sm text-gray-400 hover:text-gray-600">← Analyses</RouterLink>
+        <RouterLink to="/runs" class="run-back-link">← Analyses</RouterLink>
         <!-- Inline rename -->
-        <div class="mt-1 flex items-center gap-2">
+        <div class="mt-2 flex items-center gap-2">
           <input
             v-if="renaming"
             ref="renameInput"
@@ -13,11 +13,11 @@
             @blur="saveRename"
             @keydown.enter="saveRename"
             @keydown.escape="renaming = false"
-            class="text-lg font-semibold text-gray-800 border-b border-blue-400 outline-none bg-transparent w-72"
+            class="run-rename-input"
           />
           <h2
             v-else
-            class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-blue-600"
+            class="run-title"
             title="Click to rename"
             @click="startRename"
           >{{ run.client_name }}</h2>
@@ -26,7 +26,8 @@
       <div class="flex items-center gap-2">
         <button
           @click="showNotes = true"
-          :class="['flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded transition-colors', notesValue ? 'text-blue-600 border-blue-400 bg-blue-50' : 'text-gray-600 border-gray-300 hover:bg-gray-50']"
+          class="btn-apple-pill"
+          :style="notesValue ? 'color:#0071e3;border-color:#0071e3' : ''"
           title="Notes"
         >
           <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -36,7 +37,8 @@
         </button>
         <button
           @click="showShare = true"
-          class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+          class="btn-apple-pill"
+          title="Share"
         >
           <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
             <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
@@ -48,26 +50,20 @@
     </div>
 
     <!-- Tabs -->
-    <div class="mb-0">
-      <nav class="flex gap-1 items-end">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          @click="activeTab = tab.id"
-          :class="[
-            'px-4 py-2 text-sm font-medium rounded-t-md border transition-colors cursor-pointer',
-            activeTab === tab.id
-              ? 'border-blue-400 bg-white text-blue-600 -mb-px relative z-10 border-b-white'
-              : 'border-gray-300 bg-gray-50 text-gray-500 hover:bg-white hover:text-gray-700',
-          ]"
-        >
-          {{ tab.label }}
-        </button>
-      </nav>
+    <div class="run-tab-nav">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        @click="activeTab = tab.id"
+        class="run-tab-btn"
+        :class="{ active: activeTab === tab.id }"
+      >
+        {{ tab.label }}
+      </button>
     </div>
 
     <!-- Tab content -->
-    <div class="border border-gray-200 rounded-b-lg rounded-tr-lg mb-6">
+    <div class="pt-6 mb-6">
       <div v-if="activeTab === 'import'">
         <ImportTab :run="run" @refreshed="loadRun" @navigate="activeTab = $event" />
       </div>
@@ -89,8 +85,8 @@
     <ShareModal v-if="showShare" :run-id="run.id" @close="showShare = false" />
   </div>
 
-  <div v-else-if="loading" class="text-sm text-gray-400">Loading…</div>
-  <div v-else class="text-sm text-red-500">Run not found.</div>
+  <div v-else-if="loading" style="font-size:14px;color:rgba(0,0,0,0.48)">Loading…</div>
+  <div v-else style="font-size:14px;color:#ff3b30">Run not found.</div>
 </template>
 
 <script setup lang="ts">
@@ -158,3 +154,68 @@ onMounted(async () => {
   else if (run.value?.quality_result || run.value?.orders_validation_result) activeTab.value = 'quality'
 })
 </script>
+
+<style scoped>
+.run-back-link {
+  font-size: 14px;
+  letter-spacing: -0.224px;
+  color: #0066cc;
+  text-decoration: none;
+  transition: text-decoration 0.1s;
+}
+.run-back-link:hover { text-decoration: underline; }
+
+.run-title {
+  font-family: "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+  color: #1d1d1f;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.run-title:hover { color: #0071e3; }
+
+.run-rename-input {
+  font-size: 21px;
+  font-weight: 700;
+  color: #1d1d1f;
+  border: none;
+  border-bottom: 2px solid #0071e3;
+  outline: none;
+  background: transparent;
+  width: 320px;
+  line-height: 1.19;
+  font-family: "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.run-tab-nav {
+  display: flex;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  gap: 0;
+}
+
+.run-tab-btn {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.224px;
+  color: rgba(0, 0, 0, 0.48);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+  font-family: "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.run-tab-btn:hover { color: #1d1d1f; }
+
+.run-tab-btn.active {
+  color: #0071e3;
+  border-bottom-color: #0071e3;
+  font-weight: 600;
+}
+</style>

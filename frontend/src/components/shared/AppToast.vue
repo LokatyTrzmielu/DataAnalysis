@@ -1,7 +1,9 @@
 <template>
   <div :class="['toast', `toast--${notification.type}`]" role="alert">
     <div class="toast__body">
-      <p class="toast__title">{{ notification.title }}</p>
+      <p class="toast__title">
+        <span class="toast__dot" />{{ notification.title }}
+      </p>
       <p v-if="notification.message" class="toast__message">{{ notification.message }}</p>
     </div>
     <button class="toast__close" @click="store.remove(notification.id)" aria-label="Close">×</button>
@@ -24,36 +26,52 @@ const store = useNotificationsStore()
   align-items: flex-start;
   gap: 12px;
   width: 320px;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0px;
   padding: 14px 40px 14px 16px;
-  border-left: 3px solid transparent;
+  border: none;
   overflow: hidden;
 }
-
-.toast--success { border-left-color: #22c55e; }
-.toast--error   { border-left-color: #ef4444; }
-.toast--info    { border-left-color: #3b82f6; }
 
 .toast__body {
   flex: 1;
   min-width: 0;
 }
 
+.toast__dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.toast--success .toast__dot { background: #34c759; }
+.toast--error   .toast__dot { background: #ff3b30; }
+.toast--info    .toast__dot { background: #0071e3; }
+
 .toast__title {
-  font-size: 0.8125rem;
+  font-family: "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: #1d1d1f;
+  letter-spacing: -0.224px;
   margin: 0;
   line-height: 1.4;
+  display: flex;
+  align-items: center;
 }
 
 .toast__message {
-  font-size: 0.75rem;
-  color: #6b7280;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.48);
+  letter-spacing: -0.12px;
   margin: 3px 0 0;
-  font-family: ui-monospace, 'Cascadia Code', monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -65,7 +83,7 @@ const store = useNotificationsStore()
   right: 12px;
   font-size: 1rem;
   line-height: 1;
-  color: #9ca3af;
+  color: rgba(0, 0, 0, 0.32);
   background: none;
   border: none;
   cursor: pointer;
@@ -73,7 +91,7 @@ const store = useNotificationsStore()
   border-radius: 3px;
   transition: color 0.15s;
 }
-.toast__close:hover { color: #374151; }
+.toast__close:hover { color: #1d1d1f; }
 
 .toast__progress {
   position: absolute;
@@ -85,9 +103,9 @@ const store = useNotificationsStore()
   animation: progress 5s linear forwards;
 }
 
-.toast--success .toast__progress { background: #22c55e; }
-.toast--error   .toast__progress { background: #ef4444; }
-.toast--info    .toast__progress { background: #3b82f6; }
+.toast--success .toast__progress { background: #34c759; }
+.toast--error   .toast__progress { background: #ff3b30; }
+.toast--info    .toast__progress { background: #0071e3; }
 
 @keyframes progress {
   from { transform: scaleX(1); }

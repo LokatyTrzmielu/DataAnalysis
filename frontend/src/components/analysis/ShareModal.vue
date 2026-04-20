@@ -1,9 +1,9 @@
 <template>
-  <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="$emit('close')">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+  <div class="fixed inset-0 flex items-center justify-center z-50" style="background:rgba(0,0,0,0.6)" @click.self="$emit('close')">
+    <div class="card-apple-elevated w-full" style="max-width:480px">
       <div class="flex items-center justify-between mb-5">
-        <h3 class="text-base font-semibold text-gray-800">Share analysis</h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600">
+        <h3 style="font-size:21px;font-weight:700;color:#1d1d1f;letter-spacing:0.231px;line-height:1.19">Share analysis</h3>
+        <button @click="$emit('close')" style="color:rgba(0,0,0,0.32);background:none;border:none;cursor:pointer;padding:4px;transition:color 0.15s" @mouseover="(e: Event) => (e.currentTarget as HTMLElement).style.color='#1d1d1f'" @mouseleave="(e: Event) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'">
           <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
@@ -16,31 +16,29 @@
           v-model="emailInput"
           type="email"
           placeholder="User email…"
-          class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="input-apple flex-1"
           required
         />
-        <button
-          type="submit"
-          :disabled="adding"
-          class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50"
-        >
+        <button type="submit" :disabled="adding" class="btn-apple-primary" style="white-space:nowrap">
           Share
         </button>
       </form>
-      <p v-if="addError" class="text-sm text-red-600 mb-3">{{ addError }}</p>
+      <p v-if="addError" class="mb-3" style="font-size:14px;color:#ff3b30">{{ addError }}</p>
 
       <!-- Current shares -->
-      <div v-if="loading" class="text-sm text-gray-400">Loading…</div>
-      <div v-else-if="shares.length === 0" class="text-sm text-gray-400">Not shared with anyone yet.</div>
-      <ul v-else class="divide-y divide-gray-100">
-        <li v-for="s in shares" :key="s.user_id" class="flex items-center justify-between py-2">
+      <div v-if="loading" style="font-size:14px;color:rgba(0,0,0,0.48)">Loading…</div>
+      <div v-else-if="shares.length === 0" style="font-size:14px;color:rgba(0,0,0,0.48)">Not shared with anyone yet.</div>
+      <ul v-else style="border-top:1px solid rgba(0,0,0,0.08)">
+        <li v-for="s in shares" :key="s.user_id" class="flex items-center justify-between py-3" style="border-bottom:1px solid rgba(0,0,0,0.08)">
           <div>
-            <span class="text-sm font-medium text-gray-800">{{ s.name }}</span>
-            <span class="ml-2 text-xs text-gray-400">{{ s.email }}</span>
+            <span style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">{{ s.name }}</span>
+            <span class="ml-2" style="font-size:12px;color:rgba(0,0,0,0.48)">{{ s.email }}</span>
           </div>
           <button
             @click="revoke(s.user_id)"
-            class="text-xs text-red-500 hover:text-red-700"
+            style="font-size:12px;color:#ff3b30;background:none;border:none;cursor:pointer;padding:0"
+            @mouseover="(e: Event) => (e.currentTarget as HTMLElement).style.color='#d93025'"
+            @mouseleave="(e: Event) => (e.currentTarget as HTMLElement).style.color='#ff3b30'"
           >Revoke</button>
         </li>
       </ul>

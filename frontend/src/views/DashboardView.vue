@@ -1,44 +1,54 @@
 <template>
   <div>
     <div class="mb-6">
-      <h2 class="text-lg font-semibold text-gray-800">Welcome, {{ auth.user?.name }}</h2>
-      <p class="text-sm text-gray-500 mt-1">Warehouse capacity & performance analytics</p>
+      <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:#1d1d1f;line-height:1.14;letter-spacing:-0.28px">
+        Welcome, {{ auth.user?.name }}
+      </h2>
+      <p class="mt-1" style="font-size:17px;color:rgba(0,0,0,0.48);letter-spacing:-0.374px">
+        Warehouse capacity &amp; performance analytics
+      </p>
     </div>
 
     <!-- Quick actions -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
       <button
         @click="newAnalysis"
-        class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-4 text-left transition-colors"
+        class="btn-apple-primary rounded-lg p-4 text-left"
+        style="border-radius:8px;height:auto;flex-direction:column;align-items:flex-start;gap:4px"
       >
-        <div class="font-medium text-sm">New Analysis</div>
-        <div class="text-xs opacity-80 mt-1">Start capacity / quality run</div>
+        <div style="font-size:14px;font-weight:600">New Analysis</div>
+        <div style="font-size:12px;opacity:0.8">Start capacity / quality run</div>
       </button>
       <RouterLink
         to="/runs"
-        class="bg-white border border-gray-200 hover:border-blue-400 rounded-lg p-4 text-left transition-colors block"
+        class="card-apple block hover:shadow-sm transition-shadow"
+        style="text-decoration:none"
       >
-        <div class="font-medium text-sm text-gray-800">History</div>
-        <div class="text-xs text-gray-500 mt-1">Browse past analyses</div>
+        <div style="font-size:14px;font-weight:600;color:#1d1d1f">History</div>
+        <div class="mt-1" style="font-size:12px;color:rgba(0,0,0,0.48)">Browse past analyses</div>
       </RouterLink>
       <RouterLink
         to="/carriers"
-        class="bg-white border border-gray-200 hover:border-blue-400 rounded-lg p-4 text-left transition-colors block"
+        class="card-apple block hover:shadow-sm transition-shadow"
+        style="text-decoration:none"
       >
-        <div class="font-medium text-sm text-gray-800">Carriers</div>
-        <div class="text-xs text-gray-500 mt-1">Manage carrier configs</div>
+        <div style="font-size:14px;font-weight:600;color:#1d1d1f">Carriers</div>
+        <div class="mt-1" style="font-size:12px;color:rgba(0,0,0,0.48)">Manage carrier configs</div>
       </RouterLink>
     </div>
 
     <!-- Latest run summary -->
     <div v-if="latestRun" class="mb-8">
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">
-        Latest analysis: <span class="text-blue-600">{{ latestRun.client_name }}</span>
-        <RouterLink :to="`/runs/${latestRun.id}`" class="ml-2 text-xs font-normal text-blue-400 hover:text-blue-600">Open →</RouterLink>
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">
+        Latest analysis:
+        <span style="color:#0071e3">{{ latestRun.client_name }}</span>
+        <RouterLink :to="`/runs/${latestRun.id}`" class="ml-2" style="font-size:12px;font-weight:400;color:#0066cc;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+          Open →
+        </RouterLink>
       </h3>
 
       <!-- Pipeline status steps -->
-      <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+      <div class="card-apple mb-4">
         <div class="flex items-center gap-0">
           <div
             v-for="(step, i) in pipelineSteps"
@@ -48,71 +58,72 @@
             <div class="flex flex-col items-center">
               <div :class="[
                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
-                step.done ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400',
-              ]">
+                step.done ? 'text-white' : 'text-[rgba(0,0,0,0.32)]',
+              ]" :style="step.done ? 'background:#0071e3' : 'background:rgba(0,0,0,0.06)'">
                 {{ step.done ? '✓' : i + 1 }}
               </div>
-              <span :class="['text-xs mt-1 text-center w-16', step.done ? 'text-blue-600 font-medium' : 'text-gray-400']">
+              <span class="text-xs mt-1 text-center w-16" :style="step.done ? 'color:#0071e3;font-weight:600' : 'color:rgba(0,0,0,0.32)'">
                 {{ step.label }}
               </span>
             </div>
-            <div v-if="i < pipelineSteps.length - 1" :class="['w-8 h-0.5 mb-5', step.done ? 'bg-blue-300' : 'bg-gray-200']"></div>
+            <div v-if="i < pipelineSteps.length - 1" class="w-8 h-0.5 mb-5" :style="step.done ? 'background:rgba(0,113,227,0.4)' : 'background:rgba(0,0,0,0.1)'"></div>
           </div>
         </div>
       </div>
 
       <!-- KPI summary -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div class="bg-white border border-gray-200 rounded-lg p-3">
-          <p class="text-xs text-gray-500">Total SKUs</p>
-          <p v-if="latestRun.quality_result" class="text-lg font-semibold text-gray-800">{{ (latestRun.quality_result as any).total_records?.toLocaleString() ?? '—' }}</p>
-          <p v-else class="text-xs text-gray-400 mt-1">Quality not run</p>
+        <div class="card-apple">
+          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Total SKUs</p>
+          <p v-if="latestRun.quality_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.quality_result as any).total_records?.toLocaleString() ?? '—' }}</p>
+          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Quality not run</p>
         </div>
-        <div class="bg-white border border-gray-200 rounded-lg p-3">
-          <p class="text-xs text-gray-500">Quality Score</p>
-          <p v-if="latestRun.quality_result" class="text-lg font-semibold text-gray-800">{{ (latestRun.quality_result as any).overall_score?.toFixed(1) ?? '—' }}%</p>
-          <p v-else class="text-xs text-gray-400 mt-1">Quality not run</p>
+        <div class="card-apple">
+          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Quality Score</p>
+          <p v-if="latestRun.quality_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.quality_result as any).overall_score?.toFixed(1) ?? '—' }}%</p>
+          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Quality not run</p>
         </div>
-        <div class="bg-white border border-gray-200 rounded-lg p-3">
-          <p class="text-xs text-gray-500">Fit %</p>
-          <p v-if="latestRun.capacity_result" class="text-lg font-semibold text-green-600">{{ (latestRun.capacity_result as any).fit_percentage?.toFixed(1) ?? '—' }}%</p>
-          <p v-else class="text-xs text-gray-400 mt-1">Capacity not run</p>
+        <div class="card-apple">
+          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Fit %</p>
+          <p v-if="latestRun.capacity_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.capacity_result as any).fit_percentage?.toFixed(1) ?? '—' }}%</p>
+          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Capacity not run</p>
         </div>
-        <div class="bg-white border border-gray-200 rounded-lg p-3">
-          <p class="text-xs text-gray-500">Total Lines</p>
-          <p v-if="latestRun.performance_result" class="text-lg font-semibold text-gray-800">{{ (latestRun.performance_result as any).kpi?.total_lines?.toLocaleString() ?? '—' }}</p>
-          <p v-else class="text-xs text-gray-400 mt-1">Performance not run</p>
+        <div class="card-apple">
+          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Total Lines</p>
+          <p v-if="latestRun.performance_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.performance_result as any).kpi?.total_lines?.toLocaleString() ?? '—' }}</p>
+          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Performance not run</p>
         </div>
-        <div class="bg-white border border-gray-200 rounded-lg p-3">
-          <p class="text-xs text-gray-500">Avg Lines/Hour</p>
-          <p v-if="latestRun.performance_result" class="text-lg font-semibold text-gray-800">{{ (latestRun.performance_result as any).kpi?.avg_lines_per_hour?.toFixed(1) ?? '—' }}</p>
-          <p v-else class="text-xs text-gray-400 mt-1">Performance not run</p>
+        <div class="card-apple">
+          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Avg Lines/Hour</p>
+          <p v-if="latestRun.performance_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.performance_result as any).kpi?.avg_lines_per_hour?.toFixed(1) ?? '—' }}</p>
+          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Performance not run</p>
         </div>
       </div>
     </div>
 
     <!-- Recent runs list -->
     <div>
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">Recent analyses</h3>
-      <div v-if="runStore.loading" class="text-sm text-gray-400">Loading…</div>
-      <div v-else-if="runStore.runs.length === 0" class="text-sm text-gray-400">
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Recent analyses</h3>
+      <div v-if="runStore.loading" style="font-size:14px;color:rgba(0,0,0,0.48)">Loading…</div>
+      <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:rgba(0,0,0,0.48)">
         No analyses yet. Create one above.
       </div>
-      <div v-else class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+      <div v-else class="card-apple-list">
         <div v-for="run in runStore.runs.slice(0, 5)" :key="run.id">
           <div
-            :class="['flex items-center justify-between px-4 py-3 transition-colors cursor-pointer', selectedRunId === run.id ? 'bg-blue-50' : 'hover:bg-gray-50']"
+            :class="['flex items-center justify-between px-4 py-3 transition-colors cursor-pointer', selectedRunId === run.id ? 'bg-[rgba(0,113,227,0.06)]' : 'hover:bg-black/[.02]']"
             @dblclick="router.push(`/runs/${run.id}`)"
           >
             <button @click="selectRun(run.id)" class="flex-1 min-w-0 text-left">
-              <span class="text-sm font-medium text-gray-800">{{ run.client_name }}</span>
-              <span class="ml-2 text-xs text-gray-400">{{ formatDate(run.created_at) }}</span>
+              <span style="font-size:17px;color:#1d1d1f;letter-spacing:-0.374px">{{ run.client_name }}</span>
+              <span class="ml-2" style="font-size:12px;color:rgba(0,0,0,0.48)">{{ formatDate(run.created_at) }}</span>
             </button>
             <div class="flex items-center gap-1 shrink-0 ml-3">
               <StatusBadge :status="run.status" />
               <button
                 @click="toggleNotes(run.id)"
-                :class="['p-1.5 rounded transition-colors', openNotesId === run.id || run.notes ? 'text-blue-500 hover:bg-blue-50' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100']"
+                :class="['p-1.5 rounded transition-colors']"
+                :style="openNotesId === run.id || run.notes ? 'color:#0071e3' : 'color:rgba(0,0,0,0.32)'"
                 title="Notes"
               >
                 <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -127,7 +138,8 @@
               @input="onDashboardNotesInput(run.id, ($event.target as HTMLTextAreaElement).value)"
               placeholder="Add notes about this analysis…"
               rows="2"
-              class="w-full text-sm text-gray-700 border border-gray-200 rounded p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+              class="input-apple-sm resize-none"
+              style="font-size:14px"
             />
           </div>
         </div>
@@ -182,7 +194,7 @@ async function selectRun(id: string) {
 onMounted(async () => {
   await runStore.fetchRuns()
   if (runStore.runs.length > 0) {
-    await selectRun(runStore.runs[0].id)
+    await selectRun(runStore.runs[0]!.id)
   }
 })
 
