@@ -360,9 +360,7 @@ class PerformanceAnalyzer:
         total_units = int(df["quantity"].sum() or 0)
         unique_sku = df["sku"].n_unique()
 
-        lines_per_order = (
-            df.group_by("order_id").agg(pl.len().alias("lc"))["lc"].to_list()
-        )
+        lines_per_order = df["order_id"].value_counts()["count"].to_list()
         order_line_distribution = {
             "1":     sum(1 for x in lines_per_order if x == 1),
             "2":     sum(1 for x in lines_per_order if x == 2),
