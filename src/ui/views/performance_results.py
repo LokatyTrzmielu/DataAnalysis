@@ -129,7 +129,8 @@ def render_performance_kpi() -> None:
 
     render_kpi_section(metrics)
 
-    dist = kpi.order_line_distribution
+    empty_dist = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6-10": 0, "11-20": 0, ">20": 0}
+    dist = getattr(kpi, "order_line_distribution", empty_dist)
     dist_metrics = [
         {"title": "Lines = 1",   "value": f"{dist['1']:,}",     "help_text": "Orders with exactly 1 order line"},
         {"title": "Lines = 2",   "value": f"{dist['2']:,}",     "help_text": "Orders with exactly 2 order lines"},
