@@ -1,5 +1,173 @@
 @import "tailwindcss";
 
-#app {
+@theme {
+  --color-apple-bg-light:   #f5f5f7;
+  --color-apple-bg-dark:    #000000;
+  --color-apple-text-light: #1d1d1f;
+  --color-apple-text-dark:  #ffffff;
+  --color-apple-blue:       #0071e3;
+  --color-apple-link-light: #0066cc;
+  --color-apple-link-dark:  #2997ff;
+  --color-surface-dark-1:   #272729;
+  --color-surface-dark-2:   #262628;
+  --color-surface-dark-3:   #28282a;
+  --color-surface-dark-4:   #2a2a2d;
+  --color-surface-dark-5:   #242426;
+  --font-display: "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body:    "SF Pro Text",    "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#app { min-height: 100vh; }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
   min-height: 100vh;
+  background-color: #f5f5f7;
+  color: #1d1d1f;
+  font-family: "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Buttons ── */
+.btn-apple-primary {
+  background: #0071e3;
+  color: #fff;
+  padding: 8px 15px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.374px;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+.btn-apple-primary:hover:not(:disabled) { background: #0077ed; }
+.btn-apple-primary:disabled { opacity: 0.48; cursor: not-allowed; }
+
+.btn-apple-dark {
+  background: #1d1d1f;
+  color: #fff;
+  padding: 8px 15px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.374px;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-apple-dark:hover:not(:disabled) { background: #2d2d2f; }
+
+.btn-apple-pill {
+  background: transparent;
+  color: #0066cc;
+  border: 1px solid #0066cc;
+  border-radius: 980px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.224px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.15s;
+}
+.btn-apple-pill:hover { text-decoration: underline; }
+
+/* ── Form Inputs ── */
+.input-apple {
+  width: 100%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 11px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 17px;
+  letter-spacing: -0.374px;
+  color: #1d1d1f;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-apple:focus {
+  border-color: #0071e3;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25);
+}
+.input-apple::placeholder { color: rgba(0, 0, 0, 0.32); }
+
+.input-apple-sm {
+  width: 100%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: -0.224px;
+  color: #1d1d1f;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-apple-sm:focus {
+  border-color: #0071e3;
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2);
+}
+.input-apple-sm::placeholder { color: rgba(0, 0, 0, 0.32); }
+
+.label-apple {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.224px;
+  margin-bottom: 6px;
+}
+
+/* ── Cards ── */
+.card-apple {
+  background: #fff;
+  border-radius: 8px;
+  border: none;
+  padding: 20px;
+}
+
+.card-apple-elevated {
+  background: #fff;
+  border-radius: 12px;
+  border: none;
+  padding: 24px;
+  box-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0px;
+}
+
+.card-apple-list {
+  background: #fff;
+  border-radius: 8px;
+  border: none;
+  overflow: hidden;
+}
+.card-apple-list > * + * {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }

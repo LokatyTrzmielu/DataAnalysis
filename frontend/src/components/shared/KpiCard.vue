@@ -1,10 +1,10 @@
 <template>
-  <div class="bg-white border border-gray-200 rounded-lg p-4">
-    <p class="text-xs text-gray-500 mb-1 flex items-center gap-1">
+  <div class="card-apple">
+    <p class="flex items-center gap-1" style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:6px">
       {{ label }}
       <HelpTip v-if="tooltip" :text="tooltip" />
     </p>
-    <p class="text-xl font-bold text-gray-800">{{ value }}</p>
+    <p style="font-size:28px;font-weight:600;color:#1d1d1f;line-height:1.14;letter-spacing:0.196px">{{ value }}</p>
   </div>
 </template>
 

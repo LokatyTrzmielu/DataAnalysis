@@ -11,6 +11,37 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-04-20] - Feature (New_UI)
+- **Apple Design System — pełna wymiana warstwy prezentacyjnej**:
+  - `frontend/src/assets/main.css` — design tokens (`@theme`), globalne klasy (`btn-apple-primary`, `btn-apple-dark`, `btn-apple-pill`, `input-apple`, `input-apple-sm`, `label-apple`, `card-apple`, `card-apple-elevated`, `card-apple-list`)
+  - `frontend/src/assets/base.css` — wyczyszczony (zastąpiony przez main.css)
+  - `frontend/src/App.vue` — layout sidebar → block + sticky top nav, max-w-[980px], `route.meta.fullscreen` dla loginu
+  - `frontend/src/components/layout/AppTopNav.vue` — **nowy komponent** — szklana nawigacja (rgba(0,0,0,0.82) + backdrop-filter), 48px, sticky
+  - `frontend/src/router/index.ts` — `meta: { fullscreen: true }` dla `/login`
+  - `frontend/src/components/shared/ToastContainer.vue` — toast `top: 60px` (clearance od 48px nava)
+  - `frontend/src/views/LoginView.vue` — fullscreen centered, `card-apple-elevated`, max-w 380px
+  - `frontend/src/views/DashboardView.vue` — Apple dashboard z pipeline steps, KPI cards, recent list
+  - `frontend/src/views/RunsView.vue` — `card-apple-list`, `input-apple-sm`, `btn-apple-primary`
+  - `frontend/src/views/RunView.vue` — underline tabs (border-bottom 2px #0071e3), `btn-apple-pill` akcje
+  - `frontend/src/views/CarriersView.vue` — `card-apple`, `card-apple-list`, `input-apple-sm`
+  - `frontend/src/views/SettingsView.vue` — `card-apple` sekcje, `input-apple`
+  - `frontend/src/components/shared/AppToast.vue` — glassmorphism, dot status (●), bez colored border
+  - `frontend/src/components/shared/StatusBadge.vue` — Apple rgba palette + dodanie `orders_ingested`
+  - `frontend/src/components/shared/KpiCard.vue` — `card-apple`, 12px label, 28px value
+  - `frontend/src/components/shared/HelpTip.vue` — `#1d1d1f` tooltip background
+  - `frontend/src/components/analysis/NewRunModal.vue` — `card-apple-elevated`, `input-apple`
+  - `frontend/src/components/analysis/NotesModal.vue` — `card-apple-elevated`
+  - `frontend/src/components/analysis/ShareModal.vue` — `card-apple-elevated`, `input-apple`
+  - `frontend/src/components/analysis/ReportsTab.vue` — `card-apple`, `btn-apple-dark`, `btn-apple-pill`
+  - `frontend/src/components/analysis/ImportTab.vue` — `card-apple`, `btn-apple-primary`
+  - `frontend/src/components/analysis/QualityTab.vue` — `card-apple-list`, `card-apple`, weekday bars Apple Blue
+  - `frontend/src/components/analysis/CapacityTab.vue` — `card-apple`, Apple Blue Plotly charts, Apple system colors dla FIT/BORDERLINE/NOT_FIT
+  - `frontend/src/components/analysis/PerformanceTab.vue` — `card-apple`, `#0071e3` Plotly bar charts, Apple heatmap
+  - `frontend/index.html` — title "Vite App" → "Datavisor"
+- Branch: `New_UI`
+
+---
+
 ### [2026-02-25] - Minor (feature/fastapi-vue3-migration)
 - **Zmiana nazwy aplikacji z DataAnalysis na Datavisor**:
   - Zaktualizowano nazwę we wszystkich plikach kodu i dokumentacji (12 plików)

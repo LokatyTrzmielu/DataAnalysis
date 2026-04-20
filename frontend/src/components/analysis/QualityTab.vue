@@ -7,8 +7,8 @@
     <div v-else class="space-y-4">
 
       <!-- ── Masterdata section ── -->
-      <details v-if="qr" open class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <summary class="px-4 py-3 text-sm font-semibold text-gray-700 cursor-pointer select-none flex items-center justify-between">
+      <details v-if="qr" open class="card-apple-list overflow-hidden">
+        <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">
           <span>Masterdata</span>
           <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -22,8 +22,8 @@
             <KpiCard label="Weight coverage" :value="`${qr.weight_coverage_pct?.toFixed(1)}%`" tooltip="Percentage of records with weight data present." />
           </div>
 
-          <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">Issue counts</h3>
+          <div class="card-apple" style="background:#f5f5f7">
+            <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Issue counts</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-gray-500 flex items-center gap-1">
@@ -73,8 +73,8 @@
       </details>
 
       <!-- ── Orders section ── -->
-      <details v-if="ovr" open class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <summary class="px-4 py-3 text-sm font-semibold text-gray-700 cursor-pointer select-none flex items-center justify-between">
+      <details v-if="ovr" open class="card-apple-list overflow-hidden">
+        <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">
           <span>Orders</span>
           <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -91,7 +91,7 @@
           </div>
 
           <!-- B: Date coverage -->
-          <div class="border border-gray-100 rounded-lg p-4 bg-gray-50">
+          <div class="card-apple" style="background:#f5f5f7">
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm mb-2">
               <span class="text-gray-700">
                 Calendar coverage:
@@ -131,7 +131,7 @@
           </div>
 
           <!-- C: Data issues -->
-          <div class="border border-gray-100 rounded-lg p-4 bg-gray-50">
+          <div class="card-apple" style="background:#f5f5f7">
             <p class="text-xs font-medium text-gray-600 mb-3">Data issues</p>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
               <div>
@@ -164,7 +164,7 @@
           </div>
 
           <!-- D: SKU cross-validation -->
-          <div class="border border-gray-100 rounded-lg p-4 bg-gray-50">
+          <div class="card-apple" style="background:#f5f5f7">
             <p class="text-xs font-medium text-gray-600 mb-3">SKU cross-validation</p>
             <div v-if="ovr.sku_xval_available" class="space-y-2">
               <details>
@@ -198,7 +198,7 @@
           </div>
 
           <!-- E: Working pattern profile -->
-          <div class="border border-gray-100 rounded-lg p-4 bg-gray-50">
+          <div class="card-apple" style="background:#f5f5f7">
             <p class="text-xs font-medium text-gray-600 mb-3">Working pattern</p>
             <div v-if="Object.keys(ovr.weekday_distribution).length > 0">
               <div class="space-y-1.5">
@@ -211,8 +211,7 @@
                   <div class="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
                     <div
                       class="h-3 rounded-full transition-all"
-                      :class="idx === ovr.most_active_weekday ? 'bg-blue-500' : 'bg-blue-300'"
-                      :style="{ width: `${ovr.weekday_distribution[String(idx)] ?? 0}%` }"
+                      :style="{ background: idx === ovr.most_active_weekday ? '#0071e3' : 'rgba(0,113,227,0.3)', width: `${ovr.weekday_distribution[String(idx)] ?? 0}%` }"
                     ></div>
                   </div>
                   <span class="w-10 text-right text-gray-500">{{ (ovr.weekday_distribution[String(idx)] ?? 0).toFixed(1) }}%</span>

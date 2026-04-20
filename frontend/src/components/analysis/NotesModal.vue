@@ -1,9 +1,9 @@
 <template>
-  <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="$emit('close')">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+  <div class="fixed inset-0 flex items-center justify-center z-50" style="background:rgba(0,0,0,0.6)" @click.self="$emit('close')">
+    <div class="card-apple-elevated w-full" style="max-width:480px">
       <div class="flex items-center justify-between mb-5">
-        <h3 class="text-base font-semibold text-gray-800">Notes</h3>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600">
+        <h3 style="font-size:21px;font-weight:700;color:#1d1d1f;letter-spacing:0.231px;line-height:1.19">Notes</h3>
+        <button @click="$emit('close')" style="color:rgba(0,0,0,0.32);background:none;border:none;cursor:pointer;padding:4px;transition:color 0.15s" @mouseover="(e: Event) => (e.currentTarget as HTMLElement).style.color='#1d1d1f'" @mouseleave="(e: Event) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'">
           <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
@@ -15,9 +15,12 @@
         @input="scheduleNotesSave"
         placeholder="Add notes about this analysis…"
         rows="5"
-        class="w-full text-sm text-gray-700 border border-gray-200 rounded p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+        class="input-apple resize-none"
+        style="font-size:14px;letter-spacing:-0.224px"
       />
-      <span v-if="notesSaved" class="text-xs text-green-500">Saved</span>
+      <div class="mt-2 h-4">
+        <span v-if="notesSaved" style="font-size:12px;color:#34c759">Saved</span>
+      </div>
     </div>
   </div>
 </template>

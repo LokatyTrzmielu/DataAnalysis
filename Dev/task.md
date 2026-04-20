@@ -382,6 +382,22 @@ aby załadować nośniki z polem priority.
 
 ---
 
+## Apple Design System (New_UI) - ZAKOŃCZONA
+
+**Branch:** `New_UI` | **Data:** 2026-04-20
+
+| Faza | Zakres | Status |
+|------|--------|--------|
+| 1 | Design Tokens & Typography (`main.css`, `base.css`) | ✅ |
+| 2 | Layout: Sidebar → AppTopNav (sticky glass nav 48px) | ✅ |
+| 3 | Przyciski, Formularze (`btn-apple-*`, `input-apple`) | ✅ |
+| 4 | Karty, Kontenery (`card-apple`, `card-apple-list`, `card-apple-elevated`) | ✅ |
+| 5 | Typografia (SF Pro, -tracking, Apple sizes) | ✅ |
+| 6 | Modale, Toasty (glassmorphism overlays) | ✅ |
+| + | Plotly: transparent bg, Apple Blue `#0071e3`, Apple system colors | ✅ |
+
+---
+
 ## Możliwe Przyszłe Rozszerzenia
 
 - [ ] Phase 6: Sharing + advanced features

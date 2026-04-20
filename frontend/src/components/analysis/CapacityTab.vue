@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-6">
     <!-- Upload + run capacity -->
-    <div class="bg-white border border-gray-200 rounded-lg p-5">
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">Run capacity analysis</h3>
+    <div class="card-apple">
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Run capacity analysis</h3>
       <div class="flex flex-col gap-3">
         <!-- Analysis mode (radio) -->
         <div>
@@ -26,7 +26,7 @@
           <input
             v-model.number="borderlineThreshold"
             type="range" min="0.5" max="10" step="0.5"
-            class="w-full accent-blue-600"
+            class="w-full accent-[#0071e3]"
           />
         </div>
 
@@ -34,7 +34,7 @@
           <button
             @click="runCapacity"
             :disabled="running || !run.masterdata_path"
-            class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
+            class="btn-apple-primary"
           >
             {{ running ? 'Analyzing…' : 'Run analysis' }}
           </button>
@@ -58,36 +58,36 @@
       <!-- Plotly Charts -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <!-- Carrier Fit Chart -->
-        <div class="bg-white border border-gray-200 rounded-lg p-4">
-          <h4 class="text-xs font-semibold text-gray-700 mb-2">Carrier Fit</h4>
+        <div class="card-apple">
+          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Carrier Fit</h4>
           <div ref="carrierChartEl" style="height:200px"></div>
         </div>
         <!-- Volume Distribution -->
-        <div class="bg-white border border-gray-200 rounded-lg p-4">
-          <h4 class="text-xs font-semibold text-gray-700 mb-2">Volume Distribution (m³)</h4>
+        <div class="card-apple">
+          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Volume Distribution (m³)</h4>
           <div ref="dimsChartEl" style="height:200px"></div>
         </div>
         <!-- Margin Distribution -->
-        <div class="bg-white border border-gray-200 rounded-lg p-4">
-          <h4 class="text-xs font-semibold text-gray-700 mb-2">Margin Distribution (mm, FIT + BORDERLINE)</h4>
+        <div class="card-apple">
+          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Margin Distribution (mm, FIT + BORDERLINE)</h4>
           <div ref="weightChartEl" style="height:200px"></div>
         </div>
         <!-- Dimensions Distribution -->
-        <div class="bg-white border border-gray-200 rounded-lg p-4">
-          <h4 class="text-xs font-semibold text-gray-700 mb-2">Dimensions Distribution (mm)</h4>
+        <div class="card-apple">
+          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Dimensions Distribution (mm)</h4>
           <div ref="dimsDistChartEl" style="height:200px"></div>
         </div>
         <!-- Weight Distribution -->
-        <div class="bg-white border border-gray-200 rounded-lg p-4">
-          <h4 class="text-xs font-semibold text-gray-700 mb-2">Weight Distribution (kg)</h4>
+        <div class="card-apple">
+          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Weight Distribution (kg)</h4>
           <div ref="weightDistChartEl" style="height:200px"></div>
         </div>
       </div>
 
       <!-- Per-carrier table -->
-      <div class="bg-white border border-gray-200 rounded-lg overflow-hidden mb-4">
+      <div class="card-apple-list mb-4">
         <table class="w-full text-sm">
-          <thead class="bg-gray-50 border-b border-gray-200">
+          <thead style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
             <tr>
               <th class="px-4 py-2 text-left text-xs font-medium text-gray-600">Carrier</th>
               <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Fit %</th>
@@ -117,28 +117,29 @@
       </div>
 
       <!-- ABC Cross-stats (visible only when Performance data is available) -->
-      <div v-if="hasPerformanceData" class="bg-white border border-gray-200 rounded-lg overflow-hidden mb-4">
-        <div class="px-4 py-3 border-b border-gray-200">
-          <h4 class="text-xs font-semibold text-gray-700">Capacity × ABC Class (unique SKU)</h4>
-          <p class="text-xs text-gray-400 mt-0.5">Click a row to filter the table below</p>
+      <div v-if="hasPerformanceData" class="card-apple-list overflow-hidden mb-4">
+        <div class="px-4 py-3" style="border-bottom:1px solid rgba(0,0,0,0.08)">
+          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Capacity × ABC Class (unique SKU)</h4>
+          <p class="mt-0.5" style="font-size:12px;color:rgba(0,0,0,0.32)">Click a row to filter the table below</p>
         </div>
         <table class="w-full text-xs">
-          <thead class="bg-gray-50 border-b border-gray-200">
+          <thead style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
             <tr>
-              <th class="px-4 py-2 text-left font-medium text-gray-600">ABC Class</th>
-              <th class="px-4 py-2 text-right font-medium text-gray-600">SKU count</th>
-              <th class="px-4 py-2 text-right font-medium text-gray-600">FIT</th>
-              <th class="px-4 py-2 text-right font-medium text-gray-600">BORDERLINE</th>
-              <th class="px-4 py-2 text-right font-medium text-gray-600">NOT FIT</th>
-              <th class="px-4 py-2 text-right font-medium text-gray-600">Fit %</th>
+              <th class="px-4 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">ABC Class</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">SKU count</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">FIT</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">BORDERLINE</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">NOT FIT</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">Fit %</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody>
             <tr
               v-for="[cls, s] in abcCrossStats"
               :key="cls"
-              class="hover:bg-blue-50 cursor-pointer transition-colors"
-              :class="{ 'bg-blue-50': abcFilter === cls }"
+              class="cursor-pointer transition-colors"
+              :class="abcFilter === cls ? 'bg-[rgba(0,113,227,0.06)]' : 'hover:bg-black/[.02]'"
+              style="border-top:1px solid rgba(0,0,0,0.06)"
               @click="abcFilter = (abcFilter === cls ? 'ALL' : cls as typeof abcFilter)"
             >
               <td class="px-4 py-2">
@@ -155,24 +156,24 @@
       </div>
 
       <!-- SKU-level table with filters -->
-      <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div class="px-4 py-3 border-b border-gray-200 flex flex-wrap gap-3 items-center justify-between">
-          <h4 class="text-xs font-semibold text-gray-700">Individual SKU results</h4>
+      <div class="card-apple-list">
+        <div class="px-4 py-3 flex flex-wrap gap-3 items-center justify-between" style="border-bottom:1px solid rgba(0,0,0,0.08)">
+          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Individual SKU results</h4>
           <div class="flex gap-2 flex-wrap items-center">
             <!-- Status filter -->
-            <select v-model="statusFilter" class="text-xs border border-gray-300 rounded px-2 py-1">
+            <select v-model="statusFilter" class="input-apple-sm" style="width:auto">
               <option value="ALL">All statuses</option>
               <option value="FIT">FIT only</option>
               <option value="BORDERLINE">BORDERLINE only</option>
               <option value="NOT_FIT">NOT FIT only</option>
             </select>
             <!-- Carrier filter -->
-            <select v-model="carrierFilter" class="text-xs border border-gray-300 rounded px-2 py-1">
+            <select v-model="carrierFilter" class="input-apple-sm" style="width:auto">
               <option value="ALL">All carriers</option>
               <option v-for="(stats, cid) in cr.carrier_stats" :key="cid" :value="cid">{{ stats.carrier_name }}</option>
             </select>
             <!-- ABC Class filter (only when Performance data is available) -->
-            <select v-if="hasPerformanceData" v-model="abcFilter" class="text-xs border border-gray-300 rounded px-2 py-1">
+            <select v-if="hasPerformanceData" v-model="abcFilter" class="input-apple-sm" style="width:auto">
               <option value="ALL">All ABC classes</option>
               <option value="A">Class A (top 80%)</option>
               <option value="B">Class B (80–95%)</option>
@@ -180,25 +181,25 @@
               <option value="NOT_IN_PARETO">Not in Performance</option>
             </select>
             <!-- CSV export -->
-            <button @click="exportCsv" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded transition-colors">
+            <button @click="exportCsv" class="btn-apple-pill" style="font-size:12px;padding:5px 10px">
               Export CSV
             </button>
           </div>
         </div>
         <div class="overflow-x-auto max-h-80">
           <table class="w-full text-xs">
-            <thead class="bg-gray-50 border-b border-gray-200 sticky top-0">
+            <thead class="sticky top-0" style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
               <tr>
-                <th class="px-3 py-2 text-left font-medium text-gray-600">SKU</th>
-                <th class="px-3 py-2 text-left font-medium text-gray-600">Carrier</th>
-                <th class="px-3 py-2 text-center font-medium text-gray-600">Status</th>
-                <th v-if="hasPerformanceData" class="px-3 py-2 text-center font-medium text-gray-600">ABC</th>
-                <th class="px-3 py-2 text-right font-medium text-gray-600">Units</th>
-                <th class="px-3 py-2 text-left font-medium text-gray-600">Limiting factor</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">SKU</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">Carrier</th>
+                <th class="px-3 py-2 text-center font-medium" style="color:rgba(0,0,0,0.48)">Status</th>
+                <th v-if="hasPerformanceData" class="px-3 py-2 text-center font-medium" style="color:rgba(0,0,0,0.48)">ABC</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">Units</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">Limiting factor</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="row in filteredRows" :key="`${row.sku}-${row.carrier_id}`" class="hover:bg-gray-50">
+            <tbody>
+              <tr v-for="row in filteredRows" :key="`${row.sku}-${row.carrier_id}`" class="hover:bg-black/[.02]" style="border-top:1px solid rgba(0,0,0,0.06)">
                 <td class="px-3 py-1.5 font-medium text-gray-800">{{ row.sku }}</td>
                 <td class="px-3 py-1.5 text-gray-600">{{ carrierName(row.carrier_id) }}</td>
                 <td class="px-3 py-1.5 text-center">
@@ -366,18 +367,26 @@ onMounted(() => {
 })
 
 function renderCharts(data: CapacityResult) {
+  const base = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { family: 'SF Pro Text, Helvetica Neue, Helvetica, Arial, sans-serif', size: 11, color: 'rgba(0,0,0,0.48)' },
+  }
+  const ax = { gridcolor: 'rgba(0,0,0,0.08)', zerolinecolor: 'rgba(0,0,0,0.12)' }
+
   // Carrier Fit stacked bar
   if (carrierChartEl.value) {
     const carriers = Object.values(data.carrier_stats)
-    const fitTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.fit_count), name: 'FIT', type: 'bar' as const, marker: { color: '#22c55e' } }
-    const borderTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.borderline_count), name: 'BORDERLINE', type: 'bar' as const, marker: { color: '#eab308' } }
-    const notFitTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.not_fit_count), name: 'NOT FIT', type: 'bar' as const, marker: { color: '#ef4444' } }
+    const fitTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.fit_count), name: 'FIT', type: 'bar' as const, marker: { color: '#34c759' } }
+    const borderTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.borderline_count), name: 'BORDERLINE', type: 'bar' as const, marker: { color: '#ff9500' } }
+    const notFitTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.not_fit_count), name: 'NOT FIT', type: 'bar' as const, marker: { color: '#ff3b30' } }
     Plotly.newPlot(carrierChartEl.value, [fitTrace, borderTrace, notFitTrace], {
+      ...base,
       barmode: 'stack',
       margin: { t: 10, b: 55, l: 80, r: 10 },
       legend: { x: 1, xanchor: 'right', y: 1, yanchor: 'top' },
-      xaxis: { title: { text: 'Carrier' } },
-      yaxis: { title: { text: 'SKU count', standoff: 12 } },
+      xaxis: { ...ax, title: { text: 'Carrier' } },
+      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
     }, { responsive: true, displayModeBar: false })
   }
 
@@ -385,11 +394,12 @@ function renderCharts(data: CapacityResult) {
   if (dimsChartEl.value && data.rows.length > 0) {
     const volumes = data.rows.map(r => r.volume_m3).filter(v => v != null && v > 0)
     Plotly.newPlot(dimsChartEl.value, [{
-      x: volumes, type: 'histogram' as const, marker: { color: '#3b82f6' }, name: 'Volume'
+      x: volumes, type: 'histogram' as const, marker: { color: '#0071e3' }, name: 'Volume'
     }], {
+      ...base,
       margin: { t: 10, b: 55, l: 80, r: 10 },
-      xaxis: { title: { text: 'm³' } },
-      yaxis: { title: { text: 'SKU count', standoff: 12 } },
+      xaxis: { ...ax, title: { text: 'm³' } },
+      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
     }, { responsive: true, displayModeBar: false })
   }
 
@@ -401,35 +411,38 @@ function renderCharts(data: CapacityResult) {
     Plotly.newPlot(weightChartEl.value, [{
       x: margins, type: 'histogram' as const, marker: { color: '#8b5cf6' }, name: 'Margin'
     }], {
+      ...base,
       margin: { t: 10, b: 55, l: 80, r: 10 },
-      xaxis: { title: { text: 'mm' } },
-      yaxis: { title: { text: 'SKU count', standoff: 12 } },
+      xaxis: { ...ax, title: { text: 'mm' } },
+      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
     }, { responsive: true, displayModeBar: false })
   }
 
   // Dimensions distribution (length / width / height overlay)
   if (dimsDistChartEl.value && data.rows.length > 0) {
     Plotly.newPlot(dimsDistChartEl.value, [
-      { x: data.rows.map(r => r.length_mm), type: 'histogram' as const, name: 'Length', opacity: 0.6, marker: { color: '#3b82f6' } },
+      { x: data.rows.map(r => r.length_mm), type: 'histogram' as const, name: 'Length', opacity: 0.6, marker: { color: '#0071e3' } },
       { x: data.rows.map(r => r.width_mm),  type: 'histogram' as const, name: 'Width',  opacity: 0.6, marker: { color: '#f59e0b' } },
       { x: data.rows.map(r => r.height_mm), type: 'histogram' as const, name: 'Height', opacity: 0.6, marker: { color: '#10b981' } },
     ], {
+      ...base,
       barmode: 'overlay',
       margin: { t: 10, b: 55, l: 80, r: 10 },
       legend: { x: 1, xanchor: 'right', y: 1, yanchor: 'top' },
-      xaxis: { title: { text: 'mm' } },
-      yaxis: { title: { text: 'SKU count', standoff: 12 } },
+      xaxis: { ...ax, title: { text: 'mm' } },
+      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
     }, { responsive: true, displayModeBar: false })
   }
 
   // Weight distribution
   if (weightDistChartEl.value && data.rows.length > 0) {
     Plotly.newPlot(weightDistChartEl.value, [{
-      x: data.rows.map(r => r.weight_kg), type: 'histogram' as const, marker: { color: '#ec4899' }, name: 'Weight'
+      x: data.rows.map(r => r.weight_kg), type: 'histogram' as const, marker: { color: '#0071e3' }, name: 'Weight'
     }], {
+      ...base,
       margin: { t: 10, b: 55, l: 80, r: 10 },
-      xaxis: { title: { text: 'kg' } },
-      yaxis: { title: { text: 'SKU count', standoff: 12 } },
+      xaxis: { ...ax, title: { text: 'kg' } },
+      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
     }, { responsive: true, displayModeBar: false })
   }
 }

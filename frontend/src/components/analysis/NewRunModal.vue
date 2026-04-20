@@ -1,28 +1,27 @@
 <template>
-  <!-- Backdrop -->
-  <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="emit('close')">
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
-      <h3 class="text-base font-semibold text-gray-800 mb-4">New analysis</h3>
+  <div class="fixed inset-0 flex items-center justify-center z-50" style="background:rgba(0,0,0,0.6)" @click.self="emit('close')">
+    <div class="card-apple-elevated w-full" style="max-width:360px">
+      <h3 style="font-size:21px;font-weight:700;color:#1d1d1f;letter-spacing:0.231px;line-height:1.19;margin-bottom:20px">New analysis</h3>
 
-      <label class="block text-sm font-medium text-gray-700 mb-1">Client name</label>
+      <label class="label-apple">Client name</label>
       <input
         v-model="clientName"
         type="text"
         placeholder="e.g. Acme Warehouse 2026"
-        class="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="input-apple mb-4"
         @keydown.enter="create"
       />
 
-      <p v-if="error" class="text-red-600 text-sm mb-3">{{ error }}</p>
+      <p v-if="error" class="mb-3" style="font-size:14px;color:#ff3b30">{{ error }}</p>
 
       <div class="flex gap-2 justify-end">
-        <button @click="emit('close')" class="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
+        <button @click="emit('close')" style="font-size:14px;color:rgba(0,0,0,0.48);background:none;border:none;cursor:pointer;padding:8px 12px;letter-spacing:-0.224px" class="hover:text-[#1d1d1f] transition-colors">
           Cancel
         </button>
         <button
           @click="create"
           :disabled="!clientName.trim() || loading"
-          class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
+          class="btn-apple-primary"
         >
           {{ loading ? 'Creating…' : 'Create' }}
         </button>

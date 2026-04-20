@@ -1,40 +1,30 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50">
-    <div class="bg-white shadow rounded-lg p-8 w-full max-w-sm">
-      <h1 class="text-xl font-semibold text-gray-800 mb-6">Datavisor</h1>
+  <div class="w-full flex items-center justify-center" style="min-height:calc(100vh - 0px)">
+    <div class="card-apple-elevated w-full" style="max-width:380px">
+      <h1 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:700;color:#1d1d1f;line-height:1.14;letter-spacing:-0.28px;margin-bottom:28px">
+        Datavisor
+      </h1>
 
       <!-- Sign in -->
       <form v-if="mode === 'login'" @submit.prevent="handleLogin" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input
-            v-model="login.email"
-            type="email"
-            required
-            autocomplete="email"
-            class="input"
-          />
+          <label class="label-apple">Email</label>
+          <input v-model="login.email" type="email" required autocomplete="email" class="input-apple" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input
-            v-model="login.password"
-            type="password"
-            required
-            autocomplete="current-password"
-            class="input"
-          />
+          <label class="label-apple">Password</label>
+          <input v-model="login.password" type="password" required autocomplete="current-password" class="input-apple" />
         </div>
 
-        <p v-if="loginError" class="text-red-600 text-sm">{{ loginError }}</p>
+        <p v-if="loginError" class="text-sm" style="color:#ff3b30">{{ loginError }}</p>
 
-        <button type="submit" :disabled="loginLoading" class="btn-primary">
+        <button type="submit" :disabled="loginLoading" class="btn-apple-primary w-full justify-center">
           {{ loginLoading ? 'Signing in…' : 'Sign in' }}
         </button>
 
-        <p class="text-center text-sm text-gray-500">
+        <p class="text-center text-sm" style="color:rgba(0,0,0,0.48);letter-spacing:-0.224px">
           No account?
-          <button type="button" @click="switchMode('register')" class="text-blue-600 hover:underline">
+          <button type="button" @click="switchMode('register')" style="color:#0066cc" class="hover:underline">
             Create one
           </button>
         </p>
@@ -43,27 +33,27 @@
       <!-- Create account -->
       <form v-else @submit.prevent="handleRegister" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-          <input v-model="reg.name" type="text" required autocomplete="off" class="input" />
+          <label class="label-apple">Name</label>
+          <input v-model="reg.name" type="text" required autocomplete="off" class="input-apple" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input v-model="reg.email" type="email" required autocomplete="off" class="input" />
+          <label class="label-apple">Email</label>
+          <input v-model="reg.email" type="email" required autocomplete="off" class="input-apple" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input v-model="reg.password" type="password" required minlength="6" autocomplete="new-password" class="input" />
+          <label class="label-apple">Password</label>
+          <input v-model="reg.password" type="password" required minlength="6" autocomplete="new-password" class="input-apple" />
         </div>
 
-        <p v-if="regError" class="text-red-600 text-sm">{{ regError }}</p>
+        <p v-if="regError" class="text-sm" style="color:#ff3b30">{{ regError }}</p>
 
-        <button type="submit" :disabled="regLoading" class="btn-primary">
+        <button type="submit" :disabled="regLoading" class="btn-apple-primary w-full justify-center">
           {{ regLoading ? 'Creating…' : 'Create account' }}
         </button>
 
-        <p class="text-center text-sm text-gray-500">
+        <p class="text-center text-sm" style="color:rgba(0,0,0,0.48);letter-spacing:-0.224px">
           Already have an account?
-          <button type="button" @click="switchMode('login')" class="text-blue-600 hover:underline">
+          <button type="button" @click="switchMode('login')" style="color:#0066cc" class="hover:underline">
             Sign in
           </button>
         </p>
@@ -124,35 +114,3 @@ async function handleRegister() {
   }
 }
 </script>
-
-<style scoped>
-.input {
-  width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-.btn-primary {
-  width: 100%;
-  background-color: #2563eb;
-  color: white;
-  font-weight: 500;
-  padding: 0.5rem 0;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  transition: background-color 0.15s;
-}
-.btn-primary:hover:not(:disabled) {
-  background-color: #1d4ed8;
-}
-.btn-primary:disabled {
-  opacity: 0.5;
-}
-</style>

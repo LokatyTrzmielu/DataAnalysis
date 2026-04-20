@@ -4,9 +4,9 @@
     <!-- Section 2: Settings (after orders loaded) -->
     <div
       v-if="ovr"
-      class="bg-white border border-gray-200 rounded-lg p-5"
+      class="card-apple"
     >
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">Analysis settings</h3>
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Analysis settings</h3>
       <div class="max-w-64 mb-4">
         <label class="block text-xs text-gray-600 mb-1">Productive hours/shift: <strong>{{ productiveHours }}h</strong></label>
         <input
@@ -15,14 +15,14 @@
           min="4"
           max="8"
           step="0.5"
-          class="w-full accent-blue-600"
+          class="w-full accent-[#0071e3]"
         />
       </div>
       <p v-if="analysisError" class="text-red-600 text-sm mb-2">{{ analysisError }}</p>
       <button
         @click="doRunAnalysis"
         :disabled="analyzing"
-        class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
+        class="btn-apple-primary"
       >
         {{ analyzing ? 'Analyzing…' : 'Run performance analysis →' }}
       </button>
@@ -43,46 +43,46 @@
       </div>
 
       <!-- Chart 1: Daily Activity -->
-      <div class="bg-white border border-gray-200 rounded-lg p-4">
-        <h4 class="text-xs font-semibold text-gray-700 mb-2">Daily Activity</h4>
+      <div class="card-apple">
+        <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Daily Activity</h4>
         <div ref="dailyChartEl" style="height:220px"></div>
       </div>
 
       <!-- Chart 2: Hourly Heatmap (only if has_hourly_data) -->
-      <div v-if="pr.has_hourly_data" class="bg-white border border-gray-200 rounded-lg p-4">
-        <h4 class="text-xs font-semibold text-gray-700 mb-2">Hourly Heatmap</h4>
+      <div v-if="pr.has_hourly_data" class="card-apple">
+        <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Hourly Heatmap</h4>
         <div ref="heatmapEl" style="height:300px"></div>
       </div>
 
       <!-- Chart 3: Hourly Throughput (only if has_hourly_data) -->
-      <div v-if="pr.has_hourly_data && pr.hourly_metrics?.length" class="bg-white border border-gray-200 rounded-lg p-4">
-        <h4 class="text-xs font-semibold text-gray-700 mb-2">Hourly Throughput</h4>
+      <div v-if="pr.has_hourly_data && pr.hourly_metrics?.length" class="card-apple">
+        <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Hourly Throughput</h4>
         <div ref="hourlyThroughputEl" style="height:200px"></div>
       </div>
 
       <!-- Chart 4: Weekly Trend (only if multiple weeks) -->
-      <div v-if="pr.weekly_trends?.length > 1" class="bg-white border border-gray-200 rounded-lg p-4">
-        <h4 class="text-xs font-semibold text-gray-700 mb-2">Weekly Trend</h4>
+      <div v-if="pr.weekly_trends?.length > 1" class="card-apple">
+        <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Weekly Trend</h4>
         <div ref="weeklyTrendEl" style="height:220px"></div>
       </div>
 
       <!-- Chart 5: Day-of-Week Profile -->
-      <div v-if="pr.weekday_profile?.length" class="bg-white border border-gray-200 rounded-lg p-4">
-        <h4 class="text-xs font-semibold text-gray-700 mb-2">Day-of-Week Profile (Avg Lines/Day)</h4>
+      <div v-if="pr.weekday_profile?.length" class="card-apple">
+        <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Day-of-Week Profile (Avg Lines/Day)</h4>
         <div ref="dowProfileEl" style="height:180px"></div>
       </div>
 
       <!-- Chart 6: Lines per Order Distribution -->
-      <div v-if="pr.lines_per_order_dist?.length" class="bg-white border border-gray-200 rounded-lg p-4">
-        <h4 class="text-xs font-semibold text-gray-700 mb-2">Lines per Order Distribution</h4>
+      <div v-if="pr.lines_per_order_dist?.length" class="card-apple">
+        <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Lines per Order Distribution</h4>
         <div ref="linesPerOrderEl" style="height:200px"></div>
       </div>
 
       <!-- SKU Pareto Table -->
-      <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div class="px-4 py-3 border-b border-gray-200 flex flex-wrap gap-3 items-center justify-between">
-          <h4 class="text-xs font-semibold text-gray-700">SKU Pareto</h4>
-          <select v-model="paretoAbcFilter" class="text-xs border border-gray-300 rounded px-2 py-1">
+      <div class="card-apple-list overflow-hidden">
+        <div class="px-4 py-3 flex flex-wrap gap-3 items-center justify-between" style="border-bottom:1px solid rgba(0,0,0,0.08)">
+          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">SKU Pareto</h4>
+          <select v-model="paretoAbcFilter" class="input-apple-sm" style="width:auto">
             <option value="ALL">All ABC classes</option>
             <option value="A">Class A</option>
             <option value="B">Class B</option>
@@ -91,17 +91,17 @@
         </div>
         <div class="overflow-x-auto max-h-80">
           <table class="w-full text-xs">
-            <thead class="bg-gray-50 border-b border-gray-200 sticky top-0">
+            <thead class="sticky top-0" style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
               <tr>
-                <th class="px-3 py-2 text-left font-medium text-gray-600">Rank</th>
-                <th class="px-3 py-2 text-left font-medium text-gray-600">SKU</th>
-                <th class="px-3 py-2 text-right font-medium text-gray-600">Lines</th>
-                <th class="px-3 py-2 text-center font-medium text-gray-600">ABC</th>
-                <th class="px-3 py-2 text-right font-medium text-gray-600">Cumulative %</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">Rank</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">SKU</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">Lines</th>
+                <th class="px-3 py-2 text-center font-medium" style="color:rgba(0,0,0,0.48)">ABC</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">Cumulative %</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="row in filteredPareto" :key="row.sku" class="hover:bg-gray-50">
+            <tbody>
+              <tr v-for="row in filteredPareto" :key="row.sku" class="hover:bg-black/[.02]" style="border-top:1px solid rgba(0,0,0,0.06)">
                 <td class="px-3 py-1.5 text-gray-500">{{ row.frequency_rank }}</td>
                 <td class="px-3 py-1.5 font-medium text-gray-800">{{ row.sku }}</td>
                 <td class="px-3 py-1.5 text-right text-gray-700">{{ row.total_lines.toLocaleString() }}</td>
@@ -177,19 +177,26 @@ async function doRunAnalysis() {
 }
 
 function renderCharts(data: PerformanceResult) {
+  const base = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { family: 'SF Pro Text, Helvetica Neue, Helvetica, Arial, sans-serif', size: 11, color: 'rgba(0,0,0,0.48)' },
+  }
+  const ax = { gridcolor: 'rgba(0,0,0,0.08)', zerolinecolor: 'rgba(0,0,0,0.12)' }
+
   // Daily Activity bar chart
   if (dailyChartEl.value && data.daily_metrics.length > 0) {
-    const trace = {
+    Plotly.newPlot(dailyChartEl.value, [{
       x: data.daily_metrics.map(d => d.date),
       y: data.daily_metrics.map(d => d.lines),
       type: 'bar' as const,
-      marker: { color: '#3b82f6' },
+      marker: { color: '#0071e3' },
       name: 'Lines',
-    }
-    Plotly.newPlot(dailyChartEl.value, [trace], {
+    }], {
+      ...base,
       margin: { t: 10, b: 40, l: 50, r: 10 },
-      xaxis: { title: 'Date' },
-      yaxis: { title: 'Lines' },
+      xaxis: { ...ax, title: 'Date' },
+      yaxis: { ...ax, title: 'Lines' },
     }, { responsive: true, displayModeBar: false })
   }
 
@@ -200,12 +207,13 @@ function renderCharts(data: PerformanceResult) {
       x: sorted.map(h => `${String(h.hour).padStart(2, '0')}:00`),
       y: sorted.map(h => h.lines),
       type: 'bar' as const,
-      marker: { color: '#6366f1' },
+      marker: { color: '#0071e3' },
       name: 'Lines',
     }], {
+      ...base,
       margin: { t: 10, b: 40, l: 50, r: 10 },
-      xaxis: { title: 'Hour of Day' },
-      yaxis: { title: 'Lines' },
+      xaxis: { ...ax, title: 'Hour of Day' },
+      yaxis: { ...ax, title: 'Lines' },
     }, { responsive: true, displayModeBar: false })
   }
 
@@ -215,12 +223,13 @@ function renderCharts(data: PerformanceResult) {
       x: data.weekly_trends.map(w => `W${String(w.week).padStart(2, '0')} ${w.year}`),
       y: data.weekly_trends.map(w => w.lines),
       type: 'bar' as const,
-      marker: { color: '#10b981' },
+      marker: { color: '#0071e3' },
       name: 'Lines',
     }], {
+      ...base,
       margin: { t: 10, b: 60, l: 50, r: 10 },
-      xaxis: { title: 'Week', tickangle: -45 },
-      yaxis: { title: 'Lines' },
+      xaxis: { ...ax, title: 'Week', tickangle: -45 },
+      yaxis: { ...ax, title: 'Lines' },
     }, { responsive: true, displayModeBar: false })
   }
 
@@ -230,12 +239,13 @@ function renderCharts(data: PerformanceResult) {
       x: data.weekday_profile.map(d => d.day),
       y: data.weekday_profile.map(d => d.avg_lines),
       type: 'bar' as const,
-      marker: { color: '#f59e0b' },
+      marker: { color: '#0071e3' },
       name: 'Avg Lines',
     }], {
+      ...base,
       margin: { t: 10, b: 40, l: 50, r: 10 },
-      xaxis: { title: 'Day of Week' },
-      yaxis: { title: 'Avg Lines/Day' },
+      xaxis: { ...ax, title: 'Day of Week' },
+      yaxis: { ...ax, title: 'Avg Lines/Day' },
     }, { responsive: true, displayModeBar: false })
   }
 
@@ -245,12 +255,13 @@ function renderCharts(data: PerformanceResult) {
       x: data.lines_per_order_dist.map(b => b.bin),
       y: data.lines_per_order_dist.map(b => b.count),
       type: 'bar' as const,
-      marker: { color: '#ec4899' },
+      marker: { color: '#0071e3' },
       name: 'Orders',
     }], {
+      ...base,
       margin: { t: 10, b: 40, l: 50, r: 10 },
-      xaxis: { title: 'Lines per Order' },
-      yaxis: { title: 'Number of Orders' },
+      xaxis: { ...ax, title: 'Lines per Order' },
+      yaxis: { ...ax, title: 'Number of Orders' },
     }, { responsive: true, displayModeBar: false })
   }
 
@@ -264,19 +275,19 @@ function renderCharts(data: PerformanceResult) {
         return found ? found.lines : 0
       })
     )
-    const trace = {
+    Plotly.newPlot(heatmapEl.value, [{
       z,
       x: hours.map(h => `${String(h).padStart(2, '0')}:00`),
       y: dates,
       type: 'heatmap' as const,
-      colorscale: [[0, '#ffffff'], [0.001, '#dbeafe'], [0.5, '#3b82f6'], [1, '#1d4ed8']] as [number, string][],
+      colorscale: [[0, '#ffffff'], [0.001, '#dbeafe'], [0.5, '#0071e3'], [1, '#003d82']] as [number, string][],
       zmin: 0,
       showscale: true,
-    }
-    Plotly.newPlot(heatmapEl.value, [trace], {
+    }], {
+      ...base,
       margin: { t: 10, b: 60, l: 80, r: 10 },
-      xaxis: { title: 'Hour' },
-      yaxis: { title: 'Date', autorange: 'reversed' },
+      xaxis: { ...ax, title: 'Hour' },
+      yaxis: { ...ax, title: 'Date', autorange: 'reversed' },
     }, { responsive: true, displayModeBar: false })
   }
 }

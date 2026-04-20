@@ -20,7 +20,7 @@ const store = useNotificationsStore()
 <style scoped>
 .toast-container {
   position: fixed;
-  top: 1.25rem;
+  top: 60px;
   right: 1.25rem;
   z-index: 9999;
   pointer-events: none;
