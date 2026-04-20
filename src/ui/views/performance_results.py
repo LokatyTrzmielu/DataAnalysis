@@ -129,6 +129,19 @@ def render_performance_kpi() -> None:
 
     render_kpi_section(metrics)
 
+    dist = kpi.order_line_distribution
+    dist_metrics = [
+        {"title": "Lines = 1",   "value": f"{dist['1']:,}",     "help_text": "Orders with exactly 1 order line"},
+        {"title": "Lines = 2",   "value": f"{dist['2']:,}",     "help_text": "Orders with exactly 2 order lines"},
+        {"title": "Lines = 3",   "value": f"{dist['3']:,}",     "help_text": "Orders with exactly 3 order lines"},
+        {"title": "Lines = 4",   "value": f"{dist['4']:,}",     "help_text": "Orders with exactly 4 order lines"},
+        {"title": "Lines = 5",   "value": f"{dist['5']:,}",     "help_text": "Orders with exactly 5 order lines"},
+        {"title": "Lines 6-10",  "value": f"{dist['6-10']:,}",  "help_text": "Orders with 6 to 10 order lines"},
+        {"title": "Lines 11-20", "value": f"{dist['11-20']:,}", "help_text": "Orders with 11 to 20 order lines"},
+        {"title": "Lines >20",   "value": f"{dist['>20']:,}",   "help_text": "Orders with more than 20 order lines"},
+    ]
+    render_kpi_section(dist_metrics)
+
 
 def render_throughput_chart() -> None:
     """Render throughput scatter/line chart (date+hour granularity)."""

@@ -108,6 +108,9 @@ class PerformanceKPI:
     p95_lines_per_hour: float
     p99_lines_per_hour: float
 
+    # Order line count distribution (buckets → order count)
+    order_line_distribution: dict[str, int]
+
 
 @dataclass
 class ShiftPerformance:
@@ -357,6 +360,20 @@ class PerformanceAnalyzer:
         total_units = int(df["quantity"].sum() or 0)
         unique_sku = df["sku"].n_unique()
 
+        lines_per_order = (
+            df.group_by("order_id").agg(pl.len().alias("lc"))["lc"].to_list()
+        )
+        order_line_distribution = {
+            "1":     sum(1 for x in lines_per_order if x == 1),
+            "2":     sum(1 for x in lines_per_order if x == 2),
+            "3":     sum(1 for x in lines_per_order if x == 3),
+            "4":     sum(1 for x in lines_per_order if x == 4),
+            "5":     sum(1 for x in lines_per_order if x == 5),
+            "6-10":  sum(1 for x in lines_per_order if 6 <= x <= 10),
+            "11-20": sum(1 for x in lines_per_order if 11 <= x <= 20),
+            ">20":   sum(1 for x in lines_per_order if x > 20),
+        }
+
         # Averages per order/line
         avg_lines_per_order = total_lines / total_orders if total_orders > 0 else 0
         avg_units_per_line = total_units / total_lines if total_lines > 0 else 0
@@ -407,6 +424,7 @@ class PerformanceAnalyzer:
             p90_lines_per_hour=p90,
             p95_lines_per_hour=p95,
             p99_lines_per_hour=p99,
+            order_line_distribution=order_line_distribution,
         )
 
     def _calculate_trends(
