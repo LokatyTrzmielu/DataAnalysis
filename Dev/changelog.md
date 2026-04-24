@@ -11,6 +11,17 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-04-20] - Feature (main)
+- **Order Line Distribution KPIs w sekcji Performance**:
+  - Nowy wiersz kart KPI pokazujący rozkład liczby linii na zamówienie: 1, 2, 3, 4, 5, 6–10, 11–20, >20
+  - `src/analytics/performance.py` — nowe pole `order_line_distribution` w `PerformanceKPIResult`
+  - `src/ui/views/performance_results.py` — wyświetlanie drugiego wiersza KPI cards
+- **Fix:** `getattr` fallback w `performance_results.py` — stare sesje bez `order_line_distribution` nie crashują po deployu
+- **Fix:** zmiana `group_by/agg(pl.len())` → `value_counts()` (bardziej niezawodne na Streamlit Cloud)
+- Branch: `main`
+
+---
+
 ### [2026-04-20] - Feature (New_UI)
 - **Apple Design System — pełna wymiana warstwy prezentacyjnej**:
   - `frontend/src/assets/main.css` — design tokens (`@theme`), globalne klasy (`btn-apple-primary`, `btn-apple-dark`, `btn-apple-pill`, `input-apple`, `input-apple-sm`, `label-apple`, `card-apple`, `card-apple-elevated`, `card-apple-list`)
@@ -39,6 +50,54 @@ Rejestr zmian w projekcie Datavisor.
   - `frontend/src/components/analysis/PerformanceTab.vue` — `card-apple`, `#0071e3` Plotly bar charts, Apple heatmap
   - `frontend/index.html` — title "Vite App" → "Datavisor"
 - Branch: `New_UI`
+
+---
+
+### [2026-04-19] - Feature (feature/fastapi-vue3-migration)
+- **Sharing, notatki, ustawienia, walidacja zamówień — duży commit migracji**:
+  - **Run sharing:** model `RunShare`, endpoint `POST /runs/{id}/share`, `ShareModal.vue`
+  - **Notatki do runów:** `NotesModal.vue`, endpoint `PATCH /runs/{id}/notes`
+  - **SettingsView:** nowy widok ustawień (`/settings`) z `AppSidebar.vue`
+  - **Orders Validation:** nowy moduł `src/analytics/orders_validation.py` (277 linii) z testami
+  - **API:** rozszerzone routery `runs.py`, `auth.py`, `reports.py` o share/notes/settings
+  - **UI:** przeprojektowane `ImportTab`, `PerformanceTab`, `QualityTab`, `CapacityTab`, `DashboardView`, `RunsView`, `RunView`, `LoginView`
+  - Nowe schematy: `RunShare`, `RunNotes`, rozszerzone `schemas/auth.py`
+  - `pyproject.toml` — nowe zależności
+- **Fix:** Excel scientific notation dla długich kodów SKU w eksporcie CSV z `CapacityTab`
+- **Fix:** ZIP download — odpowiedź in-memory `Response` zamiast `FileResponse`; lepsze komunikaty błędów w `ReportsTab`
+- **Fix:** `NameError` — zmiana typu zwracanego z `FileResponse` na `Response` w `download_zip`
+- Branch: `feature/fastapi-vue3-migration`
+
+---
+
+### [2026-04-01] - Merge (feature/fastapi-vue3-migration → main)
+- **PR #31 — scalenie migracji FastAPI+Vue3 do main**
+  - Połączono branch `feature/fastapi-vue3-migration` z `main`
+  - Rozwiązano konflikty w dokumentach `Dev/`
+  - Dodano `.vite/` do `.gitignore` frontendu
+- Branch: merge
+
+---
+
+### [2026-03-30] - Fix + Feature (feature/fastapi-vue3-migration)
+- **Fix: błąd auto-detekcji jednostki wymiarów ×10**:
+  - `src/ingest/units.py` — zaostrzenie progu detekcji CM: tylko gdy `median < 10` i `max < 50`, inaczej domyślnie mm
+  - Wcześniej wartości dziesiątek/setek mm były błędnie mnożone ×10
+- **Fix: błąd 422 w capacity analysis po załadowaniu zapisanego runu**:
+  - `api/routers/runs.py` — `run_capacity` rekonstruuje `masterdata_mapping` przed uruchomieniem pipeline, gdy nazwy kolumn nie pasują do domyślnych schematu
+- **Feature: selektor jednostki wymiarów w imporcie Masterdata (Streamlit)**:
+  - `src/ui/views/import_view.py` — nowy selectbox `mm/cm/auto`, analogiczny do selektora jednostki wagi
+  - Pozwala ręcznie wymusić `mm` gdy auto-detekcja błędnie interpretuje małe wartości jako cm
+- **Fix: session_nav AttributeError po czyszczeniu cache Streamlit**:
+  - Guard w callbacku `_on_nav_change` przed brakującym kluczem `session_nav`
+- **Fix: SKU Pareto CSV — formatowanie `cumulative_pct` jako string procentowy**:
+  - `api/routers/reports.py` — zapobieganie błędnej interpretacji kolumny przez Excel jako datę
+- **Feature: ABC class cross-filter w zakładce Capacity (Vue3 frontend)**:
+  - `frontend/src/components/analysis/CapacityTab.vue` — tabela cross-stats (unikalne SKU per klasa ABC vs FIT/BORDERLINE/NOT_FIT), filtr dropdown ABC, kolumna ABC w tabeli wyników i eksporcie CSV
+  - Działa gdy dostępny jest wynik Performance Analysis dla tego samego runu
+- **Feature: ABC class cross-filter w widoku Capacity (Streamlit)**:
+  - `src/ui/views/capacity_view.py` — tabela cross-stats, filtr dropdownem, kolumna ABC w dataframe i CSV
+- Branch: `feature/fastapi-vue3-migration`
 
 ---
 
