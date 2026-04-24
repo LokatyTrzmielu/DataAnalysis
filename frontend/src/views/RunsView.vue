@@ -11,7 +11,7 @@
     </div>
 
     <!-- Toolbar: search + filter + sort -->
-    <div class="flex flex-wrap gap-2 mb-4">
+    <div class="flex flex-wrap gap-2 mb-6">
       <input
         v-model="search"
         type="search"
@@ -47,10 +47,9 @@
         @mouseover="(e) => (e.currentTarget as HTMLElement).style.background='rgba(0,0,0,0.02)'"
         @mouseleave="(e) => (e.currentTarget as HTMLElement).style.background=''"
       >
-        <!-- Name + date — clickable -->
+        <!-- Name — clickable -->
         <RouterLink :to="`/runs/${run.id}`" class="flex-1 min-w-0 flex items-center gap-3" style="text-decoration:none">
           <span style="font-size:17px;color:#1d1d1f;letter-spacing:-0.374px" class="truncate">{{ run.client_name }}</span>
-          <span class="shrink-0" style="font-size:12px;color:rgba(0,0,0,0.48)">{{ formatDate(run.created_at) }}</span>
           <span v-if="run.is_public" title="Public" style="color:#0071e3">
             <svg class="w-3.5 h-3.5 inline" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
@@ -59,8 +58,9 @@
         </RouterLink>
 
         <!-- Actions -->
-        <div class="flex items-center gap-1 shrink-0 ml-3">
+        <div class="flex items-center gap-2 shrink-0 ml-3">
           <StatusBadge :status="run.status" />
+          <span class="shrink-0" style="font-size:12px;color:rgba(0,0,0,0.48)">{{ formatDate(run.created_at) }}</span>
 
           <!-- Duplicate -->
           <button

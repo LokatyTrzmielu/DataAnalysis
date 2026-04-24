@@ -30,10 +30,20 @@
           />
         </div>
 
+        <!-- Carrier selection -->
+        <div v-if="availableCarriers.length">
+          <label class="block text-xs text-gray-600 mb-1">Carriers</label>
+          <CarrierMultiSelect
+            :carriers="availableCarriers"
+            v-model:modelValue="selectedCarrierIds"
+            :showError="ranOnce && selectedCarrierIds.size === 0"
+          />
+        </div>
+
         <div>
           <button
             @click="runCapacity"
-            :disabled="running || !run.masterdata_path"
+            :disabled="running || !canRun"
             class="btn-apple-primary"
           >
             {{ running ? 'Analyzing…' : 'Run analysis' }}
@@ -46,7 +56,7 @@
     <!-- Results -->
     <div v-if="cr">
       <!-- Summary KPIs -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" style="gap:16px;margin-bottom:24px">
         <KpiCard label="Total SKU" :value="cr.total_sku" />
         <KpiCard label="Fit %" :value="`${cr.fit_percentage.toFixed(1)}%`" />
         <KpiCard label="FIT" :value="cr.fit_count" />
@@ -56,36 +66,61 @@
       </div>
 
       <!-- Plotly Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2" style="gap:16px;margin-bottom:24px">
         <!-- Carrier Fit Chart -->
         <div class="card-apple">
-          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Carrier Fit</h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Carrier Fit</h4>
+            <button @click="openZoom('carrier', 'Carrier Fit')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
           <div ref="carrierChartEl" style="height:200px"></div>
         </div>
         <!-- Volume Distribution -->
         <div class="card-apple">
-          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Volume Distribution (m³)</h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Volume Distribution (m³)</h4>
+            <button @click="openZoom('volume', 'Volume Distribution (m³)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
           <div ref="dimsChartEl" style="height:200px"></div>
         </div>
         <!-- Margin Distribution -->
         <div class="card-apple">
-          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Margin Distribution (mm, FIT + BORDERLINE)</h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Margin Distribution (mm, FIT + BORDERLINE)</h4>
+            <button @click="openZoom('margin', 'Margin Distribution (mm)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
           <div ref="weightChartEl" style="height:200px"></div>
         </div>
         <!-- Dimensions Distribution -->
         <div class="card-apple">
-          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Dimensions Distribution (mm)</h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Dimensions Distribution (mm)</h4>
+            <button @click="openZoom('dims', 'Dimensions Distribution (mm)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
           <div ref="dimsDistChartEl" style="height:200px"></div>
         </div>
         <!-- Weight Distribution -->
         <div class="card-apple">
-          <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Weight Distribution (kg)</h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Weight Distribution (kg)</h4>
+            <button @click="openZoom('weight', 'Weight Distribution (kg)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
           <div ref="weightDistChartEl" style="height:200px"></div>
         </div>
       </div>
 
       <!-- Per-carrier table -->
-      <div class="card-apple-list mb-4">
+      <div class="card-apple-list" style="margin-bottom:24px">
         <table class="w-full text-sm">
           <thead style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
             <tr>
@@ -117,7 +152,7 @@
       </div>
 
       <!-- ABC Cross-stats (visible only when Performance data is available) -->
-      <div v-if="hasPerformanceData" class="card-apple-list overflow-hidden mb-4">
+      <div v-if="hasPerformanceData" class="card-apple-list overflow-hidden" style="margin-bottom:24px">
         <div class="px-4 py-3" style="border-bottom:1px solid rgba(0,0,0,0.08)">
           <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Capacity × ABC Class (unique SKU)</h4>
           <p class="mt-0.5" style="font-size:12px;color:rgba(0,0,0,0.32)">Click a row to filter the table below</p>
@@ -199,7 +234,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in filteredRows" :key="`${row.sku}-${row.carrier_id}`" class="hover:bg-black/[.02]" style="border-top:1px solid rgba(0,0,0,0.06)">
+              <tr v-for="row in visibleSkuRows" :key="`${row.sku}-${row.carrier_id}`" class="hover:bg-black/[.02]" style="border-top:1px solid rgba(0,0,0,0.06)">
                 <td class="px-3 py-1.5 font-medium text-gray-800">{{ row.sku }}</td>
                 <td class="px-3 py-1.5 text-gray-600">{{ carrierName(row.carrier_id) }}</td>
                 <td class="px-3 py-1.5 text-center">
@@ -219,17 +254,35 @@
             </tbody>
           </table>
         </div>
-        <p class="text-xs text-gray-400 px-4 py-2">Showing {{ filteredRows.length }} of {{ cr.rows.length }} rows</p>
+        <div class="px-4 py-2 flex items-center justify-between">
+          <p class="text-xs text-gray-400">Showing {{ visibleSkuRows.length }} of {{ filteredRows.length }} rows</p>
+          <button
+            v-if="visibleSkuRows.length < filteredRows.length"
+            @click="skuVisibleCount = filteredRows.length"
+            class="text-xs text-[#0071e3] hover:underline"
+          >Load more ({{ filteredRows.length - visibleSkuRows.length }} remaining)</button>
+        </div>
       </div>
     </div>
   </div>
+
+  <ChartZoomModal
+    v-if="zoomChart"
+    :title="zoomChart.title"
+    :traces="zoomChart.traces"
+    :layout="zoomChart.layout"
+    @close="zoomChart = null"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import type { RunDetail, CapacityResult } from '@/api/runs'
 import { runsApi } from '@/api/runs'
+import { carriersApi, type Carrier } from '@/api/carriers'
 import KpiCard from '@/components/shared/KpiCard.vue'
+import ChartZoomModal from '@/components/shared/ChartZoomModal.vue'
+import CarrierMultiSelect from '@/components/shared/CarrierMultiSelect.vue'
 import Plotly from 'plotly.js-dist-min'
 import { useNotificationsStore } from '@/stores/notifications'
 
@@ -239,9 +292,12 @@ const props = defineProps<{ run: RunDetail }>()
 const emit = defineEmits<{ (e: 'refreshed'): void }>()
 
 const running = ref(false)
+const ranOnce = ref(false)
 const error = ref('')
 const analysisMode = ref<'independent' | 'prioritized' | 'bestfit'>('independent')
 const borderlineThreshold = ref(2.0)
+const availableCarriers = ref<Carrier[]>([])
+const selectedCarrierIds = ref(new Set<string>())
 const statusFilter = ref<'ALL' | 'FIT' | 'BORDERLINE' | 'NOT_FIT'>('ALL')
 const carrierFilter = ref('ALL')
 const abcFilter = ref<'ALL' | 'A' | 'B' | 'C' | 'NOT_IN_PARETO'>('ALL')
@@ -251,6 +307,13 @@ const dimsChartEl = ref<HTMLElement>()
 const weightChartEl = ref<HTMLElement>()
 const dimsDistChartEl = ref<HTMLElement>()
 const weightDistChartEl = ref<HTMLElement>()
+
+const zoomChart = ref<{ title: string; traces: any[]; layout: any } | null>(null)
+const chartStore: Record<string, { traces: any[]; layout: any }> = {}
+function openZoom(key: string, title: string) {
+  const d = chartStore[key]
+  if (d) zoomChart.value = { title, ...d }
+}
 
 const cr = computed(() => props.run.capacity_result as CapacityResult | null)
 
@@ -336,6 +399,11 @@ const filteredRows = computed(() => {
   })
 })
 
+const skuVisibleCount = ref(50)
+const visibleSkuRows = computed(() => filteredRows.value.slice(0, skuVisibleCount.value))
+
+watch([statusFilter, carrierFilter, abcFilter], () => { skuVisibleCount.value = 50 })
+
 function carrierName(cid: string): string {
   return cr.value?.carrier_stats[cid]?.carrier_name ?? cid
 }
@@ -362,9 +430,14 @@ watch(cr, (val) => {
   if (val) nextTick(() => renderCharts(val))
 })
 
-onMounted(() => {
+onMounted(async () => {
+  const { data } = await carriersApi.list()
+  availableCarriers.value = data.filter(c => c.is_active)
+  selectedCarrierIds.value = new Set(availableCarriers.value.map(c => c.carrier_id))
   if (cr.value) nextTick(() => renderCharts(cr.value!))
 })
+
+const canRun = computed(() => !!props.run.masterdata_path && selectedCarrierIds.value.size > 0)
 
 function renderCharts(data: CapacityResult) {
   const base = {
@@ -380,27 +453,18 @@ function renderCharts(data: CapacityResult) {
     const fitTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.fit_count), name: 'FIT', type: 'bar' as const, marker: { color: '#34c759' } }
     const borderTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.borderline_count), name: 'BORDERLINE', type: 'bar' as const, marker: { color: '#ff9500' } }
     const notFitTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.not_fit_count), name: 'NOT FIT', type: 'bar' as const, marker: { color: '#ff3b30' } }
-    Plotly.newPlot(carrierChartEl.value, [fitTrace, borderTrace, notFitTrace], {
-      ...base,
-      barmode: 'stack',
-      margin: { t: 10, b: 55, l: 80, r: 10 },
-      legend: { x: 1, xanchor: 'right', y: 1, yanchor: 'top' },
-      xaxis: { ...ax, title: { text: 'Carrier' } },
-      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
-    }, { responsive: true, displayModeBar: false })
+    const carrierLayout = { ...base, barmode: 'stack', margin: { t: 10, b: 55, l: 80, r: 10 }, legend: { x: 1, xanchor: 'right', y: 1, yanchor: 'top' }, xaxis: { ...ax, title: { text: 'Carrier' } }, yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } } }
+    Plotly.newPlot(carrierChartEl.value, [fitTrace, borderTrace, notFitTrace], carrierLayout, { responsive: true, displayModeBar: false })
+    chartStore.carrier = { traces: [fitTrace, borderTrace, notFitTrace], layout: carrierLayout }
   }
 
   // Volume distribution histogram
   if (dimsChartEl.value && data.rows.length > 0) {
     const volumes = data.rows.map(r => r.volume_m3).filter(v => v != null && v > 0)
-    Plotly.newPlot(dimsChartEl.value, [{
-      x: volumes, type: 'histogram' as const, marker: { color: '#0071e3' }, name: 'Volume'
-    }], {
-      ...base,
-      margin: { t: 10, b: 55, l: 80, r: 10 },
-      xaxis: { ...ax, title: { text: 'm³' } },
-      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
-    }, { responsive: true, displayModeBar: false })
+    const volumeTraces = [{ x: volumes, type: 'histogram' as const, marker: { color: '#0071e3' }, name: 'Volume' }]
+    const volumeLayout = { ...base, margin: { t: 10, b: 55, l: 80, r: 10 }, xaxis: { ...ax, title: { text: 'm³' } }, yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } } }
+    Plotly.newPlot(dimsChartEl.value, volumeTraces, volumeLayout, { responsive: true, displayModeBar: false })
+    chartStore.volume = { traces: volumeTraces, layout: volumeLayout }
   }
 
   // Margin distribution (FIT + BORDERLINE only)
@@ -408,46 +472,35 @@ function renderCharts(data: CapacityResult) {
     const margins = data.rows
       .filter(r => r.fit_status !== 'NOT_FIT' && r.margin_mm != null)
       .map(r => r.margin_mm as number)
-    Plotly.newPlot(weightChartEl.value, [{
-      x: margins, type: 'histogram' as const, marker: { color: '#8b5cf6' }, name: 'Margin'
-    }], {
-      ...base,
-      margin: { t: 10, b: 55, l: 80, r: 10 },
-      xaxis: { ...ax, title: { text: 'mm' } },
-      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
-    }, { responsive: true, displayModeBar: false })
+    const marginTraces = [{ x: margins, type: 'histogram' as const, marker: { color: '#8b5cf6' }, name: 'Margin' }]
+    const marginLayout = { ...base, margin: { t: 10, b: 55, l: 80, r: 10 }, xaxis: { ...ax, title: { text: 'mm' } }, yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } } }
+    Plotly.newPlot(weightChartEl.value, marginTraces, marginLayout, { responsive: true, displayModeBar: false })
+    chartStore.margin = { traces: marginTraces, layout: marginLayout }
   }
 
   // Dimensions distribution (length / width / height overlay)
   if (dimsDistChartEl.value && data.rows.length > 0) {
-    Plotly.newPlot(dimsDistChartEl.value, [
+    const dimsTraces = [
       { x: data.rows.map(r => r.length_mm), type: 'histogram' as const, name: 'Length', opacity: 0.6, marker: { color: '#0071e3' } },
       { x: data.rows.map(r => r.width_mm),  type: 'histogram' as const, name: 'Width',  opacity: 0.6, marker: { color: '#f59e0b' } },
       { x: data.rows.map(r => r.height_mm), type: 'histogram' as const, name: 'Height', opacity: 0.6, marker: { color: '#10b981' } },
-    ], {
-      ...base,
-      barmode: 'overlay',
-      margin: { t: 10, b: 55, l: 80, r: 10 },
-      legend: { x: 1, xanchor: 'right', y: 1, yanchor: 'top' },
-      xaxis: { ...ax, title: { text: 'mm' } },
-      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
-    }, { responsive: true, displayModeBar: false })
+    ]
+    const dimsLayout = { ...base, barmode: 'overlay', margin: { t: 10, b: 55, l: 80, r: 10 }, legend: { x: 1, xanchor: 'right', y: 1, yanchor: 'top' }, xaxis: { ...ax, title: { text: 'mm' } }, yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } } }
+    Plotly.newPlot(dimsDistChartEl.value, dimsTraces, dimsLayout, { responsive: true, displayModeBar: false })
+    chartStore.dims = { traces: dimsTraces, layout: dimsLayout }
   }
 
   // Weight distribution
   if (weightDistChartEl.value && data.rows.length > 0) {
-    Plotly.newPlot(weightDistChartEl.value, [{
-      x: data.rows.map(r => r.weight_kg), type: 'histogram' as const, marker: { color: '#0071e3' }, name: 'Weight'
-    }], {
-      ...base,
-      margin: { t: 10, b: 55, l: 80, r: 10 },
-      xaxis: { ...ax, title: { text: 'kg' } },
-      yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } },
-    }, { responsive: true, displayModeBar: false })
+    const weightTraces = [{ x: data.rows.map(r => r.weight_kg), type: 'histogram' as const, marker: { color: '#0071e3' }, name: 'Weight' }]
+    const weightLayout = { ...base, margin: { t: 10, b: 55, l: 80, r: 10 }, xaxis: { ...ax, title: { text: 'kg' } }, yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } } }
+    Plotly.newPlot(weightDistChartEl.value, weightTraces, weightLayout, { responsive: true, displayModeBar: false })
+    chartStore.weight = { traces: weightTraces, layout: weightLayout }
   }
 }
 
 async function runCapacity() {
+  ranOnce.value = true
   running.value = true
   error.value = ''
   try {
@@ -455,6 +508,7 @@ async function runCapacity() {
       prioritization_mode: analysisMode.value === 'prioritized',
       best_fit_mode: analysisMode.value === 'bestfit',
       borderline_threshold: borderlineThreshold.value,
+      carrier_ids: [...selectedCarrierIds.value],
     })
     emit('refreshed')
     notify.push({ type: 'success', title: 'Analysis complete' })

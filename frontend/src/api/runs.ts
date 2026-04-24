@@ -244,12 +244,13 @@ export const runsApi = {
   removeShare: (id: string, userId: string) =>
     client.delete<void>(`/runs/${id}/shares/${userId}`),
 
-  runCapacity: (id: string, file: File | null, opts?: { prioritization_mode?: boolean; best_fit_mode?: boolean; borderline_threshold?: number }) => {
+  runCapacity: (id: string, file: File | null, opts?: { prioritization_mode?: boolean; best_fit_mode?: boolean; borderline_threshold?: number; carrier_ids?: string[] }) => {
     const fd = new FormData()
     if (file) fd.append('file', file)
     if (opts?.prioritization_mode) fd.append('prioritization_mode', 'true')
     if (opts?.best_fit_mode) fd.append('best_fit_mode', 'true')
     if (opts?.borderline_threshold != null) fd.append('borderline_threshold', String(opts.borderline_threshold))
+    if (opts?.carrier_ids?.length) fd.append('carrier_ids', opts.carrier_ids.join(','))
     return client.post<RunDetail>(`/runs/${id}/capacity`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })

@@ -4,7 +4,7 @@
       No validation results yet. Import data in the Import tab first.
     </div>
 
-    <div v-else class="space-y-4">
+    <div v-else class="flex flex-col" style="gap:24px">
 
       <!-- ── Masterdata section ── -->
       <details v-if="qr" open class="card-apple-list overflow-hidden">

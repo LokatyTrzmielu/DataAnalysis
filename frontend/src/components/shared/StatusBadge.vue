@@ -10,10 +10,10 @@ import { computed } from 'vue'
 const props = defineProps<{ status: string }>()
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  created:          { label: 'Created',     color: 'bg-[rgba(0,0,0,0.06)] text-[rgba(0,0,0,0.48)]' },
-  ingested:         { label: 'Ingested',    color: 'bg-[rgba(0,113,227,0.08)] text-[#0066cc]' },
-  quality_done:     { label: 'Quality',     color: 'bg-[rgba(0,113,227,0.08)] text-[#0066cc]' },
-  orders_ingested:  { label: 'Orders',      color: 'bg-[rgba(0,113,227,0.08)] text-[#0066cc]' },
+  created:          { label: 'Import',      color: 'bg-[rgba(0,0,0,0.06)] text-[rgba(0,0,0,0.48)]' },
+  ingested:         { label: 'Import',      color: 'bg-[rgba(0,113,227,0.08)] text-[#0066cc]' },
+  quality_done:     { label: 'Validation',  color: 'bg-[rgba(0,113,227,0.08)] text-[#0066cc]' },
+  orders_ingested:  { label: 'Performance', color: 'bg-[rgba(0,113,227,0.08)] text-[#0066cc]' },
   capacity_done:    { label: 'Capacity',    color: 'bg-[rgba(52,199,89,0.12)] text-[#1a7f37]' },
   performance_done: { label: 'Performance', color: 'bg-[rgba(52,199,89,0.12)] text-[#1a7f37]' },
 }

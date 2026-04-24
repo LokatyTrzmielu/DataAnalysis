@@ -18,7 +18,7 @@
 
         <p v-if="loginError" class="text-sm" style="color:#ff3b30">{{ loginError }}</p>
 
-        <button type="submit" :disabled="loginLoading" class="btn-apple-primary w-full justify-center">
+        <button type="submit" :disabled="loginLoading" class="btn-apple-primary w-full justify-center" style="margin-top:24px">
           {{ loginLoading ? 'Signing in…' : 'Sign in' }}
         </button>
 
@@ -47,7 +47,7 @@
 
         <p v-if="regError" class="text-sm" style="color:#ff3b30">{{ regError }}</p>
 
-        <button type="submit" :disabled="regLoading" class="btn-apple-primary w-full justify-center">
+        <button type="submit" :disabled="regLoading" class="btn-apple-primary w-full justify-center" style="margin-top:24px">
           {{ regLoading ? 'Creating…' : 'Create account' }}
         </button>
 

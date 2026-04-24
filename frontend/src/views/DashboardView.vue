@@ -10,11 +10,11 @@
     </div>
 
     <!-- Quick actions -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-3" style="gap:20px;margin-bottom:40px">
       <button
         @click="newAnalysis"
-        class="btn-apple-primary rounded-lg p-4 text-left"
-        style="border-radius:8px;height:auto;flex-direction:column;align-items:flex-start;gap:4px"
+        class="btn-apple-primary text-left"
+        style="border-radius:8px;height:auto;flex-direction:column;align-items:flex-start;gap:4px;padding:20px;width:100%"
       >
         <div style="font-size:14px;font-weight:600">New Analysis</div>
         <div style="font-size:12px;opacity:0.8">Start capacity / quality run</div>
@@ -38,17 +38,19 @@
     </div>
 
     <!-- Latest run summary -->
-    <div v-if="latestRun" class="mb-8">
-      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">
-        Latest analysis:
-        <span style="color:#0071e3">{{ latestRun.client_name }}</span>
-        <RouterLink :to="`/runs/${latestRun.id}`" class="ml-2" style="font-size:12px;font-weight:400;color:#0066cc;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
-          Open →
-        </RouterLink>
+    <div v-if="latestRun" style="margin-bottom:40px">
+      <h3 class="mb-1" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">
+        Latest analysis
       </h3>
+      <div class="flex items-center gap-3 mb-3">
+        <span style="font-size:17px;font-weight:500;color:#0071e3;letter-spacing:-0.374px">{{ latestRun.client_name }}</span>
+        <RouterLink :to="openLink" class="btn-apple-primary" style="font-size:13px;padding:5px 14px;line-height:1">
+          Open
+        </RouterLink>
+      </div>
 
       <!-- Pipeline status steps -->
-      <div class="card-apple mb-4">
+      <div class="card-apple" style="margin-bottom:24px">
         <div class="flex items-center gap-0">
           <div
             v-for="(step, i) in pipelineSteps"
@@ -72,7 +74,7 @@
       </div>
 
       <!-- KPI summary -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="card-apple">
           <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Total SKUs</p>
           <p v-if="latestRun.quality_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.quality_result as any).total_records?.toLocaleString() ?? '—' }}</p>
@@ -112,14 +114,15 @@
         <div v-for="run in runStore.runs.slice(0, 5)" :key="run.id">
           <div
             :class="['flex items-center justify-between px-4 py-3 transition-colors cursor-pointer', selectedRunId === run.id ? 'bg-[rgba(0,113,227,0.06)]' : 'hover:bg-black/[.02]']"
-            @dblclick="router.push(`/runs/${run.id}`)"
+            @click="selectRun(run.id)"
+            @dblclick="router.push({ path: `/runs/${run.id}`, query: { tab: tabFromStatus(run.status) } })"
           >
-            <button @click="selectRun(run.id)" class="flex-1 min-w-0 text-left">
+            <div class="flex-1 min-w-0 text-left">
               <span style="font-size:17px;color:#1d1d1f;letter-spacing:-0.374px">{{ run.client_name }}</span>
-              <span class="ml-2" style="font-size:12px;color:rgba(0,0,0,0.48)">{{ formatDate(run.created_at) }}</span>
-            </button>
-            <div class="flex items-center gap-1 shrink-0 ml-3">
+            </div>
+            <div class="flex items-center gap-2 shrink-0 ml-3">
               <StatusBadge :status="run.status" />
+              <span style="font-size:12px;color:rgba(0,0,0,0.48)">{{ formatDate(run.created_at) }}</span>
               <button
                 @click="toggleNotes(run.id)"
                 :class="['p-1.5 rounded transition-colors']"
@@ -158,6 +161,20 @@ import { useAuthStore } from '@/stores/auth'
 import { useRunStore } from '@/stores/run'
 import type { RunDetail } from '@/api/runs'
 import { runsApi } from '@/api/runs'
+
+function tabFromDetail(run: RunDetail): string {
+  if (run.performance_result) return 'performance'
+  if (run.capacity_result) return 'capacity'
+  if (run.quality_result || run.orders_validation_result) return 'quality'
+  return 'import'
+}
+
+function tabFromStatus(status: string): string {
+  if (status === 'performance_done' || status === 'orders_ingested') return 'performance'
+  if (status === 'capacity_done') return 'capacity'
+  if (status === 'quality_done') return 'quality'
+  return 'import'
+}
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import NewRunModal from '@/components/analysis/NewRunModal.vue'
 
@@ -169,6 +186,11 @@ const latestRun = ref<RunDetail | null>(null)
 const selectedRunId = ref<string | null>(null)
 const openNotesId = ref<string | null>(null)
 let dashboardNotesTimer: ReturnType<typeof setTimeout> | null = null
+
+const openLink = computed(() => {
+  if (!latestRun.value) return '/'
+  return { path: `/runs/${latestRun.value.id}`, query: { tab: tabFromDetail(latestRun.value) } }
+})
 
 function toggleNotes(id: string) {
   openNotesId.value = openNotesId.value === id ? null : id
@@ -207,8 +229,8 @@ const pipelineSteps = computed(() => {
 
   return [
     { id: 'created', label: 'Created', done: !!latestRun.value },
-    { id: 'masterdata', label: 'Masterdata', done: !!latestRun.value?.masterdata_path },
-    { id: 'quality', label: 'Quality', done: hasQuality },
+    { id: 'masterdata', label: 'Import', done: !!latestRun.value?.masterdata_path },
+    { id: 'quality', label: 'Validation', done: hasQuality },
     { id: 'capacity', label: 'Capacity', done: hasCapacity },
     { id: 'performance', label: 'Performance', done: hasPerformance },
   ]

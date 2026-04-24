@@ -4,7 +4,7 @@
       {{ label }}
       <HelpTip v-if="tooltip" :text="tooltip" />
     </p>
-    <p style="font-size:28px;font-weight:600;color:#1d1d1f;line-height:1.14;letter-spacing:0.196px">{{ value }}</p>
+    <p style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19;letter-spacing:-0.021px">{{ value }}</p>
   </div>
 </template>
 

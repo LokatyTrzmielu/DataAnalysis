@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <RouterLink to="/runs" class="run-back-link">← Analyses</RouterLink>
+        <RouterLink to="/runs" class="btn-apple-pill" style="text-decoration:none;font-size:13px">← Analyses</RouterLink>
         <!-- Inline rename -->
         <div class="mt-2 flex items-center gap-2">
           <input
@@ -24,6 +24,7 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
+        <StatusBadge :status="run.status" />
         <button
           @click="showNotes = true"
           class="btn-apple-pill"
@@ -45,7 +46,6 @@
           </svg>
           Share
         </button>
-        <StatusBadge :status="run.status" />
       </div>
     </div>
 
@@ -150,8 +150,16 @@ async function loadRun() {
 onMounted(async () => {
   await loadRun()
   loading.value = false
-  if (run.value?.capacity_result) activeTab.value = 'capacity'
-  else if (run.value?.quality_result || run.value?.orders_validation_result) activeTab.value = 'quality'
+  const tabParam = route.query.tab as string | undefined
+  if (tabParam && tabs.some(t => t.id === tabParam)) {
+    activeTab.value = tabParam
+  } else if (run.value?.performance_result) {
+    activeTab.value = 'performance'
+  } else if (run.value?.capacity_result) {
+    activeTab.value = 'capacity'
+  } else if (run.value?.quality_result || run.value?.orders_validation_result) {
+    activeTab.value = 'quality'
+  }
 })
 </script>
 

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_current_user, get_db
 from api.models.analysis_run import AnalysisRun
+from api.models.carrier import Carrier as CarrierModel
 from api.models.user import User
 from api.models.run_share import RunShare
 from api.schemas.runs import (
@@ -200,6 +201,7 @@ async def run_capacity(
     prioritization_mode: bool = Form(default=False),
     best_fit_mode: bool = Form(default=False),
     borderline_threshold: float = Form(default=2.0),
+    carrier_ids: str = Form(default=""),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResponse:
@@ -235,7 +237,7 @@ async def run_capacity(
         from src.ingest.pipeline import MasterdataIngestPipeline
         from src.ingest.mapping import MappingResult, ColumnMapping, MASTERDATA_SCHEMA
         from src.analytics.capacity import CapacityAnalyzer
-        from src.core.carriers import CarrierService
+        from src.core.types import CarrierConfig
         from dataclasses import asdict
 
         # Reconstruct saved column mapping (set during quality check)
@@ -261,7 +263,25 @@ async def run_capacity(
             missing = ", ".join(ingest_result.mapping_result.missing_required)
             raise HTTPException(status_code=422, detail=f"Missing columns: {missing}")
 
-        carriers = [c for c in CarrierService().load_all_carriers() if c.is_active]
+        carrier_query = select(CarrierModel).where(CarrierModel.is_active == True)
+        if carrier_ids.strip():
+            requested = {cid.strip() for cid in carrier_ids.split(",") if cid.strip()}
+            carrier_query = carrier_query.where(CarrierModel.carrier_id.in_(requested))
+        db_carriers = (await db.execute(carrier_query)).scalars().all()
+        carriers = [
+            CarrierConfig(
+                carrier_id=c.carrier_id,
+                name=c.name,
+                inner_length_mm=c.inner_length_mm,
+                inner_width_mm=c.inner_width_mm,
+                inner_height_mm=c.inner_height_mm,
+                max_weight_kg=c.max_weight_kg,
+                is_active=c.is_active,
+                is_predefined=c.is_predefined,
+                priority=c.priority,
+            )
+            for c in db_carriers
+        ]
         analyzer = CapacityAnalyzer(carriers, borderline_threshold_mm=borderline_threshold)
         result = analyzer.analyze_dataframe(
             ingest_result.df,

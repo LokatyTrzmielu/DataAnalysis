@@ -248,9 +248,10 @@ async def download_pdf(
         client_name=run.client_name or run.id,
         capacity_data=run.capacity_result,
         run_id=run.id,
+        performance_data=run.performance_result,
     )
 
-    filename = f"{run.client_name or run.id}_capacity_report.pdf"
+    filename = f"{run.client_name or run.id}_report.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

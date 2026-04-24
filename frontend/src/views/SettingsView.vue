@@ -5,7 +5,7 @@
     </h1>
 
     <!-- Account info -->
-    <section class="card-apple mb-4">
+    <section class="card-apple mb-6">
       <h2 class="mb-4" style="font-size:12px;font-weight:600;color:rgba(0,0,0,0.48);letter-spacing:0.12px;text-transform:uppercase">Account</h2>
       <div class="space-y-3">
         <div class="flex items-center gap-3">
