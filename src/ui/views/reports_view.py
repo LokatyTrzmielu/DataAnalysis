@@ -146,6 +146,18 @@ def generate_individual_report(report_type: str) -> tuple[str | None, bytes | No
             else:
                 return None, None
 
+        elif report_type == "SolDimTool_DashboardInput":
+            from src.reporting.soldimtool_report import SolDimToolReportGenerator
+            pr = st.session_state.performance_result
+            if pr:
+                generator = SolDimToolReportGenerator()
+                file_path = generator.generate(
+                    output_dir / "SolDimTool_DashboardInput.csv",
+                    pr,
+                )
+            else:
+                return None, None
+
         else:
             return None, None
 
@@ -195,7 +207,8 @@ def _render_reports_kpi(has_quality: bool, has_capacity: bool, has_performance: 
     summary_count = 1  # Main report always available
     dq_count = 6 if has_quality else 0
     capacity_count = 1 if has_capacity else 0
-    total_count = summary_count + dq_count + capacity_count
+    solution_design_count = 1 if has_performance else 0
+    total_count = summary_count + dq_count + capacity_count + solution_design_count
 
     # Count available data sources
     sources_count = sum([has_quality, has_capacity, has_performance])
@@ -237,7 +250,7 @@ def _render_report_categories(
     render_section_header("Available Reports", "📋")
 
     # Build reports list
-    reports = _build_reports_list(has_quality, has_capacity)
+    reports = _build_reports_list(has_quality, has_capacity, has_performance)
 
     # Display by category with styled cards
     categories = [
@@ -245,6 +258,7 @@ def _render_report_categories(
         ("Data Quality", "🔍", "Data quality validation reports"),
         ("Performance", "⚡", "Performance analysis reports"),
         ("Capacity", "📦", "Capacity analysis results"),
+        ("Solution Design", "🎯", "Input values for SolDimTool dimension calculator"),
     ]
 
     for cat_name, cat_icon, cat_desc in categories:
@@ -253,7 +267,7 @@ def _render_report_categories(
             _render_category_section(cat_name, cat_icon, cat_desc, category_reports)
 
 
-def _build_reports_list(has_quality: bool, has_capacity: bool) -> list[dict]:
+def _build_reports_list(has_quality: bool, has_capacity: bool, has_performance: bool = False) -> list[dict]:
     """Build list of available reports."""
     reports = []
 
@@ -301,6 +315,20 @@ def _build_reports_list(has_quality: bool, has_capacity: bool) -> list[dict]:
             "description": "Full capacity analysis - SKU fit status per carrier",
             "available": True,
             "category": "Capacity",
+        })
+
+    # Solution Design report - available if performance_result exists
+    if has_performance:
+        reports.append({
+            "name": "SolDimTool_DashboardInput",
+            "description": (
+                "SolDimTool v2.7.3 Dashboard input values — "
+                "Orders/Day (C16), Orderlines/Order (C17), "
+                "Orders/Batch (B21–B25), Commonality (C21–C25), "
+                "Hours/Day (A29), Adjusting View (A31), System Factor (C29)"
+            ),
+            "available": True,
+            "category": "Solution Design",
         })
 
     return reports

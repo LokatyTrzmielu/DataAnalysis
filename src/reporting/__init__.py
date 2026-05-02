@@ -23,6 +23,9 @@ from src.reporting.zip_export import (
     ZipExporter,
     export_reports,
 )
+from src.reporting.soldimtool_report import (
+    SolDimToolReportGenerator,
+)
 
 __all__ = [
     # CSV
@@ -42,4 +45,6 @@ __all__ = [
     # ZIP Export
     "ZipExporter",
     "export_reports",
+    # SolDimTool Report
+    "SolDimToolReportGenerator",
 ]

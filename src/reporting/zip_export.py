@@ -93,7 +93,14 @@ class ZipExporter:
             )
             generated_files.extend(dq_paths)
 
-        # 3. README
+        # 3. SolDimTool Dashboard Input
+        if performance_result:
+            from src.reporting.soldimtool_report import SolDimToolReportGenerator
+            soldim_path = reports_dir / "SolDimTool_DashboardInput.csv"
+            SolDimToolReportGenerator().generate(soldim_path, performance_result)
+            generated_files.append(soldim_path)
+
+        # 4. README
         readme_path = reports_dir / "README.txt"
         self.readme_generator.generate(
             readme_path,
