@@ -1,7 +1,9 @@
 """Reports router: ZIP and PDF download for an analysis run."""
 
 import io
+import math
 import zipfile
+from datetime import datetime
 
 import polars as pl
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,6 +26,7 @@ CSV_REPORTS = {
     "DQ_Conflicts",
     "Capacity_Results",
     "SKU_Pareto",
+    "SolDimTool_DashboardInput",
 }
 
 # Known column headers per report type (used to write empty CSVs with headers)
@@ -45,7 +48,179 @@ REPORT_COLUMNS: dict[str, list[str]] = {
         "sku", "total_lines", "total_units", "total_orders",
         "frequency_rank", "cumulative_pct", "abc_class",
     ],
+    "SolDimTool_DashboardInput": ["Section", "Cell", "Metric", "Value", "Note"],
 }
+
+
+# ---------------------------------------------------------------------------
+# SolDimTool Dashboard Input — JSON-based calculator
+# ---------------------------------------------------------------------------
+
+def _pct(sorted_vals: list, p: float) -> float:
+    """Linear-interpolation percentile from a pre-sorted list."""
+    n = len(sorted_vals)
+    if n == 0:
+        return 0.0
+    if n == 1:
+        return float(sorted_vals[0])
+    idx = (p / 100) * (n - 1)
+    lo = int(idx)
+    hi = min(lo + 1, n - 1)
+    return sorted_vals[lo] * (1 - (idx - lo)) + sorted_vals[hi] * (idx - lo)
+
+
+def _suggest_batch_sizes(max_batch: int) -> list[int]:
+    raw = [
+        1,
+        max(2, round(max_batch * 0.10)),
+        max(3, round(max_batch * 0.25)),
+        max(4, round(max_batch * 0.50)),
+        max_batch,
+    ]
+    seen: list[int] = []
+    for v in raw:
+        if v not in seen:
+            seen.append(v)
+    while len(seen) < 5:
+        gaps = [(seen[i + 1] - seen[i], i) for i in range(len(seen) - 1)]
+        _, idx = max(gaps)
+        seen.insert(idx + 1, (seen[idx] + seen[idx + 1]) // 2)
+    return sorted(seen[:5])
+
+
+def _approx_percentiles_from_hist(lpo_dist: list[dict]) -> tuple[float, float]:
+    """Approximate median and P90 from the bucketed lines-per-order histogram."""
+    bin_midpoints = {"1": 1, "2": 2, "3": 3, "4": 4, "5": 5,
+                     "6–10": 8, "11–20": 15, "21+": 25}
+    values: list[int] = []
+    for b in lpo_dist:
+        val = bin_midpoints.get(b.get("bin", ""), 1)
+        values.extend([val] * max(0, b.get("count", 0)))
+    if not values:
+        return 1.0, 2.0
+    values.sort()
+    return round(_pct(values, 50), 2), round(_pct(values, 90), 2)
+
+
+def _generate_soldimtool_rows(pr: dict) -> list[dict]:
+    """Calculate SolDimTool Dashboard inputs from stored performance_result JSON."""
+    warnings: list[str] = []
+
+    # 1. Orders/Day
+    daily_orders = sorted([d["orders"] for d in pr.get("daily_metrics", [])])
+    if daily_orders:
+        n = len(daily_orders)
+        mean_ord = round(sum(daily_orders) / n, 1)
+        med_ord = round(_pct(daily_orders, 50), 1)
+        p90_ord = round(_pct(daily_orders, 90), 1)
+        if med_ord < 10:
+            warnings.append("Bardzo mała liczba zleceń — zweryfikuj zakres dat danych.")
+        if med_ord > 0 and p90_ord / med_ord > 2.0:
+            warnings.append("Silna sezonowość (P90/mediana > 2×) — rozważ użycie P90 zamiast mediany dla C16.")
+        if med_ord > 0 and p90_ord / med_ord > 1.5:
+            rec_ord, ord_basis = int(p90_ord), "P90 (silna sezonowość)"
+        else:
+            rec_ord, ord_basis = int(med_ord), "mediana"
+    else:
+        mean_ord = med_ord = p90_ord = 0.0
+        rec_ord = 0
+        ord_basis = "brak danych"
+        warnings.append("Brak danych dziennych — nie można obliczyć Orders/Day.")
+
+    # 2. Orderlines/Order
+    kpi = pr.get("kpi", {})
+    avg_ol = round(kpi.get("avg_lines_per_order") or 1.0, 2)
+    med_ol, p90_ol = _approx_percentiles_from_hist(pr.get("lines_per_order_dist", []))
+    if avg_ol > 50:
+        warnings.append("Wysoka liczba linii/zlecenie — sprawdź czy dane nie są na poziomie linii zamiast zleceń.")
+    if avg_ol < 1:
+        warnings.append("Liczba linii/zlecenie < 1 — błąd agregacji lub niekompletne dane.")
+
+    # 3. Hours/Day
+    datehour = pr.get("datehour_metrics", [])
+    has_hourly = pr.get("has_hourly_data", False)
+    if has_hourly and datehour:
+        by_date: dict[str, list[int]] = {}
+        for dh in datehour:
+            by_date.setdefault(dh["date"], []).append(dh["hour"])
+        windows = sorted([max(h) - min(h) for h in by_date.values()])
+        win_med = _pct(windows, 50)
+        hours_per_day = min(24, max(1, math.ceil(win_med + 0.5)))
+        all_hours = [h for hs in by_date.values() for h in hs]
+        win_min, win_max = min(all_hours), max(all_hours)
+        time_detected = True
+        if hours_per_day > 16:
+            warnings.append("Wykryte okno operacyjne > 16h — możliwe dane z wielu zmian lub błąd w danych czasowych.")
+    else:
+        hours_per_day, win_med, win_min, win_max = 8, None, None, None
+        time_detected = False
+        warnings.append("Brak danych czasowych — Hours/Day ustawione na domyślne 8h.")
+
+    adj_view = "hourly view" if hours_per_day <= 8 else "daily view"
+
+    # 4. Batch sizes
+    max_batch = max(5, min(math.floor(rec_ord / 4) if rec_ord > 0 else 5, 100))
+    if max_batch <= 5 and rec_ord < 20:
+        warnings.append("Bardzo mała liczba zleceń dziennie — zakres batch size może być niereprezentacyjny.")
+    batch_sizes = _suggest_batch_sizes(max_batch)
+
+    # 5. Commonality — raw SKU data not available in stored JSON
+    commonality_values = [0.00, 0.05, 0.10, 0.15, 0.20]
+    warnings.append("Brak danych SKU na poziomie wiersza — Commonality oparte na wartościach domyślnych.")
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    rows: list[dict] = [
+        {"Section": "Info", "Cell": "", "Metric": "Generated", "Value": now, "Note": ""},
+        # Orders/Day
+        {"Section": "Order Information", "Cell": "C16", "Metric": "Orders/Day - Mean", "Value": str(mean_ord), "Note": ""},
+        {"Section": "Order Information", "Cell": "C16", "Metric": "Orders/Day - Median", "Value": str(med_ord), "Note": ""},
+        {"Section": "Order Information", "Cell": "C16", "Metric": "Orders/Day - P90", "Value": str(p90_ord), "Note": ""},
+        {"Section": "Order Information", "Cell": "C16", "Metric": "Orders/Day - Recommended", "Value": str(rec_ord), "Note": f"Basis: {ord_basis} — wpisz w C16"},
+        # Orderlines/Order
+        {"Section": "Order Information", "Cell": "C17", "Metric": "Orderlines/Order - Mean", "Value": str(avg_ol), "Note": ""},
+        {"Section": "Order Information", "Cell": "C17", "Metric": "Orderlines/Order - Median (approx)", "Value": str(med_ol), "Note": ""},
+        {"Section": "Order Information", "Cell": "C17", "Metric": "Orderlines/Order - P90 (approx)", "Value": str(p90_ol), "Note": ""},
+        {"Section": "Order Information", "Cell": "C17", "Metric": "Orderlines/Order - Recommended", "Value": str(avg_ol), "Note": "wpisz w C17"},
+        # Batch sizes
+        {"Section": "Station Based", "Cell": "", "Metric": "max_batch", "Value": str(max_batch), "Note": f"floor({rec_ord} / 4), clamped [5, 100]"},
+    ]
+    for i, bs in enumerate(batch_sizes, start=1):
+        cell = f"B{20 + i}"
+        rows.append({"Section": "Station Based", "Cell": cell, "Metric": f"Orders/Batch {i}.", "Value": str(bs), "Note": f"wpisz w {cell}"})
+
+    # Commonality
+    rows.append({"Section": "Station Based", "Cell": "", "Metric": "Commonality - note", "Value": "default range",
+                 "Note": "Brak danych SKU — użyto domyślnego zakresu 0–20%. Dostosuj na podstawie wiedzy o asortymencie."})
+    for i, cv in enumerate(commonality_values, start=1):
+        cell = f"C{20 + i}"
+        rows.append({"Section": "Station Based", "Cell": cell, "Metric": f"Commonality {i}.", "Value": str(cv), "Note": f"wpisz w {cell}"})
+
+    # Hours/Day
+    rows.append({"Section": "Picking", "Cell": "A29", "Metric": "time_detected", "Value": "TAK" if time_detected else "NIE", "Note": ""})
+    if win_min is not None:
+        rows += [
+            {"Section": "Picking", "Cell": "A29", "Metric": "Operational window min hour", "Value": str(int(win_min)), "Note": ""},
+            {"Section": "Picking", "Cell": "A29", "Metric": "Operational window max hour", "Value": str(int(win_max)), "Note": ""},
+            {"Section": "Picking", "Cell": "A29", "Metric": "Operational window median (h)", "Value": str(round(win_med, 2)), "Note": ""},
+        ]
+    else:
+        rows.append({"Section": "Picking", "Cell": "A29", "Metric": "Hours/Day fallback",
+                     "Value": "Brak danych czasowych — przyjęto domyślną wartość 8h. Zweryfikuj ręcznie.", "Note": ""})
+    rows.append({"Section": "Picking", "Cell": "A29", "Metric": "Hours/Day - Recommended", "Value": str(hours_per_day), "Note": "wpisz w A29"})
+
+    adj_reason = "hours/day <= 8" if adj_view == "hourly view" else "hours/day > 8"
+    rows.append({"Section": "Picking", "Cell": "A31", "Metric": "Adjusting View - Recommended",
+                 "Value": adj_view, "Note": f"Uzasadnienie: {adj_reason} — wpisz w A31"})
+    rows.append({"Section": "Picking", "Cell": "C29", "Metric": "System Factor - Recommended",
+                 "Value": "0.1", "Note": "Wartość domyślna 10%. Dostosuj ręcznie. — wpisz w C29"})
+
+    # Warnings
+    for w in warnings:
+        rows.append({"Section": "Warnings", "Cell": "", "Metric": "", "Value": w, "Note": ""})
+    if not warnings:
+        rows.append({"Section": "Warnings", "Cell": "", "Metric": "", "Value": "brak", "Note": ""})
+
+    return rows
 
 
 def _rows_to_csv_bytes(rows: list[dict], columns: list[str] | None = None) -> bytes:
@@ -135,6 +310,10 @@ async def download_csv_report(
             {**r, "cumulative_pct": f"{r['cumulative_pct']:.2f}%"}
             for r in pr.get("sku_pareto", [])
         ]
+    elif report_name == "SolDimTool_DashboardInput":
+        if not pr:
+            raise HTTPException(status_code=422, detail="No performance results available.")
+        rows = _generate_soldimtool_rows(pr)
 
     csv_bytes = _rows_to_csv_bytes(rows, REPORT_COLUMNS.get(report_name))
 
@@ -214,6 +393,13 @@ async def download_zip(
             zf.writestr(
                 f"{client}_SKU_Pareto.csv",
                 _rows_to_csv_bytes(pareto_rows, REPORT_COLUMNS.get("SKU_Pareto")),
+            )
+
+        # --- SolDimTool Dashboard Input ---
+        if pr:
+            zf.writestr(
+                f"{client}_SolDimTool_DashboardInput.csv",
+                _rows_to_csv_bytes(_generate_soldimtool_rows(pr), REPORT_COLUMNS.get("SolDimTool_DashboardInput")),
             )
 
     return Response(

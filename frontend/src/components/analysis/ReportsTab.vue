@@ -76,6 +76,28 @@
         Run capacity or performance analysis to enable these exports.
       </p>
     </div>
+
+    <!-- Solution Design -->
+    <div class="card-apple">
+      <h3 class="mb-1" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Solution Design</h3>
+      <p class="mb-3" style="font-size:12px;color:rgba(0,0,0,0.48)">
+        Input values for SolDimTool v2.7.3 Dashboard (cells C16, C17, B21–B25, C21–C25, A29, A31, C29).
+      </p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <button
+          @click="downloadCsv('SolDimTool_DashboardInput')"
+          :disabled="!run.performance_result || downloading === 'SolDimTool_DashboardInput'"
+          class="btn-apple-pill text-left"
+          style="justify-content:flex-start"
+          :style="(!run.performance_result || downloading === 'SolDimTool_DashboardInput') ? 'opacity:0.4' : ''"
+        >
+          {{ downloading === 'SolDimTool_DashboardInput' ? 'Preparing…' : 'SolDimTool Dashboard Input' }}
+        </button>
+      </div>
+      <p v-if="!run.performance_result" class="mt-3" style="font-size:12px;color:rgba(0,0,0,0.48)">
+        Run performance analysis first to enable this report.
+      </p>
+    </div>
   </div>
 </template>
 
