@@ -114,27 +114,27 @@ def _generate_soldimtool_rows(pr: dict) -> list[dict]:
         med_ord = round(_pct(daily_orders, 50), 1)
         p90_ord = round(_pct(daily_orders, 90), 1)
         if med_ord < 10:
-            warnings.append("Bardzo mała liczba zleceń — zweryfikuj zakres dat danych.")
+            warnings.append("Very low daily order count — verify the date range of the data.")
         if med_ord > 0 and p90_ord / med_ord > 2.0:
-            warnings.append("Silna sezonowość (P90/mediana > 2×) — rozważ użycie P90 zamiast mediany dla C16.")
+            warnings.append("Strong seasonality (P90/median > 2×) — consider using P90 instead of median for C16.")
         if med_ord > 0 and p90_ord / med_ord > 1.5:
-            rec_ord, ord_basis = int(p90_ord), "P90 (silna sezonowość)"
+            rec_ord, ord_basis = int(p90_ord), "P90 (strong seasonality)"
         else:
-            rec_ord, ord_basis = int(med_ord), "mediana"
+            rec_ord, ord_basis = int(med_ord), "median"
     else:
         mean_ord = med_ord = p90_ord = 0.0
         rec_ord = 0
-        ord_basis = "brak danych"
-        warnings.append("Brak danych dziennych — nie można obliczyć Orders/Day.")
+        ord_basis = "no data"
+        warnings.append("No daily data — cannot calculate Orders/Day.")
 
     # 2. Orderlines/Order
     kpi = pr.get("kpi", {})
     avg_ol = round(kpi.get("avg_lines_per_order") or 1.0, 2)
     med_ol, p90_ol = _approx_percentiles_from_hist(pr.get("lines_per_order_dist", []))
     if avg_ol > 50:
-        warnings.append("Wysoka liczba linii/zlecenie — sprawdź czy dane nie są na poziomie linii zamiast zleceń.")
+        warnings.append("High lines/order count — verify data is not at line level instead of order level.")
     if avg_ol < 1:
-        warnings.append("Liczba linii/zlecenie < 1 — błąd agregacji lub niekompletne dane.")
+        warnings.append("Lines/order < 1 — aggregation error or incomplete data.")
 
     # 3. Hours/Day
     datehour = pr.get("datehour_metrics", [])
@@ -150,23 +150,23 @@ def _generate_soldimtool_rows(pr: dict) -> list[dict]:
         win_min, win_max = min(all_hours), max(all_hours)
         time_detected = True
         if hours_per_day > 16:
-            warnings.append("Wykryte okno operacyjne > 16h — możliwe dane z wielu zmian lub błąd w danych czasowych.")
+            warnings.append("Detected operational window > 16h — possible multi-shift data or timestamp error.")
     else:
         hours_per_day, win_med, win_min, win_max = 8, None, None, None
         time_detected = False
-        warnings.append("Brak danych czasowych — Hours/Day ustawione na domyślne 8h.")
+        warnings.append("No time data — Hours/Day set to default value of 8h.")
 
     adj_view = "hourly view" if hours_per_day <= 8 else "daily view"
 
     # 4. Batch sizes
     max_batch = max(5, min(math.floor(rec_ord / 4) if rec_ord > 0 else 5, 100))
     if max_batch <= 5 and rec_ord < 20:
-        warnings.append("Bardzo mała liczba zleceń dziennie — zakres batch size może być niereprezentacyjny.")
+        warnings.append("Very low daily order count — batch size range may not be representative.")
     batch_sizes = _suggest_batch_sizes(max_batch)
 
     # 5. Commonality — raw SKU data not available in stored JSON
     commonality_values = [0.00, 0.05, 0.10, 0.15, 0.20]
-    warnings.append("Brak danych SKU na poziomie wiersza — Commonality oparte na wartościach domyślnych.")
+    warnings.append("No row-level SKU data available — Commonality based on default values.")
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     rows: list[dict] = [
@@ -175,28 +175,28 @@ def _generate_soldimtool_rows(pr: dict) -> list[dict]:
         {"Section": "Order Information", "Cell": "C16", "Metric": "Orders/Day - Mean", "Value": str(mean_ord), "Note": ""},
         {"Section": "Order Information", "Cell": "C16", "Metric": "Orders/Day - Median", "Value": str(med_ord), "Note": ""},
         {"Section": "Order Information", "Cell": "C16", "Metric": "Orders/Day - P90", "Value": str(p90_ord), "Note": ""},
-        {"Section": "Order Information", "Cell": "C16", "Metric": "Orders/Day - Recommended", "Value": str(rec_ord), "Note": f"Basis: {ord_basis} — wpisz w C16"},
+        {"Section": "Order Information", "Cell": "C16", "Metric": "Orders/Day - Recommended", "Value": str(rec_ord), "Note": f"Basis: {ord_basis} — enter in C16"},
         # Orderlines/Order
         {"Section": "Order Information", "Cell": "C17", "Metric": "Orderlines/Order - Mean", "Value": str(avg_ol), "Note": ""},
         {"Section": "Order Information", "Cell": "C17", "Metric": "Orderlines/Order - Median (approx)", "Value": str(med_ol), "Note": ""},
         {"Section": "Order Information", "Cell": "C17", "Metric": "Orderlines/Order - P90 (approx)", "Value": str(p90_ol), "Note": ""},
-        {"Section": "Order Information", "Cell": "C17", "Metric": "Orderlines/Order - Recommended", "Value": str(avg_ol), "Note": "wpisz w C17"},
+        {"Section": "Order Information", "Cell": "C17", "Metric": "Orderlines/Order - Recommended", "Value": str(avg_ol), "Note": "enter in C17"},
         # Batch sizes
         {"Section": "Station Based", "Cell": "", "Metric": "max_batch", "Value": str(max_batch), "Note": f"floor({rec_ord} / 4), clamped [5, 100]"},
     ]
     for i, bs in enumerate(batch_sizes, start=1):
         cell = f"B{20 + i}"
-        rows.append({"Section": "Station Based", "Cell": cell, "Metric": f"Orders/Batch {i}.", "Value": str(bs), "Note": f"wpisz w {cell}"})
+        rows.append({"Section": "Station Based", "Cell": cell, "Metric": f"Orders/Batch {i}.", "Value": str(bs), "Note": f"enter in {cell}"})
 
     # Commonality
     rows.append({"Section": "Station Based", "Cell": "", "Metric": "Commonality - note", "Value": "default range",
-                 "Note": "Brak danych SKU — użyto domyślnego zakresu 0–20%. Dostosuj na podstawie wiedzy o asortymencie."})
+                 "Note": "No SKU data — default range 0–20% applied. Adjust based on product knowledge."})
     for i, cv in enumerate(commonality_values, start=1):
         cell = f"C{20 + i}"
-        rows.append({"Section": "Station Based", "Cell": cell, "Metric": f"Commonality {i}.", "Value": str(cv), "Note": f"wpisz w {cell}"})
+        rows.append({"Section": "Station Based", "Cell": cell, "Metric": f"Commonality {i}.", "Value": str(cv), "Note": f"enter in {cell}"})
 
     # Hours/Day
-    rows.append({"Section": "Picking", "Cell": "A29", "Metric": "time_detected", "Value": "TAK" if time_detected else "NIE", "Note": ""})
+    rows.append({"Section": "Picking", "Cell": "A29", "Metric": "time_detected", "Value": "YES" if time_detected else "NO", "Note": ""})
     if win_min is not None:
         rows += [
             {"Section": "Picking", "Cell": "A29", "Metric": "Operational window min hour", "Value": str(int(win_min)), "Note": ""},
@@ -205,20 +205,20 @@ def _generate_soldimtool_rows(pr: dict) -> list[dict]:
         ]
     else:
         rows.append({"Section": "Picking", "Cell": "A29", "Metric": "Hours/Day fallback",
-                     "Value": "Brak danych czasowych — przyjęto domyślną wartość 8h. Zweryfikuj ręcznie.", "Note": ""})
-    rows.append({"Section": "Picking", "Cell": "A29", "Metric": "Hours/Day - Recommended", "Value": str(hours_per_day), "Note": "wpisz w A29"})
+                     "Value": "No time data — default value of 8h applied. Verify manually.", "Note": ""})
+    rows.append({"Section": "Picking", "Cell": "A29", "Metric": "Hours/Day - Recommended", "Value": str(hours_per_day), "Note": "enter in A29"})
 
     adj_reason = "hours/day <= 8" if adj_view == "hourly view" else "hours/day > 8"
     rows.append({"Section": "Picking", "Cell": "A31", "Metric": "Adjusting View - Recommended",
-                 "Value": adj_view, "Note": f"Uzasadnienie: {adj_reason} — wpisz w A31"})
+                 "Value": adj_view, "Note": f"Reason: {adj_reason} — enter in A31"})
     rows.append({"Section": "Picking", "Cell": "C29", "Metric": "System Factor - Recommended",
-                 "Value": "0.1", "Note": "Wartość domyślna 10%. Dostosuj ręcznie. — wpisz w C29"})
+                 "Value": "0.1", "Note": "Default value 10%. Adjust manually based on machine service data. — enter in C29"})
 
     # Warnings
     for w in warnings:
         rows.append({"Section": "Warnings", "Cell": "", "Metric": "", "Value": w, "Note": ""})
     if not warnings:
-        rows.append({"Section": "Warnings", "Cell": "", "Metric": "", "Value": "brak", "Note": ""})
+        rows.append({"Section": "Warnings", "Cell": "", "Metric": "", "Value": "none", "Note": ""})
 
     return rows
 

@@ -92,7 +92,7 @@ class SolDimToolCalculator:
         max_batch = max(5, min(math.floor(orders_recommended / 4), 100))
         if max_batch <= 5 and orders_recommended < 20:
             warnings.append(
-                "Bardzo mała liczba zleceń dziennie — zakres batch size może być niereprezentacyjny."
+                "Very low daily order count — batch size range may not be representative."
             )
         batch_sizes = _suggest_batch_sizes(max_batch)
 
@@ -134,8 +134,8 @@ class SolDimToolCalculator:
         self, daily_orders: list[int], warnings: list[str]
     ) -> tuple[float, float, float, int, str]:
         if not daily_orders:
-            warnings.append("Brak danych dziennych — nie można obliczyć Orders/Day.")
-            return 0.0, 0.0, 0.0, 0, "brak danych"
+            warnings.append("No daily data — cannot calculate Orders/Day.")
+            return 0.0, 0.0, 0.0, 0, "no data"
 
         sorted_orders = sorted(daily_orders)
         n = len(sorted_orders)
@@ -144,27 +144,27 @@ class SolDimToolCalculator:
         p90 = round(_percentile(sorted_orders, 90), 1)
 
         if median < 10:
-            warnings.append("Bardzo mała liczba zleceń — zweryfikuj zakres dat danych.")
+            warnings.append("Very low daily order count — verify the date range of the data.")
 
         if median > 0 and p90 / median > 2.0:
             warnings.append(
-                "Silna sezonowość (P90/mediana > 2×) — rozważ użycie P90 zamiast mediany dla C16."
+                "Strong seasonality (P90/median > 2×) — consider using P90 instead of median for C16."
             )
 
         if median > 0 and p90 / median > 1.5:
-            return mean, median, p90, int(p90), "P90 (silna sezonowość)"
+            return mean, median, p90, int(p90), "P90 (strong seasonality)"
 
-        return mean, median, p90, int(median), "mediana"
+        return mean, median, p90, int(median), "median"
 
     def _calc_ol_per_order(
         self, df: object, warnings: list[str]
     ) -> tuple[float, float, float, float]:
         if df is None or not isinstance(df, pl.DataFrame) or len(df) == 0:
-            warnings.append("Brak danych zleceń — nie można obliczyć Orderlines/Order.")
+            warnings.append("No order data — cannot calculate Orderlines/Order.")
             return 0.0, 0.0, 0.0, 1.0
 
         if "order_id" not in df.columns:
-            warnings.append("Brak kolumny order_id — nie można obliczyć Orderlines/Order.")
+            warnings.append("Missing order_id column — cannot calculate Orderlines/Order.")
             return 0.0, 0.0, 0.0, 1.0
 
         per_order = df.group_by("order_id").agg(pl.len().alias("line_count"))
@@ -179,11 +179,11 @@ class SolDimToolCalculator:
 
         if mean > 50:
             warnings.append(
-                "Wysoka liczba linii/zlecenie — sprawdź czy dane nie są na poziomie linii zamiast zleceń."
+                "High lines/order count — verify data is not at line level instead of order level."
             )
         if mean < 1:
             warnings.append(
-                "Liczba linii/zlecenie < 1 — błąd agregacji lub niekompletne dane."
+                "Lines/order < 1 — aggregation error or incomplete data."
             )
 
         return mean, median, p90, mean
@@ -193,7 +193,7 @@ class SolDimToolCalculator:
     ) -> tuple[int, bool, Optional[float], Optional[float], Optional[float]]:
         if not result.has_hourly_data or not result.datehour_metrics:
             warnings.append(
-                "Brak danych czasowych — Hours/Day ustawione na domyślne 8h."
+                "No time data — Hours/Day set to default value of 8h."
             )
             return 8, False, None, None, None
 
@@ -204,7 +204,7 @@ class SolDimToolCalculator:
         windows = [max(hours) - min(hours) for hours in by_date.values()]
         if not windows:
             warnings.append(
-                "Brak danych czasowych — Hours/Day ustawione na domyślne 8h."
+                "No time data — Hours/Day set to default value of 8h."
             )
             return 8, False, None, None, None
 
@@ -217,7 +217,7 @@ class SolDimToolCalculator:
 
         if hours_per_day > 16:
             warnings.append(
-                "Wykryte okno operacyjne > 16h — możliwe dane z wielu zmian lub błąd w danych czasowych."
+                "Detected operational window > 16h — possible multi-shift data or timestamp error."
             )
 
         return hours_per_day, True, win_min, win_max, round(win_median, 2)
@@ -232,7 +232,7 @@ class SolDimToolCalculator:
             or "order_id" not in df.columns
         ):
             warnings.append(
-                "Brak kolumny SKU — Commonality oparte na wartościach domyślnych."
+                "No SKU column — Commonality based on default values."
             )
             return False, None, [0.00, 0.05, 0.10, 0.15, 0.20]
 

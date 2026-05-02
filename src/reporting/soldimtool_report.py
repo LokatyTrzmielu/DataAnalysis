@@ -76,7 +76,7 @@ class SolDimToolReportGenerator:
                 "C16",
                 "Orders/Day - Recommended",
                 str(inp.orders_per_day_recommended),
-                f"Basis: {inp.orders_recommended_basis} — wpisz w C16",
+                f"Basis: {inp.orders_recommended_basis} — enter in C16",
             )
         )
         rows.append(
@@ -100,7 +100,7 @@ class SolDimToolReportGenerator:
                 "C17",
                 "Orderlines/Order - Recommended",
                 str(inp.ol_per_order_recommended),
-                "wpisz w C17",
+                "enter in C17",
             )
         )
 
@@ -122,7 +122,7 @@ class SolDimToolReportGenerator:
                     cell,
                     f"Orders/Batch {i}.",
                     str(bs),
-                    f"wpisz w {cell}",
+                    f"enter in {cell}",
                 )
             )
 
@@ -130,7 +130,7 @@ class SolDimToolReportGenerator:
         sku_note = (
             ""
             if inp.sku_available
-            else "Brak kolumny SKU — użyto domyślnego zakresu 0–20%. Dostosuj na podstawie wiedzy o asortymencie."
+            else "No SKU column — default range 0–20% applied. Adjust based on product knowledge."
         )
         if inp.sku_available and inp.base_commonality is not None:
             rows.append(
@@ -139,7 +139,7 @@ class SolDimToolReportGenerator:
                     "",
                     "Commonality - empirical base",
                     str(inp.base_commonality),
-                    "Oszacowanie z SKU (próbkowanie 500 batchy po 10 zleceń)",
+                    "Empirical estimate from SKU data (500 sampled batches of 10 orders)",
                 )
             )
         for i, cv in enumerate(inp.commonality_values, start=1):
@@ -150,7 +150,7 @@ class SolDimToolReportGenerator:
                     cell,
                     f"Commonality {i}.",
                     str(cv),
-                    sku_note if i == 1 else f"wpisz w {cell}",
+                    sku_note if i == 1 else f"enter in {cell}",
                 )
             )
 
@@ -160,7 +160,7 @@ class SolDimToolReportGenerator:
                 "Picking",
                 "A29",
                 "time_detected",
-                "TAK" if inp.time_detected else "NIE",
+                "YES" if inp.time_detected else "NO",
                 "",
             )
         )
@@ -198,7 +198,7 @@ class SolDimToolReportGenerator:
                     "Picking",
                     "A29",
                     "Hours/Day fallback reason",
-                    "Brak danych czasowych — przyjęto domyślną wartość 8h. Zweryfikuj ręcznie.",
+                    "No time data — default value of 8h applied. Verify manually.",
                     "",
                 )
             )
@@ -208,7 +208,7 @@ class SolDimToolReportGenerator:
                 "A29",
                 "Hours/Day - Recommended",
                 str(inp.hours_per_day),
-                "wpisz w A29",
+                "enter in A29",
             )
         )
 
@@ -222,7 +222,7 @@ class SolDimToolReportGenerator:
                 "A31",
                 "Adjusting View - Recommended",
                 inp.adjusting_view,
-                f"Uzasadnienie: {adj_reason} — wpisz w A31",
+                f"Reason: {adj_reason} — enter in A31",
             )
         )
 
@@ -233,7 +233,7 @@ class SolDimToolReportGenerator:
                 "C29",
                 "System Factor - Recommended",
                 str(inp.system_factor),
-                "Wartość domyślna 10%. Dostosuj ręcznie na podstawie danych serwisowych maszyny. — wpisz w C29",
+                "Default value 10%. Adjust manually based on machine service data. — enter in C29",
             )
         )
 
@@ -242,6 +242,6 @@ class SolDimToolReportGenerator:
             for w in inp.warnings:
                 rows.append(("Warnings", "", "", w, ""))
         else:
-            rows.append(("Warnings", "", "", "brak", ""))
+            rows.append(("Warnings", "", "", "none", ""))
 
         return rows
