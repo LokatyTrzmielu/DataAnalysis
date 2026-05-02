@@ -81,7 +81,7 @@
     <div class="card-apple">
       <h3 class="mb-1" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Solution Design</h3>
       <p class="mb-3" style="font-size:12px;color:rgba(0,0,0,0.48)">
-        Input values for SolDimTool v2.7.3 Dashboard (cells C16, C17, B21–B25, C21–C25, A29, A31, C29).
+        Input values for SolDimTool v2.7.3 Dashboard.
       </p>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <button
