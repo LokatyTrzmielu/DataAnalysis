@@ -152,10 +152,34 @@ export interface PerformanceKPI {
   avg_orders_per_hour: number
   avg_units_per_hour: number
   avg_lines_per_order: number
+  avg_units_per_order: number
   peak_lines_per_hour: number
+  peak_orders_per_hour: number
+  peak_units_per_hour: number
   p90_lines_per_hour: number
   p95_lines_per_hour: number
   p99_lines_per_hour: number
+  median_lines_per_hour: number
+  median_orders_per_hour: number
+  median_units_per_hour: number
+  avg_orders_per_day: number
+  median_orders_per_day: number
+  max_orders_per_day: number
+  avg_lines_per_day: number
+  median_lines_per_day: number
+  max_lines_per_day: number
+  avg_units_per_day: number
+  median_units_per_day: number
+  max_units_per_day: number
+  avg_orders_per_shift: number
+  median_orders_per_shift: number
+  max_orders_per_shift: number
+  avg_lines_per_shift: number
+  median_lines_per_shift: number
+  max_lines_per_shift: number
+  avg_units_per_shift: number
+  median_units_per_shift: number
+  max_units_per_shift: number
 }
 
 export interface PerformanceDailyMetric {
@@ -215,6 +239,7 @@ export interface PerformanceResult {
   date_from: string
   date_to: string
   has_hourly_data: boolean
+  shifts_per_day: number
 }
 
 export const runsApi = {

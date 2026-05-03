@@ -11,6 +11,17 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-03] - Feature (main)
+- **Performance — Throughput per Period KPIs**:
+  - Nowa tabela "Throughput per Period" w zakładce Performance pokazująca avg/median/max dla zamówień, linii i sztuk per dzień, zmianę i godzinę
+  - `src/analytics/performance.py` — `_median()` helper, 21 nowych pól w `PerformanceKPI` (9 per-day, 9 per-shift, 3 median per-hour), zaktualizowany `_calculate_kpi(shifts_per_day)`, przeniesiony blok `shifts_per_day` przed wywołanie KPI
+  - `api/routers/runs.py` — serializacja wszystkich nowych pól KPI + `shifts_per_day` w `performance_result`
+  - `frontend/src/api/runs.ts` — rozszerzony interfejs `PerformanceKPI` o 23 pola, `shifts_per_day` w `PerformanceResult`
+  - `frontend/src/components/analysis/PerformanceTab.vue` — siatka KPI zaktualizowana (usunięto `Avg Lines/Hour` i `Peak Lines/Hour`, dodano `Avg Units/Order` i `P95 Lines/Hour`), nowa karta z tabelą throughput (kolumny per-hour ukryte gdy brak danych godzinowych)
+- Branch: `main`
+
+---
+
 ### [2026-04-20] - Feature (main)
 - **Order Line Distribution KPIs w sekcji Performance**:
   - Nowy wiersz kart KPI pokazujący rozkład liczby linii na zamówienie: 1, 2, 3, 4, 5, 6–10, 11–20, >20

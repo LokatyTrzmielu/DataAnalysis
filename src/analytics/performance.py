@@ -11,6 +11,15 @@ from src.core.types import ShiftType
 from src.core.config import PEAK_PERCENTILES
 
 
+def _median(values: list) -> float:
+    if not values:
+        return 0.0
+    s = sorted(values)
+    n = len(s)
+    mid = n // 2
+    return float(s[mid] if n % 2 else (s[mid - 1] + s[mid]) / 2)
+
+
 @dataclass
 class HourlyMetrics:
     """Hourly metrics."""
@@ -107,6 +116,33 @@ class PerformanceKPI:
     p90_lines_per_hour: float
     p95_lines_per_hour: float
     p99_lines_per_hour: float
+
+    # Per day
+    avg_orders_per_day: float
+    median_orders_per_day: float
+    max_orders_per_day: int
+    avg_lines_per_day: float
+    median_lines_per_day: float
+    max_lines_per_day: int
+    avg_units_per_day: float
+    median_units_per_day: float
+    max_units_per_day: int
+
+    # Per shift (= per-day / shifts_per_day)
+    avg_orders_per_shift: float
+    median_orders_per_shift: float
+    max_orders_per_shift: float
+    avg_lines_per_shift: float
+    median_lines_per_shift: float
+    max_lines_per_shift: float
+    avg_units_per_shift: float
+    median_units_per_shift: float
+    max_units_per_shift: float
+
+    # Per hour — median only (avg/max already in fields above)
+    median_lines_per_hour: float
+    median_orders_per_hour: float
+    median_units_per_hour: float
 
     # Order line count distribution (buckets → order count)
     order_line_distribution: dict[str, int]
@@ -231,25 +267,7 @@ class PerformanceAnalyzer:
             | (pl.col("timestamp").dt.minute() != 0)
         ).height > 0
 
-        # 1. Calculate hourly metrics (aggregated profile)
-        hourly = self._calculate_hourly_metrics(df)
-
-        # 2. Calculate daily metrics
-        daily = self._calculate_daily_metrics(df)
-
-        # 3. Calculate date+hour metrics (real throughput data points)
-        datehour = self._calculate_datehour_metrics(df)
-
-        # 4. Calculate KPI (uses datehour for percentiles)
-        kpi = self._calculate_kpi(df, datehour)
-
-        # 5. Calculate trends
-        weekly_trends, monthly_trends, weekday_profile = self._calculate_trends(df, datehour)
-
-        # 6. Calculate SKU Pareto
-        sku_pareto = self._calculate_sku_pareto(df)
-
-        # 7. Determine shifts per day from schedule
+        # 1. Determine shifts per day from schedule (needed for KPI calc)
         if self.shift_schedule:
             weekly = self.shift_schedule.weekly_schedule
             all_days = [weekly.mon, weekly.tue, weekly.wed, weekly.thu, weekly.fri, weekly.sat, weekly.sun]
@@ -257,6 +275,24 @@ class PerformanceAnalyzer:
             shifts_per_day = max((len(d) for d in working_days), default=2)
         else:
             shifts_per_day = 2
+
+        # 2. Calculate hourly metrics (aggregated profile)
+        hourly = self._calculate_hourly_metrics(df)
+
+        # 3. Calculate daily metrics
+        daily = self._calculate_daily_metrics(df)
+
+        # 4. Calculate date+hour metrics (real throughput data points)
+        datehour = self._calculate_datehour_metrics(df)
+
+        # 5. Calculate KPI (uses datehour for percentiles)
+        kpi = self._calculate_kpi(df, datehour, shifts_per_day)
+
+        # 6. Calculate trends
+        weekly_trends, monthly_trends, weekday_profile = self._calculate_trends(df, datehour)
+
+        # 7. Calculate SKU Pareto
+        sku_pareto = self._calculate_sku_pareto(df)
 
         # 8. Calculate performance per shift
         shift_perf = self._calculate_shift_performance(df, date_from, date_to)
@@ -353,6 +389,7 @@ class PerformanceAnalyzer:
         self,
         df: pl.DataFrame,
         datehour: list[DateHourMetrics],
+        shifts_per_day: int = 2,
     ) -> PerformanceKPI:
         """Calculate KPI using real date+hour data points for percentiles."""
         total_lines = len(df)
@@ -398,11 +435,60 @@ class PerformanceAnalyzer:
             p90 = sorted_lines[min(int(n * 0.90), n - 1)] if n > 0 else 0
             p95 = sorted_lines[min(int(n * 0.95), n - 1)] if n > 0 else 0
             p99 = sorted_lines[min(int(n * 0.99), n - 1)] if n > 0 else 0
+
+            # Per-hour medians
+            median_lines_per_hour = _median(lines_values)
+            median_orders_per_hour = _median(orders_values)
+            median_units_per_hour = _median(units_values)
+
+            # Per-day aggregation
+            daily_agg = df.group_by(
+                pl.col("timestamp").dt.date().alias("date")
+            ).agg([
+                pl.len().alias("lines"),
+                pl.col("order_id").n_unique().alias("orders"),
+                pl.col("quantity").sum().alias("units"),
+            ])
+            day_lines = daily_agg["lines"].to_list()
+            day_orders = daily_agg["orders"].to_list()
+            day_units = daily_agg["units"].to_list()
+
+            avg_orders_per_day = sum(day_orders) / len(day_orders)
+            median_orders_per_day = _median(day_orders)
+            max_orders_per_day = max(day_orders)
+            avg_lines_per_day = sum(day_lines) / len(day_lines)
+            median_lines_per_day = _median(day_lines)
+            max_lines_per_day = max(day_lines)
+            avg_units_per_day = sum(day_units) / len(day_units)
+            median_units_per_day = _median(day_units)
+            max_units_per_day = max(day_units)
+
+            # Per-shift (derived from per-day)
+            spd = shifts_per_day if shifts_per_day > 0 else 1
+            avg_orders_per_shift = avg_orders_per_day / spd
+            median_orders_per_shift = median_orders_per_day / spd
+            max_orders_per_shift = max_orders_per_day / spd
+            avg_lines_per_shift = avg_lines_per_day / spd
+            median_lines_per_shift = median_lines_per_day / spd
+            max_lines_per_shift = max_lines_per_day / spd
+            avg_units_per_shift = avg_units_per_day / spd
+            median_units_per_shift = median_units_per_day / spd
+            max_units_per_shift = max_units_per_day / spd
         else:
             avg_lines_per_hour = avg_orders_per_hour = avg_units_per_hour = 0
             avg_unique_sku_per_hour = 0
             peak_lines = peak_orders = peak_units = 0
             p90 = p95 = p99 = 0
+            median_lines_per_hour = median_orders_per_hour = median_units_per_hour = 0.0
+            avg_orders_per_day = median_orders_per_day = 0.0
+            max_orders_per_day = 0
+            avg_lines_per_day = median_lines_per_day = 0.0
+            max_lines_per_day = 0
+            avg_units_per_day = median_units_per_day = 0.0
+            max_units_per_day = 0
+            avg_orders_per_shift = median_orders_per_shift = max_orders_per_shift = 0.0
+            avg_lines_per_shift = median_lines_per_shift = max_lines_per_shift = 0.0
+            avg_units_per_shift = median_units_per_shift = max_units_per_shift = 0.0
 
         return PerformanceKPI(
             total_lines=total_lines,
@@ -422,6 +508,27 @@ class PerformanceAnalyzer:
             p90_lines_per_hour=p90,
             p95_lines_per_hour=p95,
             p99_lines_per_hour=p99,
+            avg_orders_per_day=avg_orders_per_day,
+            median_orders_per_day=median_orders_per_day,
+            max_orders_per_day=max_orders_per_day,
+            avg_lines_per_day=avg_lines_per_day,
+            median_lines_per_day=median_lines_per_day,
+            max_lines_per_day=max_lines_per_day,
+            avg_units_per_day=avg_units_per_day,
+            median_units_per_day=median_units_per_day,
+            max_units_per_day=max_units_per_day,
+            avg_orders_per_shift=avg_orders_per_shift,
+            median_orders_per_shift=median_orders_per_shift,
+            max_orders_per_shift=max_orders_per_shift,
+            avg_lines_per_shift=avg_lines_per_shift,
+            median_lines_per_shift=median_lines_per_shift,
+            max_lines_per_shift=max_lines_per_shift,
+            avg_units_per_shift=avg_units_per_shift,
+            median_units_per_shift=median_units_per_shift,
+            max_units_per_shift=max_units_per_shift,
+            median_lines_per_hour=median_lines_per_hour,
+            median_orders_per_hour=median_orders_per_hour,
+            median_units_per_hour=median_units_per_hour,
             order_line_distribution=order_line_distribution,
         )
 
