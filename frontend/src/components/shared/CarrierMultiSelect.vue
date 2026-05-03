@@ -5,22 +5,14 @@
     <button
       type="button"
       @click="toggleOpen"
-      :class="[
-        'flex items-center justify-between gap-2 w-full px-3 py-2 rounded-lg border text-xs transition-all text-left',
-        isOpen
-          ? 'border-[#0071e3] ring-2 ring-[rgba(0,113,227,0.18)] bg-white'
-          : hasError
-            ? 'border-red-400 bg-white'
-            : 'border-gray-200 bg-white hover:border-gray-300',
-        'text-gray-700'
-      ]"
+      :class="['cms-trigger', isOpen ? 'is-open' : hasError ? 'is-error' : '']"
     >
-      <span :class="props.modelValue.size === 0 ? 'text-gray-400' : ''">
+      <span :class="props.modelValue.size === 0 ? 'cms-placeholder' : 'cms-value'">
         {{ triggerLabel }}
       </span>
       <svg
         width="12" height="12" viewBox="0 0 12 12" fill="none"
-        :class="['transition-transform flex-shrink-0 text-gray-400', isOpen ? 'rotate-180' : '']"
+        :class="['cms-chevron', isOpen ? 'rotate-180' : '']"
       >
         <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -31,14 +23,13 @@
       <span
         v-for="c in selectedCarriers"
         :key="c.carrier_id"
-        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 border border-[#0071e3] text-[#0071e3]"
-        style="font-size:11px"
+        class="cms-chip"
       >
         <span class="truncate max-w-[140px]">{{ c.name || c.carrier_id }}</span>
         <button
           type="button"
           @click.stop="deselect(c.carrier_id)"
-          class="opacity-60 hover:opacity-100 transition-opacity leading-none flex-shrink-0"
+          class="cms-chip-remove"
           aria-label="Remove"
         >×</button>
       </span>
@@ -50,25 +41,16 @@
     <!-- Dropdown panel -->
     <div
       v-show="isOpen"
-      class="absolute z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg"
-      style="top: 100%; left: 0; min-width: 260px; width: 100%;"
+      class="cms-panel"
     >
       <!-- Quick actions -->
-      <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-        <button
-          type="button"
-          @click="selectAll"
-          class="text-xs text-[#0071e3] hover:underline"
-        >Select all</button>
-        <button
-          type="button"
-          @click="clearAll"
-          class="text-xs text-gray-400 hover:underline"
-        >Clear</button>
+      <div class="cms-panel-actions">
+        <button type="button" @click="selectAll" class="cms-action-btn is-primary">Select all</button>
+        <button type="button" @click="clearAll" class="cms-action-btn">Clear</button>
       </div>
 
       <!-- Search input -->
-      <div class="px-2 py-2 border-b border-gray-100">
+      <div class="cms-search-row">
         <input
           ref="searchEl"
           v-model="query"
@@ -85,36 +67,23 @@
           v-for="c in filteredCarriers"
           :key="c.carrier_id"
           @click="toggle(c.carrier_id)"
-          class="flex items-start gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors select-none"
+          class="cms-list-item"
         >
           <!-- Custom checkbox -->
-          <span
-            :class="[
-              'mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors',
-              props.modelValue.has(c.carrier_id)
-                ? 'bg-[#0071e3] border-[#0071e3]'
-                : 'border-gray-300 bg-white'
-            ]"
-          >
-            <svg
-              v-if="props.modelValue.has(c.carrier_id)"
-              width="10" height="8" viewBox="0 0 10 8" fill="none"
-            >
+          <span :class="['cms-checkbox', props.modelValue.has(c.carrier_id) ? 'is-checked' : '']">
+            <svg v-if="props.modelValue.has(c.carrier_id)" width="10" height="8" viewBox="0 0 10 8" fill="none">
               <path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </span>
           <!-- Name + dimensions -->
           <span class="flex flex-col min-w-0">
-            <span class="text-xs font-medium text-gray-800 truncate">{{ c.name || c.carrier_id }}</span>
-            <span class="opacity-50 mt-0.5" style="font-size:10px">
+            <span class="cms-item-name">{{ c.name || c.carrier_id }}</span>
+            <span class="cms-item-dims">
               {{ c.inner_length_mm }}×{{ c.inner_width_mm }}×{{ c.inner_height_mm }} mm · max {{ c.max_weight_kg }} kg
             </span>
           </span>
         </li>
-        <li
-          v-if="!filteredCarriers.length"
-          class="px-3 py-3 text-xs text-gray-400 text-center"
-        >
+        <li v-if="!filteredCarriers.length" class="cms-empty">
           No carriers match "{{ query }}"
         </li>
       </ul>
@@ -210,3 +179,155 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleDocumentKeydown)
 })
 </script>
+
+<style scoped>
+/* ── Trigger button ── */
+.cms-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--app-input-border);
+  background: var(--app-input-bg);
+  color: var(--app-text);
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: -0.224px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.25s;
+}
+.cms-trigger:hover { border-color: var(--app-input-border); }
+.cms-trigger.is-open {
+  border-color: #0071e3;
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.20);
+}
+.cms-trigger.is-error { border-color: #ff3b30; }
+
+.cms-placeholder { color: var(--app-placeholder); }
+.cms-value       { color: var(--app-text); }
+
+.cms-chevron {
+  flex-shrink: 0;
+  color: var(--app-placeholder);
+  transition: transform 0.15s;
+}
+
+/* ── Selected chips ── */
+.cms-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 980px;
+  background: rgba(0, 113, 227, 0.10);
+  border: 1px solid rgba(0, 113, 227, 0.30);
+  color: #0071e3;
+  font-size: 11px;
+}
+.cms-chip-remove {
+  opacity: 0.6;
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  color: inherit;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.cms-chip-remove:hover { opacity: 1; }
+
+/* ── Dropdown panel ── */
+.cms-panel {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 260px;
+  width: 100%;
+  background: var(--app-input-bg);
+  border: 1px solid var(--app-input-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.cms-panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--table-divider);
+}
+
+.cms-search-row {
+  padding: 8px;
+  border-bottom: 1px solid var(--table-divider);
+}
+
+.cms-action-btn {
+  font-size: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--app-text-sec);
+  transition: color 0.15s;
+}
+.cms-action-btn:hover { text-decoration: underline; color: var(--app-text); }
+.cms-action-btn.is-primary { color: #0071e3; }
+.cms-action-btn.is-primary:hover { color: #0077ed; }
+
+/* ── Carrier list items ── */
+.cms-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  border-top: 1px solid var(--table-divider);
+  transition: background 0.1s;
+}
+.cms-list-item:first-child { border-top: none; }
+.cms-list-item:hover { background: var(--table-row-hover); }
+
+.cms-checkbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--app-input-border);
+  background: var(--app-input-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cms-checkbox.is-checked {
+  background: #0071e3;
+  border-color: #0071e3;
+}
+
+.cms-item-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-text);
+}
+.cms-item-dims {
+  font-size: 10px;
+  color: var(--app-placeholder);
+  margin-top: 2px;
+}
+
+.cms-empty {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--app-placeholder);
+  text-align: center;
+}
+</style>
