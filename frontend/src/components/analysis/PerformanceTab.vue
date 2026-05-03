@@ -30,7 +30,7 @@
         <KpiCard label="Total Orders"    :value="pr.kpi.total_orders.toLocaleString()"       tooltip="Total number of distinct orders in the uploaded file." />
         <KpiCard label="Total Lines"     :value="pr.kpi.total_lines.toLocaleString()"        tooltip="Total number of order lines (one SKU per line)." />
         <KpiCard label="Avg Lines/Order" :value="pr.kpi.avg_lines_per_order.toFixed(1)"      tooltip="Average number of SKU lines per order." />
-        <KpiCard label="Avg Units/Order" :value="pr.kpi.avg_units_per_order.toFixed(1)"      tooltip="Average number of picked items (units) per order." />
+        <KpiCard label="Avg Units/Order" :value="(pr.kpi.avg_units_per_order ?? 0).toFixed(1)"      tooltip="Average number of picked items (units) per order." />
         <KpiCard label="P90 Lines/Hour"  :value="pr.kpi.p90_lines_per_hour.toFixed(0)"       tooltip="90th percentile of hourly line throughput — capacity planning baseline." />
         <KpiCard label="P95 Lines/Hour"  :value="pr.kpi.p95_lines_per_hour.toFixed(0)"       tooltip="95th percentile of hourly line throughput — capacity planning upper bound." />
         <KpiCard label="Total Pieces"    :value="pr.kpi.total_units.toLocaleString()"        tooltip="Total quantity of individual items across all order lines." />
@@ -42,7 +42,7 @@
         <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">
           Throughput per Period
           <span style="font-size:11px;font-weight:400;color:var(--app-text-sec);margin-left:6px">
-            ({{ pr.shifts_per_day }} shift{{ pr.shifts_per_day !== 1 ? 's' : '' }}/day)
+            ({{ pr.shifts_per_day ?? 2 }} shift{{ (pr.shifts_per_day ?? 2) !== 1 ? 's' : '' }}/day)
           </span>
         </h4>
         <div class="overflow-x-auto mt-3">
@@ -66,44 +66,44 @@
             <tbody>
               <tr class="perf-row">
                 <td class="px-3 py-2 font-medium" style="color:var(--app-text)">Orders</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.avg_orders_per_day.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.median_orders_per_day.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.max_orders_per_day.toLocaleString() }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.avg_orders_per_shift.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.median_orders_per_shift.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.max_orders_per_shift.toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.avg_orders_per_day ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_orders_per_day ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.max_orders_per_day ?? 0).toLocaleString() }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.avg_orders_per_shift ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_orders_per_shift ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.max_orders_per_shift ?? 0).toFixed(0) }}</td>
                 <template v-if="pr.has_hourly_data">
                   <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.avg_orders_per_hour.toFixed(1) }}</td>
-                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.median_orders_per_hour.toFixed(1) }}</td>
-                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.peak_orders_per_hour.toLocaleString() }}</td>
+                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_orders_per_hour ?? 0).toFixed(1) }}</td>
+                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.peak_orders_per_hour ?? 0).toLocaleString() }}</td>
                 </template>
               </tr>
               <tr class="perf-row">
                 <td class="px-3 py-2 font-medium" style="color:var(--app-text)">Lines</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.avg_lines_per_day.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.median_lines_per_day.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.max_lines_per_day.toLocaleString() }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.avg_lines_per_shift.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.median_lines_per_shift.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.max_lines_per_shift.toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.avg_lines_per_day ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_lines_per_day ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.max_lines_per_day ?? 0).toLocaleString() }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.avg_lines_per_shift ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_lines_per_shift ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.max_lines_per_shift ?? 0).toFixed(0) }}</td>
                 <template v-if="pr.has_hourly_data">
                   <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.avg_lines_per_hour.toFixed(1) }}</td>
-                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.median_lines_per_hour.toFixed(1) }}</td>
+                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_lines_per_hour ?? 0).toFixed(1) }}</td>
                   <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.peak_lines_per_hour.toLocaleString() }}</td>
                 </template>
               </tr>
               <tr class="perf-row">
                 <td class="px-3 py-2 font-medium" style="color:var(--app-text)">Units</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.avg_units_per_day.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.median_units_per_day.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.max_units_per_day.toLocaleString() }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.avg_units_per_shift.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.median_units_per_shift.toFixed(0) }}</td>
-                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.max_units_per_shift.toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.avg_units_per_day ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_units_per_day ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.max_units_per_day ?? 0).toLocaleString() }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.avg_units_per_shift ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_units_per_shift ?? 0).toFixed(0) }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.max_units_per_shift ?? 0).toFixed(0) }}</td>
                 <template v-if="pr.has_hourly_data">
                   <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.avg_units_per_hour.toFixed(1) }}</td>
-                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.median_units_per_hour.toFixed(1) }}</td>
-                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ pr.kpi.peak_units_per_hour.toLocaleString() }}</td>
+                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_units_per_hour ?? 0).toFixed(1) }}</td>
+                  <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.peak_units_per_hour ?? 0).toLocaleString() }}</td>
                 </template>
               </tr>
             </tbody>
