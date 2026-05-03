@@ -178,7 +178,7 @@ onMounted(async () => {
   font-family: "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 21px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: var(--app-text);
   line-height: 1.19;
   letter-spacing: 0.231px;
   cursor: pointer;
@@ -189,7 +189,7 @@ onMounted(async () => {
 .run-rename-input {
   font-size: 21px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: var(--app-text);
   border: none;
   border-bottom: 2px solid #0071e3;
   outline: none;
@@ -201,7 +201,7 @@ onMounted(async () => {
 
 .run-tab-nav {
   display: flex;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--app-border);
   gap: 0;
 }
 
@@ -210,7 +210,7 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 400;
   letter-spacing: -0.224px;
-  color: rgba(0, 0, 0, 0.48);
+  color: var(--app-text-sec);
   border: none;
   background: none;
   cursor: pointer;
@@ -220,7 +220,7 @@ onMounted(async () => {
   font-family: "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-.run-tab-btn:hover { color: #1d1d1f; }
+.run-tab-btn:hover { color: var(--app-text); }
 
 .run-tab-btn.active {
   color: #0071e3;
