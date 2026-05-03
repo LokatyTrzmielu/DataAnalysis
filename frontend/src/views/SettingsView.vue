@@ -1,27 +1,43 @@
 <template>
   <div style="max-width:480px">
-    <h1 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:#1d1d1f;line-height:1.14;letter-spacing:-0.28px;margin-bottom:24px">
+    <h1 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:var(--app-text);line-height:1.14;letter-spacing:-0.28px;margin-bottom:24px">
       Settings
     </h1>
 
+    <!-- Appearance -->
+    <section class="card-apple mb-6">
+      <h2 class="mb-4" style="font-size:12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.12px;text-transform:uppercase">Appearance</h2>
+      <div class="flex items-center justify-between">
+        <div>
+          <p style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Dark Mode</p>
+          <p style="font-size:12px;color:var(--app-text-sec);margin-top:2px;letter-spacing:-0.12px">Switch between light and dark interface</p>
+        </div>
+        <button
+          @click="theme.toggle()"
+          :class="['toggle-switch', theme.dark ? 'is-on' : '']"
+          :aria-label="theme.dark ? 'Switch to light mode' : 'Switch to dark mode'"
+        />
+      </div>
+    </section>
+
     <!-- Account info -->
     <section class="card-apple mb-6">
-      <h2 class="mb-4" style="font-size:12px;font-weight:600;color:rgba(0,0,0,0.48);letter-spacing:0.12px;text-transform:uppercase">Account</h2>
+      <h2 class="mb-4" style="font-size:12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.12px;text-transform:uppercase">Account</h2>
       <div class="space-y-3">
         <div class="flex items-center gap-3">
-          <span style="width:80px;font-size:14px;color:rgba(0,0,0,0.48);letter-spacing:-0.224px;flex-shrink:0">Name</span>
-          <span style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">{{ auth.user?.name }}</span>
+          <span style="width:80px;font-size:14px;color:var(--app-text-sec);letter-spacing:-0.224px;flex-shrink:0">Name</span>
+          <span style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">{{ auth.user?.name }}</span>
         </div>
         <div class="flex items-center gap-3">
-          <span style="width:80px;font-size:14px;color:rgba(0,0,0,0.48);letter-spacing:-0.224px;flex-shrink:0">Email</span>
-          <span style="font-size:14px;color:#1d1d1f;letter-spacing:-0.224px">{{ auth.user?.email }}</span>
+          <span style="width:80px;font-size:14px;color:var(--app-text-sec);letter-spacing:-0.224px;flex-shrink:0">Email</span>
+          <span style="font-size:14px;color:var(--app-text);letter-spacing:-0.224px">{{ auth.user?.email }}</span>
         </div>
       </div>
     </section>
 
     <!-- Change password -->
     <section class="card-apple">
-      <h2 class="mb-4" style="font-size:12px;font-weight:600;color:rgba(0,0,0,0.48);letter-spacing:0.12px;text-transform:uppercase">Change password</h2>
+      <h2 class="mb-4" style="font-size:12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.12px;text-transform:uppercase">Change password</h2>
 
       <form @submit.prevent="submit" class="space-y-4">
         <div>
@@ -51,9 +67,11 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 import { authApi } from '@/api/auth'
 
 const auth = useAuthStore()
+const theme = useThemeStore()
 
 const form = reactive({ old_password: '', new_password: '', confirm: '' })
 const loading = ref(false)

@@ -17,6 +17,33 @@
   --font-body:    "SF Pro Text",    "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
+/* ── Semantic theme tokens ── */
+:root {
+  --app-bg:           #f5f5f7;
+  --app-surface:      #ffffff;
+  --app-text:         #1d1d1f;
+  --app-text-sec:     rgba(0, 0, 0, 0.48);
+  --app-text-ter:     rgba(0, 0, 0, 0.8);
+  --app-border:       rgba(0, 0, 0, 0.08);
+  --app-input-bg:     #ffffff;
+  --app-input-border: rgba(0, 0, 0, 0.16);
+  --app-placeholder:  rgba(0, 0, 0, 0.32);
+  --app-link:         #0066cc;
+}
+
+html.dark {
+  --app-bg:           #000000;
+  --app-surface:      #272729;
+  --app-text:         #ffffff;
+  --app-text-sec:     rgba(255, 255, 255, 0.80);
+  --app-text-ter:     rgba(255, 255, 255, 0.92);
+  --app-border:       rgba(255, 255, 255, 0.16);
+  --app-input-bg:     #1c1c1e;
+  --app-input-border: rgba(255, 255, 255, 0.28);
+  --app-placeholder:  rgba(255, 255, 255, 0.45);
+  --app-link:         #2997ff;
+}
+
 #app { min-height: 100vh; }
 
 @layer base {
@@ -29,8 +56,8 @@
 
   body {
     min-height: 100vh;
-    background-color: #f5f5f7;
-    color: #1d1d1f;
+    background-color: var(--app-bg);
+    color: var(--app-text);
     font-family: "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 17px;
     line-height: 1.47;
@@ -38,6 +65,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    transition: background-color 0.25s, color 0.25s;
   }
 }
 
@@ -103,73 +131,104 @@
 /* ── Form Inputs ── */
 .input-apple {
   width: 100%;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.16);
+  background: var(--app-input-bg);
+  border: 1px solid var(--app-input-border);
   border-radius: 11px;
   padding: 10px 14px;
   font-family: inherit;
   font-size: 17px;
   letter-spacing: -0.374px;
-  color: #1d1d1f;
+  color: var(--app-text);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.25s, color 0.25s;
 }
 .input-apple:focus {
   border-color: #0071e3;
   box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25);
 }
-.input-apple::placeholder { color: rgba(0, 0, 0, 0.32); }
+.input-apple::placeholder { color: var(--app-placeholder); }
 
 .input-apple-sm {
   width: 100%;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.16);
+  background: var(--app-input-bg);
+  border: 1px solid var(--app-input-border);
   border-radius: 8px;
   padding: 7px 12px;
   font-family: inherit;
   font-size: 14px;
   letter-spacing: -0.224px;
-  color: #1d1d1f;
+  color: var(--app-text);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.25s, color 0.25s;
 }
 .input-apple-sm:focus {
   border-color: #0071e3;
   box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2);
 }
-.input-apple-sm::placeholder { color: rgba(0, 0, 0, 0.32); }
+.input-apple-sm::placeholder { color: var(--app-placeholder); }
 
 .label-apple {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--app-text);
   letter-spacing: -0.224px;
   margin-bottom: 6px;
 }
 
 /* ── Cards ── */
 .card-apple {
-  background: #fff;
+  background: var(--app-surface);
   border-radius: 8px;
   border: none;
   padding: 20px;
+  transition: background 0.25s;
 }
 
 .card-apple-elevated {
-  background: #fff;
+  background: var(--app-surface);
   border-radius: 12px;
   border: none;
   padding: 24px;
   box-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0px;
+  transition: background 0.25s;
 }
 
 .card-apple-list {
-  background: #fff;
+  background: var(--app-surface);
   border-radius: 8px;
   border: none;
   overflow: hidden;
+  transition: background 0.25s;
 }
 .card-apple-list > * + * {
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--app-border);
 }
+
+/* ── iOS-style theme toggle ── */
+.toggle-switch {
+  width: 51px;
+  height: 31px;
+  border-radius: 980px;
+  background: rgba(120, 120, 128, 0.32);
+  position: relative;
+  cursor: pointer;
+  border: none;
+  transition: background 0.25s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.toggle-switch.is-on { background: #34c759; }
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: transform 0.25s;
+}
+.toggle-switch.is-on::after { transform: translateX(20px); }

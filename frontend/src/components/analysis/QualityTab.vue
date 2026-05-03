@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div v-if="!qr && !ovr" class="text-sm text-gray-400 p-4">
       No validation results yet. Import data in the Import tab first.
@@ -8,7 +8,7 @@
 
       <!-- ── Masterdata section ── -->
       <details v-if="qr" open class="card-apple-list overflow-hidden">
-        <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">
+        <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">
           <span>Masterdata</span>
           <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -23,7 +23,7 @@
           </div>
 
           <div class="card-apple" style="background:#f5f5f7">
-            <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Issue counts</h3>
+            <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Issue counts</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-gray-500 flex items-center gap-1">
@@ -74,7 +74,7 @@
 
       <!-- ── Orders section ── -->
       <details v-if="ovr" open class="card-apple-list overflow-hidden">
-        <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">
+        <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">
           <span>Orders</span>
           <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>

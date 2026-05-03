@@ -1,7 +1,7 @@
 <template>
   <div class="w-full flex items-center justify-center" style="min-height:calc(100vh - 0px)">
     <div class="card-apple-elevated w-full" style="max-width:380px">
-      <h1 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:700;color:#1d1d1f;line-height:1.14;letter-spacing:-0.28px;margin-bottom:28px">
+      <h1 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:700;color:var(--app-text);line-height:1.14;letter-spacing:-0.28px;margin-bottom:28px">
         Datavisor
       </h1>
 
@@ -22,9 +22,9 @@
           {{ loginLoading ? 'Signing in…' : 'Sign in' }}
         </button>
 
-        <p class="text-center text-sm" style="color:rgba(0,0,0,0.48);letter-spacing:-0.224px">
+        <p class="text-center text-sm" style="color:var(--app-text-sec);letter-spacing:-0.224px">
           No account?
-          <button type="button" @click="switchMode('register')" style="color:#0066cc" class="hover:underline">
+          <button type="button" @click="switchMode('register')" style="color:var(--app-link)" class="hover:underline">
             Create one
           </button>
         </p>
@@ -51,9 +51,9 @@
           {{ regLoading ? 'Creating…' : 'Create account' }}
         </button>
 
-        <p class="text-center text-sm" style="color:rgba(0,0,0,0.48);letter-spacing:-0.224px">
+        <p class="text-center text-sm" style="color:var(--app-text-sec);letter-spacing:-0.224px">
           Already have an account?
-          <button type="button" @click="switchMode('login')" style="color:#0066cc" class="hover:underline">
+          <button type="button" @click="switchMode('login')" style="color:var(--app-link)" class="hover:underline">
             Sign in
           </button>
         </p>

@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div>
     <div class="mb-6">
-      <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:#1d1d1f;line-height:1.14;letter-spacing:-0.28px">
+      <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:var(--app-text);line-height:1.14;letter-spacing:-0.28px">
         Welcome, {{ auth.user?.name }}
       </h2>
-      <p class="mt-1" style="font-size:17px;color:rgba(0,0,0,0.48);letter-spacing:-0.374px">
+      <p class="mt-1" style="font-size:17px;color:var(--app-text-sec);letter-spacing:-0.374px">
         Warehouse capacity &amp; performance analytics
       </p>
     </div>
@@ -24,22 +24,22 @@
         class="card-apple block hover:shadow-sm transition-shadow"
         style="text-decoration:none"
       >
-        <div style="font-size:14px;font-weight:600;color:#1d1d1f">History</div>
-        <div class="mt-1" style="font-size:12px;color:rgba(0,0,0,0.48)">Browse past analyses</div>
+        <div style="font-size:14px;font-weight:600;color:var(--app-text)">History</div>
+        <div class="mt-1" style="font-size:12px;color:var(--app-text-sec)">Browse past analyses</div>
       </RouterLink>
       <RouterLink
         to="/carriers"
         class="card-apple block hover:shadow-sm transition-shadow"
         style="text-decoration:none"
       >
-        <div style="font-size:14px;font-weight:600;color:#1d1d1f">Carriers</div>
-        <div class="mt-1" style="font-size:12px;color:rgba(0,0,0,0.48)">Manage carrier configs</div>
+        <div style="font-size:14px;font-weight:600;color:var(--app-text)">Carriers</div>
+        <div class="mt-1" style="font-size:12px;color:var(--app-text-sec)">Manage carrier configs</div>
       </RouterLink>
     </div>
 
     <!-- Latest run summary -->
     <div v-if="latestRun" style="margin-bottom:40px">
-      <h3 class="mb-1" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">
+      <h3 class="mb-1" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">
         Latest analysis
       </h3>
       <div class="flex items-center gap-3 mb-3">
@@ -64,7 +64,7 @@
               ]" :style="step.done ? 'background:#0071e3' : 'background:rgba(0,0,0,0.06)'">
                 {{ step.done ? '✓' : i + 1 }}
               </div>
-              <span class="text-xs mt-1 text-center w-16" :style="step.done ? 'color:#0071e3;font-weight:600' : 'color:rgba(0,0,0,0.32)'">
+              <span class="text-xs mt-1 text-center w-16" :style="step.done ? 'color:#0071e3;font-weight:600' : 'color:var(--app-placeholder)'">
                 {{ step.label }}
               </span>
             </div>
@@ -76,38 +76,38 @@
       <!-- KPI summary -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="card-apple">
-          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Total SKUs</p>
-          <p v-if="latestRun.quality_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.quality_result as any).total_records?.toLocaleString() ?? '—' }}</p>
-          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Quality not run</p>
+          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total SKUs</p>
+          <p v-if="latestRun.quality_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.quality_result as any).total_records?.toLocaleString() ?? '—' }}</p>
+          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Quality not run</p>
         </div>
         <div class="card-apple">
-          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Quality Score</p>
-          <p v-if="latestRun.quality_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.quality_result as any).overall_score?.toFixed(1) ?? '—' }}%</p>
-          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Quality not run</p>
+          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Quality Score</p>
+          <p v-if="latestRun.quality_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.quality_result as any).overall_score?.toFixed(1) ?? '—' }}%</p>
+          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Quality not run</p>
         </div>
         <div class="card-apple">
-          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Fit %</p>
-          <p v-if="latestRun.capacity_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.capacity_result as any).fit_percentage?.toFixed(1) ?? '—' }}%</p>
-          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Capacity not run</p>
+          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Fit %</p>
+          <p v-if="latestRun.capacity_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.capacity_result as any).fit_percentage?.toFixed(1) ?? '—' }}%</p>
+          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
         </div>
         <div class="card-apple">
-          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Total Lines</p>
-          <p v-if="latestRun.performance_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.performance_result as any).kpi?.total_lines?.toLocaleString() ?? '—' }}</p>
-          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Performance not run</p>
+          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total Lines</p>
+          <p v-if="latestRun.performance_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.performance_result as any).kpi?.total_lines?.toLocaleString() ?? '—' }}</p>
+          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
         </div>
         <div class="card-apple">
-          <p style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:4px">Avg Lines/Hour</p>
-          <p v-if="latestRun.performance_result" style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19">{{ (latestRun.performance_result as any).kpi?.avg_lines_per_hour?.toFixed(1) ?? '—' }}</p>
-          <p v-else style="font-size:12px;color:rgba(0,0,0,0.32);margin-top:4px">Performance not run</p>
+          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Lines/Hour</p>
+          <p v-if="latestRun.performance_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.performance_result as any).kpi?.avg_lines_per_hour?.toFixed(1) ?? '—' }}</p>
+          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
         </div>
       </div>
     </div>
 
     <!-- Recent runs list -->
     <div>
-      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Recent analyses</h3>
-      <div v-if="runStore.loading" style="font-size:14px;color:rgba(0,0,0,0.48)">Loading…</div>
-      <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:rgba(0,0,0,0.48)">
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Recent analyses</h3>
+      <div v-if="runStore.loading" style="font-size:14px;color:var(--app-text-sec)">Loading…</div>
+      <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:var(--app-text-sec)">
         No analyses yet. Create one above.
       </div>
       <div v-else class="card-apple-list">
@@ -118,15 +118,15 @@
             @dblclick="router.push({ path: `/runs/${run.id}`, query: { tab: tabFromStatus(run.status) } })"
           >
             <div class="flex-1 min-w-0 text-left">
-              <span style="font-size:17px;color:#1d1d1f;letter-spacing:-0.374px">{{ run.client_name }}</span>
+              <span style="font-size:17px;color:var(--app-text);letter-spacing:-0.374px">{{ run.client_name }}</span>
             </div>
             <div class="flex items-center gap-2 shrink-0 ml-3">
               <StatusBadge :status="run.status" />
-              <span style="font-size:12px;color:rgba(0,0,0,0.48)">{{ formatDate(run.created_at) }}</span>
+              <span style="font-size:12px;color:var(--app-text-sec)">{{ formatDate(run.created_at) }}</span>
               <button
                 @click="toggleNotes(run.id)"
                 :class="['p-1.5 rounded transition-colors']"
-                :style="openNotesId === run.id || run.notes ? 'color:#0071e3' : 'color:rgba(0,0,0,0.32)'"
+                :style="openNotesId === run.id || run.notes ? 'color:#0071e3' : 'color:var(--app-placeholder)'"
                 title="Notes"
               >
                 <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">

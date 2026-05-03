@@ -1,29 +1,11 @@
-<template>
+﻿<template>
   <div v-if="run">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
+    <div class="mb-6">
+      <!-- Top row: back button left, action buttons right -->
+      <div class="flex items-center justify-between">
         <RouterLink to="/runs" class="btn-apple-pill" style="text-decoration:none;font-size:13px">← Analyses</RouterLink>
-        <!-- Inline rename -->
-        <div class="mt-2 flex items-center gap-2">
-          <input
-            v-if="renaming"
-            ref="renameInput"
-            v-model="renameValue"
-            @blur="saveRename"
-            @keydown.enter="saveRename"
-            @keydown.escape="renaming = false"
-            class="run-rename-input"
-          />
-          <h2
-            v-else
-            class="run-title"
-            title="Click to rename"
-            @click="startRename"
-          >{{ run.client_name }}</h2>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2">
         <StatusBadge :status="run.status" />
         <button
           @click="showNotes = true"
@@ -46,6 +28,25 @@
           </svg>
           Share
         </button>
+        </div>
+      </div>
+      <!-- Bottom row: analysis name -->
+      <div class="mt-2 flex items-center gap-2">
+        <input
+          v-if="renaming"
+          ref="renameInput"
+          v-model="renameValue"
+          @blur="saveRename"
+          @keydown.enter="saveRename"
+          @keydown.escape="renaming = false"
+          class="run-rename-input"
+        />
+        <h2
+          v-else
+          class="run-title"
+          title="Click to rename"
+          @click="startRename"
+        >{{ run.client_name }}</h2>
       </div>
     </div>
 
@@ -85,7 +86,7 @@
     <ShareModal v-if="showShare" :run-id="run.id" @close="showShare = false" />
   </div>
 
-  <div v-else-if="loading" style="font-size:14px;color:rgba(0,0,0,0.48)">Loading…</div>
+  <div v-else-if="loading" style="font-size:14px;color:var(--app-text-sec)">Loading…</div>
   <div v-else style="font-size:14px;color:#ff3b30">Run not found.</div>
 </template>
 

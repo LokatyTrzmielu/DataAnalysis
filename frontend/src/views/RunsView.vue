@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div>
     <!-- Header -->
     <div class="flex items-center justify-between mb-5">
-      <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:#1d1d1f;line-height:1.14;letter-spacing:-0.28px">
+      <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:var(--app-text);line-height:1.14;letter-spacing:-0.28px">
         Analyses
       </h2>
       <button @click="showModal = true" class="btn-apple-primary">
@@ -36,8 +36,8 @@
     </div>
 
     <!-- List -->
-    <div v-if="runStore.loading" style="font-size:14px;color:rgba(0,0,0,0.48)">Loading…</div>
-    <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:rgba(0,0,0,0.48)">No analyses found.</div>
+    <div v-if="runStore.loading" style="font-size:14px;color:var(--app-text-sec)">Loading…</div>
+    <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:var(--app-text-sec)">No analyses found.</div>
     <div v-else class="card-apple-list">
       <div
         v-for="run in runStore.runs"
@@ -49,7 +49,7 @@
       >
         <!-- Name — clickable -->
         <RouterLink :to="`/runs/${run.id}`" class="flex-1 min-w-0 flex items-center gap-3" style="text-decoration:none">
-          <span style="font-size:17px;color:#1d1d1f;letter-spacing:-0.374px" class="truncate">{{ run.client_name }}</span>
+          <span style="font-size:17px;color:var(--app-text);letter-spacing:-0.374px" class="truncate">{{ run.client_name }}</span>
           <span v-if="run.is_public" title="Public" style="color:#0071e3">
             <svg class="w-3.5 h-3.5 inline" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
@@ -60,13 +60,13 @@
         <!-- Actions -->
         <div class="flex items-center gap-2 shrink-0 ml-3">
           <StatusBadge :status="run.status" />
-          <span class="shrink-0" style="font-size:12px;color:rgba(0,0,0,0.48)">{{ formatDate(run.created_at) }}</span>
+          <span class="shrink-0" style="font-size:12px;color:var(--app-text-sec)">{{ formatDate(run.created_at) }}</span>
 
           <!-- Duplicate -->
           <button
             @click.prevent="onDuplicate(run.id)"
             class="p-1.5 rounded transition-colors"
-            style="color:rgba(0,0,0,0.32)"
+            style="color:var(--app-placeholder)"
             @mouseover="(e) => (e.currentTarget as HTMLElement).style.color='#0071e3'"
             @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'"
             title="Duplicate"
@@ -81,7 +81,7 @@
           <button
             @click.prevent="onTogglePublic(run)"
             class="p-1.5 rounded transition-colors"
-            :style="run.is_public ? 'color:#0071e3' : 'color:rgba(0,0,0,0.32)'"
+            :style="run.is_public ? 'color:#0071e3' : 'color:var(--app-placeholder)'"
             :title="run.is_public ? 'Make private' : 'Make public'"
           >
             <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -91,15 +91,15 @@
 
           <!-- Delete / confirm -->
           <template v-if="confirmDelete === run.id">
-            <span class="text-xs mr-1" style="color:rgba(0,0,0,0.48)">Delete?</span>
+            <span class="text-xs mr-1" style="color:var(--app-text-sec)">Delete?</span>
             <button @click.prevent="onDelete(run.id)" class="text-xs font-medium mr-1" style="color:#ff3b30">Yes</button>
-            <button @click.prevent="confirmDelete = null" class="text-xs" style="color:rgba(0,0,0,0.48)">No</button>
+            <button @click.prevent="confirmDelete = null" class="text-xs" style="color:var(--app-text-sec)">No</button>
           </template>
           <button
             v-else
             @click.prevent="confirmDelete = run.id"
             class="p-1.5 rounded transition-colors"
-            style="color:rgba(0,0,0,0.32)"
+            style="color:var(--app-placeholder)"
             @mouseover="(e) => (e.currentTarget as HTMLElement).style.color='#ff3b30'"
             @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'"
             title="Delete"

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
 
     <!-- Empty state -->
@@ -11,7 +11,7 @@
       v-if="ovr"
       class="card-apple"
     >
-      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Analysis settings</h3>
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Analysis settings</h3>
       <div class="max-w-64 mb-4">
         <label class="block text-xs text-gray-600 mb-1">Productive hours/shift: <strong>{{ productiveHours }}h</strong></label>
         <input
@@ -50,7 +50,7 @@
       <!-- Chart 1: Daily Activity -->
       <div class="card-apple">
         <div class="flex items-center justify-between mb-2">
-          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Daily Activity</h4>
+          <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Daily Activity</h4>
           <button @click="openZoom('daily', 'Daily Activity')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -61,7 +61,7 @@
       <!-- Chart 2: Hourly Heatmap (only if has_hourly_data) -->
       <div v-if="pr.has_hourly_data" class="card-apple">
         <div class="flex items-center justify-between mb-2">
-          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Hourly Heatmap</h4>
+          <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Hourly Heatmap</h4>
           <button @click="openZoom('heatmap', 'Hourly Heatmap')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -72,7 +72,7 @@
       <!-- Chart 3: Hourly Throughput (only if has_hourly_data) -->
       <div v-if="pr.has_hourly_data && pr.hourly_metrics?.length" class="card-apple">
         <div class="flex items-center justify-between mb-2">
-          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Hourly Throughput</h4>
+          <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Hourly Throughput</h4>
           <button @click="openZoom('hourly', 'Hourly Throughput')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -83,7 +83,7 @@
       <!-- Chart 4: Weekly Trend (only if multiple weeks) -->
       <div v-if="pr.weekly_trends?.length > 1" class="card-apple">
         <div class="flex items-center justify-between mb-2">
-          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Weekly Trend</h4>
+          <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Weekly Trend</h4>
           <button @click="openZoom('weekly', 'Weekly Trend')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -94,7 +94,7 @@
       <!-- Chart 5: Day-of-Week Profile -->
       <div v-if="pr.weekday_profile?.length" class="card-apple">
         <div class="flex items-center justify-between mb-2">
-          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Day-of-Week Profile (Avg Lines/Day)</h4>
+          <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Day-of-Week Profile (Avg Lines/Day)</h4>
           <button @click="openZoom('dow', 'Day-of-Week Profile')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -104,7 +104,7 @@
 
       <!-- KPI cards: Lines per Order Distribution -->
       <div v-if="pr.lines_per_order_dist?.length">
-        <h4 class="mb-2" style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Lines per Order Distribution</h4>
+        <h4 class="mb-2" style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Lines per Order Distribution</h4>
         <div class="grid grid-cols-4 gap-3">
           <KpiCard
             v-for="bin in pr.lines_per_order_dist"
@@ -119,7 +119,7 @@
       <!-- Chart 6: Lines per Order Distribution -->
       <div v-if="pr.lines_per_order_dist?.length" class="card-apple">
         <div class="flex items-center justify-between mb-2">
-          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Lines per Order Distribution — Chart</h4>
+          <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Lines per Order Distribution — Chart</h4>
           <button @click="openZoom('linesPerOrder', 'Lines per Order Distribution')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -131,8 +131,8 @@
       <div class="card-apple-list overflow-hidden">
         <div class="px-4 py-3 flex flex-wrap gap-3 items-center justify-between" style="border-bottom:1px solid rgba(0,0,0,0.08)">
           <div class="flex items-center gap-2 flex-wrap">
-            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">SKU Pareto</h4>
-            <span v-if="pr.sku_pareto?.length" style="font-size:11px;color:rgba(0,0,0,0.48)">
+            <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">SKU Pareto</h4>
+            <span v-if="pr.sku_pareto?.length" style="font-size:11px;color:var(--app-text-sec)">
               A: {{ abcPct('A') }}% · B: {{ abcPct('B') }}% · C: {{ abcPct('C') }}%
             </span>
           </div>
@@ -150,11 +150,11 @@
           <table class="w-full text-xs">
             <thead class="sticky top-0" style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
               <tr>
-                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">Rank</th>
-                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">SKU</th>
-                <th class="px-3 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">Lines</th>
-                <th class="px-3 py-2 text-center font-medium" style="color:rgba(0,0,0,0.48)">ABC</th>
-                <th class="px-3 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">Cumulative %</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:var(--app-text-sec)">Rank</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:var(--app-text-sec)">SKU</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Lines</th>
+                <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">ABC</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Cumulative %</th>
               </tr>
             </thead>
             <tbody>

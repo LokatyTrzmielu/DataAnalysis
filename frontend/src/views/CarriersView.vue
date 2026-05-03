@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:#1d1d1f;line-height:1.14;letter-spacing:-0.28px">
+      <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:var(--app-text);line-height:1.14;letter-spacing:-0.28px">
         Carriers
       </h2>
       <button @click="showForm = !showForm" class="btn-apple-primary">
@@ -11,7 +11,7 @@
 
     <!-- Add carrier form -->
     <div v-if="showForm" class="card-apple mb-6">
-      <h3 class="mb-4" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">New carrier</h3>
+      <h3 class="mb-4" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">New carrier</h3>
       <div class="grid grid-cols-2 gap-3 mb-4">
         <div>
           <label class="label-apple" style="font-size:12px">Carrier ID</label>
@@ -45,7 +45,7 @@
     </div>
 
     <!-- Carrier list -->
-    <div v-if="carriersStore.loading" style="font-size:14px;color:rgba(0,0,0,0.48)">Loading…</div>
+    <div v-if="carriersStore.loading" style="font-size:14px;color:var(--app-text-sec)">Loading…</div>
     <div v-else class="card-apple-list">
       <div
         v-for="c in carriersStore.carriers"
@@ -53,12 +53,12 @@
         class="flex items-center justify-between px-4 py-3"
       >
         <div>
-          <span style="font-size:17px;color:#1d1d1f;letter-spacing:-0.374px">{{ c.name }}</span>
-          <span class="ml-2" style="font-size:12px;color:rgba(0,0,0,0.48)">{{ c.carrier_id }}</span>
+          <span style="font-size:17px;color:var(--app-text);letter-spacing:-0.374px">{{ c.name }}</span>
+          <span class="ml-2" style="font-size:12px;color:var(--app-text-sec)">{{ c.carrier_id }}</span>
           <span
             v-if="!c.is_active"
             class="ml-2 rounded px-1.5 py-0.5"
-            style="font-size:11px;background:rgba(0,0,0,0.06);color:rgba(0,0,0,0.48)"
+            style="font-size:11px;background:rgba(0,0,0,0.06);color:var(--app-text-sec)"
           >inactive</span>
           <span
             v-if="c.is_predefined"
@@ -66,7 +66,7 @@
             style="font-size:11px;background:rgba(0,113,227,0.08);color:#0066cc"
           >predefined</span>
         </div>
-        <div class="flex items-center gap-4" style="font-size:12px;color:rgba(0,0,0,0.48)">
+        <div class="flex items-center gap-4" style="font-size:12px;color:var(--app-text-sec)">
           <span>{{ c.inner_length_mm }}×{{ c.inner_width_mm }}×{{ c.inner_height_mm }} mm</span>
           <span>{{ c.max_weight_kg }} kg</span>
           <button

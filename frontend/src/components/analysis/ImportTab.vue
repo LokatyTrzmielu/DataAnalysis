@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div class="space-y-6">
 
     <!-- ── Masterdata Section ── -->
     <div class="card-apple">
       <div class="flex items-center justify-between mb-3">
-        <h3 style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Masterdata</h3>
+        <h3 style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Masterdata</h3>
         <span v-if="run.quality_result" class="flex items-center gap-1 text-xs text-green-600 font-medium">
           <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
@@ -116,7 +116,7 @@
     <!-- ── Orders Section ── -->
     <div class="card-apple">
       <div class="flex items-center justify-between mb-3">
-        <h3 style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Orders</h3>
+        <h3 style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Orders</h3>
         <span v-if="run.orders_validation_result" class="flex items-center gap-1 text-xs text-green-600 font-medium">
           <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
@@ -220,12 +220,12 @@
       @click.self="showProceedModal = false"
     >
       <div class="card-apple-elevated w-full mx-4" style="max-width:360px">
-        <h3 style="font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:8px">Missing import</h3>
-        <p style="font-size:14px;color:rgba(0,0,0,0.8);letter-spacing:-0.224px;margin-bottom:20px">{{ proceedModalMessage }} Proceed to Validation anyway?</p>
+        <h3 style="font-size:17px;font-weight:600;color:var(--app-text);margin-bottom:8px">Missing import</h3>
+        <p style="font-size:14px;color:var(--app-text-ter);letter-spacing:-0.224px;margin-bottom:20px">{{ proceedModalMessage }} Proceed to Validation anyway?</p>
         <div class="flex justify-end gap-2">
           <button
             @click="showProceedModal = false"
-            style="font-size:14px;color:rgba(0,0,0,0.48);background:none;border:none;cursor:pointer;padding:8px 12px"
+            style="font-size:14px;color:var(--app-text-sec);background:none;border:none;cursor:pointer;padding:8px 12px"
           >
             Cancel
           </button>

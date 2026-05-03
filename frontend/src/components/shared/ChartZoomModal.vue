@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div
     class="fixed inset-0 flex items-center justify-center z-50"
     style="background:rgba(0,0,0,0.55)"
@@ -6,7 +6,7 @@
   >
     <div class="card-apple-elevated flex flex-col w-full" style="max-width:92vw;max-height:92vh">
       <div class="flex items-center justify-between" style="flex-shrink:0;margin-bottom:16px">
-        <h3 style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">{{ title }}</h3>
+        <h3 style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">{{ title }}</h3>
         <button
           @click="emit('close')"
           class="hover:bg-black/[.06] transition-colors"

@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div class="space-y-4">
     <!-- Main downloads (ZIP + PDF) -->
     <div class="card-apple">
-      <h3 class="mb-4" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Download full reports</h3>
+      <h3 class="mb-4" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Download full reports</h3>
       <div class="flex gap-3 flex-wrap">
         <button
           @click="downloadZip"
@@ -22,7 +22,7 @@
           {{ downloadingPdf ? 'Preparing…' : 'Download PDF' }}
         </button>
       </div>
-      <p v-if="!run.capacity_result" class="mt-3" style="font-size:12px;color:rgba(0,0,0,0.48)">
+      <p v-if="!run.capacity_result" class="mt-3" style="font-size:12px;color:var(--app-text-sec)">
         Run capacity analysis first to enable report download.
       </p>
       <p v-if="error" class="mt-3" style="font-size:14px;color:#ff3b30">{{ error }}</p>
@@ -30,7 +30,7 @@
 
     <!-- DQ CSV reports -->
     <div class="card-apple">
-      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Data Quality CSV reports</h3>
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Data Quality CSV reports</h3>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <button
           v-for="rep in dqReports"
@@ -44,14 +44,14 @@
           {{ downloading === rep.name ? 'Preparing…' : rep.label }}
         </button>
       </div>
-      <p v-if="!run.quality_result" class="mt-3" style="font-size:12px;color:rgba(0,0,0,0.48)">
+      <p v-if="!run.quality_result" class="mt-3" style="font-size:12px;color:var(--app-text-sec)">
         Run quality check first to enable DQ reports.
       </p>
     </div>
 
     <!-- Capacity & Performance CSV -->
     <div class="card-apple">
-      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Analysis CSV reports</h3>
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Analysis CSV reports</h3>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <button
           @click="downloadCsv('Capacity_Results')"
@@ -72,15 +72,15 @@
           {{ downloading === 'SKU_Pareto' ? 'Preparing…' : 'SKU Pareto' }}
         </button>
       </div>
-      <p v-if="!run.capacity_result && !run.performance_result" class="mt-3" style="font-size:12px;color:rgba(0,0,0,0.48)">
+      <p v-if="!run.capacity_result && !run.performance_result" class="mt-3" style="font-size:12px;color:var(--app-text-sec)">
         Run capacity or performance analysis to enable these exports.
       </p>
     </div>
 
     <!-- Solution Design -->
     <div class="card-apple">
-      <h3 class="mb-1" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Solution Design</h3>
-      <p class="mb-3" style="font-size:12px;color:rgba(0,0,0,0.48)">
+      <h3 class="mb-1" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Solution Design</h3>
+      <p class="mb-3" style="font-size:12px;color:var(--app-text-sec)">
         Input values for SolDimTool v2.7.3 Dashboard.
       </p>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -94,7 +94,7 @@
           {{ downloading === 'SolDimTool_DashboardInput' ? 'Preparing…' : 'SolDimTool Dashboard Input' }}
         </button>
       </div>
-      <p v-if="!run.performance_result" class="mt-3" style="font-size:12px;color:rgba(0,0,0,0.48)">
+      <p v-if="!run.performance_result" class="mt-3" style="font-size:12px;color:var(--app-text-sec)">
         Run performance analysis first to enable this report.
       </p>
     </div>

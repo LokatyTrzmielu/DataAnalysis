@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div class="card-apple">
-    <p class="flex items-center gap-1" style="font-size:12px;color:rgba(0,0,0,0.48);letter-spacing:-0.12px;margin-bottom:6px">
+    <p class="flex items-center gap-1" style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:6px">
       {{ label }}
       <HelpTip v-if="tooltip" :text="tooltip" />
     </p>
-    <p style="font-size:21px;font-weight:600;color:#1d1d1f;line-height:1.19;letter-spacing:-0.021px">{{ value }}</p>
+    <p style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19;letter-spacing:-0.021px">{{ value }}</p>
   </div>
 </template>
 

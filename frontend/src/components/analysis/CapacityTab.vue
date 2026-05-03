@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <!-- Upload + run capacity -->
     <div class="card-apple">
-      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:#1d1d1f;letter-spacing:-0.224px">Run capacity analysis</h3>
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Run capacity analysis</h3>
       <div class="flex flex-col gap-3">
         <!-- Analysis mode (radio) -->
         <div>
@@ -70,7 +70,7 @@
         <!-- Carrier Fit Chart -->
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
-            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Carrier Fit</h4>
+            <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Carrier Fit</h4>
             <button @click="openZoom('carrier', 'Carrier Fit')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -80,7 +80,7 @@
         <!-- Volume Distribution -->
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
-            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Volume Distribution (m³)</h4>
+            <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Volume Distribution (m³)</h4>
             <button @click="openZoom('volume', 'Volume Distribution (m³)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -90,7 +90,7 @@
         <!-- Margin Distribution -->
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
-            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Margin Distribution (mm, FIT + BORDERLINE)</h4>
+            <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Margin Distribution (mm, FIT + BORDERLINE)</h4>
             <button @click="openZoom('margin', 'Margin Distribution (mm)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -100,7 +100,7 @@
         <!-- Dimensions Distribution -->
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
-            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Dimensions Distribution (mm)</h4>
+            <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Dimensions Distribution (mm)</h4>
             <button @click="openZoom('dims', 'Dimensions Distribution (mm)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -110,7 +110,7 @@
         <!-- Weight Distribution -->
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
-            <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Weight Distribution (kg)</h4>
+            <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Weight Distribution (kg)</h4>
             <button @click="openZoom('weight', 'Weight Distribution (kg)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -154,18 +154,18 @@
       <!-- ABC Cross-stats (visible only when Performance data is available) -->
       <div v-if="hasPerformanceData" class="card-apple-list overflow-hidden" style="margin-bottom:24px">
         <div class="px-4 py-3" style="border-bottom:1px solid rgba(0,0,0,0.08)">
-          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Capacity × ABC Class (unique SKU)</h4>
-          <p class="mt-0.5" style="font-size:12px;color:rgba(0,0,0,0.32)">Click a row to filter the table below</p>
+          <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Capacity × ABC Class (unique SKU)</h4>
+          <p class="mt-0.5" style="font-size:12px;color:var(--app-placeholder)">Click a row to filter the table below</p>
         </div>
         <table class="w-full text-xs">
           <thead style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
             <tr>
-              <th class="px-4 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">ABC Class</th>
-              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">SKU count</th>
-              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">FIT</th>
-              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">BORDERLINE</th>
-              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">NOT FIT</th>
-              <th class="px-4 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">Fit %</th>
+              <th class="px-4 py-2 text-left font-medium" style="color:var(--app-text-sec)">ABC Class</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:var(--app-text-sec)">SKU count</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:var(--app-text-sec)">FIT</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:var(--app-text-sec)">BORDERLINE</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:var(--app-text-sec)">NOT FIT</th>
+              <th class="px-4 py-2 text-right font-medium" style="color:var(--app-text-sec)">Fit %</th>
             </tr>
           </thead>
           <tbody>
@@ -193,7 +193,7 @@
       <!-- SKU-level table with filters -->
       <div class="card-apple-list">
         <div class="px-4 py-3 flex flex-wrap gap-3 items-center justify-between" style="border-bottom:1px solid rgba(0,0,0,0.08)">
-          <h4 style="font-size:12px;font-weight:600;color:#1d1d1f;letter-spacing:-0.12px">Individual SKU results</h4>
+          <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Individual SKU results</h4>
           <div class="flex gap-2 flex-wrap items-center">
             <!-- Status filter -->
             <select v-model="statusFilter" class="input-apple-sm" style="width:auto">
@@ -225,12 +225,12 @@
           <table class="w-full text-xs">
             <thead class="sticky top-0" style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
               <tr>
-                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">SKU</th>
-                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">Carrier</th>
-                <th class="px-3 py-2 text-center font-medium" style="color:rgba(0,0,0,0.48)">Status</th>
-                <th v-if="hasPerformanceData" class="px-3 py-2 text-center font-medium" style="color:rgba(0,0,0,0.48)">ABC</th>
-                <th class="px-3 py-2 text-right font-medium" style="color:rgba(0,0,0,0.48)">Units</th>
-                <th class="px-3 py-2 text-left font-medium" style="color:rgba(0,0,0,0.48)">Limiting factor</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:var(--app-text-sec)">SKU</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:var(--app-text-sec)">Carrier</th>
+                <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">Status</th>
+                <th v-if="hasPerformanceData" class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">ABC</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Units</th>
+                <th class="px-3 py-2 text-left font-medium" style="color:var(--app-text-sec)">Limiting factor</th>
               </tr>
             </thead>
             <tbody>
