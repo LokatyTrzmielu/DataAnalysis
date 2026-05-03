@@ -212,7 +212,8 @@ html.dark {
   box-shadow: rgba(0, 0, 0, 0.16) 0px 6px 20px 0px;
 }
 html.dark .card-apple:hover {
-  box-shadow: rgba(0, 0, 0, 0.55) 0px 6px 24px 0px, rgba(255, 255, 255, 0.07) 0px 0px 0px 1px;
+  background: #323234;
+  box-shadow: rgba(255, 255, 255, 0.10) 0px 0px 0px 1px;
 }
 
 .card-apple-elevated {
