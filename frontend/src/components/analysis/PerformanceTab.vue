@@ -263,8 +263,10 @@ import KpiCard from '@/components/shared/KpiCard.vue'
 import ChartZoomModal from '@/components/shared/ChartZoomModal.vue'
 import Plotly from 'plotly.js-dist-min'
 import { useThemeStore } from '@/stores/theme'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const theme = useThemeStore()
+const notify = useNotificationsStore()
 
 const props = defineProps<{ run: RunDetail }>()
 const emit = defineEmits<{
@@ -324,6 +326,7 @@ async function doRunAnalysis() {
   try {
     await runsApi.runPerformance(props.run.id, productiveHours.value)
     emit('refreshed')
+    notify.push({ type: 'success', title: 'Analysis complete' })
   } catch (e: unknown) {
     analysisError.value = (e as Error).message || 'Analysis failed.'
   } finally {
