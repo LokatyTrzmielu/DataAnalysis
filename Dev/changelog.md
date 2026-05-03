@@ -11,13 +11,31 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
-### [2026-05-03] - Feature (main)
+### [2026-05-03] - Feature + Fix (main)
+
 - **Performance — Throughput per Period KPIs**:
   - Nowa tabela "Throughput per Period" w zakładce Performance pokazująca avg/median/max dla zamówień, linii i sztuk per dzień, zmianę i godzinę
   - `src/analytics/performance.py` — `_median()` helper, 21 nowych pól w `PerformanceKPI` (9 per-day, 9 per-shift, 3 median per-hour), zaktualizowany `_calculate_kpi(shifts_per_day)`, przeniesiony blok `shifts_per_day` przed wywołanie KPI
   - `api/routers/runs.py` — serializacja wszystkich nowych pól KPI + `shifts_per_day` w `performance_result`
   - `frontend/src/api/runs.ts` — rozszerzony interfejs `PerformanceKPI` o 23 pola, `shifts_per_day` w `PerformanceResult`
   - `frontend/src/components/analysis/PerformanceTab.vue` — siatka KPI zaktualizowana (usunięto `Avg Lines/Hour` i `Peak Lines/Hour`, dodano `Avg Units/Order` i `P95 Lines/Hour`), nowa karta z tabelą throughput (kolumny per-hour ukryte gdy brak danych godzinowych)
+
+- **Fix: runtime crash na starych wynikach Performance**:
+  - Stare rekordy `performance_result` w DB nie zawierały nowych pól KPI → `undefined.toFixed()` TypeError zamrażał cały komponent Vue
+  - `frontend/src/components/analysis/PerformanceTab.vue` — dodano `?? 0` fallback do każdego odwołania do nowych pól, np. `(pr.kpi.avg_units_per_order ?? 0).toFixed(1)`
+
+- **Fix: brakujące powiadomienie "Analysis complete" w Performance**:
+  - `PerformanceTab.vue` nie miał `useNotificationsStore` ani wywołania `notify.push()` wzorem `CapacityTab.vue`
+  - `frontend/src/components/analysis/PerformanceTab.vue` — dodano import `useNotificationsStore`, instancję `notify`, wywołanie `notify.push({ type: 'success', title: 'Analysis complete' })` po `emit('refreshed')`
+
+- **Feature: przełącznik Light/Dark mode w navbarze**:
+  - `frontend/src/stores/theme.ts` — inicjalizacja uwzględnia `prefers-color-scheme` jako fallback gdy brak `localStorage`
+  - `frontend/src/components/layout/AppTopNav.vue` — przycisk toggle z ikoną słońca (dark→light) / księżyca (light→dark), klasa CSS `.nav-theme-toggle` (28×28px, `border-radius: 6px`, hover effects)
+
+- **Fix: usunięcie Dark Mode toggle z Settings**:
+  - Sekcja "Appearance" w Settings stała się zbędna po dodaniu toggle do nawigacji
+  - `frontend/src/views/SettingsView.vue` — usunięto sekcję Appearance, usunięto import `useThemeStore` i instancję `theme`
+
 - Branch: `main`
 
 ---

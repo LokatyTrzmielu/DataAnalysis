@@ -365,5 +365,5 @@ Gdy plik Orders nie zawiera kolumny czasu (`has_hourly_data = False`), sekcja "D
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-02-25
-**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Nazwa aplikacji zmieniona na Datavisor. Performance module: obsługa plików bez danych godzinowych (Per Day stats).
+**Data:** 2026-05-03
+**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Phase 30: tabela "Throughput per Period" w Performance (avg/median/max per day/shift/hour dla Orders/Lines/Units). Phase 31: przełącznik Light/Dark mode w navbarze (AppTopNav), `prefers-color-scheme` fallback, usunięcie sekcji Appearance z Settings. Naprawiono runtime crash na starych wynikach Performance (`?? 0` fallback) oraz brakujące powiadomienie "Analysis complete".

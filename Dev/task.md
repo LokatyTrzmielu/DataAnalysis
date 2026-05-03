@@ -40,6 +40,8 @@
 | 27 | True Fixed Toolbar — HTML injection | replace st.columns with pure HTML div, zero layout impact | ✅ |
 | 28 | Chrome-style Browser Tabs | replace gold pill buttons with browser-tab CSS (rounded top, rail separator, gold accent) | ✅ |
 | 29 | Performance Per Day stats (no hourly) | wyświetlanie Avg/Median/Min/Max per dzień gdy brak danych godzinowych | ✅ |
+| 30 | Throughput per Period KPIs | tabela avg/median/max per day/shift/hour dla Orders, Lines, Units w zakładce Performance | ✅ |
+| 31 | Light/Dark mode toggle w navbarze | przycisk toggle w AppTopNav, `prefers-color-scheme` fallback, usunięcie Appearance z Settings | ✅ |
 
 ---
 

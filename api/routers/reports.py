@@ -230,7 +230,7 @@ def _rows_to_csv_bytes(rows: list[dict], columns: list[str] | None = None) -> by
     returns a header-only CSV.
     """
     if rows:
-        df = pl.DataFrame(rows)
+        df = pl.DataFrame(rows, infer_schema_length=None)
     elif columns:
         df = pl.DataFrame({c: [] for c in columns})
     else:
