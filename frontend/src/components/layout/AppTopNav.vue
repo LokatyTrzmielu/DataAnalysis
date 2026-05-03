@@ -15,8 +15,21 @@
       <RouterLink to="/carriers" class="nav-link" :class="{ active: isActive('/carriers') }">Carriers</RouterLink>
     </div>
 
-    <!-- Right: settings + user + logout -->
+    <!-- Right: theme toggle + settings + user + logout -->
     <div class="nav-right">
+      <button @click="theme.toggle()" class="nav-theme-toggle" :title="theme.dark ? 'Switch to light mode' : 'Switch to dark mode'">
+        <!-- Sun (shown in dark mode → click to go light) -->
+        <svg v-if="theme.dark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <!-- Moon (shown in light mode → click to go dark) -->
+        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
       <span class="nav-user">{{ auth.user?.name }}</span>
       <RouterLink to="/settings" class="nav-link" :class="{ active: isActive('/settings') }">Settings</RouterLink>
       <button @click="auth.logout()" class="nav-logout">Sign out</button>
@@ -27,8 +40,10 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 
 const auth = useAuthStore()
+const theme = useThemeStore()
 const route = useRoute()
 
 function isActive(path: string) {
@@ -135,4 +150,24 @@ function isExact(path: string) {
 }
 
 .nav-logout:hover { color: #ffffff; }
+
+.nav-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.60);
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  padding: 0;
+}
+
+.nav-theme-toggle:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.10);
+}
 </style>
