@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-6">
     <!-- Upload + run capacity -->
     <div class="card-apple">
@@ -6,15 +6,15 @@
       <div class="flex flex-col gap-3">
         <!-- Analysis mode (radio) -->
         <div>
-          <label class="block text-xs text-gray-600 mb-1">Analysis mode</label>
+          <label class="block text-xs mb-1" style="color:var(--app-text-sec)">Analysis mode</label>
           <div class="flex gap-3 text-xs">
-            <label class="flex items-center gap-1 text-gray-700">
+            <label class="flex items-center gap-1" style="color:var(--app-text-sec)">
               <input v-model="analysisMode" type="radio" value="independent" /> Independent
             </label>
-            <label class="flex items-center gap-1 text-gray-700">
+            <label class="flex items-center gap-1" style="color:var(--app-text-sec)">
               <input v-model="analysisMode" type="radio" value="prioritized" /> Prioritized
             </label>
-            <label class="flex items-center gap-1 text-gray-700">
+            <label class="flex items-center gap-1" style="color:var(--app-text-sec)">
               <input v-model="analysisMode" type="radio" value="bestfit" /> Best Fit
             </label>
           </div>
@@ -22,7 +22,7 @@
 
         <!-- Borderline threshold slider -->
         <div class="max-w-64">
-          <label class="block text-xs text-gray-600 mb-1">Borderline threshold: <strong>{{ borderlineThreshold }}mm</strong></label>
+          <label class="block text-xs mb-1" style="color:var(--app-text-sec)">Borderline threshold: <strong>{{ borderlineThreshold }}mm</strong></label>
           <input
             v-model.number="borderlineThreshold"
             type="range" min="0.5" max="10" step="0.5"
@@ -32,7 +32,7 @@
 
         <!-- Carrier selection -->
         <div v-if="availableCarriers.length">
-          <label class="block text-xs text-gray-600 mb-1">Carriers</label>
+          <label class="block text-xs mb-1" style="color:var(--app-text-sec)">Carriers</label>
           <CarrierMultiSelect
             :carriers="availableCarriers"
             v-model:modelValue="selectedCarrierIds"
@@ -71,7 +71,7 @@
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
             <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Carrier Fit</h4>
-            <button @click="openZoom('carrier', 'Carrier Fit')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+            <button @click="openZoom('carrier', 'Carrier Fit')" class="chart-zoom-btn" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
@@ -81,7 +81,7 @@
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
             <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Volume Distribution (m³)</h4>
-            <button @click="openZoom('volume', 'Volume Distribution (m³)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+            <button @click="openZoom('volume', 'Volume Distribution (m³)')" class="chart-zoom-btn" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
@@ -91,7 +91,7 @@
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
             <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Margin Distribution (mm, FIT + BORDERLINE)</h4>
-            <button @click="openZoom('margin', 'Margin Distribution (mm)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+            <button @click="openZoom('margin', 'Margin Distribution (mm)')" class="chart-zoom-btn" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
@@ -101,7 +101,7 @@
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
             <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Dimensions Distribution (mm)</h4>
-            <button @click="openZoom('dims', 'Dimensions Distribution (mm)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+            <button @click="openZoom('dims', 'Dimensions Distribution (mm)')" class="chart-zoom-btn" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
@@ -111,7 +111,7 @@
         <div class="card-apple">
           <div class="flex items-center justify-between mb-2">
             <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Weight Distribution (kg)</h4>
-            <button @click="openZoom('weight', 'Weight Distribution (kg)')" class="hover:bg-black/[.06] transition-colors" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;color:rgba(0,0,0,0.3)" title="Expand chart">
+            <button @click="openZoom('weight', 'Weight Distribution (kg)')" class="chart-zoom-btn" title="Expand chart">
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
@@ -122,30 +122,30 @@
       <!-- Per-carrier table -->
       <div class="card-apple-list" style="margin-bottom:24px">
         <table class="w-full text-sm">
-          <thead style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
+          <thead class="cap-thead">
             <tr>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-600">Carrier</th>
-              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Fit %</th>
-              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">FIT</th>
-              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">BORDERLINE</th>
-              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">NOT FIT</th>
-              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Locations</th>
-              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Volume (m³)</th>
-              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Stock vol. (m³)</th>
-              <th class="px-4 py-2 text-right text-xs font-medium text-gray-600">Filling rate</th>
+              <th class="px-4 py-2 text-left text-xs font-medium" style="color:var(--app-text-sec)">Carrier</th>
+              <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">Fit %</th>
+              <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">FIT</th>
+              <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">BORDERLINE</th>
+              <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">NOT FIT</th>
+              <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">Locations</th>
+              <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">Volume (m³)</th>
+              <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">Stock vol. (m³)</th>
+              <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">Filling rate</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="(stats, cid) in cr.carrier_stats" :key="cid" class="hover:bg-gray-50">
-              <td class="px-4 py-2 font-medium text-gray-800">{{ stats.carrier_name }}</td>
-              <td class="px-4 py-2 text-right text-gray-700">{{ stats.fit_percentage.toFixed(1) }}%</td>
-              <td class="px-4 py-2 text-right text-green-700">{{ stats.fit_count }}</td>
-              <td class="px-4 py-2 text-right text-yellow-600">{{ stats.borderline_count }}</td>
-              <td class="px-4 py-2 text-right text-red-600">{{ stats.not_fit_count }}</td>
-              <td class="px-4 py-2 text-right text-gray-700">{{ stats.total_locations_required }}</td>
-              <td class="px-4 py-2 text-right text-gray-700">{{ stats.total_volume_m3.toFixed(3) }}</td>
-              <td class="px-4 py-2 text-right text-gray-700">{{ stats.stock_volume_m3.toFixed(3) }}</td>
-              <td class="px-4 py-2 text-right text-gray-700">{{ (stats.avg_filling_rate * 100).toFixed(1) }}%</td>
+          <tbody>
+            <tr v-for="(stats, cid) in cr.carrier_stats" :key="cid" class="cap-row">
+              <td class="px-4 py-2 font-medium" style="color:var(--app-text)">{{ stats.carrier_name }}</td>
+              <td class="px-4 py-2 text-right" style="color:var(--app-text-sec)">{{ stats.fit_percentage.toFixed(1) }}%</td>
+              <td class="px-4 py-2 text-right badge-fit-text">{{ stats.fit_count }}</td>
+              <td class="px-4 py-2 text-right badge-bl-text">{{ stats.borderline_count }}</td>
+              <td class="px-4 py-2 text-right badge-nf-text">{{ stats.not_fit_count }}</td>
+              <td class="px-4 py-2 text-right" style="color:var(--app-text-sec)">{{ stats.total_locations_required }}</td>
+              <td class="px-4 py-2 text-right" style="color:var(--app-text-sec)">{{ stats.total_volume_m3.toFixed(3) }}</td>
+              <td class="px-4 py-2 text-right" style="color:var(--app-text-sec)">{{ stats.stock_volume_m3.toFixed(3) }}</td>
+              <td class="px-4 py-2 text-right" style="color:var(--app-text-sec)">{{ (stats.avg_filling_rate * 100).toFixed(1) }}%</td>
             </tr>
           </tbody>
         </table>
@@ -153,12 +153,12 @@
 
       <!-- ABC Cross-stats (visible only when Performance data is available) -->
       <div v-if="hasPerformanceData" class="card-apple-list overflow-hidden" style="margin-bottom:24px">
-        <div class="px-4 py-3" style="border-bottom:1px solid rgba(0,0,0,0.08)">
+        <div class="px-4 py-3 cap-section-header">
           <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Capacity × ABC Class (unique SKU)</h4>
           <p class="mt-0.5" style="font-size:12px;color:var(--app-placeholder)">Click a row to filter the table below</p>
         </div>
         <table class="w-full text-xs">
-          <thead style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
+          <thead class="cap-thead">
             <tr>
               <th class="px-4 py-2 text-left font-medium" style="color:var(--app-text-sec)">ABC Class</th>
               <th class="px-4 py-2 text-right font-medium" style="color:var(--app-text-sec)">SKU count</th>
@@ -172,19 +172,18 @@
             <tr
               v-for="[cls, s] in abcCrossStats"
               :key="cls"
-              class="cursor-pointer transition-colors"
-              :class="abcFilter === cls ? 'bg-[rgba(0,113,227,0.06)]' : 'hover:bg-black/[.02]'"
-              style="border-top:1px solid rgba(0,0,0,0.06)"
+              class="cap-row cursor-pointer transition-colors"
+              :class="abcFilter === cls ? 'cap-row-selected' : ''"
               @click="abcFilter = (abcFilter === cls ? 'ALL' : cls as typeof abcFilter)"
             >
               <td class="px-4 py-2">
                 <span :class="['px-1.5 py-0.5 rounded text-xs font-medium', abcClassBadge(cls)]">{{ cls }}</span>
               </td>
-              <td class="px-4 py-2 text-right text-gray-700">{{ s.total }}</td>
-              <td class="px-4 py-2 text-right text-green-700">{{ s.fit }}</td>
-              <td class="px-4 py-2 text-right text-yellow-600">{{ s.borderline }}</td>
-              <td class="px-4 py-2 text-right text-red-600">{{ s.not_fit }}</td>
-              <td class="px-4 py-2 text-right text-gray-700">{{ s.total ? ((s.fit / s.total) * 100).toFixed(1) + '%' : '—' }}</td>
+              <td class="px-4 py-2 text-right" style="color:var(--app-text-sec)">{{ s.total }}</td>
+              <td class="px-4 py-2 text-right badge-fit-text">{{ s.fit }}</td>
+              <td class="px-4 py-2 text-right badge-bl-text">{{ s.borderline }}</td>
+              <td class="px-4 py-2 text-right badge-nf-text">{{ s.not_fit }}</td>
+              <td class="px-4 py-2 text-right" style="color:var(--app-text-sec)">{{ s.total ? ((s.fit / s.total) * 100).toFixed(1) + '%' : '—' }}</td>
             </tr>
           </tbody>
         </table>
@@ -192,22 +191,19 @@
 
       <!-- SKU-level table with filters -->
       <div class="card-apple-list">
-        <div class="px-4 py-3 flex flex-wrap gap-3 items-center justify-between" style="border-bottom:1px solid rgba(0,0,0,0.08)">
+        <div class="px-4 py-3 flex flex-wrap gap-3 items-center justify-between cap-section-header">
           <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Individual SKU results</h4>
           <div class="flex gap-2 flex-wrap items-center">
-            <!-- Status filter -->
             <select v-model="statusFilter" class="input-apple-sm" style="width:auto">
               <option value="ALL">All statuses</option>
               <option value="FIT">FIT only</option>
               <option value="BORDERLINE">BORDERLINE only</option>
               <option value="NOT_FIT">NOT FIT only</option>
             </select>
-            <!-- Carrier filter -->
             <select v-model="carrierFilter" class="input-apple-sm" style="width:auto">
               <option value="ALL">All carriers</option>
               <option v-for="(stats, cid) in cr.carrier_stats" :key="cid" :value="cid">{{ stats.carrier_name }}</option>
             </select>
-            <!-- ABC Class filter (only when Performance data is available) -->
             <select v-if="hasPerformanceData" v-model="abcFilter" class="input-apple-sm" style="width:auto">
               <option value="ALL">All ABC classes</option>
               <option value="A">Class A (top 80%)</option>
@@ -215,7 +211,6 @@
               <option value="C">Class C (95–100%)</option>
               <option value="NOT_IN_PARETO">Not in Performance</option>
             </select>
-            <!-- CSV export -->
             <button @click="exportCsv" class="btn-apple-pill" style="font-size:12px;padding:5px 10px">
               Export CSV
             </button>
@@ -223,7 +218,7 @@
         </div>
         <div class="overflow-x-auto max-h-80">
           <table class="w-full text-xs">
-            <thead class="sticky top-0" style="background:rgba(0,0,0,0.03);border-bottom:1px solid rgba(0,0,0,0.08)">
+            <thead class="cap-thead sticky top-0">
               <tr>
                 <th class="px-3 py-2 text-left font-medium" style="color:var(--app-text-sec)">SKU</th>
                 <th class="px-3 py-2 text-left font-medium" style="color:var(--app-text-sec)">Carrier</th>
@@ -234,9 +229,9 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in visibleSkuRows" :key="`${row.sku}-${row.carrier_id}`" class="hover:bg-black/[.02]" style="border-top:1px solid rgba(0,0,0,0.06)">
-                <td class="px-3 py-1.5 font-medium text-gray-800">{{ row.sku }}</td>
-                <td class="px-3 py-1.5 text-gray-600">{{ carrierName(row.carrier_id) }}</td>
+              <tr v-for="row in visibleSkuRows" :key="`${row.sku}-${row.carrier_id}`" class="cap-row">
+                <td class="px-3 py-1.5 font-medium" style="color:var(--app-text)">{{ row.sku }}</td>
+                <td class="px-3 py-1.5" style="color:var(--app-text-sec)">{{ carrierName(row.carrier_id) }}</td>
                 <td class="px-3 py-1.5 text-center">
                   <span :class="['px-1.5 py-0.5 rounded text-xs font-medium', statusClass(row.fit_status)]">
                     {{ row.fit_status }}
@@ -246,16 +241,16 @@
                   <span v-if="skuAbcMap.get(row.sku)" :class="['px-1.5 py-0.5 rounded text-xs font-medium', abcClassBadge(skuAbcMap.get(row.sku)!)]">
                     {{ skuAbcMap.get(row.sku) }}
                   </span>
-                  <span v-else class="text-gray-300">—</span>
+                  <span v-else style="color:var(--app-placeholder)">—</span>
                 </td>
-                <td class="px-3 py-1.5 text-right text-gray-700">{{ row.units_per_carrier }}</td>
-                <td class="px-3 py-1.5 text-gray-500">{{ row.limiting_factor }}</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.units_per_carrier }}</td>
+                <td class="px-3 py-1.5" style="color:var(--app-placeholder)">{{ row.limiting_factor }}</td>
               </tr>
             </tbody>
           </table>
         </div>
         <div class="px-4 py-2 flex items-center justify-between">
-          <p class="text-xs text-gray-400">Showing {{ visibleSkuRows.length }} of {{ filteredRows.length }} rows</p>
+          <p class="text-xs" style="color:var(--app-placeholder)">Showing {{ visibleSkuRows.length }} of {{ filteredRows.length }} rows</p>
           <button
             v-if="visibleSkuRows.length < filteredRows.length"
             @click="skuVisibleCount = filteredRows.length"
@@ -285,8 +280,10 @@ import ChartZoomModal from '@/components/shared/ChartZoomModal.vue'
 import CarrierMultiSelect from '@/components/shared/CarrierMultiSelect.vue'
 import Plotly from 'plotly.js-dist-min'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useThemeStore } from '@/stores/theme'
 
 const notify = useNotificationsStore()
+const theme = useThemeStore()
 
 const props = defineProps<{ run: RunDetail }>()
 const emit = defineEmits<{ (e: 'refreshed'): void }>()
@@ -338,7 +335,6 @@ const avgStats = computed(() => {
   }
 })
 
-// ABC class map from Performance pareto data
 const skuAbcMap = computed(() => {
   const pareto = props.run.performance_result?.sku_pareto
   if (!pareto) return new Map<string, string>()
@@ -347,14 +343,11 @@ const skuAbcMap = computed(() => {
 
 const hasPerformanceData = computed(() => skuAbcMap.value.size > 0)
 
-// Cross-stats: unique SKU count per ABC class with fit breakdown
 const abcCrossStats = computed((): [string, { fit: number; borderline: number; not_fit: number; total: number }][] => {
   if (!cr.value || !hasPerformanceData.value) return []
-  // Deduplicate by unique SKU per class (Independent mode produces multiple rows per SKU)
   const skuBestStatus = new Map<string, string>()
   for (const row of cr.value.rows) {
     const existing = skuBestStatus.get(row.sku)
-    // Priority: FIT > BORDERLINE > NOT_FIT
     if (!existing || fitPriority(row.fit_status) > fitPriority(existing)) {
       skuBestStatus.set(row.sku, row.fit_status)
     }
@@ -368,7 +361,6 @@ const abcCrossStats = computed((): [string, { fit: number; borderline: number; n
     else if (status === 'BORDERLINE') stats[cls].borderline++
     else stats[cls].not_fit++
   }
-  // Sort: A, B, C, NOT_IN_PARETO
   const order = ['A', 'B', 'C', 'NOT_IN_PARETO']
   return Object.entries(stats).sort(([a], [b]) => {
     const ia = order.indexOf(a), ib = order.indexOf(b)
@@ -409,25 +401,27 @@ function carrierName(cid: string): string {
 }
 
 function statusClass(status: string) {
-  if (status === 'FIT') return 'bg-green-100 text-green-800'
-  if (status === 'BORDERLINE') return 'bg-yellow-100 text-yellow-800'
-  return 'bg-red-100 text-red-800'
+  if (status === 'FIT') return 'badge-fit'
+  if (status === 'BORDERLINE') return 'badge-bl'
+  return 'badge-nf'
 }
 
 function abcClassBadge(cls: string | undefined): string {
-  if (cls === 'A') return 'bg-green-100 text-green-800'
-  if (cls === 'B') return 'bg-yellow-100 text-yellow-800'
-  if (cls === 'C') return 'bg-gray-100 text-gray-600'
-  return 'bg-gray-100 text-gray-400'
+  if (cls === 'A') return 'badge-fit'
+  if (cls === 'B') return 'badge-bl'
+  return 'badge-abc-c'
 }
 
-// Reset ABC filter when performance data disappears
 watch(() => props.run.performance_result, (val) => {
   if (!val) abcFilter.value = 'ALL'
 })
 
 watch(cr, (val) => {
   if (val) nextTick(() => renderCharts(val))
+})
+
+watch(() => theme.dark, () => {
+  if (cr.value) nextTick(() => renderCharts(cr.value!))
 })
 
 onMounted(async () => {
@@ -440,14 +434,18 @@ onMounted(async () => {
 const canRun = computed(() => !!props.run.masterdata_path && selectedCarrierIds.value.size > 0)
 
 function renderCharts(data: CapacityResult) {
+  const isDark = theme.dark
+  const fontColor = isDark ? 'rgba(255,255,255,0.60)' : 'rgba(0,0,0,0.48)'
+  const gridColor = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'
+  const zeroColor = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'
+
   const base = {
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    font: { family: 'SF Pro Text, Helvetica Neue, Helvetica, Arial, sans-serif', size: 11, color: 'rgba(0,0,0,0.48)' },
+    font: { family: 'SF Pro Text, Helvetica Neue, Helvetica, Arial, sans-serif', size: 11, color: fontColor },
   }
-  const ax = { gridcolor: 'rgba(0,0,0,0.08)', zerolinecolor: 'rgba(0,0,0,0.12)' }
+  const ax = { gridcolor: gridColor, zerolinecolor: zeroColor }
 
-  // Carrier Fit stacked bar
   if (carrierChartEl.value) {
     const carriers = Object.values(data.carrier_stats)
     const fitTrace = { x: carriers.map(c => c.carrier_name), y: carriers.map(c => c.fit_count), name: 'FIT', type: 'bar' as const, marker: { color: '#34c759' } }
@@ -458,7 +456,6 @@ function renderCharts(data: CapacityResult) {
     chartStore.carrier = { traces: [fitTrace, borderTrace, notFitTrace], layout: carrierLayout }
   }
 
-  // Volume distribution histogram
   if (dimsChartEl.value && data.rows.length > 0) {
     const volumes = data.rows.map(r => r.volume_m3).filter(v => v != null && v > 0)
     const volumeTraces = [{ x: volumes, type: 'histogram' as const, marker: { color: '#0071e3' }, name: 'Volume' }]
@@ -467,7 +464,6 @@ function renderCharts(data: CapacityResult) {
     chartStore.volume = { traces: volumeTraces, layout: volumeLayout }
   }
 
-  // Margin distribution (FIT + BORDERLINE only)
   if (weightChartEl.value && data.rows.length > 0) {
     const margins = data.rows
       .filter(r => r.fit_status !== 'NOT_FIT' && r.margin_mm != null)
@@ -478,7 +474,6 @@ function renderCharts(data: CapacityResult) {
     chartStore.margin = { traces: marginTraces, layout: marginLayout }
   }
 
-  // Dimensions distribution (length / width / height overlay)
   if (dimsDistChartEl.value && data.rows.length > 0) {
     const dimsTraces = [
       { x: data.rows.map(r => r.length_mm), type: 'histogram' as const, name: 'Length', opacity: 0.6, marker: { color: '#0071e3' } },
@@ -490,7 +485,6 @@ function renderCharts(data: CapacityResult) {
     chartStore.dims = { traces: dimsTraces, layout: dimsLayout }
   }
 
-  // Weight distribution
   if (weightDistChartEl.value && data.rows.length > 0) {
     const weightTraces = [{ x: data.rows.map(r => r.weight_kg), type: 'histogram' as const, marker: { color: '#0071e3' }, name: 'Weight' }]
     const weightLayout = { ...base, margin: { t: 10, b: 55, l: 80, r: 10 }, xaxis: { ...ax, title: { text: 'kg' } }, yaxis: { ...ax, title: { text: 'SKU count', standoff: 12 } } }
@@ -534,7 +528,7 @@ function exportCsv() {
     row.locations_required,
     (row.filling_rate * 100).toFixed(1) + '%',
   ])
-  const csv = '\uFEFF' + [headers, ...rows].map(r => r.map(v => typeof v === 'string' && /^\d{10,}$/.test(v) ? `"=""${v}"""` : `"${v}"`).join(',')).join('\n')
+  const csv = '﻿' + [headers, ...rows].map(r => r.map(v => typeof v === 'string' && /^\d{10,}$/.test(v) ? `"=""${v}"""` : `"${v}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -544,3 +538,48 @@ function exportCsv() {
   URL.revokeObjectURL(url)
 }
 </script>
+
+<style scoped>
+.cap-thead {
+  background: var(--table-header-bg);
+  border-bottom: 1px solid var(--table-divider);
+}
+
+.cap-section-header {
+  border-bottom: 1px solid var(--table-divider);
+}
+
+.cap-row {
+  border-top: 1px solid var(--table-divider);
+}
+.cap-row:hover { background: var(--table-row-hover); }
+
+.cap-row-selected { background: rgba(0, 113, 227, 0.06); }
+
+/* Fit status badge classes (used by statusClass() and abcClassBadge()) */
+.badge-fit    { background: var(--badge-fit-bg);  color: var(--badge-fit-color); }
+.badge-bl     { background: var(--badge-bl-bg);   color: var(--badge-bl-color); }
+.badge-nf     { background: var(--badge-nf-bg);   color: var(--badge-nf-color); }
+.badge-abc-c  { background: var(--table-header-bg); color: var(--app-text-sec); }
+
+/* Colored text for FIT/BORDERLINE/NOT FIT counts in table cells */
+.badge-fit-text { color: var(--badge-fit-color); }
+.badge-bl-text  { color: var(--badge-bl-color); }
+.badge-nf-text  { color: var(--badge-nf-color); }
+
+/* Expand chart button */
+.chart-zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--app-text-sec);
+  transition: background 0.15s;
+}
+.chart-zoom-btn:hover { background: var(--table-row-hover); }
+</style>

@@ -34,13 +34,23 @@
   --nav-bg:           rgba(0, 0, 0, 0.82);
   --nav-border:       transparent;
 
-  /* Status badges */
+  /* Status badges (pipeline) */
   --badge-default-bg:    rgba(0, 0, 0, 0.10);
   --badge-default-color: rgba(0, 0, 0, 0.68);
   --badge-blue-bg:       rgba(0, 113, 227, 0.10);
   --badge-blue-color:    #0066cc;
   --badge-green-bg:      rgba(52, 199, 89, 0.12);
   --badge-green-color:   #1a7f37;
+
+  /* Tables */
+  --table-header-bg: rgba(0, 0, 0, 0.03);
+  --table-divider:   rgba(0, 0, 0, 0.08);
+  --table-row-hover: rgba(0, 0, 0, 0.02);
+
+  /* Fit status badges (capacity/quality) */
+  --badge-fit-bg:    rgba(52, 199, 89, 0.12);  --badge-fit-color:    #1a7f37;
+  --badge-bl-bg:     rgba(255, 149, 0, 0.12);  --badge-bl-color:     #d97706;
+  --badge-nf-bg:     rgba(255, 59, 48, 0.12);  --badge-nf-color:     #dc2626;
 }
 
 html.dark {
@@ -59,13 +69,23 @@ html.dark {
   --nav-bg:           #242428;
   --nav-border:       rgba(255, 255, 255, 0.12);
 
-  /* Status badges */
+  /* Status badges (pipeline) */
   --badge-default-bg:    rgba(255, 255, 255, 0.18);
   --badge-default-color: rgba(255, 255, 255, 0.92);
   --badge-blue-bg:       rgba(41, 151, 255, 0.20);
   --badge-blue-color:    #2997ff;
   --badge-green-bg:      rgba(52, 199, 89, 0.20);
   --badge-green-color:   #34c759;
+
+  /* Tables */
+  --table-header-bg: rgba(255, 255, 255, 0.05);
+  --table-divider:   rgba(255, 255, 255, 0.10);
+  --table-row-hover: rgba(255, 255, 255, 0.04);
+
+  /* Fit status badges (capacity/quality) */
+  --badge-fit-bg:    rgba(52, 199, 89, 0.22);  --badge-fit-color:    #34c759;
+  --badge-bl-bg:     rgba(255, 149, 0, 0.22);  --badge-bl-color:     #ff9500;
+  --badge-nf-bg:     rgba(255, 59, 48, 0.22);  --badge-nf-color:     #ff453a;
 }
 
 #app { min-height: 100vh; }
