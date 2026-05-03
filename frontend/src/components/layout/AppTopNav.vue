@@ -49,16 +49,11 @@ function isExact(path: string) {
   align-items: center;
   justify-content: space-between;
   padding: 0 22px;
-  background: rgba(0, 0, 0, 0.82);
+  background: var(--nav-bg);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid transparent;
+  border-bottom: 1px solid var(--nav-border);
   transition: background 0.25s, border-color 0.25s;
-}
-
-:global(html.dark) .apple-nav {
-  background: rgba(60, 60, 67, 0.72);
-  border-bottom-color: rgba(255, 255, 255, 0.10);
 }
 
 .nav-logo {

@@ -31,29 +31,17 @@ const variantClass = computed(() => `is-${info.value.variant}`)
 }
 
 .status-chip.is-default {
-  background: rgba(0, 0, 0, 0.07);
-  color: rgba(0, 0, 0, 0.55);
-}
-:global(html.dark) .status-chip.is-default {
-  background: rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.80);
+  background: var(--badge-default-bg);
+  color: var(--badge-default-color);
 }
 
 .status-chip.is-blue {
-  background: rgba(0, 113, 227, 0.10);
-  color: #0066cc;
-}
-:global(html.dark) .status-chip.is-blue {
-  background: rgba(41, 151, 255, 0.18);
-  color: #2997ff;
+  background: var(--badge-blue-bg);
+  color: var(--badge-blue-color);
 }
 
 .status-chip.is-green {
-  background: rgba(52, 199, 89, 0.12);
-  color: #1a7f37;
-}
-:global(html.dark) .status-chip.is-green {
-  background: rgba(52, 199, 89, 0.18);
-  color: #34c759;
+  background: var(--badge-green-bg);
+  color: var(--badge-green-color);
 }
 </style>

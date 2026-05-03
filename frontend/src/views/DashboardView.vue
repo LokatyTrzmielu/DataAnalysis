@@ -21,7 +21,7 @@
       </button>
       <RouterLink
         to="/runs"
-        class="card-apple block hover:shadow-sm transition-shadow"
+        class="card-apple block"
         style="text-decoration:none"
       >
         <div style="font-size:14px;font-weight:600;color:var(--app-text)">History</div>
@@ -29,7 +29,7 @@
       </RouterLink>
       <RouterLink
         to="/carriers"
-        class="card-apple block hover:shadow-sm transition-shadow"
+        class="card-apple block"
         style="text-decoration:none"
       >
         <div style="font-size:14px;font-weight:600;color:var(--app-text)">Carriers</div>

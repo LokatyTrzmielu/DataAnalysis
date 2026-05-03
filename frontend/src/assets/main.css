@@ -29,6 +29,18 @@
   --app-input-border: rgba(0, 0, 0, 0.16);
   --app-placeholder:  rgba(0, 0, 0, 0.32);
   --app-link:         #0066cc;
+
+  /* Nav */
+  --nav-bg:           rgba(0, 0, 0, 0.82);
+  --nav-border:       transparent;
+
+  /* Status badges */
+  --badge-default-bg:    rgba(0, 0, 0, 0.10);
+  --badge-default-color: rgba(0, 0, 0, 0.68);
+  --badge-blue-bg:       rgba(0, 113, 227, 0.10);
+  --badge-blue-color:    #0066cc;
+  --badge-green-bg:      rgba(52, 199, 89, 0.12);
+  --badge-green-color:   #1a7f37;
 }
 
 html.dark {
@@ -42,6 +54,18 @@ html.dark {
   --app-input-border: rgba(255, 255, 255, 0.28);
   --app-placeholder:  rgba(255, 255, 255, 0.45);
   --app-link:         #2997ff;
+
+  /* Nav — solid darker gray, clearly distinct from black page bg */
+  --nav-bg:           #242428;
+  --nav-border:       rgba(255, 255, 255, 0.12);
+
+  /* Status badges */
+  --badge-default-bg:    rgba(255, 255, 255, 0.18);
+  --badge-default-color: rgba(255, 255, 255, 0.92);
+  --badge-blue-bg:       rgba(41, 151, 255, 0.20);
+  --badge-blue-color:    #2997ff;
+  --badge-green-bg:      rgba(52, 199, 89, 0.20);
+  --badge-green-color:   #34c759;
 }
 
 #app { min-height: 100vh; }
@@ -182,7 +206,13 @@ html.dark {
   border-radius: 8px;
   border: none;
   padding: 20px;
-  transition: background 0.25s;
+  transition: background 0.25s, box-shadow 0.2s;
+}
+.card-apple:hover {
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 6px 20px 0px;
+}
+html.dark .card-apple:hover {
+  box-shadow: rgba(0, 0, 0, 0.55) 0px 6px 24px 0px, rgba(255, 255, 255, 0.07) 0px 0px 0px 1px;
 }
 
 .card-apple-elevated {
