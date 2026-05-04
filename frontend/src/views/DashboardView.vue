@@ -60,15 +60,14 @@
             <div class="flex flex-col items-center">
               <div :class="[
                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
-                step.done ? 'text-white' : 'text-[rgba(0,0,0,0.32)]',
-              ]" :style="step.done ? 'background:#0071e3' : 'background:rgba(0,0,0,0.06)'">
+              ]" :style="step.done ? 'background:#0071e3;color:#fff' : 'background:var(--app-border);color:var(--app-placeholder)'">
                 {{ step.done ? '✓' : i + 1 }}
               </div>
               <span class="text-xs mt-1 text-center w-16" :style="step.done ? 'color:#0071e3;font-weight:600' : 'color:var(--app-placeholder)'">
                 {{ step.label }}
               </span>
             </div>
-            <div v-if="i < pipelineSteps.length - 1" class="w-8 h-0.5 mb-5" :style="step.done ? 'background:rgba(0,113,227,0.4)' : 'background:rgba(0,0,0,0.1)'"></div>
+            <div v-if="i < pipelineSteps.length - 1" class="w-8 h-0.5 mb-5" :style="step.done ? 'background:rgba(0,113,227,0.4)' : 'background:var(--app-border)'"></div>
           </div>
         </div>
       </div>
