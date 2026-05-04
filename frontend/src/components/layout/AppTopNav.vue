@@ -14,6 +14,7 @@
       <RouterLink to="/runs" class="nav-link" :class="{ active: isActive('/runs') }">Analyses</RouterLink>
       <RouterLink to="/datasets" class="nav-link" :class="{ active: isActive('/datasets') }">Datasets</RouterLink>
       <RouterLink to="/carriers" class="nav-link" :class="{ active: isActive('/carriers') }">Carriers</RouterLink>
+      <RouterLink to="/tools" class="nav-link" :class="{ active: isActive('/tools') }">Tools</RouterLink>
     </div>
 
     <!-- Right: theme toggle + settings + user + logout -->

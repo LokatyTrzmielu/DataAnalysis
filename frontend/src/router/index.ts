@@ -36,6 +36,16 @@ const router = createRouter({
       component: () => import('@/views/DatasetsView.vue'),
     },
     {
+      path: '/tools',
+      name: 'tools',
+      component: () => import('@/views/ToolsView.vue'),
+    },
+    {
+      path: '/tools/data-preparation',
+      name: 'data-preparation',
+      component: () => import('@/views/tools/DataPreparationView.vue'),
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
