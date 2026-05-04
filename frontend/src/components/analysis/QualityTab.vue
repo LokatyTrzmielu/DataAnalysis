@@ -1,6 +1,6 @@
 ﻿<template>
   <div>
-    <div v-if="!qr && !ovr" class="text-sm text-gray-400 p-4">
+    <div v-if="!qr && !ovr" class="text-sm p-4" style="color:var(--app-placeholder)">
       No validation results yet. Import data in the Import tab first.
     </div>
 

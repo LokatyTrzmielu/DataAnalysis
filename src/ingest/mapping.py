@@ -107,17 +107,6 @@ ORDERS_SCHEMA = {
         "required": True,
         "description": "Order identifier",
     },
-    "line_id": {
-        "aliases": [
-            # English
-            "line_id", "line", "line_no", "line_number", "line_item", "item_line",
-            "row", "row_id", "row_number", "sequence", "seq", "position",
-            # Polish
-            "linia", "pozycja", "nr_linii", "numer_linii", "wiersz",
-        ],
-        "required": False,
-        "description": "Order line identifier",
-    },
     "sku": {
         "aliases": [
             # English

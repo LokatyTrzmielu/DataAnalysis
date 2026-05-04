@@ -101,7 +101,7 @@
                 v-model="userMapping[field.name]"
                 class="w-full text-xs rounded px-2 py-1"
                 :style="!userMapping[field.name]
-                  ? 'border:1px solid #ff3b30;background:rgba(255,59,48,0.08);color:var(--app-text)'
+                  ? 'border:1px solid #ff3b30;background:var(--app-input-bg);color:var(--app-text)'
                   : 'border:1px solid var(--app-input-border);background:var(--app-input-bg);color:var(--app-text)'"
               >
                 <option value="">— not mapped —</option>

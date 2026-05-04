@@ -129,7 +129,6 @@ class OrderRow(BaseModel):
     """Order data row."""
 
     order_id: str = Field(..., description="Order identifier")
-    line_id: Optional[str] = Field(default=None, description="Line identifier")
     sku: str = Field(..., description="Product SKU")
     quantity: int = Field(..., ge=1, description="Line quantity (EA)")
     timestamp: datetime = Field(..., description="Fulfillment/shipping timestamp")
