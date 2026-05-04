@@ -75,7 +75,7 @@
           </div>
         </div>
 
-        <!-- Right: date + id + delete -->
+        <!-- Right: date + id + notes icon + delete -->
         <div class="flex items-center gap-4 flex-shrink-0">
           <span style="font-size:12px;color:var(--app-text-sec)">{{ formatDate(ds.created_at) }}</span>
           <span
@@ -86,13 +86,69 @@
             {{ ds.id.slice(0, 8) }}…
           </span>
           <button
-            @click="doDelete(ds.id, ds.name)"
-            style="font-size:12px;color:#ff3b30;background:none;border:none;cursor:pointer;padding:0"
-            @mouseover="(e) => (e.currentTarget as HTMLElement).style.color='#d93025'"
-            @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='#ff3b30'"
+            @click="openNotes(ds)"
+            class="p-1.5 rounded transition-colors"
+            :style="ds.notes ? 'color:#0071e3' : 'color:var(--app-placeholder)'"
+            title="Notes"
           >
-            Delete
+            <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+            </svg>
           </button>
+          <!-- Delete / confirm -->
+          <template v-if="confirmDeleteId === ds.id">
+            <span class="text-xs mr-1" style="color:var(--app-text-sec)">Delete?</span>
+            <button @click="doDelete(ds.id, ds.name)" class="text-xs font-medium mr-1" style="color:#ff3b30">Yes</button>
+            <button @click="confirmDeleteId = null" class="text-xs" style="color:var(--app-text-sec)">No</button>
+          </template>
+          <button
+            v-else
+            @click="confirmDeleteId = ds.id"
+            class="p-1.5 rounded transition-colors"
+            style="color:var(--app-placeholder)"
+            @mouseover="(e) => (e.currentTarget as HTMLElement).style.color='#ff3b30'"
+            @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'"
+            title="Delete"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes modal -->
+    <div
+      v-if="notesDataset"
+      class="fixed inset-0 flex items-center justify-center z-50"
+      style="background:rgba(0,0,0,0.6)"
+      @click.self="closeNotes"
+    >
+      <div class="card-apple-elevated w-full" style="max-width:480px">
+        <div class="flex items-center justify-between mb-5">
+          <h3 style="font-size:21px;font-weight:700;color:var(--app-text);letter-spacing:0.231px;line-height:1.19">Notes</h3>
+          <button
+            @click="closeNotes"
+            style="color:var(--app-placeholder);background:none;border:none;cursor:pointer;padding:4px;transition:color 0.15s"
+            @mouseover="(e: Event) => (e.currentTarget as HTMLElement).style.color='#1d1d1f'"
+            @mouseleave="(e: Event) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+        <textarea
+          v-model="notesValue"
+          @input="scheduleNotesSave"
+          placeholder="Add notes about this dataset…"
+          rows="5"
+          class="input-apple resize-none"
+          style="font-size:14px;letter-spacing:-0.224px"
+        />
+        <div class="mt-2 h-4">
+          <span v-if="notesSaved" style="font-size:12px;color:#34c759">Saved</span>
         </div>
       </div>
     </div>
@@ -100,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { datasetsApi, type Dataset } from '@/api/datasets'
 import { useNotificationsStore } from '@/stores/notifications'
@@ -109,6 +165,49 @@ const notify = useNotificationsStore()
 
 const datasets = ref<Dataset[]>([])
 const loading = ref(false)
+const confirmDeleteId = ref<string | null>(null)
+
+// ── Notes modal ───────────────────────────────────────────────────────────────
+
+const notesDataset = ref<Dataset | null>(null)
+const notesValue = ref('')
+const notesSaved = ref(false)
+let notesTimer: ReturnType<typeof setTimeout> | null = null
+
+function openNotes(ds: Dataset) {
+  notesDataset.value = ds
+  notesValue.value = ds.notes ?? ''
+  notesSaved.value = false
+}
+
+function closeNotes() {
+  if (notesTimer) clearTimeout(notesTimer)
+  notesDataset.value = null
+}
+
+function scheduleNotesSave() {
+  notesSaved.value = false
+  if (notesTimer) clearTimeout(notesTimer)
+  notesTimer = setTimeout(async () => {
+    if (!notesDataset.value) return
+    try {
+      const notes = notesValue.value.trim() || null
+      const { data } = await datasetsApi.patch(notesDataset.value.id, notes)
+      const idx = datasets.value.findIndex(d => d.id === data.id)
+      if (idx !== -1) datasets.value[idx] = data
+      if (notesDataset.value) notesDataset.value = data
+      notesSaved.value = true
+      notify.push({ type: 'success', title: 'Notes saved' })
+      setTimeout(() => { notesSaved.value = false }, 2000)
+    } catch {
+      notify.push({ type: 'error', title: 'Failed to save notes' })
+    }
+  }, 500)
+}
+
+onUnmounted(() => { if (notesTimer) clearTimeout(notesTimer) })
+
+// ── Import form ───────────────────────────────────────────────────────────────
 
 const showForm = ref(false)
 const selectedFile = ref<File | null>(null)
@@ -167,10 +266,10 @@ async function doImport() {
 }
 
 async function doDelete(id: string, name: string) {
-  if (!confirm(`Delete dataset "${name}"? This cannot be undone.`)) return
   try {
     await datasetsApi.delete(id)
     datasets.value = datasets.value.filter(d => d.id !== id)
+    confirmDeleteId.value = null
     notify.push({ type: 'success', title: 'Dataset deleted', message: name })
   } catch {
     notify.push({ type: 'error', title: 'Failed to delete dataset' })

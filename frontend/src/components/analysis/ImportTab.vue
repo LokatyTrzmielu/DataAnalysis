@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-6">
 
     <!-- ── Masterdata Section ── -->
@@ -21,21 +21,65 @@
 
       <!-- Step: upload -->
       <div v-else-if="mdStep === 'upload'">
-        <p class="text-xs text-gray-500 mb-4">
-          Upload an Excel (XLSX) or CSV file with product dimensions, weight, and stock data.
-        </p>
-        <input
-          ref="mdFileInput"
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-          @change="onMdFileChange"
-        />
-        <p v-if="mdInspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
-        <p v-if="mdError" class="text-red-600 text-sm mt-3">{{ mdError }}</p>
-        <p v-if="run.masterdata_path && !mdSelectedFile" class="text-xs text-gray-400 mt-4">
-          Previously uploaded: <code>{{ mdFileName }}</code>
-        </p>
+        <!-- Mode toggle -->
+        <div class="flex gap-1 mb-4 p-0.5 bg-gray-100 rounded-lg w-fit">
+          <button
+            @click="mdMode = 'file'"
+            :class="['text-xs px-3 py-1 rounded-md transition-colors', mdMode === 'file' ? 'bg-white text-gray-800 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700']"
+          >Upload file</button>
+          <button
+            @click="mdMode = 'dataset'; loadMdDatasets()"
+            :class="['text-xs px-3 py-1 rounded-md transition-colors', mdMode === 'dataset' ? 'bg-white text-gray-800 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700']"
+          >From dataset</button>
+        </div>
+
+        <!-- File upload mode -->
+        <div v-if="mdMode === 'file'">
+          <p class="text-xs text-gray-500 mb-4">
+            Upload an Excel (XLSX) or CSV file with product dimensions, weight, and stock data.
+          </p>
+          <input
+            ref="mdFileInput"
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+            @change="onMdFileChange"
+          />
+          <p v-if="mdInspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
+          <p v-if="mdError" class="text-red-600 text-sm mt-3">{{ mdError }}</p>
+          <p v-if="run.masterdata_path && !mdSelectedFile" class="text-xs text-gray-400 mt-4">
+            Previously uploaded: <code>{{ mdFileName }}</code>
+          </p>
+        </div>
+
+        <!-- Dataset mode -->
+        <div v-else>
+          <p class="text-xs text-gray-500 mb-3">Select a previously imported masterdata dataset.</p>
+          <p v-if="mdDatasetsLoading" class="text-xs text-gray-400">Loading datasets…</p>
+          <p v-else-if="mdDatasets.length === 0" class="text-xs text-gray-400">No masterdata datasets found. Import one in the Datasets section first.</p>
+          <div v-else class="space-y-2 mb-3">
+            <label
+              v-for="ds in mdDatasets"
+              :key="ds.id"
+              :class="['flex items-center gap-3 p-2.5 border rounded-lg cursor-pointer transition-colors', mdSelectedDatasetId === ds.id ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300']"
+            >
+              <input type="radio" :value="ds.id" v-model="mdSelectedDatasetId" class="text-blue-600" />
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium text-gray-800 truncate">{{ ds.name }}</p>
+                <p class="text-xs text-gray-400">{{ ds.row_count.toLocaleString() }} rows · {{ ds.size_mb }} MB · {{ formatDate(ds.created_at) }}</p>
+              </div>
+            </label>
+          </div>
+          <p v-if="mdError" class="text-red-600 text-sm mb-2">{{ mdError }}</p>
+          <button
+            v-if="mdDatasets.length > 0"
+            @click="doMdFromDataset"
+            :disabled="!mdSelectedDatasetId || mdRunning"
+            class="btn-apple-primary"
+          >
+            {{ mdRunning ? 'Importing…' : 'Use this dataset →' }}
+          </button>
+        </div>
       </div>
 
       <!-- Step: mapping -->
@@ -133,19 +177,63 @@
 
       <!-- Step: upload -->
       <div v-else-if="ordersStep === 'upload'">
-        <p class="text-xs text-gray-500 mb-3">Upload an Excel or CSV file with order lines (order_id, sku, quantity, date).</p>
-        <input
-          ref="ordersFileInput"
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-          @change="onOrdersFileChange"
-        />
-        <p v-if="ordersInspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
-        <p v-if="ordersUploadError" class="text-red-600 text-sm mt-2">{{ ordersUploadError }}</p>
-        <p v-if="run.orders_path && !ordersSelectedFile" class="text-xs text-gray-400 mt-4">
-          Previously uploaded: <code>{{ ordersFileName }}</code>
-        </p>
+        <!-- Mode toggle -->
+        <div class="flex gap-1 mb-4 p-0.5 bg-gray-100 rounded-lg w-fit">
+          <button
+            @click="ordersMode = 'file'"
+            :class="['text-xs px-3 py-1 rounded-md transition-colors', ordersMode === 'file' ? 'bg-white text-gray-800 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700']"
+          >Upload file</button>
+          <button
+            @click="ordersMode = 'dataset'; loadOrdersDatasets()"
+            :class="['text-xs px-3 py-1 rounded-md transition-colors', ordersMode === 'dataset' ? 'bg-white text-gray-800 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700']"
+          >From dataset</button>
+        </div>
+
+        <!-- File upload mode -->
+        <div v-if="ordersMode === 'file'">
+          <p class="text-xs text-gray-500 mb-3">Upload an Excel or CSV file with order lines (order_id, sku, quantity, date).</p>
+          <input
+            ref="ordersFileInput"
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+            @change="onOrdersFileChange"
+          />
+          <p v-if="ordersInspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
+          <p v-if="ordersUploadError" class="text-red-600 text-sm mt-2">{{ ordersUploadError }}</p>
+          <p v-if="run.orders_path && !ordersSelectedFile" class="text-xs text-gray-400 mt-4">
+            Previously uploaded: <code>{{ ordersFileName }}</code>
+          </p>
+        </div>
+
+        <!-- Dataset mode -->
+        <div v-else>
+          <p class="text-xs text-gray-500 mb-3">Select a previously imported orders dataset.</p>
+          <p v-if="ordersDatasetsLoading" class="text-xs text-gray-400">Loading datasets…</p>
+          <p v-else-if="ordersDatasets.length === 0" class="text-xs text-gray-400">No orders datasets found. Import one in the Datasets section first.</p>
+          <div v-else class="space-y-2 mb-3">
+            <label
+              v-for="ds in ordersDatasets"
+              :key="ds.id"
+              :class="['flex items-center gap-3 p-2.5 border rounded-lg cursor-pointer transition-colors', ordersSelectedDatasetId === ds.id ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300']"
+            >
+              <input type="radio" :value="ds.id" v-model="ordersSelectedDatasetId" class="text-blue-600" />
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium text-gray-800 truncate">{{ ds.name }}</p>
+                <p class="text-xs text-gray-400">{{ ds.row_count.toLocaleString() }} rows · {{ ds.size_mb }} MB · {{ formatDate(ds.created_at) }}</p>
+              </div>
+            </label>
+          </div>
+          <p v-if="ordersUploadError" class="text-red-600 text-sm mb-2">{{ ordersUploadError }}</p>
+          <button
+            v-if="ordersDatasets.length > 0"
+            @click="doOrdersFromDataset"
+            :disabled="!ordersSelectedDatasetId || ordersIngesting"
+            class="btn-apple-primary"
+          >
+            {{ ordersIngesting ? 'Importing…' : 'Use this dataset →' }}
+          </button>
+        </div>
       </div>
 
       <!-- Step: mapping -->
@@ -246,6 +334,8 @@
 import { ref, computed, onMounted } from 'vue'
 import type { RunDetail, MappingInspectResponse } from '@/api/runs'
 import { runsApi } from '@/api/runs'
+import type { Dataset } from '@/api/datasets'
+import { datasetsApi } from '@/api/datasets'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const notify = useNotificationsStore()
@@ -255,6 +345,10 @@ const emit = defineEmits<{
   (e: 'refreshed'): void
   (e: 'navigate', tab: string): void
 }>()
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
 // ── Masterdata wizard ────────────────────────────────────────────────────────
 
@@ -267,6 +361,10 @@ const mdError = ref('')
 const mdStep = ref<'upload' | 'mapping' | 'done'>('upload')
 const mdInspectResult = ref<MappingInspectResponse | null>(null)
 const mdUserMapping = ref<Record<string, string>>({})
+const mdMode = ref<'file' | 'dataset'>('file')
+const mdDatasets = ref<Dataset[]>([])
+const mdDatasetsLoading = ref(false)
+const mdSelectedDatasetId = ref('')
 
 const mdFileName = computed(() => {
   if (!props.run.masterdata_path) return ''
@@ -304,6 +402,19 @@ function mdIsDuplicate(fieldName: string) {
   return mdDuplicateFields.value.includes(col)
 }
 
+async function loadMdDatasets() {
+  if (mdDatasets.value.length > 0) return
+  mdDatasetsLoading.value = true
+  try {
+    const { data } = await datasetsApi.list()
+    mdDatasets.value = data.datasets.filter(d => d.file_type === 'masterdata')
+  } catch {
+    // ignore
+  } finally {
+    mdDatasetsLoading.value = false
+  }
+}
+
 function onMdFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   mdSelectedFile.value = input.files?.[0] ?? null
@@ -330,6 +441,36 @@ async function doMdInspect() {
     mdError.value = (e as Error).message || 'Failed to read file.'
   } finally {
     mdInspecting.value = false
+  }
+}
+
+async function doMdFromDataset() {
+  if (!mdSelectedDatasetId.value) return
+  mdRunning.value = true
+  mdError.value = ''
+  try {
+    const ds = mdDatasets.value.find(d => d.id === mdSelectedDatasetId.value)
+    await runsApi.useMasterdataDataset(props.run.id, mdSelectedDatasetId.value)
+    mdUploadedFileName.value = ds?.name ?? 'dataset'
+    mdStep.value = 'done'
+    emit('refreshed')
+    notify.push({
+      type: 'success',
+      title: 'Import complete',
+      message: `${ds?.name ?? 'Dataset'} · ${ds?.row_count.toLocaleString() ?? ''} rows`,
+    })
+    if (props.run.orders_validation_result) {
+      emit('navigate', 'quality')
+    } else {
+      proceedModalMessage.value = 'Orders have not been imported yet.'
+      showProceedModal.value = true
+    }
+  } catch (e: unknown) {
+    const msg = (e as Error).message || 'Import failed.'
+    mdError.value = msg
+    notify.push({ type: 'error', title: 'Import failed', message: msg })
+  } finally {
+    mdRunning.value = false
   }
 }
 
@@ -371,6 +512,10 @@ const ordersUploadError = ref('')
 const ordersStep = ref<'upload' | 'mapping' | 'done'>('upload')
 const ordersInspectResult = ref<MappingInspectResponse | null>(null)
 const ordersMapping = ref<Record<string, string>>({})
+const ordersMode = ref<'file' | 'dataset'>('file')
+const ordersDatasets = ref<Dataset[]>([])
+const ordersDatasetsLoading = ref(false)
+const ordersSelectedDatasetId = ref('')
 
 const ordersFileName = computed(() => {
   if (!props.run.orders_path) return ''
@@ -391,6 +536,19 @@ const ordersMappingSummary = computed(() =>
     .filter(f => ordersMapping.value[f.name])
     .map(f => ({ field: f.name, col: ordersMapping.value[f.name] }))
 )
+
+async function loadOrdersDatasets() {
+  if (ordersDatasets.value.length > 0) return
+  ordersDatasetsLoading.value = true
+  try {
+    const { data } = await datasetsApi.list()
+    ordersDatasets.value = data.datasets.filter(d => d.file_type === 'orders')
+  } catch {
+    // ignore
+  } finally {
+    ordersDatasetsLoading.value = false
+  }
+}
 
 function onOrdersFileChange(e: Event) {
   const input = e.target as HTMLInputElement
@@ -419,6 +577,36 @@ async function doOrdersInspect() {
     ordersUploadError.value = (e as Error).message || 'Failed to read file.'
   } finally {
     ordersInspecting.value = false
+  }
+}
+
+async function doOrdersFromDataset() {
+  if (!ordersSelectedDatasetId.value) return
+  ordersIngesting.value = true
+  ordersUploadError.value = ''
+  try {
+    const ds = ordersDatasets.value.find(d => d.id === ordersSelectedDatasetId.value)
+    await runsApi.useOrdersDataset(props.run.id, ordersSelectedDatasetId.value)
+    ordersUploadedFileName.value = ds?.name ?? 'dataset'
+    ordersStep.value = 'done'
+    emit('refreshed')
+    notify.push({
+      type: 'success',
+      title: 'Import complete',
+      message: `${ds?.name ?? 'Dataset'} · ${ds?.row_count.toLocaleString() ?? ''} rows`,
+    })
+    if (props.run.quality_result) {
+      emit('navigate', 'quality')
+    } else {
+      proceedModalMessage.value = 'Masterdata has not been imported yet.'
+      showProceedModal.value = true
+    }
+  } catch (e: unknown) {
+    const msg = (e as Error).message || 'Import failed.'
+    ordersUploadError.value = msg
+    notify.push({ type: 'error', title: 'Import failed', message: msg })
+  } finally {
+    ordersIngesting.value = false
   }
 }
 

@@ -35,6 +35,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             await conn.execute(text("ALTER TABLE analysis_runs ADD COLUMN orders_validation_result JSON"))
         except Exception:
             pass  # Column already exists
+        try:
+            await conn.execute(text("ALTER TABLE datasets ADD COLUMN notes TEXT"))
+        except Exception:
+            pass  # Column already exists
         # Migration: datasets.file_hash had unique=True in schema v1 — drop and recreate
         # (table is new with no production data, safe to recreate)
         try:

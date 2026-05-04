@@ -222,6 +222,74 @@ async def inspect_masterdata(
     )
 
 
+@router.post("/{run_id}/masterdata/from-dataset", response_model=RunResponse)
+async def masterdata_from_dataset(
+    run_id: str,
+    dataset_id: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunResponse:
+    """Use a pre-imported masterdata dataset instead of uploading a file."""
+    run = await _get_run_or_404(run_id, db, current_user)
+
+    from api.models.dataset import Dataset as DatasetModel
+    from src.storage.data_store import DataStore
+    from src.quality.pipeline import QualityPipeline
+
+    row = (await db.execute(select(DatasetModel).where(DatasetModel.id == dataset_id))).scalar_one_or_none()
+    if row is None or row.file_type != "masterdata":
+        raise HTTPException(status_code=404, detail="Masterdata dataset not found")
+
+    store = DataStore()
+    if not store.exists(dataset_id):
+        raise HTTPException(status_code=404, detail="Dataset file missing from disk")
+
+    df = store.load(dataset_id, "masterdata")
+
+    quality_result = QualityPipeline().run(df)
+    metrics = quality_result.metrics_after
+    dq = quality_result.dq_lists
+    imputation = quality_result.imputation
+
+    imputed_dims = sum(
+        s.imputed_count for s in (imputation.stats if imputation else [])
+        if s.field_name in ("length_mm", "width_mm", "height_mm")
+    )
+    imputed_weight = sum(
+        s.imputed_count for s in (imputation.stats if imputation else [])
+        if s.field_name == "weight_kg"
+    )
+
+    run.quality_result = {
+        "total_records": metrics.total_records,
+        "dimensions_coverage_pct": metrics.dimensions_coverage_pct,
+        "weight_coverage_pct": metrics.weight_coverage_pct,
+        "stock_coverage_pct": metrics.stock_coverage_pct,
+        "missing_critical_count": len(dq.missing_critical),
+        "suspect_outliers_count": len(dq.suspect_outliers),
+        "high_risk_borderline_count": len(dq.high_risk_borderline),
+        "duplicates_count": len(dq.duplicates),
+        "conflicts_count": len(dq.conflicts),
+        "collisions_count": len(dq.collisions),
+        "imputed_dimensions_count": imputed_dims,
+        "imputed_weight_count": imputed_weight,
+        "overall_score": quality_result.quality_score,
+        "missing_critical": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.missing_critical],
+        "suspect_outliers": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.suspect_outliers],
+        "high_risk_borderline": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.high_risk_borderline],
+        "duplicates": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.duplicates],
+        "conflicts": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.conflicts],
+    }
+    run.masterdata_path = row.duckdb_path
+    run.masterdata_mapping = None
+    run.capacity_result = None
+    run.status = "quality_done"
+    run.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(run)
+    return _run_to_response(run)
+
+
 @router.post("/{run_id}/capacity", response_model=RunResponse)
 async def run_capacity(
     run_id: str,
@@ -534,6 +602,76 @@ async def inspect_orders(
     )
 
 
+@router.post("/{run_id}/orders/from-dataset", response_model=RunResponse)
+async def orders_from_dataset(
+    run_id: str,
+    dataset_id: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RunResponse:
+    """Use a pre-imported orders dataset instead of uploading a file."""
+    run = await _get_run_or_404(run_id, db, current_user)
+
+    from api.models.dataset import Dataset as DatasetModel
+    from src.storage.data_store import DataStore
+    from src.analytics.orders_validation import OrdersValidator
+
+    row = (await db.execute(select(DatasetModel).where(DatasetModel.id == dataset_id))).scalar_one_or_none()
+    if row is None or row.file_type != "orders":
+        raise HTTPException(status_code=404, detail="Orders dataset not found")
+
+    store = DataStore()
+    if not store.exists(dataset_id):
+        raise HTTPException(status_code=404, detail="Dataset file missing from disk")
+
+    df = store.load(dataset_id, "orders")
+
+    date_from = None
+    date_to = None
+    has_hourly_data = False
+    if "order_date" in df.columns and df.height > 0:
+        dates = df["order_date"].drop_nulls()
+        if dates.len() > 0:
+            date_from = str(dates.min())
+            date_to = str(dates.max())
+    if "order_hour" in df.columns:
+        has_hourly_data = df.filter(df["order_hour"] != 0).height > 0
+
+    run.analysis_config = {
+        **(run.analysis_config or {}),
+        "orders_rows": df.height,
+        "orders_has_hourly_data": has_hourly_data,
+        "orders_date_from": date_from,
+        "orders_date_to": date_to,
+    }
+    run.orders_path = row.duckdb_path
+    run.orders_mapping = None
+    run.status = "orders_ingested"
+
+    try:
+        # Load masterdata df for cross-validation if masterdata came from a dataset
+        masterdata_df = None
+        if run.masterdata_path and run.masterdata_path.endswith(".duckdb"):
+            md_dataset_id = Path(run.masterdata_path).stem
+            if store.exists(md_dataset_id):
+                masterdata_df = store.load(md_dataset_id, "masterdata")
+
+        val_result = OrdersValidator().validate(
+            df,
+            masterdata_path=Path(run.masterdata_path) if run.masterdata_path and not run.masterdata_path.endswith(".duckdb") else None,
+            masterdata_mapping=run.masterdata_mapping,
+            masterdata_df=masterdata_df,
+        )
+        run.orders_validation_result = val_result
+    except Exception:
+        run.orders_validation_result = None
+
+    run.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(run)
+    return _run_to_response(run)
+
+
 @router.post("/{run_id}/orders/ingest", response_model=RunResponse)
 async def ingest_orders(
     run_id: str,
@@ -589,10 +727,20 @@ async def ingest_orders(
     # Run orders validation automatically (same pattern as masterdata quality check)
     try:
         from src.analytics.orders_validation import OrdersValidator
+        from src.storage.data_store import DataStore as _DataStore
+
+        masterdata_df = None
+        if run.masterdata_path and run.masterdata_path.endswith(".duckdb"):
+            md_dataset_id = Path(run.masterdata_path).stem
+            _store = _DataStore()
+            if _store.exists(md_dataset_id):
+                masterdata_df = _store.load(md_dataset_id, "masterdata")
+
         val_result = OrdersValidator().validate(
             result.df,
-            masterdata_path=Path(run.masterdata_path) if run.masterdata_path else None,
+            masterdata_path=Path(run.masterdata_path) if run.masterdata_path and not run.masterdata_path.endswith(".duckdb") else None,
             masterdata_mapping=run.masterdata_mapping,
+            masterdata_df=masterdata_df,
         )
         run.orders_validation_result = val_result
     except Exception:

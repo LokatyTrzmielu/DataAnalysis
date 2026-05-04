@@ -6,6 +6,7 @@ export interface Dataset {
   file_type: 'masterdata' | 'orders'
   row_count: number
   column_names: string[] | null
+  notes: string | null
   size_mb: number
   created_at: string
 }
@@ -30,6 +31,14 @@ export const datasetsApi = {
   },
 
   list: () => client.get<DatasetListResponse>('/datasets'),
+
+  patch: (id: string, notes: string | null) => {
+    const fd = new FormData()
+    if (notes !== null) fd.append('notes', notes)
+    return client.patch<Dataset>(`/datasets/${id}`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 
   get: (id: string) => client.get<DatasetDetail>(`/datasets/${id}`),
 

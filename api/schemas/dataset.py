@@ -14,6 +14,7 @@ class DatasetResponse(BaseModel):
     file_type: str
     row_count: int
     column_names: list[str] | None
+    notes: str | None
     size_mb: float
     created_at: datetime
 

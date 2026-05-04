@@ -20,13 +20,14 @@ class OrdersValidator:
         df: pl.DataFrame,
         masterdata_path: Optional[Path] = None,
         masterdata_mapping: Optional[dict] = None,
+        masterdata_df: Optional[pl.DataFrame] = None,
     ) -> dict[str, Any]:
         result: dict[str, Any] = {}
         result.update(self._summary_kpis(df))
         result.update(self._check_missing_skus(df))
         result.update(self._check_date_gaps(df))
         result.update(self._check_quantity_anomalies(df))
-        result.update(self._check_sku_crossvalidation(df, masterdata_path, masterdata_mapping))
+        result.update(self._check_sku_crossvalidation(df, masterdata_path, masterdata_mapping, masterdata_df))
         result.update(self._compute_weekday_profile(df))
         return result
 
@@ -186,6 +187,7 @@ class OrdersValidator:
         df: pl.DataFrame,
         masterdata_path: Optional[Path],
         masterdata_mapping: Optional[dict],
+        masterdata_df: Optional[pl.DataFrame] = None,
     ) -> dict[str, Any]:
         unavailable = {
             "sku_xval_available": False,
@@ -195,33 +197,35 @@ class OrdersValidator:
             "masterdata_skus_not_in_orders": [],
         }
 
-        if not masterdata_path or not masterdata_path.exists():
-            return unavailable
         if "sku" not in df.columns:
             return unavailable
 
         try:
-            from src.ingest.pipeline import MasterdataIngestPipeline
-            from src.ingest.mapping import MappingResult, ColumnMapping
+            if masterdata_df is not None:
+                loaded_df = masterdata_df
+            elif masterdata_path and masterdata_path.exists():
+                from src.ingest.pipeline import MasterdataIngestPipeline
+                from src.ingest.mapping import MappingResult, ColumnMapping
 
-            pipeline = MasterdataIngestPipeline()
+                pipeline = MasterdataIngestPipeline()
 
-            if masterdata_mapping:
-                # Reconstruct MappingResult from stored dict
-                mappings = {
-                    k: ColumnMapping(target_field=k, source_column=v, confidence=1.0, is_auto=False)
-                    for k, v in masterdata_mapping.items()
-                    if v
-                }
-                mapping = MappingResult(mappings=mappings, missing_required=[])
-                md_result = pipeline.run(masterdata_path, mapping=mapping)
+                if masterdata_mapping:
+                    mappings = {
+                        k: ColumnMapping(target_field=k, source_column=v, confidence=1.0, is_auto=False)
+                        for k, v in masterdata_mapping.items()
+                        if v
+                    }
+                    mapping = MappingResult(mappings=mappings, missing_required=[])
+                    loaded_df = pipeline.run(masterdata_path, mapping=mapping).df
+                else:
+                    loaded_df = pipeline.run(masterdata_path).df
             else:
-                md_result = pipeline.run(masterdata_path)
-
-            if "sku" not in md_result.df.columns:
                 return unavailable
 
-            md_skus: set[str] = set(md_result.df["sku"].drop_nulls().to_list())
+            if "sku" not in loaded_df.columns:
+                return unavailable
+
+            md_skus: set[str] = set(loaded_df["sku"].drop_nulls().to_list())
             orders_skus: set[str] = set(df["sku"].drop_nulls().cast(pl.Utf8).to_list())
 
             # Remove placeholder SKUs from orders set

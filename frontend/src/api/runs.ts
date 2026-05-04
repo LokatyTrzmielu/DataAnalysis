@@ -322,6 +322,22 @@ export const runsApi = {
     })
   },
 
+  useMasterdataDataset: (id: string, datasetId: string) => {
+    const fd = new FormData()
+    fd.append('dataset_id', datasetId)
+    return client.post<RunDetail>(`/runs/${id}/masterdata/from-dataset`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
+  useOrdersDataset: (id: string, datasetId: string) => {
+    const fd = new FormData()
+    fd.append('dataset_id', datasetId)
+    return client.post<RunDetail>(`/runs/${id}/orders/from-dataset`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
   runPerformance: (id: string, productiveHours: number) => {
     const fd = new FormData()
     fd.append('productive_hours', String(productiveHours))

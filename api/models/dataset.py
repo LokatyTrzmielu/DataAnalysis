@@ -27,6 +27,7 @@ class Dataset(Base):
     duckdb_path: Mapped[str] = mapped_column(String(512), nullable=False)
     file_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     column_names: Mapped[list | None] = mapped_column(_JSON, nullable=True)
+    notes: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

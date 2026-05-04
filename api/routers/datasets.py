@@ -83,6 +83,7 @@ async def import_dataset(
         file_type=dataset.file_type,
         row_count=dataset.row_count,
         column_names=dataset.column_names,
+        notes=dataset.notes,
         size_mb=size_mb,
         created_at=dataset.created_at,
     )
@@ -101,6 +102,7 @@ async def list_datasets(db: AsyncSession = Depends(get_db)) -> DatasetListRespon
             file_type=row.file_type,
             row_count=row.row_count,
             column_names=row.column_names,
+            notes=row.notes,
             size_mb=size_mb,
             created_at=row.created_at,
         ))
@@ -127,9 +129,36 @@ async def get_dataset(
         file_type=row.file_type,
         row_count=row.row_count,
         column_names=row.column_names,
+        notes=row.notes,
         size_mb=size_mb,
         created_at=row.created_at,
         preview=preview,
+    )
+
+
+@router.patch("/{dataset_id}", response_model=DatasetResponse)
+async def patch_dataset(
+    dataset_id: str,
+    notes: str | None = Form(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> DatasetResponse:
+    """Update mutable fields on a dataset (currently: notes)."""
+    row = (await db.execute(select(Dataset).where(Dataset.id == dataset_id))).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    row.notes = notes
+    await db.commit()
+    await db.refresh(row)
+    size_mb = STORE.get_info(dataset_id)["size_mb"] if STORE.exists(dataset_id) else 0.0
+    return DatasetResponse(
+        id=row.id,
+        name=row.name,
+        file_type=row.file_type,
+        row_count=row.row_count,
+        column_names=row.column_names,
+        notes=row.notes,
+        size_mb=size_mb,
+        created_at=row.created_at,
     )
 
 
