@@ -5,7 +5,7 @@
     <div class="card-apple">
       <div class="flex items-center justify-between mb-3">
         <h3 style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Masterdata</h3>
-        <span v-if="run.quality_result" class="flex items-center gap-1 text-xs text-green-600 font-medium">
+        <span v-if="run.quality_result" class="flex items-center gap-1 text-xs font-medium" style="color:#34c759">
           <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
           </svg>
@@ -15,62 +15,70 @@
 
       <!-- Done state -->
       <div v-if="run.quality_result && mdStep === 'done'" class="space-y-2">
-        <p class="text-xs text-gray-600"><code>{{ mdUploadedFileName || mdFileName }}</code></p>
-        <button @click="mdStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600 underline">Re-upload</button>
+        <p class="text-xs" style="color:var(--app-text-sec)"><code>{{ mdUploadedFileName || mdFileName }}</code></p>
+        <button @click="mdStep = 'upload'" class="text-xs underline" style="color:var(--app-text-sec);background:none;border:none;cursor:pointer;padding:0">Re-upload</button>
       </div>
 
       <!-- Step: upload -->
       <div v-else-if="mdStep === 'upload'">
         <!-- Mode toggle -->
-        <div class="flex gap-1 mb-4 p-0.5 bg-gray-100 rounded-lg w-fit">
+        <div class="flex gap-1 mb-4 p-0.5 rounded-lg w-fit" style="background:var(--table-header-bg)">
           <button
             @click="mdMode = 'file'"
-            :class="['text-xs px-3 py-1 rounded-md transition-colors', mdMode === 'file' ? 'bg-white text-gray-800 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700']"
+            class="text-xs px-3 py-1 rounded-md transition-colors"
+            :style="mdMode === 'file'
+              ? 'background:var(--app-surface);color:var(--app-text);box-shadow:0 1px 2px rgba(0,0,0,0.15);font-weight:500'
+              : 'background:transparent;color:var(--app-text-sec)'"
           >Upload file</button>
           <button
             @click="mdMode = 'dataset'; loadMdDatasets()"
-            :class="['text-xs px-3 py-1 rounded-md transition-colors', mdMode === 'dataset' ? 'bg-white text-gray-800 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700']"
+            class="text-xs px-3 py-1 rounded-md transition-colors"
+            :style="mdMode === 'dataset'
+              ? 'background:var(--app-surface);color:var(--app-text);box-shadow:0 1px 2px rgba(0,0,0,0.15);font-weight:500'
+              : 'background:transparent;color:var(--app-text-sec)'"
           >From dataset</button>
         </div>
 
         <!-- File upload mode -->
         <div v-if="mdMode === 'file'">
-          <p class="text-xs text-gray-500 mb-4">
+          <p class="text-xs mb-4" style="color:var(--app-text-sec)">
             Upload an Excel (XLSX) or CSV file with product dimensions, weight, and stock data.
           </p>
-          <input
-            ref="mdFileInput"
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-            @change="onMdFileChange"
-          />
-          <p v-if="mdInspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
-          <p v-if="mdError" class="text-red-600 text-sm mt-3">{{ mdError }}</p>
-          <p v-if="run.masterdata_path && !mdSelectedFile" class="text-xs text-gray-400 mt-4">
+          <input ref="mdFileInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="onMdFileChange" />
+          <div class="flex items-center gap-2">
+            <button @click="mdFileInput?.click()" class="btn-apple-pill" style="font-size:13px">Choose file</button>
+            <span v-if="mdSelectedFile" class="text-xs" style="color:var(--app-text-sec)">{{ mdSelectedFile.name }}</span>
+            <span v-else class="text-xs" style="color:var(--app-placeholder)">No file chosen</span>
+          </div>
+          <p v-if="mdInspecting" class="text-xs mt-3" style="color:var(--app-text-sec)">Reading file…</p>
+          <p v-if="mdError" class="text-sm mt-3" style="color:#ff3b30">{{ mdError }}</p>
+          <p v-if="run.masterdata_path && !mdSelectedFile" class="text-xs mt-4" style="color:var(--app-text-sec)">
             Previously uploaded: <code>{{ mdFileName }}</code>
           </p>
         </div>
 
         <!-- Dataset mode -->
         <div v-else>
-          <p class="text-xs text-gray-500 mb-3">Select a previously imported masterdata dataset.</p>
-          <p v-if="mdDatasetsLoading" class="text-xs text-gray-400">Loading datasets…</p>
-          <p v-else-if="mdDatasets.length === 0" class="text-xs text-gray-400">No masterdata datasets found. Import one in the Datasets section first.</p>
+          <p class="text-xs mb-3" style="color:var(--app-text-sec)">Select a previously imported masterdata dataset.</p>
+          <p v-if="mdDatasetsLoading" class="text-xs" style="color:var(--app-text-sec)">Loading datasets…</p>
+          <p v-else-if="mdDatasets.length === 0" class="text-xs" style="color:var(--app-text-sec)">No masterdata datasets found. Import one in the Datasets section first.</p>
           <div v-else class="space-y-2 mb-3">
             <label
               v-for="ds in mdDatasets"
               :key="ds.id"
-              :class="['flex items-center gap-3 p-2.5 border rounded-lg cursor-pointer transition-colors', mdSelectedDatasetId === ds.id ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300']"
+              class="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer"
+              :style="mdSelectedDatasetId === ds.id
+                ? 'border:1px solid var(--badge-blue-color);background:var(--badge-blue-bg)'
+                : 'border:1px solid var(--app-border)'"
             >
               <input type="radio" :value="ds.id" v-model="mdSelectedDatasetId" class="text-blue-600" />
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-gray-800 truncate">{{ ds.name }}</p>
-                <p class="text-xs text-gray-400">{{ ds.row_count.toLocaleString() }} rows · {{ ds.size_mb }} MB · {{ formatDate(ds.created_at) }}</p>
+                <p class="text-xs font-medium truncate" style="color:var(--app-text)">{{ ds.name }}</p>
+                <p class="text-xs" style="color:var(--app-text-sec)">{{ ds.row_count.toLocaleString() }} rows · {{ ds.size_mb }} MB · {{ formatDate(ds.created_at) }}</p>
               </div>
             </label>
           </div>
-          <p v-if="mdError" class="text-red-600 text-sm mb-2">{{ mdError }}</p>
+          <p v-if="mdError" class="text-sm mb-2" style="color:#ff3b30">{{ mdError }}</p>
           <button
             v-if="mdDatasets.length > 0"
             @click="doMdFromDataset"
@@ -84,25 +92,28 @@
 
       <!-- Step: mapping -->
       <div v-else-if="mdStep === 'mapping' && mdInspectResult" class="space-y-4">
-        <div class="bg-white rounded">
+        <div>
           <div class="flex items-center justify-between mb-4">
-            <p class="text-xs font-medium text-gray-600">Map columns</p>
-            <button @click="mdStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600">← Back</button>
+            <p class="text-xs font-medium" style="color:var(--app-text-sec)">Map columns</p>
+            <button @click="mdStep = 'upload'" class="text-xs" style="color:var(--app-text-sec);background:none;border:none;cursor:pointer">← Back</button>
           </div>
 
           <!-- Required fields -->
           <div class="mb-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-700 mb-2">Required fields</p>
+            <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--app-text)">Required fields</p>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div v-for="field in mdRequiredFields" :key="field.name" class="flex flex-col gap-1">
-                <label class="text-xs text-gray-600">
+                <label class="text-xs" style="color:var(--app-text-sec)">
                   {{ field.name }}
-                  <span v-if="mdIsDuplicate(field.name)" class="text-yellow-600 ml-1" title="Duplicate mapping">⚠</span>
-                  <span v-else-if="!mdUserMapping[field.name]" class="text-red-500 ml-1">*</span>
+                  <span v-if="mdIsDuplicate(field.name)" class="ml-1" style="color:#ff9500" title="Duplicate mapping">⚠</span>
+                  <span v-else-if="!mdUserMapping[field.name]" class="ml-1" style="color:#ff3b30">*</span>
                 </label>
                 <select
                   v-model="mdUserMapping[field.name]"
-                  :class="['w-full text-xs border rounded px-2 py-1', !mdUserMapping[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-300']"
+                  class="w-full text-xs rounded px-2 py-1"
+                  :style="!mdUserMapping[field.name]
+                    ? 'border:1px solid #ff3b30;background:rgba(255,59,48,0.08);color:var(--app-text)'
+                    : 'border:1px solid var(--app-input-border);background:var(--app-input-bg);color:var(--app-text)'"
                 >
                   <option value="">— not mapped —</option>
                   <option v-for="col in mdInspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
@@ -111,13 +122,17 @@
             </div>
           </div>
 
-          <!-- Optional fields (collapsible) -->
+          <!-- Optional fields -->
           <details class="mb-4">
-            <summary class="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer mb-2">Optional fields</summary>
+            <summary class="text-xs font-semibold uppercase tracking-wide cursor-pointer mb-2" style="color:var(--app-text-sec)">Optional fields</summary>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
               <div v-for="field in mdOptionalFields" :key="field.name" class="flex flex-col gap-1">
-                <label class="text-xs text-gray-600">{{ field.name }}</label>
-                <select v-model="mdUserMapping[field.name]" class="w-full text-xs border border-gray-300 rounded px-2 py-1">
+                <label class="text-xs" style="color:var(--app-text-sec)">{{ field.name }}</label>
+                <select
+                  v-model="mdUserMapping[field.name]"
+                  class="w-full text-xs rounded px-2 py-1"
+                  style="border:1px solid var(--app-input-border);background:var(--app-input-bg);color:var(--app-text)"
+                >
                   <option value="">— not mapped —</option>
                   <option v-for="col in mdInspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
                 </select>
@@ -127,24 +142,24 @@
 
           <!-- Preview table -->
           <div class="overflow-x-auto mb-4">
-            <p class="text-xs font-medium text-gray-600 mb-1">File preview (5 rows)</p>
-            <table class="text-xs border border-gray-200 rounded w-full">
-              <thead class="bg-gray-50">
+            <p class="text-xs font-medium mb-1" style="color:var(--app-text-sec)">File preview (5 rows)</p>
+            <table class="text-xs rounded w-full" style="border:1px solid var(--app-border)">
+              <thead style="background:var(--table-header-bg)">
                 <tr>
-                  <th v-for="col in mdInspectResult.file_columns" :key="col" class="px-2 py-1 text-left text-gray-600 font-medium border-b border-gray-200 whitespace-nowrap">{{ col }}</th>
+                  <th v-for="col in mdInspectResult.file_columns" :key="col" class="px-2 py-1 text-left font-medium whitespace-nowrap" style="color:var(--app-text-sec);border-bottom:1px solid var(--table-divider)">{{ col }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in mdInspectResult.preview_rows" :key="i" class="border-b border-gray-100">
-                  <td v-for="col in mdInspectResult.file_columns" :key="col" class="px-2 py-1 text-gray-700 whitespace-nowrap">{{ row[col] ?? '' }}</td>
+                <tr v-for="(row, i) in mdInspectResult.preview_rows" :key="i" style="border-bottom:1px solid var(--table-divider)">
+                  <td v-for="col in mdInspectResult.file_columns" :key="col" class="px-2 py-1 whitespace-nowrap" style="color:var(--app-text)">{{ row[col] ?? '' }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p v-if="mdMissingRequired.length > 0" class="text-xs text-red-600 mb-3">Missing required: {{ mdMissingRequired.join(', ') }}</p>
-          <p v-if="mdDuplicateFields.length > 0" class="text-xs text-yellow-600 mb-3">Duplicate mappings: {{ mdDuplicateFields.join(', ') }}</p>
-          <p v-if="mdError" class="text-red-600 text-sm mb-3">{{ mdError }}</p>
+          <p v-if="mdMissingRequired.length > 0" class="text-xs mb-3" style="color:#ff3b30">Missing required: {{ mdMissingRequired.join(', ') }}</p>
+          <p v-if="mdDuplicateFields.length > 0" class="text-xs mb-3" style="color:#ff9500">Duplicate mappings: {{ mdDuplicateFields.join(', ') }}</p>
+          <p v-if="mdError" class="text-sm mb-3" style="color:#ff3b30">{{ mdError }}</p>
 
           <button
             @click="doMdQuality"
@@ -161,7 +176,7 @@
     <div class="card-apple">
       <div class="flex items-center justify-between mb-3">
         <h3 style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Orders</h3>
-        <span v-if="run.orders_validation_result" class="flex items-center gap-1 text-xs text-green-600 font-medium">
+        <span v-if="run.orders_validation_result" class="flex items-center gap-1 text-xs font-medium" style="color:#34c759">
           <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
           </svg>
@@ -171,60 +186,68 @@
 
       <!-- Done state -->
       <div v-if="run.orders_validation_result && ordersStep === 'done'" class="space-y-2">
-        <p class="text-xs text-gray-600"><code>{{ ordersUploadedFileName || ordersFileName }}</code></p>
-        <button @click="ordersStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600 underline">Re-upload</button>
+        <p class="text-xs" style="color:var(--app-text-sec)"><code>{{ ordersUploadedFileName || ordersFileName }}</code></p>
+        <button @click="ordersStep = 'upload'" class="text-xs underline" style="color:var(--app-text-sec);background:none;border:none;cursor:pointer;padding:0">Re-upload</button>
       </div>
 
       <!-- Step: upload -->
       <div v-else-if="ordersStep === 'upload'">
         <!-- Mode toggle -->
-        <div class="flex gap-1 mb-4 p-0.5 bg-gray-100 rounded-lg w-fit">
+        <div class="flex gap-1 mb-4 p-0.5 rounded-lg w-fit" style="background:var(--table-header-bg)">
           <button
             @click="ordersMode = 'file'"
-            :class="['text-xs px-3 py-1 rounded-md transition-colors', ordersMode === 'file' ? 'bg-white text-gray-800 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700']"
+            class="text-xs px-3 py-1 rounded-md transition-colors"
+            :style="ordersMode === 'file'
+              ? 'background:var(--app-surface);color:var(--app-text);box-shadow:0 1px 2px rgba(0,0,0,0.15);font-weight:500'
+              : 'background:transparent;color:var(--app-text-sec)'"
           >Upload file</button>
           <button
             @click="ordersMode = 'dataset'; loadOrdersDatasets()"
-            :class="['text-xs px-3 py-1 rounded-md transition-colors', ordersMode === 'dataset' ? 'bg-white text-gray-800 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700']"
+            class="text-xs px-3 py-1 rounded-md transition-colors"
+            :style="ordersMode === 'dataset'
+              ? 'background:var(--app-surface);color:var(--app-text);box-shadow:0 1px 2px rgba(0,0,0,0.15);font-weight:500'
+              : 'background:transparent;color:var(--app-text-sec)'"
           >From dataset</button>
         </div>
 
         <!-- File upload mode -->
         <div v-if="ordersMode === 'file'">
-          <p class="text-xs text-gray-500 mb-3">Upload an Excel or CSV file with order lines (order_id, sku, quantity, date).</p>
-          <input
-            ref="ordersFileInput"
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-            @change="onOrdersFileChange"
-          />
-          <p v-if="ordersInspecting" class="text-xs text-gray-500 mt-3">Reading file…</p>
-          <p v-if="ordersUploadError" class="text-red-600 text-sm mt-2">{{ ordersUploadError }}</p>
-          <p v-if="run.orders_path && !ordersSelectedFile" class="text-xs text-gray-400 mt-4">
+          <p class="text-xs mb-3" style="color:var(--app-text-sec)">Upload an Excel or CSV file with order lines (order_id, sku, quantity, date).</p>
+          <input ref="ordersFileInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="onOrdersFileChange" />
+          <div class="flex items-center gap-2">
+            <button @click="ordersFileInput?.click()" class="btn-apple-pill" style="font-size:13px">Choose file</button>
+            <span v-if="ordersSelectedFile" class="text-xs" style="color:var(--app-text-sec)">{{ ordersSelectedFile.name }}</span>
+            <span v-else class="text-xs" style="color:var(--app-placeholder)">No file chosen</span>
+          </div>
+          <p v-if="ordersInspecting" class="text-xs mt-3" style="color:var(--app-text-sec)">Reading file…</p>
+          <p v-if="ordersUploadError" class="text-sm mt-2" style="color:#ff3b30">{{ ordersUploadError }}</p>
+          <p v-if="run.orders_path && !ordersSelectedFile" class="text-xs mt-4" style="color:var(--app-text-sec)">
             Previously uploaded: <code>{{ ordersFileName }}</code>
           </p>
         </div>
 
         <!-- Dataset mode -->
         <div v-else>
-          <p class="text-xs text-gray-500 mb-3">Select a previously imported orders dataset.</p>
-          <p v-if="ordersDatasetsLoading" class="text-xs text-gray-400">Loading datasets…</p>
-          <p v-else-if="ordersDatasets.length === 0" class="text-xs text-gray-400">No orders datasets found. Import one in the Datasets section first.</p>
+          <p class="text-xs mb-3" style="color:var(--app-text-sec)">Select a previously imported orders dataset.</p>
+          <p v-if="ordersDatasetsLoading" class="text-xs" style="color:var(--app-text-sec)">Loading datasets…</p>
+          <p v-else-if="ordersDatasets.length === 0" class="text-xs" style="color:var(--app-text-sec)">No orders datasets found. Import one in the Datasets section first.</p>
           <div v-else class="space-y-2 mb-3">
             <label
               v-for="ds in ordersDatasets"
               :key="ds.id"
-              :class="['flex items-center gap-3 p-2.5 border rounded-lg cursor-pointer transition-colors', ordersSelectedDatasetId === ds.id ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300']"
+              class="flex items-center gap-3 p-2.5 rounded-lg cursor-pointer"
+              :style="ordersSelectedDatasetId === ds.id
+                ? 'border:1px solid var(--badge-blue-color);background:var(--badge-blue-bg)'
+                : 'border:1px solid var(--app-border)'"
             >
               <input type="radio" :value="ds.id" v-model="ordersSelectedDatasetId" class="text-blue-600" />
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-gray-800 truncate">{{ ds.name }}</p>
-                <p class="text-xs text-gray-400">{{ ds.row_count.toLocaleString() }} rows · {{ ds.size_mb }} MB · {{ formatDate(ds.created_at) }}</p>
+                <p class="text-xs font-medium truncate" style="color:var(--app-text)">{{ ds.name }}</p>
+                <p class="text-xs" style="color:var(--app-text-sec)">{{ ds.row_count.toLocaleString() }} rows · {{ ds.size_mb }} MB · {{ formatDate(ds.created_at) }}</p>
               </div>
             </label>
           </div>
-          <p v-if="ordersUploadError" class="text-red-600 text-sm mb-2">{{ ordersUploadError }}</p>
+          <p v-if="ordersUploadError" class="text-sm mb-2" style="color:#ff3b30">{{ ordersUploadError }}</p>
           <button
             v-if="ordersDatasets.length > 0"
             @click="doOrdersFromDataset"
@@ -239,21 +262,24 @@
       <!-- Step: mapping -->
       <div v-else-if="ordersStep === 'mapping' && ordersInspectResult">
         <div class="flex items-center justify-between mb-3">
-          <p class="text-xs font-medium text-gray-600">Map columns</p>
-          <button @click="ordersStep = 'upload'" class="text-xs text-gray-400 hover:text-gray-600">← Back</button>
+          <p class="text-xs font-medium" style="color:var(--app-text-sec)">Map columns</p>
+          <button @click="ordersStep = 'upload'" class="text-xs" style="color:var(--app-text-sec);background:none;border:none;cursor:pointer">← Back</button>
         </div>
         <!-- Required fields -->
         <div class="mb-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-700 mb-2">Required fields</p>
+          <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--app-text)">Required fields</p>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div v-for="field in ordersRequiredFields" :key="field.name" class="flex flex-col gap-1">
-              <label class="text-xs text-gray-600">
+              <label class="text-xs" style="color:var(--app-text-sec)">
                 {{ field.name }}
-                <span v-if="!ordersMapping[field.name]" class="text-red-500 ml-1">*</span>
+                <span v-if="!ordersMapping[field.name]" class="ml-1" style="color:#ff3b30">*</span>
               </label>
               <select
                 v-model="ordersMapping[field.name]"
-                :class="['w-full text-xs border rounded px-2 py-1', !ordersMapping[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-300']"
+                class="w-full text-xs rounded px-2 py-1"
+                :style="!ordersMapping[field.name]
+                  ? 'border:1px solid #ff3b30;background:rgba(255,59,48,0.08);color:var(--app-text)'
+                  : 'border:1px solid var(--app-input-border);background:var(--app-input-bg);color:var(--app-text)'"
               >
                 <option value="">— not mapped —</option>
                 <option v-for="col in ordersInspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
@@ -261,13 +287,17 @@
             </div>
           </div>
         </div>
-        <!-- Optional fields (collapsible) -->
+        <!-- Optional fields -->
         <details class="mb-4">
-          <summary class="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer mb-2">Optional fields</summary>
+          <summary class="text-xs font-semibold uppercase tracking-wide cursor-pointer mb-2" style="color:var(--app-text-sec)">Optional fields</summary>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
             <div v-for="field in ordersOptionalFields" :key="field.name" class="flex flex-col gap-1">
-              <label class="text-xs text-gray-600">{{ field.name }}</label>
-              <select v-model="ordersMapping[field.name]" class="w-full text-xs border border-gray-300 rounded px-2 py-1">
+              <label class="text-xs" style="color:var(--app-text-sec)">{{ field.name }}</label>
+              <select
+                v-model="ordersMapping[field.name]"
+                class="w-full text-xs rounded px-2 py-1"
+                style="border:1px solid var(--app-input-border);background:var(--app-input-bg);color:var(--app-text)"
+              >
                 <option value="">— not mapped —</option>
                 <option v-for="col in ordersInspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
               </select>
@@ -276,21 +306,21 @@
         </details>
         <!-- Preview -->
         <div class="overflow-x-auto mb-3">
-          <table class="text-xs border border-gray-200 rounded w-full">
-            <thead class="bg-gray-50">
+          <table class="text-xs rounded w-full" style="border:1px solid var(--app-border)">
+            <thead style="background:var(--table-header-bg)">
               <tr>
-                <th v-for="col in ordersInspectResult.file_columns" :key="col" class="px-2 py-1 text-left text-gray-600 whitespace-nowrap">{{ col }}</th>
+                <th v-for="col in ordersInspectResult.file_columns" :key="col" class="px-2 py-1 text-left whitespace-nowrap" style="color:var(--app-text-sec);border-bottom:1px solid var(--table-divider)">{{ col }}</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, i) in ordersInspectResult.preview_rows" :key="i" class="border-b border-gray-100">
-                <td v-for="col in ordersInspectResult.file_columns" :key="col" class="px-2 py-1 text-gray-700 whitespace-nowrap">{{ row[col] ?? '' }}</td>
+              <tr v-for="(row, i) in ordersInspectResult.preview_rows" :key="i" style="border-bottom:1px solid var(--table-divider)">
+                <td v-for="col in ordersInspectResult.file_columns" :key="col" class="px-2 py-1 whitespace-nowrap" style="color:var(--app-text)">{{ row[col] ?? '' }}</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p v-if="ordersMissingRequired.length > 0" class="text-xs text-red-600 mb-2">Missing required: {{ ordersMissingRequired.join(', ') }}</p>
-        <p v-if="ordersUploadError" class="text-red-600 text-sm mb-2">{{ ordersUploadError }}</p>
+        <p v-if="ordersMissingRequired.length > 0" class="text-xs mb-2" style="color:#ff3b30">Missing required: {{ ordersMissingRequired.join(', ') }}</p>
+        <p v-if="ordersUploadError" class="text-sm mb-2" style="color:#ff3b30">{{ ordersUploadError }}</p>
         <button
           @click="doOrdersIngest"
           :disabled="ordersIngesting || ordersMissingRequired.length > 0"
