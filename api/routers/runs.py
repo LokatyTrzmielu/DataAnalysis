@@ -243,6 +243,11 @@ async def run_capacity(
 
     elif run.masterdata_path:
         source_path = Path(run.masterdata_path)
+        if not source_path.exists():
+            raise HTTPException(
+                status_code=422,
+                detail="Masterdata file not found on disk. Please re-upload the file.",
+            )
     else:
         raise HTTPException(
             status_code=422,
@@ -357,6 +362,11 @@ async def run_quality(
 
     elif run.masterdata_path:
         source_path = Path(run.masterdata_path)
+        if not source_path.exists():
+            raise HTTPException(
+                status_code=422,
+                detail="Masterdata file not found on disk. Please re-upload the file.",
+            )
     else:
         raise HTTPException(status_code=422, detail="No masterdata file.")
 
