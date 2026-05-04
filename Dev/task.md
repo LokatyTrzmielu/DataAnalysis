@@ -2,7 +2,7 @@
 
 ## Status Projektu
 
-**FastAPI + Vue 3 Migration — Phases 1–5 ukończone** | 191 testów
+**FastAPI + Vue 3 Migration — Phases 1–5 ukończone** | Stack: FastAPI + Vue 3/Vite (Streamlit usunięty 2026-05-04)
 
 ---
 
@@ -42,6 +42,11 @@
 | 29 | Performance Per Day stats (no hourly) | wyświetlanie Avg/Median/Min/Max per dzień gdy brak danych godzinowych | ✅ |
 | 30 | Throughput per Period KPIs | tabela avg/median/max per day/shift/hour dla Orders, Lines, Units w zakładce Performance | ✅ |
 | 31 | Light/Dark mode toggle w navbarze | przycisk toggle w AppTopNav, `prefers-color-scheme` fallback, usunięcie Appearance z Settings | ✅ |
+| 32 | Remove Streamlit (PR #40) | usunięcie całego kodu Streamlit; jedyny stack: FastAPI + Vue 3/Vite | ✅ |
+| 33 | Datasets — persystencja plików | model Dataset (SHA-256 deduplikacja), endpointy CRUD, DatasetsView.vue | ✅ |
+| 34 | Dataset selection w Import | wybór wcześniej załadowanego pliku w ImportTab zamiast ponownego uploadu | ✅ |
+| 35 | Tools tab + Data Preparation | nowa zakładka Tools w RunView z podmodułem Data Preparation | ✅ |
+| 36 | Dark mode — seria poprawek | Data Preparation, Datasets, ImportTab, select dropdown, QualityTab | ✅ |
 
 ---
 

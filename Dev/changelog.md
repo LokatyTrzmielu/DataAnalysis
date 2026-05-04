@@ -11,6 +11,48 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-04] - Feature + Fix + Refactor (main)
+
+- **Datasets — warstwa persystencji plików masterdata/orders**:
+  - Nowy model `Dataset` w DB z deduplikacją opartą na SHA-256
+  - `api/routers/datasets.py` — endpointy: list, upload, delete, download
+  - `frontend/src/views/DatasetsView.vue` — nowa strona Datasets z tabelą, notatkami, akcją delete
+  - Możliwość re-importu tego samego pliku między sesjami; ulepszony komunikat błędu dla duplikatów nazw runów
+  - Dataset selection w zakładce Import — wybieranie wcześniej załadowanego pliku zamiast ponownego uploadu
+  - Fix 500 → 422 gdy plik masterdata brakuje na dysku
+
+- **Tools tab z modułem Data Preparation**:
+  - Nowa zakładka "Tools" w `RunView` z podmodułem Data Preparation
+  - `frontend/src/components/analysis/ToolsTab.vue` (nowy komponent)
+
+- **Fix: Dark mode — seria poprawek**:
+  - Data Preparation view (tła, kolory tekstu, granice)
+  - Datasets import form and list
+  - ImportTab (Masterdata & Orders)
+  - Select dropdown background; ujednolicenie kolorów empty state; usunięcie `line_id`
+  - QualityTab dark mode
+
+- **Refactor: Usunięcie Streamlit (PR #40)**:
+  - Usunięto cały kod Streamlit — jedyny stack to FastAPI + Vue 3/Vite
+  - Commit: `75a82bc`
+
+- **Fix: Dashboard query performance (PR #41)**:
+  - Partial select z DB zamiast pełnych obiektów + indeksy bazy danych
+  - Usunięto martwe skany Polars, single-pass ABC dla Dashboard KPIs
+  - Commit: `2a358d8`, `48c6504`
+
+- **Feature: Toast notifications dla akcji (PR #42)**:
+  - Powiadomienia toast dla: Notes, Delete, Share, Duplicate, Change password
+  - Commit: `cd07e33`
+
+- **Pliki testowe i generator dużych danych**:
+  - Dodano `tests_alan/` — przykładowe pliki masterdata/orders do testów manualnych
+  - Skrypt generujący duże zestawy danych (stress testing)
+
+- Branch: `main`
+
+---
+
 ### [2026-05-03] - Feature + Fix (main)
 
 - **Performance — Throughput per Period KPIs**:
