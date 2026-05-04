@@ -20,16 +20,20 @@
             ref="fileInputRef"
             type="file"
             accept=".xlsx,.xls,.csv"
-            class="input-apple-sm"
-            style="cursor:pointer"
+            class="hidden"
             @change="onFileChange"
           />
+          <div class="flex items-center gap-2">
+            <button @click="fileInputRef?.click()" class="btn-apple-pill" style="font-size:13px">Choose file</button>
+            <span v-if="selectedFile" class="text-xs truncate" style="color:var(--app-text-sec);max-width:160px">{{ selectedFile.name }}</span>
+            <span v-else class="text-xs" style="color:var(--app-placeholder)">No file chosen</span>
+          </div>
         </div>
         <div>
           <label class="label-apple" style="font-size:12px">Data type</label>
           <select v-model="importType" class="input-apple-sm" style="cursor:pointer">
-            <option value="masterdata">Masterdata (SKU dimensions)</option>
-            <option value="orders">Orders (order lines)</option>
+            <option value="masterdata">Masterdata</option>
+            <option value="orders">Orders</option>
           </select>
         </div>
       </div>
@@ -53,7 +57,7 @@
         v-for="ds in datasets"
         :key="ds.id"
         class="flex items-center justify-between px-4 py-3"
-        @mouseover="(e) => (e.currentTarget as HTMLElement).style.background='rgba(0,0,0,0.02)'"
+        @mouseover="(e) => (e.currentTarget as HTMLElement).style.background='var(--table-row-hover)'"
         @mouseleave="(e) => (e.currentTarget as HTMLElement).style.background=''"
       >
         <!-- Left: name + badges -->
@@ -64,8 +68,8 @@
               <span
                 class="rounded px-1.5 py-0.5"
                 :style="ds.file_type === 'masterdata'
-                  ? 'font-size:11px;background:rgba(0,113,227,0.08);color:#0066cc'
-                  : 'font-size:11px;background:rgba(52,199,89,0.1);color:#1a7a38'"
+                  ? 'font-size:11px;background:var(--badge-blue-bg);color:var(--badge-blue-color)'
+                  : 'font-size:11px;background:var(--badge-green-bg);color:var(--badge-green-color)'"
               >
                 {{ ds.file_type }}
               </span>
@@ -80,7 +84,7 @@
           <span style="font-size:12px;color:var(--app-text-sec)">{{ formatDate(ds.created_at) }}</span>
           <span
             class="rounded px-1.5 py-0.5 font-mono"
-            style="font-size:10px;background:rgba(0,0,0,0.05);color:var(--app-text-sec);letter-spacing:0"
+            style="font-size:10px;background:var(--badge-default-bg);color:var(--app-text-sec);letter-spacing:0"
             :title="ds.id"
           >
             {{ ds.id.slice(0, 8) }}…
@@ -107,7 +111,7 @@
             class="p-1.5 rounded transition-colors"
             style="color:var(--app-placeholder)"
             @mouseover="(e) => (e.currentTarget as HTMLElement).style.color='#ff3b30'"
-            @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'"
+            @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='var(--app-placeholder)'"
             title="Delete"
           >
             <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -131,8 +135,8 @@
           <button
             @click="closeNotes"
             style="color:var(--app-placeholder);background:none;border:none;cursor:pointer;padding:4px;transition:color 0.15s"
-            @mouseover="(e: Event) => (e.currentTarget as HTMLElement).style.color='#1d1d1f'"
-            @mouseleave="(e: Event) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'"
+            @mouseover="(e: Event) => (e.currentTarget as HTMLElement).style.color='var(--app-text)'"
+            @mouseleave="(e: Event) => (e.currentTarget as HTMLElement).style.color='var(--app-placeholder)'"
           >
             <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
