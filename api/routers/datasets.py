@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/v1/datasets", tags=["datasets"])
 STORE = DataStore()
 
 
-@router.post("/import", response_model=DatasetResponse)
+@router.post("/import", response_model=DatasetResponse, status_code=status.HTTP_201_CREATED)
 async def import_dataset(
     file: UploadFile = File(..., description="XLSX or CSV file to import"),
     file_type: str = Form(..., description="'masterdata' or 'orders'"),
@@ -28,8 +28,8 @@ async def import_dataset(
 ) -> DatasetResponse:
     """Import an Excel/CSV file, persist it as a DuckDB dataset, and return a dataset_id.
 
-    Returns HTTP 200 + is_duplicate=true if the same file (SHA-256) was already imported.
-    Returns HTTP 201 for a freshly imported dataset.
+    Each upload always creates a new independent dataset — the same file can be imported
+    multiple times for use across different analysis sessions.
     """
     if file_type not in {"masterdata", "orders"}:
         raise HTTPException(status_code=422, detail="file_type must be 'masterdata' or 'orders'")
@@ -41,23 +41,6 @@ async def import_dataset(
 
     content = await file.read()
     file_hash = hash_bytes(content)
-
-    # Deduplication — signal duplicate without re-importing
-    existing = await db.execute(select(Dataset).where(Dataset.file_hash == file_hash))
-    existing_row = existing.scalar_one_or_none()
-    if existing_row is not None:
-        size_mb = STORE.get_info(existing_row.id)["size_mb"] if STORE.exists(existing_row.id) else 0.0
-        payload = DatasetResponse(
-            id=existing_row.id,
-            name=existing_row.name,
-            file_type=existing_row.file_type,
-            row_count=existing_row.row_count,
-            column_names=existing_row.column_names,
-            size_mb=size_mb,
-            created_at=existing_row.created_at,
-            is_duplicate=True,
-        )
-        return JSONResponse(status_code=200, content=payload.model_dump(mode="json"))
 
     # Save to temp file so the pipeline can read by path
     suffix_str = Path(file.filename or "data.xlsx").suffix
@@ -94,7 +77,7 @@ async def import_dataset(
     await db.refresh(dataset)
 
     size_mb = round(duckdb_path.stat().st_size / 1_048_576, 2)
-    payload = DatasetResponse(
+    return DatasetResponse(
         id=dataset.id,
         name=dataset.name,
         file_type=dataset.file_type,
@@ -102,9 +85,7 @@ async def import_dataset(
         column_names=dataset.column_names,
         size_mb=size_mb,
         created_at=dataset.created_at,
-        is_duplicate=False,
     )
-    return JSONResponse(status_code=201, content=payload.model_dump(mode="json"))
 
 
 @router.get("", response_model=DatasetListResponse)

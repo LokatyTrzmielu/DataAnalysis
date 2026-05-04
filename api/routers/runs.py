@@ -62,9 +62,14 @@ async def create_run(
         )
     )
     if existing.scalar_one_or_none() is not None:
+        suggestion = f"{body.client_name} 2"
         raise HTTPException(
             status_code=409,
-            detail=f"An analysis named '{body.client_name}' already exists. Use a different name or delete the existing one.",
+            detail=(
+                f"An analysis named '{body.client_name}' already exists in your account. "
+                f"Please choose a different name (e.g. '{suggestion}') "
+                f"or delete the existing analysis first."
+            ),
         )
     run = AnalysisRun(owner_id=current_user.id, client_name=body.client_name)
     db.add(run)

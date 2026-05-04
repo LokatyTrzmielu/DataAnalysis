@@ -25,7 +25,7 @@ class Dataset(Base):
     file_type: Mapped[str] = mapped_column(String(50), nullable=False)  # masterdata | orders
     row_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     duckdb_path: Mapped[str] = mapped_column(String(512), nullable=False)
-    file_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    file_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     column_names: Mapped[list | None] = mapped_column(_JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

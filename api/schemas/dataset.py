@@ -16,7 +16,6 @@ class DatasetResponse(BaseModel):
     column_names: list[str] | None
     size_mb: float
     created_at: datetime
-    is_duplicate: bool = False
 
 
 class DatasetListResponse(BaseModel):

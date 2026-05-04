@@ -35,6 +35,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             await conn.execute(text("ALTER TABLE analysis_runs ADD COLUMN orders_validation_result JSON"))
         except Exception:
             pass  # Column already exists
+        # Migration: datasets.file_hash had unique=True in schema v1 — drop and recreate
+        # (table is new with no production data, safe to recreate)
+        try:
+            await conn.execute(text(
+                "INSERT INTO datasets (id, name, file_type, row_count, duckdb_path, file_hash, created_at) "
+                "VALUES ('_mig_a', '_', 'masterdata', 0, '_', '_mig_hash', CURRENT_TIMESTAMP),"
+                "       ('_mig_b', '_', 'masterdata', 0, '_', '_mig_hash', CURRENT_TIMESTAMP)"
+            ))
+            await conn.execute(text("DELETE FROM datasets WHERE id IN ('_mig_a', '_mig_b')"))
+        except Exception:
+            # Unique constraint still present — recreate the table
+            await conn.execute(text("DROP TABLE IF EXISTS datasets"))
+            await conn.run_sync(Base.metadata.create_all)
     yield
 
 
