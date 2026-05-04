@@ -22,11 +22,11 @@ class AnalysisRun(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     owner_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     client_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     status: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="created"
+        String(50), nullable=False, default="created", index=True
     )  # created | ingested | quality_done | capacity_done | performance_done
 
     # File paths on persistent disk
@@ -45,7 +45,7 @@ class AnalysisRun(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

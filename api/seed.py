@@ -22,6 +22,20 @@ async def init_db() -> None:
     print("Database tables created.")
 
 
+async def migrate_indexes() -> None:
+    """Add indexes to existing DB. Safe to run multiple times."""
+    from sqlalchemy import text
+    stmts = [
+        "CREATE INDEX IF NOT EXISTS ix_analysis_runs_owner_id ON analysis_runs (owner_id)",
+        "CREATE INDEX IF NOT EXISTS ix_analysis_runs_status ON analysis_runs (status)",
+        "CREATE INDEX IF NOT EXISTS ix_analysis_runs_created_at ON analysis_runs (created_at)",
+    ]
+    async with engine.begin() as conn:
+        for stmt in stmts:
+            await conn.execute(text(stmt))
+    print("Indexes applied.")
+
+
 async def create_user(email: str, password: str, name: str) -> None:
     async with SessionLocal() as db:
         existing = await db.execute(select(User).where(User.email == email))
@@ -70,6 +84,7 @@ async def seed_carriers() -> None:
 
 async def main() -> None:
     await init_db()
+    await migrate_indexes()
     await seed_carriers()
 
     # Create a default admin user if env vars are set or args provided
