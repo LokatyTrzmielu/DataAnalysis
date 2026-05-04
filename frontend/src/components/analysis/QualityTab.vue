@@ -10,7 +10,7 @@
       <details v-if="qr" open class="card-apple-list overflow-hidden">
         <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">
           <span>Masterdata</span>
-          <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="w-4 h-4" style="color:var(--app-text-sec)" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
         </summary>
@@ -22,50 +22,50 @@
             <KpiCard label="Weight coverage" :value="`${qr.weight_coverage_pct?.toFixed(1)}%`" tooltip="Percentage of records with weight data present." />
           </div>
 
-          <div class="card-apple" style="background:#f5f5f7">
+          <div class="card-apple" style="background:var(--table-header-bg)">
             <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Issue counts</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
               <div class="flex items-center justify-between gap-2">
-                <span class="text-gray-500 flex items-center gap-1">
+                <span class="flex items-center gap-1" style="color:var(--app-text-sec)">
                   Missing critical
                   <HelpTip text="SKUs missing at least one required field (e.g. SKU code, dimensions, weight)." />
                 </span>
-                <span class="font-semibold text-gray-800">{{ qr.missing_critical_count }}</span>
+                <span class="font-semibold" style="color:var(--app-text)">{{ qr.missing_critical_count }}</span>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <span class="text-gray-500 flex items-center gap-1">
+                <span class="flex items-center gap-1" style="color:var(--app-text-sec)">
                   Suspect outliers
                   <HelpTip text="SKUs with values statistically far from the dataset median — likely data entry errors." />
                 </span>
-                <span class="font-semibold text-gray-800">{{ qr.suspect_outliers_count }}</span>
+                <span class="font-semibold" style="color:var(--app-text)">{{ qr.suspect_outliers_count }}</span>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <span class="text-gray-500 flex items-center gap-1">
+                <span class="flex items-center gap-1" style="color:var(--app-text-sec)">
                   Duplicates
                   <HelpTip text="SKUs appearing more than once with the same identifier." />
                 </span>
-                <span class="font-semibold text-gray-800">{{ qr.duplicates_count }}</span>
+                <span class="font-semibold" style="color:var(--app-text)">{{ qr.duplicates_count }}</span>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <span class="text-gray-500 flex items-center gap-1">
+                <span class="flex items-center gap-1" style="color:var(--app-text-sec)">
                   Conflicts
                   <HelpTip text="SKUs sharing the same identifier but with different dimension or weight values." />
                 </span>
-                <span class="font-semibold text-gray-800">{{ qr.conflicts_count }}</span>
+                <span class="font-semibold" style="color:var(--app-text)">{{ qr.conflicts_count }}</span>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <span class="text-gray-500 flex items-center gap-1">
+                <span class="flex items-center gap-1" style="color:var(--app-text-sec)">
                   Imputed dims
                   <HelpTip text="SKUs where missing dimensions were estimated from other records in the same product family." />
                 </span>
-                <span class="font-semibold text-gray-800">{{ qr.imputed_dimensions_count }}</span>
+                <span class="font-semibold" style="color:var(--app-text)">{{ qr.imputed_dimensions_count }}</span>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <span class="text-gray-500 flex items-center gap-1">
+                <span class="flex items-center gap-1" style="color:var(--app-text-sec)">
                   Imputed weight
                   <HelpTip text="SKUs where missing weight was estimated from similar products in the dataset." />
                 </span>
-                <span class="font-semibold text-gray-800">{{ qr.imputed_weight_count }}</span>
+                <span class="font-semibold" style="color:var(--app-text)">{{ qr.imputed_weight_count }}</span>
               </div>
             </div>
           </div>
@@ -76,7 +76,7 @@
       <details v-if="ovr" open class="card-apple-list overflow-hidden">
         <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">
           <span>Orders</span>
-          <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="w-4 h-4" style="color:var(--app-text-sec)" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
           </svg>
         </summary>
@@ -91,35 +91,35 @@
           </div>
 
           <!-- B: Date coverage -->
-          <div class="card-apple" style="background:#f5f5f7">
+          <div class="card-apple" style="background:var(--table-header-bg)">
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm mb-2">
-              <span class="text-gray-700">
+              <span style="color:var(--app-text)">
                 Calendar coverage:
-                <strong :class="ovr.date_coverage_pct >= 80 ? 'text-green-700' : ovr.date_coverage_pct >= 50 ? 'text-yellow-700' : 'text-red-700'">
+                <strong :style="ovr.date_coverage_pct >= 80 ? 'color:#34c759' : ovr.date_coverage_pct >= 50 ? 'color:#ff9500' : 'color:#ff3b30'">
                   {{ ovr.date_coverage_pct.toFixed(1) }}%
                 </strong>
                 ({{ ovr.unique_days }} of {{ ovr.total_calendar_days }} days)
               </span>
-              <span v-if="ovr.max_gap_days > 0" class="text-gray-500">
-                · Largest gap: <strong class="text-gray-700">{{ ovr.max_gap_days }} days</strong>
+              <span v-if="ovr.max_gap_days > 0" style="color:var(--app-text-sec)">
+                · Largest gap: <strong style="color:var(--app-text)">{{ ovr.max_gap_days }} days</strong>
               </span>
-              <span v-if="ovr.gap_count === 0" class="text-green-600 text-xs">No gaps</span>
+              <span v-if="ovr.gap_count === 0" class="text-xs" style="color:#34c759">No gaps</span>
             </div>
             <details v-if="ovr.gap_list.length > 0">
-              <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+              <summary class="text-xs cursor-pointer" style="color:var(--app-text-sec)">
                 Show gaps ({{ ovr.gap_count }} total)
               </summary>
               <div class="overflow-x-auto mt-2">
                 <table class="text-xs w-full">
                   <thead>
-                    <tr class="text-gray-500 border-b border-gray-200">
+                    <tr style="color:var(--app-text-sec);border-bottom:1px solid var(--table-divider)">
                       <th class="pb-1 text-left font-medium">From</th>
                       <th class="pb-1 text-left font-medium pl-4">To</th>
                       <th class="pb-1 text-right font-medium">Days</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-gray-100">
-                    <tr v-for="(gap, i) in ovr.gap_list" :key="i" class="text-gray-700">
+                  <tbody>
+                    <tr v-for="(gap, i) in ovr.gap_list" :key="i" style="color:var(--app-text);border-top:1px solid var(--table-divider)">
                       <td class="py-0.5">{{ gap.from }}</td>
                       <td class="py-0.5 pl-4">{{ gap.to }}</td>
                       <td class="py-0.5 text-right">{{ gap.days }}</td>
@@ -131,75 +131,73 @@
           </div>
 
           <!-- C: Data issues -->
-          <div class="card-apple" style="background:#f5f5f7">
-            <p class="text-xs font-medium text-gray-600 mb-3">Data issues</p>
+          <div class="card-apple" style="background:var(--table-header-bg)">
+            <p class="text-xs font-medium mb-3" style="color:var(--app-text-sec)">Data issues</p>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
               <div>
-                <span class="text-gray-500 text-xs">Missing SKUs</span>
-                <p class="font-semibold" :class="ovr.missing_sku_count > 0 ? 'text-red-700' : 'text-gray-800'">
+                <span class="text-xs" style="color:var(--app-text-sec)">Missing SKUs</span>
+                <p class="font-semibold" :style="ovr.missing_sku_count > 0 ? 'color:#ff3b30' : 'color:var(--app-text)'">
                   {{ ovr.missing_sku_count }}
-                  <span v-if="ovr.missing_sku_count > 0" class="text-xs font-normal text-gray-500">({{ ovr.missing_sku_pct.toFixed(1) }}%)</span>
+                  <span v-if="ovr.missing_sku_count > 0" class="text-xs font-normal" style="color:var(--app-text-sec)">({{ ovr.missing_sku_pct.toFixed(1) }}%)</span>
                 </p>
               </div>
               <div>
-                <span class="text-gray-500 text-xs">Qty null</span>
-                <p class="font-semibold" :class="ovr.qty_null_count > 0 ? 'text-yellow-700' : 'text-gray-800'">{{ ovr.qty_null_count }}</p>
+                <span class="text-xs" style="color:var(--app-text-sec)">Qty null</span>
+                <p class="font-semibold" :style="ovr.qty_null_count > 0 ? 'color:#ff9500' : 'color:var(--app-text)'">{{ ovr.qty_null_count }}</p>
               </div>
               <div>
-                <span class="text-gray-500 text-xs">Qty zero</span>
-                <p class="font-semibold" :class="ovr.qty_zero_count > 0 ? 'text-yellow-700' : 'text-gray-800'">{{ ovr.qty_zero_count }}</p>
+                <span class="text-xs" style="color:var(--app-text-sec)">Qty zero</span>
+                <p class="font-semibold" :style="ovr.qty_zero_count > 0 ? 'color:#ff9500' : 'color:var(--app-text)'">{{ ovr.qty_zero_count }}</p>
               </div>
               <div>
-                <span class="text-gray-500 text-xs">Qty negative</span>
-                <p class="font-semibold" :class="ovr.qty_negative_count > 0 ? 'text-red-700' : 'text-gray-800'">{{ ovr.qty_negative_count }}</p>
+                <span class="text-xs" style="color:var(--app-text-sec)">Qty negative</span>
+                <p class="font-semibold" :style="ovr.qty_negative_count > 0 ? 'color:#ff3b30' : 'color:var(--app-text)'">{{ ovr.qty_negative_count }}</p>
               </div>
               <div>
-                <span class="text-gray-500 text-xs flex items-center gap-1">
+                <span class="text-xs flex items-center gap-1" style="color:var(--app-text-sec)">
                   Qty outliers
                   <HelpTip :text="`Values above threshold (mean + 3σ = ${ovr.qty_outlier_threshold.toFixed(0)}).`" />
                 </span>
-                <p class="font-semibold" :class="ovr.qty_outlier_count > 0 ? 'text-yellow-700' : 'text-gray-800'">{{ ovr.qty_outlier_count }}</p>
+                <p class="font-semibold" :style="ovr.qty_outlier_count > 0 ? 'color:#ff9500' : 'color:var(--app-text)'">{{ ovr.qty_outlier_count }}</p>
               </div>
             </div>
           </div>
 
           <!-- D: SKU cross-validation -->
-          <div class="card-apple" style="background:#f5f5f7">
-            <p class="text-xs font-medium text-gray-600 mb-3">SKU cross-validation</p>
+          <div class="card-apple" style="background:var(--table-header-bg)">
+            <p class="text-xs font-medium mb-3" style="color:var(--app-text-sec)">SKU cross-validation</p>
             <div v-if="ovr.sku_xval_available" class="space-y-2">
               <details>
-                <summary class="text-sm cursor-pointer hover:text-gray-700">
-                  <span :class="ovr.orders_skus_not_in_masterdata_count > 0 ? 'text-yellow-700 font-medium' : 'text-gray-700'">
+                <summary class="text-sm cursor-pointer">
+                  <span :style="ovr.orders_skus_not_in_masterdata_count > 0 ? 'color:#ff9500;font-weight:500' : 'color:var(--app-text)'">
                     Unknown SKUs (in orders, not in masterdata): {{ ovr.orders_skus_not_in_masterdata_count }}
                   </span>
                 </summary>
-                <div v-if="ovr.orders_skus_not_in_masterdata.length > 0" class="mt-1 text-xs text-gray-600 pl-4 max-h-32 overflow-y-auto">
+                <div v-if="ovr.orders_skus_not_in_masterdata.length > 0" class="mt-1 text-xs pl-4 max-h-32 overflow-y-auto" style="color:var(--app-text-sec)">
                   {{ ovr.orders_skus_not_in_masterdata.join(', ') }}
-                  <span v-if="ovr.orders_skus_not_in_masterdata_count > ovr.orders_skus_not_in_masterdata.length" class="text-gray-400">
+                  <span v-if="ovr.orders_skus_not_in_masterdata_count > ovr.orders_skus_not_in_masterdata.length" style="color:var(--app-placeholder)">
                     … and {{ ovr.orders_skus_not_in_masterdata_count - ovr.orders_skus_not_in_masterdata.length }} more
                   </span>
                 </div>
               </details>
               <details>
-                <summary class="text-sm cursor-pointer hover:text-gray-700">
-                  <span class="text-gray-700">
-                    Inactive SKUs (in masterdata, not in orders): {{ ovr.masterdata_skus_not_in_orders_count }}
-                  </span>
+                <summary class="text-sm cursor-pointer" style="color:var(--app-text)">
+                  Inactive SKUs (in masterdata, not in orders): {{ ovr.masterdata_skus_not_in_orders_count }}
                 </summary>
-                <div v-if="ovr.masterdata_skus_not_in_orders.length > 0" class="mt-1 text-xs text-gray-600 pl-4 max-h-32 overflow-y-auto">
+                <div v-if="ovr.masterdata_skus_not_in_orders.length > 0" class="mt-1 text-xs pl-4 max-h-32 overflow-y-auto" style="color:var(--app-text-sec)">
                   {{ ovr.masterdata_skus_not_in_orders.join(', ') }}
-                  <span v-if="ovr.masterdata_skus_not_in_orders_count > ovr.masterdata_skus_not_in_orders.length" class="text-gray-400">
+                  <span v-if="ovr.masterdata_skus_not_in_orders_count > ovr.masterdata_skus_not_in_orders.length" style="color:var(--app-placeholder)">
                     … and {{ ovr.masterdata_skus_not_in_orders_count - ovr.masterdata_skus_not_in_orders.length }} more
                   </span>
                 </div>
               </details>
             </div>
-            <p v-else class="text-xs text-gray-400">Import masterdata to enable SKU cross-validation.</p>
+            <p v-else class="text-xs" style="color:var(--app-placeholder)">Import masterdata to enable SKU cross-validation.</p>
           </div>
 
           <!-- E: Working pattern profile -->
-          <div class="card-apple" style="background:#f5f5f7">
-            <p class="text-xs font-medium text-gray-600 mb-3">Working pattern</p>
+          <div class="card-apple" style="background:var(--table-header-bg)">
+            <p class="text-xs font-medium mb-3" style="color:var(--app-text-sec)">Working pattern</p>
             <div v-if="Object.keys(ovr.weekday_distribution).length > 0">
               <div class="space-y-1.5">
                 <div
@@ -207,22 +205,22 @@
                   :key="idx"
                   class="flex items-center gap-2 text-xs"
                 >
-                  <span class="w-8 text-gray-500 shrink-0">{{ label }}</span>
-                  <div class="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <span class="w-8 shrink-0" style="color:var(--app-text-sec)">{{ label }}</span>
+                  <div class="flex-1 rounded-full h-3 overflow-hidden" style="background:var(--app-border)">
                     <div
                       class="h-3 rounded-full transition-all"
                       :style="{ background: idx === ovr.most_active_weekday ? '#0071e3' : 'rgba(0,113,227,0.3)', width: `${ovr.weekday_distribution[String(idx)] ?? 0}%` }"
                     ></div>
                   </div>
-                  <span class="w-10 text-right text-gray-500">{{ (ovr.weekday_distribution[String(idx)] ?? 0).toFixed(1) }}%</span>
+                  <span class="w-10 text-right" style="color:var(--app-text-sec)">{{ (ovr.weekday_distribution[String(idx)] ?? 0).toFixed(1) }}%</span>
                 </div>
               </div>
-              <p class="text-xs text-gray-500 mt-2">
-                Most active: <strong class="text-gray-700">{{ weekdayLabels[ovr.most_active_weekday ?? 0] }}</strong>
-                · Least active: <strong class="text-gray-700">{{ weekdayLabels[ovr.least_active_weekday ?? 6] }}</strong>
+              <p class="text-xs mt-2" style="color:var(--app-text-sec)">
+                Most active: <strong style="color:var(--app-text)">{{ weekdayLabels[ovr.most_active_weekday ?? 0] }}</strong>
+                · Least active: <strong style="color:var(--app-text)">{{ weekdayLabels[ovr.least_active_weekday ?? 6] }}</strong>
               </p>
             </div>
-            <p v-else class="text-xs text-gray-400">No weekday data available.</p>
+            <p v-else class="text-xs" style="color:var(--app-placeholder)">No weekday data available.</p>
           </div>
 
         </div>
