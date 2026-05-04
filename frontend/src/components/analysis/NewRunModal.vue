@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import axios from 'axios'
 import { useRunStore } from '@/stores/run'
 
 const emit = defineEmits<{
@@ -51,8 +52,12 @@ async function create() {
   try {
     const run = await runStore.createRun(clientName.value.trim())
     emit('created', run.id)
-  } catch {
-    error.value = 'Failed to create analysis.'
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e) && e.response?.data?.detail) {
+      error.value = e.response.data.detail
+    } else {
+      error.value = 'Failed to create analysis.'
+    }
   } finally {
     loading.value = false
   }

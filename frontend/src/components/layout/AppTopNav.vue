@@ -12,6 +12,7 @@
     <div class="nav-links">
       <RouterLink to="/" class="nav-link" :class="{ active: isExact('/') }">Dashboard</RouterLink>
       <RouterLink to="/runs" class="nav-link" :class="{ active: isActive('/runs') }">Analyses</RouterLink>
+      <RouterLink to="/datasets" class="nav-link" :class="{ active: isActive('/datasets') }">Datasets</RouterLink>
       <RouterLink to="/carriers" class="nav-link" :class="{ active: isActive('/carriers') }">Carriers</RouterLink>
     </div>
 
