@@ -120,12 +120,14 @@
 import { ref, watch, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useRunStore } from '@/stores/run'
+import { useNotificationsStore } from '@/stores/notifications'
 import type { RunListItem } from '@/api/runs'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import NewRunModal from '@/components/analysis/NewRunModal.vue'
 
 const runStore = useRunStore()
 const router = useRouter()
+const notify = useNotificationsStore()
 const showModal = ref(false)
 const confirmDelete = ref<string | null>(null)
 
@@ -150,13 +152,23 @@ function onCreated(id: string) {
 }
 
 async function onDelete(id: string) {
-  await runStore.deleteRun(id)
-  confirmDelete.value = null
+  try {
+    await runStore.deleteRun(id)
+    confirmDelete.value = null
+    notify.push({ type: 'success', title: 'Analysis deleted' })
+  } catch {
+    notify.push({ type: 'error', title: 'Failed to delete analysis' })
+  }
 }
 
 async function onDuplicate(id: string) {
-  const run = await runStore.duplicateRun(id)
-  router.push(`/runs/${run.id}`)
+  try {
+    const run = await runStore.duplicateRun(id)
+    notify.push({ type: 'success', title: 'Analysis duplicated' })
+    router.push(`/runs/${run.id}`)
+  } catch {
+    notify.push({ type: 'error', title: 'Failed to duplicate analysis' })
+  }
 }
 
 async function onTogglePublic(run: RunListItem) {

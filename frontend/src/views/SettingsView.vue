@@ -52,8 +52,10 @@
 import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const auth = useAuthStore()
+const notify = useNotificationsStore()
 
 const form = reactive({ old_password: '', new_password: '', confirm: '' })
 const loading = ref(false)
@@ -76,6 +78,7 @@ async function submit() {
     form.old_password = ''
     form.new_password = ''
     form.confirm = ''
+    notify.push({ type: 'success', title: 'Password changed' })
   } catch (e: any) {
     error.value = e?.response?.data?.detail ?? 'Failed to change password.'
   } finally {

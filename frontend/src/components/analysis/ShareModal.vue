@@ -49,10 +49,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { runsApi, type RunShareItem } from '@/api/runs'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const props = defineProps<{ runId: string }>()
 defineEmits<{ close: [] }>()
 
+const notify = useNotificationsStore()
 const shares = ref<RunShareItem[]>([])
 const loading = ref(true)
 const emailInput = ref('')
@@ -74,6 +76,7 @@ async function addShare() {
   try {
     const { data } = await runsApi.addShare(props.runId, emailInput.value)
     shares.value.push(data)
+    notify.push({ type: 'success', title: 'Analysis shared', message: emailInput.value })
     emailInput.value = ''
   } catch (e: any) {
     addError.value = e?.response?.data?.detail ?? 'Failed to share.'
@@ -83,7 +86,9 @@ async function addShare() {
 }
 
 async function revoke(userId: string) {
+  const user = shares.value.find(s => s.user_id === userId)
   await runsApi.removeShare(props.runId, userId)
   shares.value = shares.value.filter(s => s.user_id !== userId)
+  notify.push({ type: 'info', title: 'Share removed', message: user?.email })
 }
 </script>
