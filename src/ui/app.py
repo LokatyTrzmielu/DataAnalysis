@@ -469,9 +469,6 @@ def _render_dashboard_capacity_kpis() -> None:
     none_stats = result.carrier_stats.get("NONE")
     not_fit_count = none_stats.not_fit_count if none_stats else 0
 
-    # Average dimensions
-    avg_length = df.select(pl.col("length_mm").mean()).item() or 0
-    avg_width = df.select(pl.col("width_mm").mean()).item() or 0
     avg_weight = df.select(pl.col("weight_kg").mean()).item() or 0
 
     metrics = [

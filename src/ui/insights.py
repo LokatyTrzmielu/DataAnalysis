@@ -156,9 +156,14 @@ def generate_performance_insights() -> list[Insight]:
 
     # 3. ABC analysis
     if result.sku_pareto:
-        abc_a_count = sum(1 for s in result.sku_pareto if s.abc_class == "A")
-        abc_a_lines = sum(s.total_lines for s in result.sku_pareto if s.abc_class == "A")
-        total_lines = sum(s.total_lines for s in result.sku_pareto)
+        abc_a_count = 0
+        abc_a_lines = 0
+        total_lines = 0
+        for s in result.sku_pareto:
+            total_lines += s.total_lines
+            if s.abc_class == "A":
+                abc_a_count += 1
+                abc_a_lines += s.total_lines
         if total_lines > 0:
             a_pct_sku = abc_a_count / len(result.sku_pareto) * 100
             a_pct_lines = abc_a_lines / total_lines * 100
