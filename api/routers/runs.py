@@ -55,6 +55,17 @@ async def create_run(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResponse:
+    existing = await db.execute(
+        select(AnalysisRun).where(
+            AnalysisRun.owner_id == current_user.id,
+            AnalysisRun.client_name == body.client_name,
+        )
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"An analysis named '{body.client_name}' already exists. Use a different name or delete the existing one.",
+        )
     run = AnalysisRun(owner_id=current_user.id, client_name=body.client_name)
     db.add(run)
     await db.commit()

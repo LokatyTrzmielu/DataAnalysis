@@ -2,6 +2,7 @@
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
@@ -10,7 +11,7 @@ from sqlalchemy import text
 
 from api.database import Base, engine
 from api.models import *  # noqa: F401, F403 — register all ORM models with Base
-from api.routers import analyze, auth, carriers, reports, runs
+from api.routers import analyze, auth, carriers, datasets, reports, runs
 
 # Origins allowed for CORS (dev: Vite dev server; prod: frontend URL)
 ALLOWED_ORIGINS = [
@@ -22,6 +23,7 @@ ALLOWED_ORIGINS = [
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Create DB tables on startup (no-op if already exist)."""
+    Path("data/datasets").mkdir(parents=True, exist_ok=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         # Add notes column to existing DBs that predate this field
@@ -56,6 +58,7 @@ app.include_router(auth.router)
 app.include_router(runs.router)
 app.include_router(carriers.router)
 app.include_router(reports.router)
+app.include_router(datasets.router)
 
 
 @app.get("/health")

@@ -12,7 +12,7 @@
 | Katalog roboczy | `D:\VS\DataAnalysis` |
 | Data rozpoczęcia | 2026-01-03 |
 | Status | **FastAPI + Vue 3 Migration — Phases 1–5 kompletne** |
-| Testy | 191 (wszystkie przechodzą) |
+| Testy | 270 (bez pre-existing failures) |
 
 ---
 
@@ -61,9 +61,9 @@ api/                    # FastAPI backend
 ├── dependencies.py     # get_db(), get_current_user() (JWT)
 ├── seed.py             # CLI: init DB + seed carriers + create user
 ├── pdf_generator.py    # ReportLab PDF generation
-├── models/             # ORM: User, AnalysisRun, Carrier, UploadStaging
-├── schemas/            # Pydantic schemas: auth, analysis, carriers, runs
-└── routers/            # auth, analyze, runs, carriers, reports
+├── models/             # ORM: User, AnalysisRun, Carrier, UploadStaging, Dataset
+├── schemas/            # Pydantic schemas: auth, analysis, carriers, runs, dataset
+└── routers/            # auth, analyze, runs, carriers, reports, datasets
 
 frontend/               # Vue 3 + TypeScript
 ├── src/
@@ -79,7 +79,10 @@ src/                    # Core analytics (Python, bez zmian)
 ├── quality/            # Walidacja, DQ metrics, imputacja
 ├── model/              # Masterdata, Orders processing
 ├── analytics/          # DuckDB, capacity, performance
+├── storage/            # DataStore — zapis/odczyt Polars DataFrames do plików .duckdb
 └── reporting/          # Raporty CSV, manifest, ZIP
+
+data/datasets/          # Persystentne datasety (DuckDB files, gitignore'd)
 
 tests/                  # 191 testów jednostkowych + integracyjnych
 ```
