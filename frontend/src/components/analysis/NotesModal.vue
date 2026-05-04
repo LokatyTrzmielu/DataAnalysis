@@ -28,11 +28,13 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue'
 import { useRunStore } from '@/stores/run'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const props = defineProps<{ runId: string; initialNotes: string }>()
 const emit = defineEmits<{ close: []; saved: [value: string] }>()
 
 const runStore = useRunStore()
+const notify = useNotificationsStore()
 const localNotes = ref(props.initialNotes)
 const notesSaved = ref(false)
 let notesTimer: ReturnType<typeof setTimeout> | null = null
@@ -44,6 +46,7 @@ function scheduleNotesSave() {
     await runStore.patchRun(props.runId, { notes: localNotes.value })
     emit('saved', localNotes.value)
     notesSaved.value = true
+    notify.push({ type: 'success', title: 'Notes saved' })
     setTimeout(() => { notesSaved.value = false }, 2000)
   }, 500)
 }
