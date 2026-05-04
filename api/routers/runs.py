@@ -78,6 +78,18 @@ async def create_run(
     return _run_to_response(run)
 
 
+_LIST_COLS = (
+    AnalysisRun.id,
+    AnalysisRun.owner_id,
+    AnalysisRun.client_name,
+    AnalysisRun.status,
+    AnalysisRun.is_public,
+    AnalysisRun.notes,
+    AnalysisRun.created_at,
+    AnalysisRun.updated_at,
+)
+
+
 @router.get("", response_model=RunListResponse)
 async def list_runs(
     my_only: bool = True,
@@ -93,12 +105,12 @@ async def list_runs(
         RunShare.shared_with_user_id == current_user.id
     )
     if my_only:
-        query = select(AnalysisRun).where(
+        query = select(*_LIST_COLS).where(
             (AnalysisRun.owner_id == current_user.id)
             | (AnalysisRun.id.in_(shared_run_ids_q))
         )
     else:
-        query = select(AnalysisRun).where(
+        query = select(*_LIST_COLS).where(
             (AnalysisRun.owner_id == current_user.id)
             | (AnalysisRun.is_public.is_(True))
             | (AnalysisRun.id.in_(shared_run_ids_q))
@@ -121,7 +133,7 @@ async def list_runs(
     total = (await db.execute(count_q)).scalar_one()
 
     query = query.offset((page - 1) * page_size).limit(page_size)
-    runs = (await db.execute(query)).scalars().all()
+    runs = (await db.execute(query)).all()
 
     return RunListResponse(
         items=[
