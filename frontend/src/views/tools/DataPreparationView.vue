@@ -16,18 +16,8 @@
         <p style="font-size:14px;font-weight:600;color:var(--app-text);margin-bottom:4px">What type of data are you merging?</p>
         <p class="mb-5" style="font-size:13px;color:var(--app-text-sec)">Select the data type. All files must share the same column structure.</p>
         <div class="flex gap-3">
-          <button
-            @click="fileType = 'masterdata'; step = 'upload'"
-            class="btn-apple-primary"
-          >
-            Masterdata
-          </button>
-          <button
-            @click="fileType = 'orders'; step = 'upload'"
-            class="btn-apple-primary"
-          >
-            Orders
-          </button>
+          <button @click="fileType = 'masterdata'; step = 'upload'" class="btn-apple-primary">Masterdata</button>
+          <button @click="fileType = 'orders'; step = 'upload'" class="btn-apple-primary">Orders</button>
         </div>
       </div>
 
@@ -43,14 +33,22 @@
           <button @click="step = 'type-select'; selectedFiles = []" class="text-xs" style="color:var(--app-text-sec)">← Back</button>
         </div>
 
+        <!-- Hidden native input + styled trigger -->
         <input
           ref="fileInputRef"
           type="file"
           multiple
           accept=".xlsx,.xls,.csv"
-          class="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 mb-4"
+          class="hidden"
           @change="onFilesChange"
         />
+        <button
+          @click="fileInputRef?.click()"
+          class="btn-apple-pill mb-4"
+          style="font-size:13px"
+        >
+          + Add files
+        </button>
 
         <!-- File list -->
         <div v-if="selectedFiles.length > 0" class="space-y-1.5 mb-4">
@@ -58,7 +56,7 @@
             v-for="(f, i) in selectedFiles"
             :key="i"
             class="flex items-center justify-between px-3 py-2 rounded-lg"
-            style="background:rgba(0,0,0,0.03);font-size:13px"
+            style="background:var(--table-header-bg);font-size:13px"
           >
             <span style="color:var(--app-text)">{{ f.name }}</span>
             <div class="flex items-center gap-3">
@@ -68,7 +66,7 @@
           </div>
         </div>
 
-        <p v-if="uploadError" class="text-red-600 text-sm mb-3">{{ uploadError }}</p>
+        <p v-if="uploadError" class="text-sm mb-3" style="color:#ff3b30">{{ uploadError }}</p>
 
         <button
           @click="doInspect"
@@ -91,17 +89,20 @@
 
         <!-- Required fields -->
         <div class="mb-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-700 mb-2">Required fields</p>
+          <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--app-text)">Required fields</p>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div v-for="field in requiredFields" :key="field.name" class="flex flex-col gap-1">
-              <label class="text-xs text-gray-600">
+              <label class="text-xs" style="color:var(--app-text-sec)">
                 {{ field.name }}
-                <span v-if="isDuplicate(field.name)" class="text-yellow-600 ml-1" title="Duplicate mapping">⚠</span>
-                <span v-else-if="!userMapping[field.name]" class="text-red-500 ml-1">*</span>
+                <span v-if="isDuplicate(field.name)" class="ml-1" style="color:#ff9500" title="Duplicate mapping">⚠</span>
+                <span v-else-if="!userMapping[field.name]" class="ml-1" style="color:#ff3b30">*</span>
               </label>
               <select
                 v-model="userMapping[field.name]"
-                :class="['w-full text-xs border rounded px-2 py-1', !userMapping[field.name] ? 'border-red-300 bg-red-50' : 'border-gray-300']"
+                class="w-full text-xs rounded px-2 py-1"
+                :style="!userMapping[field.name]
+                  ? 'border:1px solid #ff3b30;background:rgba(255,59,48,0.08);color:var(--app-text)'
+                  : 'border:1px solid var(--app-input-border);background:var(--app-input-bg);color:var(--app-text)'"
               >
                 <option value="">— not mapped —</option>
                 <option v-for="col in inspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
@@ -112,11 +113,15 @@
 
         <!-- Optional fields -->
         <details class="mb-4">
-          <summary class="text-xs font-semibold uppercase tracking-wide text-gray-500 cursor-pointer mb-2">Optional fields</summary>
+          <summary class="text-xs font-semibold uppercase tracking-wide cursor-pointer mb-2" style="color:var(--app-text-sec)">Optional fields</summary>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
             <div v-for="field in optionalFields" :key="field.name" class="flex flex-col gap-1">
-              <label class="text-xs text-gray-600">{{ field.name }}</label>
-              <select v-model="userMapping[field.name]" class="w-full text-xs border border-gray-300 rounded px-2 py-1">
+              <label class="text-xs" style="color:var(--app-text-sec)">{{ field.name }}</label>
+              <select
+                v-model="userMapping[field.name]"
+                class="w-full text-xs rounded px-2 py-1"
+                style="border:1px solid var(--app-input-border);background:var(--app-input-bg);color:var(--app-text)"
+              >
                 <option value="">— not mapped —</option>
                 <option v-for="col in inspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
               </select>
@@ -126,23 +131,28 @@
 
         <!-- Preview -->
         <div class="overflow-x-auto mb-4">
-          <p class="text-xs font-medium text-gray-600 mb-1">File preview (first file, 5 rows)</p>
-          <table class="text-xs border border-gray-200 rounded w-full">
-            <thead class="bg-gray-50">
+          <p class="text-xs font-medium mb-1" style="color:var(--app-text-sec)">File preview (first file, 5 rows)</p>
+          <table class="text-xs rounded w-full" style="border:1px solid var(--app-border)">
+            <thead style="background:var(--table-header-bg)">
               <tr>
-                <th v-for="col in inspectResult.file_columns" :key="col" class="px-2 py-1 text-left text-gray-600 font-medium border-b border-gray-200 whitespace-nowrap">{{ col }}</th>
+                <th
+                  v-for="col in inspectResult.file_columns"
+                  :key="col"
+                  class="px-2 py-1 text-left font-medium whitespace-nowrap"
+                  style="color:var(--app-text-sec);border-bottom:1px solid var(--table-divider)"
+                >{{ col }}</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, i) in inspectResult.preview_rows" :key="i" class="border-b border-gray-100">
-                <td v-for="col in inspectResult.file_columns" :key="col" class="px-2 py-1 text-gray-700 whitespace-nowrap">{{ row[col] ?? '' }}</td>
+              <tr v-for="(row, i) in inspectResult.preview_rows" :key="i" style="border-bottom:1px solid var(--table-divider)">
+                <td v-for="col in inspectResult.file_columns" :key="col" class="px-2 py-1 whitespace-nowrap" style="color:var(--app-text)">{{ row[col] ?? '' }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <p v-if="missingRequired.length > 0" class="text-xs text-red-600 mb-3">Missing required: {{ missingRequired.join(', ') }}</p>
-        <p v-if="duplicateFields.length > 0" class="text-xs text-yellow-600 mb-3">Duplicate mappings: {{ duplicateFields.join(', ') }}</p>
+        <p v-if="missingRequired.length > 0" class="text-xs mb-3" style="color:#ff3b30">Missing required: {{ missingRequired.join(', ') }}</p>
+        <p v-if="duplicateFields.length > 0" class="text-xs mb-3" style="color:#ff9500">Duplicate mappings: {{ duplicateFields.join(', ') }}</p>
 
         <button
           @click="step = 'confirm'"
@@ -161,22 +171,22 @@
         </div>
 
         <div class="space-y-3 mb-5">
-          <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg" style="background:rgba(0,0,0,0.03)">
+          <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg" style="background:var(--table-header-bg)">
             <span class="text-xs" style="color:var(--app-text-sec);width:80px">Type</span>
             <span class="text-xs font-medium" style="color:var(--app-text)">{{ fileType }}</span>
           </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg" style="background:rgba(0,0,0,0.03)">
+          <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg" style="background:var(--table-header-bg)">
             <span class="text-xs" style="color:var(--app-text-sec);width:80px">Files</span>
             <span class="text-xs font-medium" style="color:var(--app-text)">{{ selectedFiles.length }} file{{ selectedFiles.length > 1 ? 's' : '' }} ({{ selectedFiles.map(f => f.name).join(', ') }})</span>
           </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg" style="background:rgba(0,0,0,0.03)">
+          <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg" style="background:var(--table-header-bg)">
             <span class="text-xs" style="color:var(--app-text-sec);width:80px">Columns mapped</span>
             <span class="text-xs font-medium" style="color:var(--app-text)">{{ Object.values(userMapping).filter(Boolean).length }}</span>
           </div>
         </div>
 
         <div class="mb-5">
-          <label class="text-xs font-medium text-gray-600 block mb-1">Dataset name</label>
+          <label class="text-xs font-medium block mb-1" style="color:var(--app-text-sec)">Dataset name</label>
           <input
             v-model="datasetName"
             type="text"
@@ -186,7 +196,7 @@
           />
         </div>
 
-        <p v-if="mergeError" class="text-red-600 text-sm mb-3">{{ mergeError }}</p>
+        <p v-if="mergeError" class="text-sm mb-3" style="color:#ff3b30">{{ mergeError }}</p>
 
         <button
           @click="doMerge"
@@ -199,13 +209,16 @@
 
       <!-- Step: done -->
       <div v-else-if="step === 'done' && savedDataset">
-        <div class="flex items-center gap-3 mb-4">
-          <svg class="w-6 h-6 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-          </svg>
-          <p style="font-size:15px;font-weight:600;color:var(--app-text)">Dataset created</p>
+        <div class="flex items-center gap-2 mb-4">
+          <span class="flex items-center gap-1 font-medium" style="font-size:12px;color:#34c759">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            Done
+          </span>
+          <p style="font-size:14px;font-weight:600;color:var(--app-text)">Dataset created</p>
         </div>
-        <div class="px-3 py-2.5 rounded-lg mb-5 space-y-1" style="background:rgba(0,0,0,0.03)">
+        <div class="px-3 py-2.5 rounded-lg mb-5 space-y-1" style="background:var(--table-header-bg)">
           <p class="text-xs" style="color:var(--app-text)"><span style="color:var(--app-text-sec)">Name: </span>{{ savedDataset.name }}</p>
           <p class="text-xs" style="color:var(--app-text)"><span style="color:var(--app-text-sec)">Rows: </span>{{ savedDataset.row_count.toLocaleString() }}</p>
           <p class="text-xs" style="color:var(--app-text)"><span style="color:var(--app-text-sec)">Size: </span>{{ savedDataset.size_mb }} MB</p>
@@ -278,13 +291,15 @@ function isDuplicate(fieldName: string) {
 
 function onFilesChange(e: Event) {
   const input = e.target as HTMLInputElement
-  selectedFiles.value = Array.from(input.files ?? [])
+  const newFiles = Array.from(input.files ?? [])
+  const existingNames = new Set(selectedFiles.value.map(f => f.name))
+  selectedFiles.value = [...selectedFiles.value, ...newFiles.filter(f => !existingNames.has(f.name))]
   uploadError.value = ''
+  if (fileInputRef.value) fileInputRef.value.value = ''
 }
 
 function removeFile(index: number) {
   selectedFiles.value = selectedFiles.value.filter((_, i) => i !== index)
-  if (fileInputRef.value) fileInputRef.value.value = ''
 }
 
 async function doInspect() {
