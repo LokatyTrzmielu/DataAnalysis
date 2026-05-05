@@ -32,6 +32,8 @@ class AnalysisRun(Base):
     # File paths on persistent disk
     masterdata_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     orders_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    masterdata_original_filename: Mapped[str | None] = mapped_column(Text, nullable=True)
+    orders_original_filename: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # JSONB columns (stored as JSON/Text depending on DB)
     masterdata_mapping: Mapped[dict | None] = mapped_column(_JSON, nullable=True)

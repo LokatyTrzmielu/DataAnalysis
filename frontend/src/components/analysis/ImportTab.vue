@@ -367,8 +367,10 @@ import { runsApi } from '@/api/runs'
 import type { Dataset } from '@/api/datasets'
 import { datasetsApi } from '@/api/datasets'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useAnalysisStore } from '@/stores/analysis'
 
 const notify = useNotificationsStore()
+const analysis = useAnalysisStore()
 
 const props = defineProps<{ run: RunDetail }>()
 const emit = defineEmits<{
@@ -396,10 +398,7 @@ const mdDatasets = ref<Dataset[]>([])
 const mdDatasetsLoading = ref(false)
 const mdSelectedDatasetId = ref('')
 
-const mdFileName = computed(() => {
-  if (!props.run.masterdata_path) return ''
-  return props.run.masterdata_path.split(/[\\/]/).pop() ?? ''
-})
+const mdFileName = computed(() => props.run.masterdata_original_filename || '')
 
 const mdRequiredFields = computed(() =>
   (mdInspectResult.value?.schema_fields ?? []).filter(f => f.required)
@@ -456,6 +455,7 @@ function onMdFileChange(e: Event) {
 async function doMdInspect() {
   if (!mdSelectedFile.value) return
   mdInspecting.value = true
+  analysis.start()
   mdError.value = ''
   try {
     const { data } = await runsApi.inspectMasterdata(props.run.id, mdSelectedFile.value)
@@ -471,12 +471,14 @@ async function doMdInspect() {
     mdError.value = (e as Error).message || 'Failed to read file.'
   } finally {
     mdInspecting.value = false
+    analysis.stop()
   }
 }
 
 async function doMdFromDataset() {
   if (!mdSelectedDatasetId.value) return
   mdRunning.value = true
+  analysis.start()
   mdError.value = ''
   try {
     const ds = mdDatasets.value.find(d => d.id === mdSelectedDatasetId.value)
@@ -501,11 +503,13 @@ async function doMdFromDataset() {
     notify.push({ type: 'error', title: 'Import failed', message: msg })
   } finally {
     mdRunning.value = false
+    analysis.stop()
   }
 }
 
 async function doMdQuality() {
   mdRunning.value = true
+  analysis.start()
   mdError.value = ''
   try {
     await runsApi.runQualityWithMapping(props.run.id, null, mdUserMapping.value)
@@ -528,6 +532,7 @@ async function doMdQuality() {
     notify.push({ type: 'error', title: 'Quality check failed', message: msg })
   } finally {
     mdRunning.value = false
+    analysis.stop()
   }
 }
 
@@ -547,10 +552,7 @@ const ordersDatasets = ref<Dataset[]>([])
 const ordersDatasetsLoading = ref(false)
 const ordersSelectedDatasetId = ref('')
 
-const ordersFileName = computed(() => {
-  if (!props.run.orders_path) return ''
-  return props.run.orders_path.split(/[\\/]/).pop() ?? ''
-})
+const ordersFileName = computed(() => props.run.orders_original_filename || '')
 
 const ordersRequiredFields = computed(() =>
   (ordersInspectResult.value?.schema_fields ?? []).filter(f => f.required)
@@ -591,6 +593,7 @@ function onOrdersFileChange(e: Event) {
 async function doOrdersInspect() {
   if (!ordersSelectedFile.value) return
   ordersInspecting.value = true
+  analysis.start()
   ordersUploadError.value = ''
   try {
     const { data } = await runsApi.inspectOrders(props.run.id, ordersSelectedFile.value)
@@ -607,12 +610,14 @@ async function doOrdersInspect() {
     ordersUploadError.value = (e as Error).message || 'Failed to read file.'
   } finally {
     ordersInspecting.value = false
+    analysis.stop()
   }
 }
 
 async function doOrdersFromDataset() {
   if (!ordersSelectedDatasetId.value) return
   ordersIngesting.value = true
+  analysis.start()
   ordersUploadError.value = ''
   try {
     const ds = ordersDatasets.value.find(d => d.id === ordersSelectedDatasetId.value)
@@ -637,11 +642,13 @@ async function doOrdersFromDataset() {
     notify.push({ type: 'error', title: 'Import failed', message: msg })
   } finally {
     ordersIngesting.value = false
+    analysis.stop()
   }
 }
 
 async function doOrdersIngest() {
   ordersIngesting.value = true
+  analysis.start()
   ordersUploadError.value = ''
   try {
     await runsApi.ingestOrders(props.run.id, ordersMapping.value)
@@ -664,6 +671,7 @@ async function doOrdersIngest() {
     notify.push({ type: 'error', title: 'Import failed', message: msg })
   } finally {
     ordersIngesting.value = false
+    analysis.stop()
   }
 }
 

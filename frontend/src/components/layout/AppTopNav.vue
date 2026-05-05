@@ -19,6 +19,15 @@
 
     <!-- Right: theme toggle + settings + user + logout -->
     <div class="nav-right">
+      <Transition name="runner-fade">
+        <span
+          v-if="analysis.isAnalyzing"
+          class="nav-runner"
+          aria-label="Analysis running"
+          role="status"
+        >{{ currentIcon }}</span>
+      </Transition>
+
       <button @click="theme.toggle()" class="nav-theme-toggle" :title="theme.dark ? 'Switch to light mode' : 'Switch to dark mode'">
         <!-- Sun (shown in dark mode → click to go light) -->
         <svg v-if="theme.dark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -40,20 +49,41 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, onUnmounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import { useAnalysisStore } from '@/stores/analysis'
 
 const auth = useAuthStore()
 const theme = useThemeStore()
 const route = useRoute()
+const analysis = useAnalysisStore()
 
-function isActive(path: string) {
-  return route.path.startsWith(path)
+function isActive(path: string) { return route.path.startsWith(path) }
+function isExact(path: string)  { return route.path === path }
+
+const ICONS = ['🏃', '🏃‍♂️', '🏃‍♀️', '💨', '⚡', '🚀', '🔥']
+const currentIcon = ref(ICONS[0])
+let intervalId: ReturnType<typeof setInterval> | null = null
+
+function startCycling() {
+  currentIcon.value = ICONS[Math.floor(Math.random() * ICONS.length)]
+  intervalId = setInterval(() => {
+    currentIcon.value = ICONS[Math.floor(Math.random() * ICONS.length)]
+  }, 500)
 }
-function isExact(path: string) {
-  return route.path === path
+
+function stopCycling() {
+  if (intervalId !== null) { clearInterval(intervalId); intervalId = null }
 }
+
+watch(() => analysis.isAnalyzing, (active) => {
+  if (active) startCycling()
+  else stopCycling()
+})
+
+onUnmounted(stopCycling)
 </script>
 
 <style scoped>
@@ -171,5 +201,31 @@ function isExact(path: string) {
 .nav-theme-toggle:hover {
   color: #ffffff;
   background: rgba(255, 255, 255, 0.10);
+}
+
+.nav-runner {
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  animation: runner-bounce 0.5s ease infinite alternate;
+  cursor: default;
+  user-select: none;
+}
+
+@keyframes runner-bounce {
+  from { transform: translateY(0px); }
+  to   { transform: translateY(-3px); }
+}
+
+.runner-fade-enter-active,
+.runner-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.runner-fade-enter-from,
+.runner-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.6);
 }
 </style>

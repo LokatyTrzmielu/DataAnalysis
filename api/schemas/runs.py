@@ -49,6 +49,8 @@ class RunResponse(BaseModel):
     status: str
     masterdata_path: Optional[str] = None
     orders_path: Optional[str] = None
+    masterdata_original_filename: Optional[str] = None
+    orders_original_filename: Optional[str] = None
     masterdata_mapping: Optional[dict[str, Any]] = None
     orders_mapping: Optional[dict[str, Any]] = None
     quality_result: Optional[dict[str, Any]] = None

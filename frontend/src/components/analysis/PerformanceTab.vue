@@ -264,9 +264,11 @@ import ChartZoomModal from '@/components/shared/ChartZoomModal.vue'
 import Plotly from 'plotly.js-dist-min'
 import { useThemeStore } from '@/stores/theme'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useAnalysisStore } from '@/stores/analysis'
 
 const theme = useThemeStore()
 const notify = useNotificationsStore()
+const analysis = useAnalysisStore()
 
 const props = defineProps<{ run: RunDetail }>()
 const emit = defineEmits<{
@@ -322,6 +324,7 @@ watch(() => theme.dark, () => {
 
 async function doRunAnalysis() {
   analyzing.value = true
+  analysis.start()
   analysisError.value = ''
   try {
     await runsApi.runPerformance(props.run.id, productiveHours.value)
@@ -331,6 +334,7 @@ async function doRunAnalysis() {
     analysisError.value = (e as Error).message || 'Analysis failed.'
   } finally {
     analyzing.value = false
+    analysis.stop()
   }
 }
 

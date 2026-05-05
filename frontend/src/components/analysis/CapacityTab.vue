@@ -281,9 +281,11 @@ import CarrierMultiSelect from '@/components/shared/CarrierMultiSelect.vue'
 import Plotly from 'plotly.js-dist-min'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useThemeStore } from '@/stores/theme'
+import { useAnalysisStore } from '@/stores/analysis'
 
 const notify = useNotificationsStore()
 const theme = useThemeStore()
+const analysis = useAnalysisStore()
 
 const props = defineProps<{ run: RunDetail }>()
 const emit = defineEmits<{ (e: 'refreshed'): void }>()
@@ -496,6 +498,7 @@ function renderCharts(data: CapacityResult) {
 async function runCapacity() {
   ranOnce.value = true
   running.value = true
+  analysis.start()
   error.value = ''
   try {
     await runsApi.runCapacity(props.run.id, null, {
@@ -510,6 +513,7 @@ async function runCapacity() {
     error.value = (e as Error).message || 'Analysis failed.'
   } finally {
     running.value = false
+    analysis.stop()
   }
 }
 

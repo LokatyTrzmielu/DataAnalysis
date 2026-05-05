@@ -36,6 +36,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception:
             pass  # Column already exists
         try:
+            await conn.execute(text("ALTER TABLE analysis_runs ADD COLUMN masterdata_original_filename TEXT"))
+        except Exception:
+            pass  # Column already exists
+        try:
+            await conn.execute(text("ALTER TABLE analysis_runs ADD COLUMN orders_original_filename TEXT"))
+        except Exception:
+            pass  # Column already exists
+        try:
             await conn.execute(text("ALTER TABLE datasets ADD COLUMN notes TEXT"))
         except Exception:
             pass  # Column already exists

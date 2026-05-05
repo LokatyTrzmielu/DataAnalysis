@@ -35,6 +35,8 @@ def _run_to_response(run: AnalysisRun) -> RunResponse:
         status=run.status,
         masterdata_path=run.masterdata_path,
         orders_path=run.orders_path,
+        masterdata_original_filename=run.masterdata_original_filename,
+        orders_original_filename=run.orders_original_filename,
         masterdata_mapping=run.masterdata_mapping,
         orders_mapping=run.orders_mapping,
         quality_result=run.quality_result,
@@ -178,6 +180,7 @@ async def inspect_masterdata(
     content = await file.read()
     persistent.write_bytes(content)
     run.masterdata_path = str(persistent)
+    run.masterdata_original_filename = file.filename or ""
     run.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
@@ -281,6 +284,7 @@ async def masterdata_from_dataset(
         "conflicts": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.conflicts],
     }
     run.masterdata_path = row.duckdb_path
+    run.masterdata_original_filename = row.name
     run.masterdata_mapping = None
     run.capacity_result = None
     run.status = "quality_done"
@@ -568,6 +572,7 @@ async def inspect_orders(
     content = await file.read()
     persistent.write_bytes(content)
     run.orders_path = str(persistent)
+    run.orders_original_filename = file.filename or ""
     run.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
@@ -653,6 +658,7 @@ async def orders_from_dataset(
         "orders_date_to": date_to,
     }
     run.orders_path = row.duckdb_path
+    run.orders_original_filename = row.name
     run.orders_mapping = None
     run.status = "orders_ingested"
 
@@ -793,16 +799,22 @@ async def run_performance(
         mr.missing_required = [f for f in required_fields if f not in mr.mappings]
         parsed_mapping = mr
 
-    pipeline = OrdersIngestPipeline()
-    ingest_result = pipeline.run(Path(run.orders_path), mapping=parsed_mapping)
+    orders_path = Path(run.orders_path)
+    if orders_path.suffix == ".duckdb":
+        from src.storage.data_store import DataStore
+        orders_df = DataStore().load(orders_path.stem, "orders")
+    else:
+        pipeline = OrdersIngestPipeline()
+        ingest_result = pipeline.run(orders_path, mapping=parsed_mapping)
+        orders_df = ingest_result.df
 
     analyzer = PerformanceAnalyzer(productive_hours_per_shift=productive_hours)
-    perf = analyzer.analyze(ingest_result.df)
+    perf = analyzer.analyze(orders_df)
 
     # Compute lines-per-order histogram
     import polars as _pl
     _order_lines = (
-        ingest_result.df
+        orders_df
         .group_by("order_id")
         .agg(_pl.len().alias("n"))
         ["n"]

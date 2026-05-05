@@ -1,5 +1,18 @@
 ﻿<template>
   <div class="space-y-4">
+    <!-- Source files reference -->
+    <div v-if="run.masterdata_original_filename || run.orders_original_filename" class="card-apple">
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Source files</h3>
+      <div class="space-y-1">
+        <p v-if="run.masterdata_original_filename" class="text-xs" style="color:var(--app-text-sec)">
+          Masterdata: <code>{{ run.masterdata_original_filename }}</code>
+        </p>
+        <p v-if="run.orders_original_filename" class="text-xs" style="color:var(--app-text-sec)">
+          Orders: <code>{{ run.orders_original_filename }}</code>
+        </p>
+      </div>
+    </div>
+
     <!-- Main downloads (ZIP + PDF) -->
     <div class="card-apple">
       <h3 class="mb-4" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Download full reports</h3>

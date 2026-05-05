@@ -67,6 +67,8 @@ export interface RunDetail extends RunListItem {
   owner_id: string
   masterdata_path: string | null
   orders_path: string | null
+  masterdata_original_filename: string | null
+  orders_original_filename: string | null
   masterdata_mapping: Record<string, unknown> | null
   orders_mapping: Record<string, unknown> | null
   quality_result: Record<string, unknown> | null
