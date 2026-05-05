@@ -47,6 +47,8 @@
 | 34 | Dataset selection w Import | wybór wcześniej załadowanego pliku w ImportTab zamiast ponownego uploadu | ✅ |
 | 35 | Tools tab + Data Preparation | nowa zakładka Tools w RunView z podmodułem Data Preparation | ✅ |
 | 36 | Dark mode — seria poprawek | Data Preparation, Datasets, ImportTab, select dropdown, QualityTab | ✅ |
+| 37 | Original filename tracking | pola `masterdata_original_filename` / `orders_original_filename` w DB, ORM, schema, API, TS, UI | ✅ |
+| 38 | Analysis running indicator | store `analysis.ts`, animowana ikona emoji w navbarze, `start()`/`stop()` w CapacityTab + ImportTab | ✅ |
 
 ---
 

@@ -11,6 +11,34 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-05] - Fix + Feature (main) — commit `9faa516`
+
+- **Fix: Performance analysis 500 gdy orders z Datasetu**:
+  - `api/routers/runs.py` — endpoint `/performance` zawsze uruchamiał `OrdersIngestPipeline.run()` na `orders_path`; gdy orders załadowane z Datasetu, ścieżka wskazywała na `.duckdb` → pipeline crash
+  - Naprawa: pattern identyczny jak w `/capacity` (linia 350) — sprawdzenie `orders_path.suffix == ".duckdb"` i load przez `DataStore().load()` zamiast pipeline
+  - Pliki: `api/routers/runs.py:802-809`
+
+- **Feature: Original filename tracking w runach**:
+  - Nowe pola DB i ORM: `masterdata_original_filename`, `orders_original_filename` w `AnalysisRun`
+  - Migration w `api/main.py` (lifespan ALTER TABLE) + schema SQLAlchemy + Pydantic `RunResponse` + TypeScript `RunDetail`
+  - Ustawiane w 4 miejscach: `inspect_masterdata`, `masterdata_from_dataset`, `inspect_orders`, `orders_from_dataset`
+  - `ImportTab.vue` — `mdFileName` i `ordersFileName` computed oparte teraz na `original_filename` zamiast parsowania ścieżki na dysku (usuwa problem z pełnymi ścieżkami serwera pokazywanymi użytkownikowi)
+  - `ReportsTab.vue` — nowa karta "Source files" pokazująca nazwy wgranych plików masterdata i orders
+
+- **Feature: Analysis running indicator w navbarze**:
+  - Nowy store `frontend/src/stores/analysis.ts` — globalny stan `isAnalyzing` (start/stop)
+  - `AppTopNav.vue` — animowana ikona emoji (🏃/💨/🚀/🔥) w navbarze podczas trwania analizy; cykl co 500ms z losowym wyborem; `Transition` fade-in/out; czyszczenie `setInterval` na `onUnmounted`
+  - `CapacityTab.vue`, `ImportTab.vue` (6 operacji) — `analysis.start()` / `analysis.stop()` wokół wszystkich długich operacji API
+
+- **Dane testowe: generator zleceń TechMag_SA**:
+  - `tests_alan/generate_orders_client.py` — skrypt generujący 6 miesięcznych plików XLSX (`Zlecenia_2025_01..06`) w folderze `tests_alan/TechMag_SA/`
+  - 800 unikalnych SKU (alfanumeryczne), sezonowość miesięczna, 6 typów zleceń, 1–7 linii/zlecenie
+  - Łącznie ~61 500 wierszy zleceń w 6 plikach
+
+- Branch: `main`
+
+---
+
 ### [2026-05-05] - Feature (main)
 
 - **Datasets — mapowanie kolumn przy imporcie**:
