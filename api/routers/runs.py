@@ -341,28 +341,36 @@ async def run_capacity(
         from src.core.types import CarrierConfig
         from dataclasses import asdict
 
-        # Reconstruct saved column mapping (set during quality check)
-        parsed_mapping: Optional[MappingResult] = None
-        if run.masterdata_mapping:
-            mr = MappingResult()
-            for target_field, source_col in run.masterdata_mapping.items():
-                if source_col:
-                    mr.mappings[target_field] = ColumnMapping(
-                        target_field=target_field,
-                        source_column=source_col,
-                        confidence=1.0,
-                        is_auto=False,
-                    )
-            required_fields = [f for f, cfg in MASTERDATA_SCHEMA.items() if cfg["required"]]
-            mr.missing_required = [f for f in required_fields if f not in mr.mappings]
-            parsed_mapping = mr
+        # If masterdata_path points to a DuckDB file (loaded from a Dataset),
+        # the data is already processed — load it directly instead of re-running the pipeline.
+        if source_path.suffix == ".duckdb":
+            from src.storage.data_store import DataStore
+            df = DataStore().load(source_path.stem, "masterdata")
+        else:
+            # Reconstruct saved column mapping (set during quality check)
+            parsed_mapping: Optional[MappingResult] = None
+            if run.masterdata_mapping:
+                mr = MappingResult()
+                for target_field, source_col in run.masterdata_mapping.items():
+                    if source_col:
+                        mr.mappings[target_field] = ColumnMapping(
+                            target_field=target_field,
+                            source_column=source_col,
+                            confidence=1.0,
+                            is_auto=False,
+                        )
+                required_fields = [f for f, cfg in MASTERDATA_SCHEMA.items() if cfg["required"]]
+                mr.missing_required = [f for f in required_fields if f not in mr.mappings]
+                parsed_mapping = mr
 
-        pipeline = MasterdataIngestPipeline()
-        ingest_result = pipeline.run(source_path, mapping=parsed_mapping)
+            pipeline = MasterdataIngestPipeline()
+            ingest_result = pipeline.run(source_path, mapping=parsed_mapping)
 
-        if not ingest_result.mapping_result.is_complete:
-            missing = ", ".join(ingest_result.mapping_result.missing_required)
-            raise HTTPException(status_code=422, detail=f"Missing columns: {missing}")
+            if not ingest_result.mapping_result.is_complete:
+                missing = ", ".join(ingest_result.mapping_result.missing_required)
+                raise HTTPException(status_code=422, detail=f"Missing columns: {missing}")
+
+            df = ingest_result.df
 
         carrier_query = select(CarrierModel).where(CarrierModel.is_active == True)
         if carrier_ids.strip():
@@ -385,7 +393,7 @@ async def run_capacity(
         ]
         analyzer = CapacityAnalyzer(carriers, borderline_threshold_mm=borderline_threshold)
         result = analyzer.analyze_dataframe(
-            ingest_result.df,
+            df,
             prioritization_mode=prioritization_mode,
             best_fit_mode=best_fit_mode,
         )

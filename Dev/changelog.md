@@ -11,6 +11,18 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-05] - Feature (main)
+
+- **Datasets — mapowanie kolumn przy imporcie**:
+  - Nowy endpoint `POST /api/v1/datasets/inspect` — inspekcja pliku bez persystencji; zwraca kolumny, auto-sugestie mapowania, preview 5 wierszy i definicję schematu
+  - Modyfikacja `POST /api/v1/datasets/import` — przyjmuje opcjonalny parametr `mapping_json` (JSON z mapowaniem target_field → source_column)
+  - Nowe schematy: `DatasetColumnSuggestion`, `DatasetInspectResponse` w `api/schemas/dataset.py`
+  - `DatasetsView.vue` — 2-krokowy wizard: Upload (wybór pliku + typ → inspect) → Mapping (dropdowny Required/Optional, preview tabeli, walidacja duplikatów i brakujących pól)
+  - Frontend API: nowe typy `DatasetColumnSuggestion`, `DatasetInspectResponse`; nowa metoda `inspect()`; rozszerzony `import()` o opcjonalne `mapping`
+  - Wsteczna kompatybilność zachowana — `mapping_json` jest opcjonalny
+
+---
+
 ### [2026-05-04] - Feature + Fix + Refactor (main)
 
 - **Datasets — warstwa persystencji plików masterdata/orders**:

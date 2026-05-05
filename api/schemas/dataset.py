@@ -26,3 +26,17 @@ class DatasetListResponse(BaseModel):
 
 class DatasetDetailResponse(DatasetResponse):
     preview: list[dict[str, Any]]
+
+
+class DatasetColumnSuggestion(BaseModel):
+    source_column: str
+    suggested_target: str | None = None
+    confidence: float
+
+
+class DatasetInspectResponse(BaseModel):
+    file_columns: list[str]
+    suggestions: list[DatasetColumnSuggestion]
+    missing_required: list[str]
+    preview_rows: list[dict]
+    schema_fields: list[dict]

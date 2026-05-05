@@ -5,7 +5,7 @@
       <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:var(--app-text);line-height:1.14;letter-spacing:-0.28px">
         Datasets
       </h2>
-      <button @click="showForm = !showForm" class="btn-apple-primary">
+      <button @click="showForm ? resetImportForm() : (showForm = true)" class="btn-apple-primary">
         {{ showForm ? 'Cancel' : 'Import dataset' }}
       </button>
     </div>
@@ -13,38 +13,142 @@
     <!-- Import form -->
     <div v-if="showForm" class="card-apple mb-6">
       <h3 class="mb-4" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Import new dataset</h3>
-      <div class="grid grid-cols-2 gap-3 mb-4">
-        <div>
-          <label class="label-apple" style="font-size:12px">File (XLSX or CSV)</label>
-          <input
-            ref="fileInputRef"
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            class="hidden"
-            @change="onFileChange"
-          />
-          <div class="flex items-center gap-2">
-            <button @click="fileInputRef?.click()" class="btn-apple-pill" style="font-size:13px">Choose file</button>
-            <span v-if="selectedFile" class="text-xs truncate" style="color:var(--app-text-sec);max-width:160px">{{ selectedFile.name }}</span>
-            <span v-else class="text-xs" style="color:var(--app-placeholder)">No file chosen</span>
+
+      <!-- KROK 1: Upload -->
+      <div v-if="importStep === 'upload'">
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label class="label-apple" style="font-size:12px">File (XLSX or CSV)</label>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              class="hidden"
+              @change="onFileChange"
+            />
+            <div class="flex items-center gap-2">
+              <button @click="fileInputRef?.click()" class="btn-apple-pill" style="font-size:13px">Choose file</button>
+              <span v-if="selectedFile" class="text-xs truncate" style="color:var(--app-text-sec);max-width:160px">{{ selectedFile.name }}</span>
+              <span v-else class="text-xs" style="color:var(--app-placeholder)">No file chosen</span>
+            </div>
+          </div>
+          <div>
+            <label class="label-apple" style="font-size:12px">Data type</label>
+            <select v-model="importType" class="input-apple-sm" style="cursor:pointer">
+              <option value="masterdata">Masterdata</option>
+              <option value="orders">Orders</option>
+            </select>
           </div>
         </div>
-        <div>
-          <label class="label-apple" style="font-size:12px">Data type</label>
-          <select v-model="importType" class="input-apple-sm" style="cursor:pointer">
-            <option value="masterdata">Masterdata</option>
-            <option value="orders">Orders</option>
-          </select>
-        </div>
+        <p v-if="importError" class="mb-3" style="font-size:13px;color:#ff3b30">{{ importError }}</p>
+        <button
+          @click="doInspect"
+          :disabled="!selectedFile || inspecting"
+          class="btn-apple-primary"
+        >
+          {{ inspecting ? 'Reading file…' : 'Next: Map columns →' }}
+        </button>
       </div>
-      <p v-if="importError" class="mb-3" style="font-size:13px;color:#ff3b30">{{ importError }}</p>
-      <button
-        @click="doImport"
-        :disabled="!selectedFile || importing"
-        class="btn-apple-primary"
-      >
-        {{ importing ? 'Importing…' : 'Import' }}
-      </button>
+
+      <!-- KROK 2: Mapping -->
+      <div v-else-if="importStep === 'mapping' && inspectResult">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-xs" style="color:var(--app-text-sec)">
+            <span class="font-medium" style="color:var(--app-text)">{{ selectedFile?.name }}</span>
+            · {{ inspectResult.file_columns.length }} columns detected
+          </p>
+          <button @click="importStep = 'upload'" class="text-xs" style="color:var(--app-text-sec);background:none;border:none;cursor:pointer">← Back</button>
+        </div>
+
+        <!-- Required fields -->
+        <div class="mb-4">
+          <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:var(--app-text)">Required fields</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div v-for="field in requiredFields" :key="field.name" class="flex flex-col gap-1">
+              <label class="text-xs" style="color:var(--app-text-sec)">
+                {{ field.name }}
+                <span v-if="duplicateColumns.includes(userMapping[field.name])" class="ml-1" style="color:#ff9500" title="Duplicate mapping">⚠</span>
+                <span v-else-if="!userMapping[field.name]" class="ml-1" style="color:#ff3b30">*</span>
+              </label>
+              <select
+                v-model="userMapping[field.name]"
+                class="w-full text-xs rounded px-2 py-1"
+                :style="!userMapping[field.name]
+                  ? 'border:1px solid #ff3b30;background:var(--app-input-bg);color:var(--app-text)'
+                  : 'border:1px solid var(--app-input-border);background:var(--app-input-bg);color:var(--app-text)'"
+              >
+                <option value="">— not mapped —</option>
+                <option v-for="col in inspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optional fields -->
+        <details class="mb-4" v-if="optionalFields.length > 0">
+          <summary class="text-xs font-semibold uppercase tracking-wide cursor-pointer mb-2" style="color:var(--app-text-sec)">Optional fields</summary>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+            <div v-for="field in optionalFields" :key="field.name" class="flex flex-col gap-1">
+              <label class="text-xs" style="color:var(--app-text-sec)">{{ field.name }}</label>
+              <select
+                v-model="userMapping[field.name]"
+                class="w-full text-xs rounded px-2 py-1"
+                style="border:1px solid var(--app-input-border);background:var(--app-input-bg);color:var(--app-text)"
+              >
+                <option value="">— not mapped —</option>
+                <option v-for="col in inspectResult.file_columns" :key="col" :value="col">{{ col }}</option>
+              </select>
+            </div>
+          </div>
+        </details>
+
+        <!-- Preview table -->
+        <div class="overflow-x-auto mb-4">
+          <p class="text-xs font-medium mb-1" style="color:var(--app-text-sec)">File preview (first 5 rows)</p>
+          <table class="text-xs rounded w-full" style="border:1px solid var(--app-border)">
+            <thead style="background:var(--table-header-bg)">
+              <tr>
+                <th
+                  v-for="col in inspectResult.file_columns"
+                  :key="col"
+                  class="px-2 py-1 text-left font-medium whitespace-nowrap"
+                  style="color:var(--app-text-sec);border-bottom:1px solid var(--table-divider)"
+                >{{ col }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, i) in inspectResult.preview_rows"
+                :key="i"
+                style="border-bottom:1px solid var(--table-divider)"
+              >
+                <td
+                  v-for="col in inspectResult.file_columns"
+                  :key="col"
+                  class="px-2 py-1 whitespace-nowrap"
+                  style="color:var(--app-text)"
+                >{{ row[col] ?? '' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Validation messages + submit -->
+        <p v-if="missingRequired.length > 0" class="text-xs mb-3" style="color:#ff3b30">
+          Missing required: {{ missingRequired.join(', ') }}
+        </p>
+        <p v-if="duplicateColumns.length > 0" class="text-xs mb-3" style="color:#ff9500">
+          Duplicate mappings: {{ duplicateColumns.join(', ') }}
+        </p>
+        <p v-if="importError" class="mb-3" style="font-size:13px;color:#ff3b30">{{ importError }}</p>
+        <button
+          @click="doImport"
+          :disabled="!selectedFile || importing || missingRequired.length > 0 || duplicateColumns.length > 0"
+          class="btn-apple-primary"
+        >
+          {{ importing ? 'Importing…' : 'Import' }}
+        </button>
+      </div>
     </div>
 
     <!-- Dataset list -->
@@ -160,9 +264,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
-import { datasetsApi, type Dataset } from '@/api/datasets'
+import { datasetsApi, type Dataset, type DatasetInspectResponse } from '@/api/datasets'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const notify = useNotificationsStore()
@@ -211,19 +315,107 @@ function scheduleNotesSave() {
 
 onUnmounted(() => { if (notesTimer) clearTimeout(notesTimer) })
 
-// ── Import form ───────────────────────────────────────────────────────────────
+// ── Import wizard ─────────────────────────────────────────────────────────────
 
 const showForm = ref(false)
+const importStep = ref<'upload' | 'mapping'>('upload')
 const selectedFile = ref<File | null>(null)
 const importType = ref<'masterdata' | 'orders'>('masterdata')
 const importing = ref(false)
+const inspecting = ref(false)
 const importError = ref('')
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const inspectResult = ref<DatasetInspectResponse | null>(null)
+const userMapping = ref<Record<string, string>>({})
+
+const requiredFields = computed(() =>
+  (inspectResult.value?.schema_fields ?? []).filter(f => f.required)
+)
+const optionalFields = computed(() =>
+  (inspectResult.value?.schema_fields ?? []).filter(f => !f.required)
+)
+const missingRequired = computed(() =>
+  requiredFields.value.filter(f => !userMapping.value[f.name]).map(f => f.name)
+)
+const duplicateColumns = computed(() => {
+  const values = Object.values(userMapping.value).filter(Boolean)
+  const seen = new Set<string>()
+  const dups = new Set<string>()
+  for (const v of values) {
+    if (seen.has(v)) dups.add(v)
+    seen.add(v)
+  }
+  return [...dups]
+})
 
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   selectedFile.value = input.files?.[0] ?? null
   importError.value = ''
+}
+
+function resetImportForm() {
+  showForm.value = false
+  importStep.value = 'upload'
+  selectedFile.value = null
+  inspectResult.value = null
+  userMapping.value = {}
+  importError.value = ''
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+async function doInspect() {
+  if (!selectedFile.value) return
+  inspecting.value = true
+  importError.value = ''
+  try {
+    const { data } = await datasetsApi.inspect(selectedFile.value, importType.value)
+    inspectResult.value = data
+    const mapping: Record<string, string> = {}
+    for (const field of data.schema_fields) {
+      const sug = data.suggestions.find(s => s.suggested_target === field.name)
+      mapping[field.name] = sug?.source_column ?? ''
+    }
+    userMapping.value = mapping
+    importStep.value = 'mapping'
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e) && e.response?.data?.detail) {
+      importError.value = e.response.data.detail
+    } else {
+      importError.value = 'Failed to read file. Check the format and try again.'
+    }
+    notify.push({ type: 'error', title: 'File read failed', message: importError.value })
+  } finally {
+    inspecting.value = false
+  }
+}
+
+async function doImport() {
+  if (!selectedFile.value) return
+  importing.value = true
+  importError.value = ''
+  try {
+    const cleanMapping = Object.fromEntries(
+      Object.entries(userMapping.value).filter(([, v]) => Boolean(v))
+    )
+    const { data } = await datasetsApi.import(selectedFile.value, importType.value, cleanMapping)
+    datasets.value.unshift(data)
+    notify.push({
+      type: 'success',
+      title: 'Dataset imported',
+      message: `${data.name} · ${data.row_count.toLocaleString()} rows · ${data.size_mb} MB`,
+    })
+    resetImportForm()
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e) && e.response?.data?.detail) {
+      importError.value = e.response.data.detail
+    } else {
+      importError.value = 'Import failed. Check the file format and try again.'
+    }
+    notify.push({ type: 'error', title: 'Import failed', message: importError.value })
+  } finally {
+    importing.value = false
+  }
 }
 
 function formatDate(iso: string) {
@@ -239,33 +431,6 @@ async function loadDatasets() {
     notify.push({ type: 'error', title: 'Failed to load datasets' })
   } finally {
     loading.value = false
-  }
-}
-
-async function doImport() {
-  if (!selectedFile.value) return
-  importing.value = true
-  importError.value = ''
-  try {
-    const { data } = await datasetsApi.import(selectedFile.value, importType.value)
-    datasets.value.unshift(data)
-    notify.push({
-      type: 'success',
-      title: 'Dataset imported',
-      message: `${data.name} · ${data.row_count.toLocaleString()} rows · ${data.size_mb} MB`,
-    })
-    showForm.value = false
-    selectedFile.value = null
-    if (fileInputRef.value) fileInputRef.value.value = ''
-  } catch (e: unknown) {
-    if (axios.isAxiosError(e) && e.response?.data?.detail) {
-      importError.value = e.response.data.detail
-    } else {
-      importError.value = 'Import failed. Check the file format and try again.'
-    }
-    notify.push({ type: 'error', title: 'Import failed', message: importError.value })
-  } finally {
-    importing.value = false
   }
 }
 
