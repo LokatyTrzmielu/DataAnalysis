@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <!-- Header -->
     <div class="flex items-center justify-between mb-5">
@@ -11,7 +11,7 @@
     </div>
 
     <!-- Toolbar: search + filter + sort -->
-    <div class="flex flex-wrap gap-2 mb-6">
+    <div class="flex flex-wrap gap-2 mb-4">
       <input
         v-model="search"
         type="search"
@@ -35,6 +35,52 @@
       </select>
     </div>
 
+    <!-- Selection bar -->
+    <div v-if="selectedIds.size > 0" class="flex items-center gap-3 mb-3 px-1">
+      <!-- select-all / indeterminate checkbox -->
+      <div
+        @click="toggleSelectAll"
+        class="w-4 h-4 rounded flex-shrink-0 flex items-center justify-center cursor-pointer"
+        :style="allSelected || someSelected
+          ? 'background:#0071e3;border:1.5px solid #0071e3'
+          : 'border:1.5px solid var(--app-border);background:var(--app-surface)'"
+      >
+        <svg v-if="allSelected" viewBox="0 0 10 8" class="w-2.5" fill="none">
+          <path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg v-else-if="someSelected" viewBox="0 0 10 2" class="w-2.5" fill="none">
+          <path d="M1 1h8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <span style="font-size:13px;color:var(--app-text-sec)">{{ selectedIds.size }} selected</span>
+      <div style="flex:1"/>
+
+      <template v-if="!confirmBulkDelete">
+        <button
+          @click="confirmBulkDelete = true"
+          style="font-size:13px;font-weight:500;color:#ff3b30;background:none;border:none;cursor:pointer;padding:4px 8px"
+        >Delete selected</button>
+        <button
+          @click="clearSelection"
+          style="font-size:13px;color:var(--app-text-sec);background:none;border:none;cursor:pointer;padding:4px 8px"
+        >Clear</button>
+      </template>
+      <template v-else>
+        <span style="font-size:13px;color:var(--app-text-sec)">
+          Delete {{ selectedIds.size }} {{ selectedIds.size === 1 ? 'analysis' : 'analyses' }}?
+        </span>
+        <button
+          @click="onDeleteSelected"
+          style="font-size:13px;font-weight:600;color:#ff3b30;background:none;border:none;cursor:pointer;padding:4px 8px"
+        >Yes, delete</button>
+        <button
+          @click="confirmBulkDelete = false"
+          style="font-size:13px;color:var(--app-text-sec);background:none;border:none;cursor:pointer;padding:4px 8px"
+        >Cancel</button>
+      </template>
+    </div>
+
     <!-- List -->
     <div v-if="runStore.loading" style="font-size:14px;color:var(--app-text-sec)">Loading…</div>
     <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:var(--app-text-sec)">No analyses found.</div>
@@ -42,11 +88,24 @@
       <div
         v-for="run in runStore.runs"
         :key="run.id"
-        class="flex items-center justify-between px-4 py-3 transition-colors group"
+        class="flex items-center justify-between px-4 py-3 transition-colors"
         style="cursor:default"
-        @mouseover="(e) => (e.currentTarget as HTMLElement).style.background='rgba(0,0,0,0.02)'"
+        @mouseover="(e) => (e.currentTarget as HTMLElement).style.background='var(--table-row-hover)'"
         @mouseleave="(e) => (e.currentTarget as HTMLElement).style.background=''"
       >
+        <!-- Checkbox -->
+        <div
+          @click.prevent="toggleSelect(run.id)"
+          class="w-4 h-4 rounded flex-shrink-0 flex items-center justify-center cursor-pointer mr-3 transition-colors"
+          :style="selectedIds.has(run.id)
+            ? 'background:#0071e3;border:1.5px solid #0071e3'
+            : 'border:1.5px solid var(--app-border);background:var(--app-surface)'"
+        >
+          <svg v-if="selectedIds.has(run.id)" viewBox="0 0 10 8" class="w-2.5" fill="none">
+            <path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
         <!-- Name — clickable -->
         <RouterLink :to="`/runs/${run.id}`" class="flex-1 min-w-0 flex items-center gap-3" style="text-decoration:none">
           <span style="font-size:17px;color:var(--app-text);letter-spacing:-0.374px" class="truncate">{{ run.client_name }}</span>
@@ -68,7 +127,7 @@
             class="p-1.5 rounded transition-colors"
             style="color:var(--app-placeholder)"
             @mouseover="(e) => (e.currentTarget as HTMLElement).style.color='#0071e3'"
-            @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'"
+            @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='var(--app-placeholder)'"
             title="Duplicate"
           >
             <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -101,7 +160,7 @@
             class="p-1.5 rounded transition-colors"
             style="color:var(--app-placeholder)"
             @mouseover="(e) => (e.currentTarget as HTMLElement).style.color='#ff3b30'"
-            @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='rgba(0,0,0,0.32)'"
+            @mouseleave="(e) => (e.currentTarget as HTMLElement).style.color='var(--app-placeholder)'"
             title="Delete"
           >
             <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -117,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useRunStore } from '@/stores/run'
 import { useNotificationsStore } from '@/stores/notifications'
@@ -130,6 +189,8 @@ const router = useRouter()
 const notify = useNotificationsStore()
 const showModal = ref(false)
 const confirmDelete = ref<string | null>(null)
+const selectedIds = ref(new Set<string>())
+const confirmBulkDelete = ref(false)
 
 const search = ref('')
 const statusFilter = ref('')
@@ -146,6 +207,37 @@ function load() {
 onMounted(load)
 watch([search, statusFilter, sort], load)
 
+const allSelected = computed(() =>
+  runStore.runs.length > 0 && runStore.runs.every(r => selectedIds.value.has(r.id))
+)
+
+const someSelected = computed(() =>
+  !allSelected.value && runStore.runs.some(r => selectedIds.value.has(r.id))
+)
+
+function toggleSelect(id: string) {
+  if (selectedIds.value.has(id)) {
+    selectedIds.value.delete(id)
+  } else {
+    selectedIds.value.add(id)
+  }
+  confirmBulkDelete.value = false
+}
+
+function toggleSelectAll() {
+  if (allSelected.value) {
+    selectedIds.value.clear()
+  } else {
+    runStore.runs.forEach(r => selectedIds.value.add(r.id))
+  }
+  confirmBulkDelete.value = false
+}
+
+function clearSelection() {
+  selectedIds.value.clear()
+  confirmBulkDelete.value = false
+}
+
 function onCreated(id: string) {
   showModal.value = false
   router.push(`/runs/${id}`)
@@ -155,9 +247,23 @@ async function onDelete(id: string) {
   try {
     await runStore.deleteRun(id)
     confirmDelete.value = null
+    selectedIds.value.delete(id)
     notify.push({ type: 'success', title: 'Analysis deleted' })
   } catch {
     notify.push({ type: 'error', title: 'Failed to delete analysis' })
+  }
+}
+
+async function onDeleteSelected() {
+  const ids = [...selectedIds.value]
+  try {
+    await Promise.all(ids.map(id => runStore.deleteRun(id)))
+    selectedIds.value.clear()
+    confirmBulkDelete.value = false
+    notify.push({ type: 'success', title: `${ids.length} ${ids.length === 1 ? 'analysis' : 'analyses'} deleted` })
+  } catch {
+    confirmBulkDelete.value = false
+    notify.push({ type: 'error', title: 'Failed to delete some analyses' })
   }
 }
 
