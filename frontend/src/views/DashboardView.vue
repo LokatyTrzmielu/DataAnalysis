@@ -114,7 +114,7 @@
             </div>
             <div class="card-apple">
               <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Dimensions</p>
-              <p v-if="avgDimensions" style="font-size:15px;font-weight:600;color:var(--app-text);line-height:1.3">{{ avgDimensions }}</p>
+              <p v-if="avgDimensions" style="font-size:15px;font-weight:600;color:var(--app-text);line-height:1.3;overflow-wrap:break-word">{{ avgDimensions }}</p>
               <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
             </div>
             <div class="card-apple">
@@ -350,7 +350,8 @@ const ovr      = computed(() => latestRun.value?.orders_validation_result ?? nul
 const avgDimensions = computed(() => {
   if (!capacity.value) return null
   const { avg_length_mm: l, avg_width_mm: w, avg_height_mm: h } = capacity.value
-  return `${l?.toFixed(0)}×${w?.toFixed(0)}×${h?.toFixed(0)} mm`
+  if (l == null || w == null || h == null) return null
+  return `${l.toFixed(0)}×${w.toFixed(0)}×${h.toFixed(0)} mm`
 })
 
 const avgPiecesPerLine = computed(() => {
