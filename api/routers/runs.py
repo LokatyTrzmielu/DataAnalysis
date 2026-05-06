@@ -466,6 +466,10 @@ async def run_capacity(
             "borderline_count": result.borderline_count,
             "not_fit_count": result.not_fit_count,
             "fit_percentage": result.fit_percentage,
+            "avg_length_mm": result.avg_length_mm,
+            "avg_width_mm": result.avg_width_mm,
+            "avg_height_mm": result.avg_height_mm,
+            "avg_weight_kg": result.avg_weight_kg,
             "carriers_analyzed": result.carriers_analyzed,
             "carrier_stats": {
                 cid: asdict(cs) for cid, cs in result.carrier_stats.items()

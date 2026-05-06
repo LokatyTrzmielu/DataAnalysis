@@ -514,10 +514,8 @@ class CapacityAnalyzer:
                     avg_filling_rate=0.0,
                 )
 
-        # Build list of analyzed carriers
+        # Build list of analyzed carriers (NONE is a virtual marker, not a real carrier)
         carriers_analyzed_ids = [c.carrier_id for c in carriers_to_analyze]
-        if (prioritization_mode or best_fit_mode) and "NONE" in carrier_stats:
-            carriers_analyzed_ids.append("NONE")
 
         unique_skus = result_df.unique(subset=["sku"])
         avg_length = round(float(unique_skus["length_mm"].mean() or 0), 1)

@@ -11,6 +11,19 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-06] - Feature: Zastąpienie Duplicate przyciskiem Notes w RunsView (main)
+
+- **`frontend/src/views/RunsView.vue`** — usunięto przycisk Duplicate i funkcję `onDuplicate`; dodano przycisk Notes (ikona dokumentu z liniami) z rozwijającym się textarea poniżej wiersza; zapis z debouncingiem 500 ms przez `runStore.patchRun`; ikona świeci na niebiesko gdy notatka jest zapisana lub pole otwarte (ten sam wzorzec co DashboardView)
+
+---
+
+### [2026-05-06] - Fix: Dashboard — brak Avg Dimensions/Weight i nieprawidłowa liczba Carriers (main)
+
+- **Bug fix: `api/routers/runs.py`** — dodano `avg_length_mm`, `avg_width_mm`, `avg_height_mm`, `avg_weight_kg` do słownika zapisywanego jako `capacity_result` w bazie (były obliczane przez `CapacityAnalyzer`, ale nie serializowane → null na Dashboardzie)
+- **Bug fix: `src/analytics/capacity.py`** — usunięto dołączanie `"NONE"` do `carriers_analyzed_ids`; "NONE" to wirtualny marker SKU niepasujących do żadnego nośnika, a nie prawdziwy carrier — jego obecność zawyżała licznik "Carriers selected" o 1; `carrier_stats["NONE"]` nadal istnieje w statystykach
+
+---
+
 ### [2026-05-06] - Feature + Fix (main) — seria commitów
 
 - **Feature: Rozszerzone KPI na Dashboardzie i lista analiz w sidebarze** (commit `9d7308a`):
