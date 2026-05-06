@@ -37,11 +37,12 @@
       </RouterLink>
     </div>
 
-    <!-- Latest run summary -->
-    <div v-if="latestRun" style="margin-bottom:40px">
-      <h3 class="mb-1" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">
-        Latest analysis
-      </h3>
+    <!-- Two-column layout: KPIs left, list right -->
+    <div style="display:flex;gap:28px;align-items:flex-start">
+
+    <!-- Left: selected analysis details -->
+    <div style="flex:1;min-width:0">
+    <div v-if="latestRun">
       <div class="flex items-center gap-3 mb-3">
         <RouterLink :to="openLink" class="btn-apple-primary" style="font-size:13px;padding:5px 14px;line-height:1">
           Open
@@ -73,66 +74,187 @@
       </div>
 
       <!-- KPI summary -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div class="card-apple">
-          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total SKUs</p>
-          <p v-if="latestRun.quality_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.quality_result as any).total_records?.toLocaleString() ?? '—' }}</p>
-          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Quality not run</p>
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- Masterdata -->
+        <div>
+          <p style="font-size:11px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">Masterdata</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total SKU</p>
+              <p v-if="quality" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ quality.total_records?.toLocaleString() ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Quality not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Quality Score</p>
+              <p v-if="quality" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ quality.overall_score?.toFixed(1) ?? '—' }}%</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Quality not run</p>
+            </div>
+          </div>
         </div>
-        <div class="card-apple">
-          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Quality Score</p>
-          <p v-if="latestRun.quality_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.quality_result as any).overall_score?.toFixed(1) ?? '—' }}%</p>
-          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Quality not run</p>
+
+        <!-- Capacity -->
+        <div>
+          <p style="font-size:11px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">Capacity</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Fit %</p>
+              <p v-if="capacity" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ capacity.fit_percentage?.toFixed(1) ?? '—' }}%</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Fit</p>
+              <p v-if="capacity" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ capacity.fit_count?.toLocaleString() ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Not Fit</p>
+              <p v-if="capacity" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ capacity.not_fit_count?.toLocaleString() ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Dimensions</p>
+              <p v-if="avgDimensions" style="font-size:15px;font-weight:600;color:var(--app-text);line-height:1.3">{{ avgDimensions }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Weight</p>
+              <p v-if="capacity" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ capacity.avg_weight_kg?.toFixed(2) ?? '—' }} kg</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Carriers selected</p>
+              <p v-if="capacity" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ capacity.carriers_analyzed?.length ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
+            </div>
+          </div>
         </div>
-        <div class="card-apple">
-          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Fit %</p>
-          <p v-if="latestRun.capacity_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.capacity_result as any).fit_percentage?.toFixed(1) ?? '—' }}%</p>
-          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
+
+        <!-- Cross-validation -->
+        <div>
+          <p style="font-size:11px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">SKU Cross-validation</p>
+          <div class="card-apple" style="max-width:340px">
+            <template v-if="ovr?.sku_xval_available">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+                <span style="font-size:12px;color:var(--app-text-sec)">Orders → MD</span>
+                <span style="font-size:17px;font-weight:600;color:var(--app-text)">
+                  {{ ovr.orders_skus_not_in_masterdata_count.toLocaleString() }}
+                  <span v-if="xvalOrdersPct" style="font-size:13px;font-weight:400;color:var(--app-text-sec)"> ({{ xvalOrdersPct }}%)</span>
+                </span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-size:12px;color:var(--app-text-sec)">MD → Orders</span>
+                <span style="font-size:17px;font-weight:600;color:var(--app-text)">
+                  {{ ovr.masterdata_skus_not_in_orders_count.toLocaleString() }}
+                  <span v-if="xvalMDPct" style="font-size:13px;font-weight:400;color:var(--app-text-sec)"> ({{ xvalMDPct }}%)</span>
+                </span>
+              </div>
+            </template>
+            <p v-else-if="ovr && !ovr.sku_xval_available" style="font-size:12px;color:var(--app-placeholder)">Masterdata not available for cross-val</p>
+            <p v-else style="font-size:12px;color:var(--app-placeholder)">Orders not ingested</p>
+          </div>
         </div>
-        <div class="card-apple">
-          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total Lines</p>
-          <p v-if="latestRun.performance_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.performance_result as any).kpi?.total_lines?.toLocaleString() ?? '—' }}</p>
-          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+
+        <!-- Orders -->
+        <div>
+          <p style="font-size:11px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">Orders</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total rows</p>
+              <p v-if="ovr" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ ovr.total_rows?.toLocaleString() ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Orders not ingested</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Unique days</p>
+              <p v-if="ovr" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ ovr.unique_days?.toLocaleString() ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Orders not ingested</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Unique SKU</p>
+              <p v-if="perf" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ perf.kpi?.unique_sku?.toLocaleString() ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Hourly data</p>
+              <p v-if="ovr" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ ovr.has_hourly_data ? 'Yes' : 'No' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Orders not ingested</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total Orders</p>
+              <p v-if="perf" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ perf.kpi?.total_orders?.toLocaleString() ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total Lines</p>
+              <p v-if="perf" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ perf.kpi?.total_lines?.toLocaleString() ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Orders/Hour</p>
+              <p v-if="perf" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ perf.kpi?.avg_orders_per_hour?.toFixed(1) ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Lines/Order</p>
+              <p v-if="perf" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ perf.kpi?.avg_lines_per_order?.toFixed(2) ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Pieces/Order</p>
+              <p v-if="perf" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ perf.kpi?.avg_units_per_order?.toFixed(2) ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Lines/Hour</p>
+              <p v-if="perf" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ perf.kpi?.avg_lines_per_hour?.toFixed(1) ?? '—' }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Pieces/Line</p>
+              <p v-if="avgPiecesPerLine" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ avgPiecesPerLine }}</p>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+          </div>
         </div>
-        <div class="card-apple">
-          <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Avg Lines/Hour</p>
-          <p v-if="latestRun.performance_result" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ (latestRun.performance_result as any).kpi?.avg_lines_per_hour?.toFixed(1) ?? '—' }}</p>
-          <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
-        </div>
+
       </div>
     </div>
+    <div v-else style="font-size:14px;color:var(--app-text-sec);padding-top:8px">
+      Select an analysis from the list.
+    </div>
+    </div><!-- /left col -->
 
-    <!-- Recent runs list -->
-    <div>
+    <!-- Right: Recent analyses list -->
+    <div style="width:270px;flex-shrink:0;position:sticky;top:20px">
       <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Recent analyses</h3>
       <div v-if="runStore.loading" style="font-size:14px;color:var(--app-text-sec)">Loading…</div>
       <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:var(--app-text-sec)">
         No analyses yet. Create one above.
       </div>
-      <div v-else class="card-apple-list" style="height:calc(100vh - 720px);min-height:150px;overflow-y:scroll">
-        <div v-for="run in runStore.runs.slice(0, 10)" :key="run.id">
+      <div v-else class="card-apple-list" style="max-height:calc(100vh - 180px);overflow-y:auto">
+        <div v-for="run in runStore.runs.slice(0, 20)" :key="run.id">
           <div
             :class="['flex items-center justify-between px-4 py-3 transition-colors cursor-pointer', selectedRunId === run.id ? 'bg-[rgba(0,113,227,0.06)]' : 'hover:bg-black/[.02]']"
             @click="selectRun(run.id)"
             @dblclick="router.push({ path: `/runs/${run.id}`, query: { tab: tabFromStatus(run.status) } })"
           >
             <div class="flex-1 min-w-0 text-left">
-              <span style="font-size:17px;color:var(--app-text);letter-spacing:-0.374px">{{ run.client_name }}</span>
+              <div style="font-size:14px;color:var(--app-text);letter-spacing:-0.224px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ run.client_name }}</div>
+              <div class="flex items-center gap-2 mt-0.5">
+                <StatusBadge :status="run.status" />
+                <span style="font-size:11px;color:var(--app-text-sec)">{{ formatDate(run.created_at) }}</span>
+              </div>
             </div>
-            <div class="flex items-center gap-2 shrink-0 ml-3">
-              <StatusBadge :status="run.status" />
-              <span style="font-size:12px;color:var(--app-text-sec)">{{ formatDate(run.created_at) }}</span>
-              <button
-                @click="toggleNotes(run.id)"
-                :class="['p-1.5 rounded transition-colors']"
-                :style="openNotesId === run.id || run.notes ? 'color:#0071e3' : 'color:var(--app-placeholder)'"
-                title="Notes"
-              >
-                <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
-                </svg>
-              </button>
-            </div>
+            <button
+              @click.stop="toggleNotes(run.id)"
+              :class="['p-1.5 rounded transition-colors ml-2 flex-shrink-0']"
+              :style="openNotesId === run.id || run.notes ? 'color:#0071e3' : 'color:var(--app-placeholder)'"
+              title="Notes"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+              </svg>
+            </button>
           </div>
           <div v-if="openNotesId === run.id" class="px-4 pb-3">
             <textarea
@@ -146,7 +268,9 @@
           </div>
         </div>
       </div>
-    </div>
+    </div><!-- /right col -->
+
+    </div><!-- /two-column layout -->
 
     <!-- New run modal -->
     <NewRunModal v-if="showModal" @close="showModal = false" @created="onCreated" />
@@ -216,6 +340,37 @@ onMounted(async () => {
   if (runStore.runs.length > 0) {
     await selectRun(runStore.runs[0]!.id)
   }
+})
+
+const capacity = computed(() => latestRun.value?.capacity_result ?? null)
+const quality  = computed(() => latestRun.value?.quality_result as any ?? null)
+const perf     = computed(() => latestRun.value?.performance_result ?? null)
+const ovr      = computed(() => latestRun.value?.orders_validation_result ?? null)
+
+const avgDimensions = computed(() => {
+  if (!capacity.value) return null
+  const { avg_length_mm: l, avg_width_mm: w, avg_height_mm: h } = capacity.value
+  return `${l?.toFixed(0)}×${w?.toFixed(0)}×${h?.toFixed(0)} mm`
+})
+
+const avgPiecesPerLine = computed(() => {
+  const k = perf.value?.kpi
+  if (!k || !k.total_lines) return null
+  return (k.total_units / k.total_lines).toFixed(2)
+})
+
+const xvalOrdersPct = computed(() => {
+  const xv = ovr.value
+  const uniqueSku = perf.value?.kpi?.unique_sku
+  if (!xv || !uniqueSku) return null
+  return ((xv.orders_skus_not_in_masterdata_count / uniqueSku) * 100).toFixed(1)
+})
+
+const xvalMDPct = computed(() => {
+  const xv = ovr.value
+  const total = quality.value?.total_records
+  if (!xv || !total) return null
+  return ((xv.masterdata_skus_not_in_orders_count / total) * 100).toFixed(1)
 })
 
 const pipelineSteps = computed(() => {
