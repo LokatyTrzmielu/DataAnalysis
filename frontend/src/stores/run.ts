@@ -5,6 +5,7 @@ import { runsApi, type RunDetail, type RunListItem, type RunPatch } from '@/api/
 export const useRunStore = defineStore('run', () => {
   const runs = ref<RunListItem[]>([])
   const currentRun = ref<RunDetail | null>(null)
+  const runCache = ref(new Map<string, RunDetail>())
   const total = ref(0)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -23,12 +24,17 @@ export const useRunStore = defineStore('run', () => {
     }
   }
 
-  async function fetchRun(id: string) {
+  async function fetchRun(id: string, force = false) {
+    if (!force && runCache.value.has(id)) {
+      currentRun.value = runCache.value.get(id)!
+      return
+    }
     loading.value = true
     error.value = null
     try {
       const { data } = await runsApi.get(id)
       currentRun.value = data
+      runCache.value.set(id, data)
     } catch (e: unknown) {
       error.value = (e as Error).message
     } finally {
@@ -62,5 +68,5 @@ export const useRunStore = defineStore('run', () => {
     return data
   }
 
-  return { runs, currentRun, total, loading, error, fetchRuns, fetchRun, createRun, deleteRun, patchRun, duplicateRun }
+  return { runs, currentRun, runCache, total, loading, error, fetchRuns, fetchRun, createRun, deleteRun, patchRun, duplicateRun }
 })

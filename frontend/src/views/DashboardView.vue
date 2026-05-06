@@ -159,7 +159,6 @@ import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRunStore } from '@/stores/run'
 import type { RunDetail } from '@/api/runs'
-import { runsApi } from '@/api/runs'
 
 function tabFromDetail(run: RunDetail): string {
   if (run.performance_result) return 'performance'
@@ -205,8 +204,8 @@ function onDashboardNotesInput(id: string, value: string) {
 async function selectRun(id: string) {
   selectedRunId.value = id
   try {
-    const { data } = await runsApi.get(id)
-    latestRun.value = data
+    await runStore.fetchRun(id)
+    latestRun.value = runStore.currentRun
   } catch {
     // ignore
   }
@@ -228,8 +227,8 @@ const pipelineSteps = computed(() => {
 
   return [
     { id: 'created', label: 'Created', done: !!latestRun.value },
-    { id: 'masterdata', label: 'Import', done: !!latestRun.value?.masterdata_path },
-    { id: 'quality', label: 'Validation', done: hasQuality },
+    { id: 'masterdata', label: 'Import', done: !!latestRun.value?.masterdata_path || hasOrders },
+    { id: 'quality', label: 'Validation', done: hasQuality || hasOrders },
     { id: 'capacity', label: 'Capacity', done: hasCapacity },
     { id: 'performance', label: 'Performance', done: hasPerformance },
   ]

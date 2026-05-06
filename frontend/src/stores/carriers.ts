@@ -26,10 +26,17 @@ export const useCarriersStore = defineStore('carriers', () => {
     return carrier
   }
 
+  async function updateCarrier(carrierId: string, data: Partial<CarrierCreate>) {
+    const { data: updated } = await carriersApi.update(carrierId, data)
+    const idx = carriers.value.findIndex((c) => c.carrier_id === carrierId)
+    if (idx !== -1) carriers.value[idx] = updated
+    return updated
+  }
+
   async function deleteCarrier(carrierId: string) {
     await carriersApi.delete(carrierId)
     carriers.value = carriers.value.filter((c) => c.carrier_id !== carrierId)
   }
 
-  return { carriers, loading, error, fetchCarriers, createCarrier, deleteCarrier }
+  return { carriers, loading, error, fetchCarriers, createCarrier, updateCarrier, deleteCarrier }
 })

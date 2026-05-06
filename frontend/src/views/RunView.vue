@@ -143,7 +143,7 @@ const tabs = [
 ]
 
 async function loadRun() {
-  await runStore.fetchRun(route.params.id as string)
+  await runStore.fetchRun(route.params.id as string, true)
   run.value = runStore.currentRun
   notesValue.value = run.value?.notes ?? ''
 }

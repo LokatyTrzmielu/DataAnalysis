@@ -224,7 +224,7 @@
                 <th class="px-3 py-2 text-left font-medium" style="color:var(--app-text-sec)">Carrier</th>
                 <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">Status</th>
                 <th v-if="hasPerformanceData" class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">ABC</th>
-                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Units</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Locations</th>
                 <th class="px-3 py-2 text-left font-medium" style="color:var(--app-text-sec)">Limiting factor</th>
               </tr>
             </thead>
