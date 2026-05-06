@@ -5,7 +5,7 @@ from typing import Optional
 
 import polars as pl
 
-from src.core.config import BORDERLINE_THRESHOLD_MM
+from src.core.config import BORDERLINE_THRESHOLD_MM, OUTLIER_THRESHOLDS
 from src.core.types import CarrierConfig
 from src.core.dimension_checker import DimensionChecker
 
@@ -88,20 +88,22 @@ class DQListBuilder:
         )
 
     def build_validation_lists(self, df: pl.DataFrame) -> DQLists:
-        """Build DQ lists for validation step (no outliers/borderline).
+        """Build DQ lists for validation step.
 
-        This method is used in the validation pipeline where outlier and
-        borderline detection is not performed (moved to capacity analysis).
+        Detects missing/zero/negative values (missing_critical) and values
+        exceeding static thresholds (suspect_outliers). Borderline detection
+        is not performed here – it requires carrier configuration and is
+        handled in capacity analysis.
 
         Args:
-            df: DataFrame with Masterdata
+            df: DataFrame with Masterdata (pre-imputation / df_validated)
 
         Returns:
-            DQLists with missing_critical, duplicates, conflicts only
+            DQLists with missing_critical, suspect_outliers, duplicates, conflicts
         """
         return DQLists(
             missing_critical=self._find_missing_critical(df),
-            suspect_outliers=[],  # Handled in capacity analysis
+            suspect_outliers=self._find_static_threshold_outliers(df),
             high_risk_borderline=[],  # Handled in capacity analysis
             duplicates=self._find_duplicates(df),
             conflicts=self._find_conflicts(df),
@@ -133,6 +135,39 @@ class DQListBuilder:
             conflicts=[],  # Handled in validation
             collisions=[],
         )
+
+    def _find_static_threshold_outliers(self, df: pl.DataFrame) -> list[DQListItem]:
+        """Find outliers using static thresholds from config.
+
+        Used in the validation context (no carriers configured).
+        Only checks values exceeding the maximum threshold – values that are
+        zero or negative are already captured by _find_missing_critical.
+        """
+        items: list[DQListItem] = []
+        checked_fields = ["length_mm", "width_mm", "height_mm", "weight_kg"]
+
+        for field in checked_fields:
+            if field not in df.columns or field not in OUTLIER_THRESHOLDS:
+                continue
+
+            max_val = OUTLIER_THRESHOLDS[field]["max"]
+
+            outlier_rows = df.filter(
+                pl.col(field).is_not_null() & (pl.col(field) > max_val)
+            ).select(["sku", field]).to_dicts()
+
+            items.extend([
+                DQListItem(
+                    sku=str(row["sku"]),
+                    issue_type="suspect_outlier",
+                    field=field,
+                    value=str(row[field]),
+                    details=f"Value {row[field]} exceeds maximum threshold ({max_val})",
+                )
+                for row in outlier_rows
+            ])
+
+        return items
 
     def _find_missing_critical(self, df: pl.DataFrame) -> list[DQListItem]:
         """Find SKUs with missing critical data."""

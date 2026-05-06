@@ -10,6 +10,7 @@
         placeholder="e.g. Acme Warehouse 2026"
         class="input-apple mb-4"
         @keydown.enter="create"
+        autofocus
       />
 
       <p v-if="error" class="mb-3" style="font-size:14px;color:#ff3b30">{{ error }}</p>

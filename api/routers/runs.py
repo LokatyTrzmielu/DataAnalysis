@@ -51,6 +51,48 @@ def _run_to_response(run: AnalysisRun) -> RunResponse:
     )
 
 
+def _load_orders_df(run: "AnalysisRun"):  # type: ignore[name-defined]
+    """Load ingested orders DataFrame for a run.
+
+    Returns None if orders data is unavailable or can't be loaded.
+    Used to refresh cross-validation after masterdata is uploaded later.
+    """
+    import polars as pl
+    if not run.orders_path:
+        return None
+
+    orders_path = run.orders_path
+
+    if orders_path.endswith(".duckdb"):
+        from src.storage.data_store import DataStore
+        dataset_id = Path(orders_path).stem
+        store = DataStore()
+        if not store.exists(dataset_id):
+            return None
+        return store.load(dataset_id, "orders")
+
+    path = Path(orders_path)
+    if not path.exists():
+        return None
+
+    from src.ingest.pipeline import OrdersIngestPipeline
+    from src.ingest.mapping import MappingResult, ColumnMapping
+    pipeline = OrdersIngestPipeline()
+    mapping = None
+    if run.orders_mapping:
+        mr = MappingResult()
+        for target_field, source_col in run.orders_mapping.items():
+            if source_col:
+                mr.mappings[target_field] = ColumnMapping(
+                    target_field=target_field,
+                    source_column=source_col,
+                    confidence=1.0,
+                    is_auto=False,
+                )
+        mapping = mr
+    return pipeline.run(path, mapping=mapping).df
+
+
 @router.post("", response_model=RunResponse, status_code=status.HTTP_201_CREATED)
 async def create_run(
     body: RunCreate,
@@ -288,6 +330,21 @@ async def masterdata_from_dataset(
     run.masterdata_mapping = None
     run.capacity_result = None
     run.status = "quality_done"
+
+    # If orders were already validated without masterdata, refresh cross-validation now.
+    ovr = run.orders_validation_result or {}
+    if run.orders_path and not ovr.get("sku_xval_available"):
+        try:
+            from src.analytics.orders_validation import OrdersValidator
+            orders_df = _load_orders_df(run)
+            if orders_df is not None:
+                run.orders_validation_result = OrdersValidator().validate(
+                    orders_df,
+                    masterdata_df=df,
+                )
+        except Exception:
+            pass
+
     run.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(run)
@@ -546,6 +603,21 @@ async def run_quality(
         }
         run.capacity_result = None
         run.status = "quality_done"
+
+        # If orders were already validated without masterdata, refresh cross-validation now.
+        ovr = run.orders_validation_result or {}
+        if run.orders_path and not ovr.get("sku_xval_available"):
+            try:
+                from src.analytics.orders_validation import OrdersValidator
+                orders_df = _load_orders_df(run)
+                if orders_df is not None:
+                    run.orders_validation_result = OrdersValidator().validate(
+                        orders_df,
+                        masterdata_df=ingest_result.df,
+                    )
+            except Exception:
+                pass
+
         run.updated_at = datetime.now(timezone.utc)
         await db.commit()
         await db.refresh(run)
@@ -945,7 +1017,7 @@ async def delete_run(
 ) -> None:
     run = await _get_run_or_404(run_id, db, current_user, owner_only=True)
     for path in [run.masterdata_path, run.orders_path]:
-        if path:
+        if path and not path.endswith(".duckdb"):
             Path(path).unlink(missing_ok=True)
     await db.delete(run)
     await db.commit()

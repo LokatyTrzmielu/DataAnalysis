@@ -109,8 +109,9 @@ class QualityPipeline:
         # 4. Metrics after imputation
         metrics_after = self.metrics_calculator.calculate(df_imputed)
 
-        # 5. DQ lists (validation only - no outliers/borderline)
-        dq_lists = self.dq_list_builder.build_validation_lists(df_imputed)
+        # 5. DQ lists – built from pre-imputation data so that original missing/
+        #    zero/negative values are not masked by the imputer's median fills.
+        dq_lists = self.dq_list_builder.build_validation_lists(df_validated)
 
         # Summary
         total_records = len(df)

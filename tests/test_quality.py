@@ -267,19 +267,65 @@ class TestDQListBuilder:
         assert "SKU3" in skus
 
     def test_find_suspect_outliers_no_carriers(self):
-        """Test that outliers are not detected without carriers configured."""
+        """Test that carrier-based outlier detection returns nothing without carriers."""
         df = pl.DataFrame({
             "sku": ["SKU1", "SKU2", "SKU3"],
-            "length_mm": [100.0, 5000.0, 4000.0],  # Large values but no carrier to check against
+            "length_mm": [100.0, 5000.0, 4000.0],
             "width_mm": [50.0, 100.0, 150.0],
             "height_mm": [30.0, 60.0, 90.0],
             "weight_kg": [1.5, 3.0, 4.5],
         })
 
-        # Without carriers - no outliers detected (carriers define limits)
+        # _find_suspect_outliers uses carriers only – no carriers means no results
         builder = DQListBuilder()
         outliers = builder._find_suspect_outliers(df)
         assert len(outliers) == 0
+
+    def test_find_static_threshold_outliers(self):
+        """Test that static threshold outlier detection catches extreme values."""
+        df = pl.DataFrame({
+            "sku": ["NORMAL", "HUGE_LEN", "HUGE_WT", "NEG_LEN"],
+            "length_mm": [300.0, 9999.0, 300.0, -50.0],
+            "width_mm": [200.0, 200.0, 200.0, 200.0],
+            "height_mm": [100.0, 100.0, 100.0, 100.0],
+            "weight_kg": [5.0, 5.0, 9999.0, 5.0],
+        })
+
+        builder = DQListBuilder()
+        outliers = builder._find_static_threshold_outliers(df)
+
+        outlier_skus = {item.sku for item in outliers}
+        assert "NORMAL" not in outlier_skus
+        assert "HUGE_LEN" in outlier_skus    # 9999mm > max length threshold
+        assert "HUGE_WT" in outlier_skus     # 9999kg > max weight threshold
+        # Negatives are handled by _find_missing_critical, not here
+        assert "NEG_LEN" not in outlier_skus
+
+    def test_build_validation_lists_detects_outliers(self):
+        """Test that build_validation_lists detects both missing and extreme values."""
+        df = pl.DataFrame({
+            "sku": ["OK", "MISSING_H", "ZERO_W", "HUGE_L"],
+            "length_mm": [300.0, 300.0, 300.0, 9999.0],
+            "width_mm": [200.0, 200.0, 0.0, 200.0],
+            "height_mm": [100.0, None, 100.0, 100.0],
+            "weight_kg": [5.0, 5.0, 5.0, 5.0],
+        })
+
+        # Simulate what the pipeline does: mark zeros/negatives as NULL first
+        from src.quality.validators import MasterdataValidator
+        validated = MasterdataValidator().validate(df).df_validated
+
+        builder = DQListBuilder()
+        lists = builder.build_validation_lists(validated)
+
+        missing_skus = {item.sku for item in lists.missing_critical}
+        outlier_skus = {item.sku for item in lists.suspect_outliers}
+
+        assert "MISSING_H" in missing_skus   # NULL height
+        assert "ZERO_W" in missing_skus      # 0 width → nulled → missing_critical
+        assert "HUGE_L" in outlier_skus      # 9999mm > threshold
+        assert "OK" not in missing_skus
+        assert "OK" not in outlier_skus
 
     def test_find_suspect_outliers_with_carriers(self):
         """Test finding outliers with carrier-based detection."""

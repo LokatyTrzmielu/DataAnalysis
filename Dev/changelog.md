@@ -11,6 +11,25 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-06] - Fix (fix/validation-outlier-detection) — 2 bugi
+
+- **Fix: SKU cross-validation nie pokazuje się po wgraniu Masterdata po Orders**:
+  - **Root cause**: `orders_validation_result` jest obliczany w momencie importu Zleceń. Gdy w tym momencie Masterdata nie istnieje → `sku_xval_available: False`. Późniejszy import Masterdata nigdy nie odświeżał tego wyniku.
+  - **Fix** (`api/routers/runs.py`): Dodano helper `_load_orders_df(run)` do re-ładowania df zleceń (obsługuje `.duckdb` dataset i surowy plik Excel). W endpointach `run_quality` i `masterdata_from_dataset` — po przetworzeniu Masterdata, jeśli `sku_xval_available == False` i orders już załadowane, re-run `OrdersValidator().validate(..., masterdata_df=md_df)` i nadpisanie `orders_validation_result`.
+  - Dotyczy obu ścieżek: wgranie pliku (`/quality`) i wybór z Datasets (`/masterdata/from-dataset`).
+
+
+
+- **Fix: Validation – Suspect outliers zawsze 0, braki maskowane przez imputację**:
+  - **Root cause 1**: `pipeline.py` budował DQ lists z `df_imputed` (po imputacji) — zera/NULL/negatives były już uzupełnione medianą, więc `missing_critical` wychodziło 0
+  - **Root cause 2**: `build_validation_lists()` w `dq_lists.py` zwracał `suspect_outliers=[]` — nigdy nie sprawdzał ekstremalnych wartości (np. 9999mm, 9999kg)
+  - **Fix 1** (`pipeline.py` linia 113): `build_validation_lists(df_imputed)` → `build_validation_lists(df_validated)` — DQ lists budowane z danych przed imputacją
+  - **Fix 2** (`dq_lists.py`): dodano metodę `_find_static_threshold_outliers()` używającą `OUTLIER_THRESHOLDS` z configu; wywołana w `build_validation_lists()` zamiast pustej listy
+  - Statyczne progi: length≤3650mm, width≤864mm, height≤500mm, weight≤500kg — wartości powyżej → `suspect_outlier`
+  - Testy: dodano `test_find_static_threshold_outliers` i `test_build_validation_lists_detects_outliers`; 32/32 pass
+
+---
+
 ### [2026-05-05] - Fix + Feature (main) — commit `9faa516`
 
 - **Fix: Performance analysis 500 gdy orders z Datasetu**:

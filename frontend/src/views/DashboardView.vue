@@ -43,10 +43,10 @@
         Latest analysis
       </h3>
       <div class="flex items-center gap-3 mb-3">
-        <span style="font-size:17px;font-weight:500;color:#0071e3;letter-spacing:-0.374px">{{ latestRun.client_name }}</span>
         <RouterLink :to="openLink" class="btn-apple-primary" style="font-size:13px;padding:5px 14px;line-height:1">
           Open
         </RouterLink>
+        <span style="font-size:17px;font-weight:500;color:#0071e3;letter-spacing:-0.374px">{{ latestRun.client_name }}</span>
       </div>
 
       <!-- Pipeline status steps -->
@@ -109,8 +109,8 @@
       <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:var(--app-text-sec)">
         No analyses yet. Create one above.
       </div>
-      <div v-else class="card-apple-list">
-        <div v-for="run in runStore.runs.slice(0, 5)" :key="run.id">
+      <div v-else class="card-apple-list" style="height:calc(100vh - 720px);min-height:150px;overflow-y:scroll">
+        <div v-for="run in runStore.runs.slice(0, 10)" :key="run.id">
           <div
             :class="['flex items-center justify-between px-4 py-3 transition-colors cursor-pointer', selectedRunId === run.id ? 'bg-[rgba(0,113,227,0.06)]' : 'hover:bg-black/[.02]']"
             @click="selectRun(run.id)"
