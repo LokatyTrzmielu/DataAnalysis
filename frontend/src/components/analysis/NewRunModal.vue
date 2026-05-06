@@ -5,12 +5,12 @@
 
       <label class="label-apple">Client name</label>
       <input
+        ref="nameInput"
         v-model="clientName"
         type="text"
         placeholder="e.g. Acme Warehouse 2026"
         class="input-apple mb-4"
         @keydown.enter="create"
-        autofocus
       />
 
       <p v-if="error" class="mb-3" style="font-size:14px;color:#ff3b30">{{ error }}</p>
@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useRunStore } from '@/stores/run'
 
@@ -45,6 +45,9 @@ const runStore = useRunStore()
 const clientName = ref('')
 const loading = ref(false)
 const error = ref('')
+const nameInput = ref<HTMLInputElement | null>(null)
+
+onMounted(() => nameInput.value?.focus())
 
 async function create() {
   if (!clientName.value.trim()) return
