@@ -49,6 +49,10 @@
 | 36 | Dark mode — seria poprawek | Data Preparation, Datasets, ImportTab, select dropdown, QualityTab | ✅ |
 | 37 | Original filename tracking | pola `masterdata_original_filename` / `orders_original_filename` w DB, ORM, schema, API, TS, UI | ✅ |
 | 38 | Analysis running indicator | store `analysis.ts`, animowana ikona emoji w navbarze, `start()`/`stop()` w CapacityTab + ImportTab | ✅ |
+| 39 | Dashboard KPI expansion + two-column layout | pełny zestaw KPI wg etapu (Masterdata/Capacity/SKU-xval/Orders), lista analiz sticky w prawej kolumnie (270px) | ✅ |
+| 40 | Dashboard run cache + carrier edit form | in-memory Map w Pinia store; formularz edycji nośnika w CarriersView + akcja `updateCarrier` | ✅ |
+| 41 | Multi-select bulk delete w RunsView | checkbox per wiersz, selection bar z Select-all/Delete/Clear, `Promise.all`, fix dark mode icon hover | ✅ |
+| 42 | Seria poprawek UI/UX (05-06) | fix dataset file on run delete; carrier selection po tab switch; Avg Dimensions null guard; autofocus modal; Units→Pieces rename | ✅ |
 
 ---
 
@@ -370,7 +374,7 @@ aby załadować nośniki z polem priority.
 | Phase 3 | Auth + Vue 3 frontend | ✅ |
 | Phase 4 | PDF reports (ReportLab) | ✅ |
 | Phase 5 | Full feature parity (Mapping Wizard, Performance, Capacity UX, CSV Reports, Dashboard KPIs) | ✅ |
-| Phase 6 | Sharing + advanced features | 🔜 |
+| Phase 6 | Dashboard UX, bulk actions, carrier management | 🔜 |
 
 ---
 
@@ -409,7 +413,7 @@ aby załadować nośniki z polem priority.
 
 ## Możliwe Przyszłe Rozszerzenia
 
-- [ ] Phase 6: Sharing + advanced features
+- [ ] Phase 6: Dashboard UX, bulk actions, carrier management
 - [ ] Testy wydajnościowe (200k SKU, 2M orders)
 - [ ] Eksport do Excel z formatowaniem
 - [ ] Przywrócenie utilization sliders

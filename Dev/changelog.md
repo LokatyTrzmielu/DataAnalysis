@@ -11,6 +11,45 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-06] - Feature + Fix (main) — seria commitów
+
+- **Feature: Rozszerzone KPI na Dashboardzie i lista analiz w sidebarze** (commit `9d7308a`):
+  - Dashboard przeprojektowany: layout dwukolumnowy — KPI po lewej (flex:1), lista analiz sticky po prawej (270px)
+  - Pełny zestaw KPI pogrupowany wg etapu: Masterdata (Total SKU, Quality Score), Capacity (Fit %, Fit, Not Fit, Avg Dimensions, Avg Weight, Carriers selected), SKU Cross-validation (obie strony z licznikiem i %), Orders (wiersze, dni, SKU, hourly flag, zamówienia, linie, metryki avg, pieces/line)
+  - Każda karta pokazuje placeholder specyficzny dla etapu gdy krok nie był uruchomiony
+
+- **Feature: Cache RunDetail w Pinia store** (commit `98a7610`):
+  - `frontend/src/stores/run.ts` — in-memory Map do cache'owania fetched RunDetail; unikanie ponownego pobierania dużych wyników analizy przy przełączaniu analiz na Dashboardzie
+  - `RunView.vue` — force-refreshuje cache po uruchomieniu analizy
+
+- **Feature: Formularz edycji nośnika w CarriersView** (commit `98a7610`):
+  - `frontend/src/views/CarriersView.vue` — ten sam formularz do tworzenia i edycji; tryb "Edit carrier" z przyciskiem Cancel; Carrier ID readonly w trybie edycji
+  - `frontend/src/stores/carriers.ts` — nowa akcja `updateCarrier`
+  - Rename nagłówka tabeli Capacity: "Units" → "Locations"
+
+- **Feature: Multi-select bulk delete w RunsView** (commit `9d34a28`):
+  - `frontend/src/views/RunsView.vue` — checkbox na każdym wierszu; selection bar z Select-all, licznik, Delete selected (z inline confirm), Clear
+  - Bulk delete równoległy via `Promise.all`; czyści selekcję po powodzeniu; per-row delete usuwa ID z aktywnej selekcji
+  - Fix dark mode: ikony duplicate/delete `@mouseleave` hardcoded `rgba(0,0,0,0.32)` → `var(--app-placeholder)`; `@mouseover` `rgba(0,0,0,0.02)` → `var(--table-row-hover)`
+
+- **Fix: Dataset file deleted on run delete** (commit `a1a13dc`):
+  - `api/routers/runs.py` — przy DELETE run plik datasetu nie był usuwany gdy run był powiązany z datasetem zamiast bezpośrednim plikiem
+
+- **Fix: Carrier selection restoring correct state after tab switch** (commit `48e5d87`):
+  - `frontend/src/components/analysis/CapacityTab.vue` — przywraca tylko carriers używane w analizie (z `carriers_analyzed`), z wykluczeniem pseudo-carrier NONE
+
+- **Fix: Avg Dimensions card overflow gdy dimension values są null** (commit `bc87e85`):
+  - `frontend/src/views/DashboardView.vue` — guard przed null `avg_*_mm` w `capacity_result`; bez sprawdzenia template literal produkował `"undefined×undefined×undefined mm"` (truthy) rozciągający kartę
+
+- **Fix: Autofocus na input name w New Analysis modal** (commit `787a11f`):
+  - `frontend/src/components/analysis/NewRunModal.vue` — HTML `autofocus` nie uruchamia się na dynamicznie montowanych komponentach; rozwiązanie: `onMounted + ref.focus()`
+
+- **Rename: Units → Pieces w Performance tab i PDF** (commit `20dce22`):
+  - `frontend/src/components/analysis/PerformanceTab.vue` — KPI label "Avg Units/Order" → "Avg Pieces/Order"; tabela throughput "Units" → "Pieces"
+  - `api/pdf_generator.py` — KPI label "Total Units" → "Total Pieces"
+
+---
+
 ### [2026-05-06] - Fix (fix/validation-outlier-detection) — 2 bugi
 
 - **Fix: SKU cross-validation nie pokazuje się po wgraniu Masterdata po Orders**:
