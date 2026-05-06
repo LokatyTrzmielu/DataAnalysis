@@ -30,7 +30,7 @@
         <KpiCard label="Total Orders"    :value="pr.kpi.total_orders.toLocaleString()"       tooltip="Total number of distinct orders in the uploaded file." />
         <KpiCard label="Total Lines"     :value="pr.kpi.total_lines.toLocaleString()"        tooltip="Total number of order lines (one SKU per line)." />
         <KpiCard label="Avg Lines/Order" :value="pr.kpi.avg_lines_per_order.toFixed(1)"      tooltip="Average number of SKU lines per order." />
-        <KpiCard label="Avg Units/Order" :value="(pr.kpi.avg_units_per_order ?? 0).toFixed(1)"      tooltip="Average number of picked items (units) per order." />
+        <KpiCard label="Avg Pieces/Order" :value="(pr.kpi.avg_units_per_order ?? 0).toFixed(1)"      tooltip="Average number of picked items (pieces) per order." />
         <KpiCard label="P90 Lines/Hour"  :value="pr.kpi.p90_lines_per_hour.toFixed(0)"       tooltip="90th percentile of hourly line throughput — capacity planning baseline." />
         <KpiCard label="P95 Lines/Hour"  :value="pr.kpi.p95_lines_per_hour.toFixed(0)"       tooltip="95th percentile of hourly line throughput — capacity planning upper bound." />
         <KpiCard label="Total Pieces"    :value="pr.kpi.total_units.toLocaleString()"        tooltip="Total quantity of individual items across all order lines." />
@@ -93,7 +93,7 @@
                 </template>
               </tr>
               <tr class="perf-row">
-                <td class="px-3 py-2 font-medium" style="color:var(--app-text)">Units</td>
+                <td class="px-3 py-2 font-medium" style="color:var(--app-text)">Pieces</td>
                 <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.avg_units_per_day ?? 0).toFixed(0) }}</td>
                 <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.median_units_per_day ?? 0).toFixed(0) }}</td>
                 <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ (pr.kpi.max_units_per_day ?? 0).toLocaleString() }}</td>

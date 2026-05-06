@@ -387,7 +387,7 @@ def generate_capacity_pdf(
             ['Total Orders', f"{kpi.get('total_orders', 0):,}", 'Total Lines', f"{kpi.get('total_lines', 0):,}"],
             ['Avg Lines/Order', f"{kpi.get('avg_lines_per_order', 0):.1f}", 'Avg Lines/Hour', f"{kpi.get('avg_lines_per_hour', 0):.1f}"],
             ['Peak Lines/Hour', f"{kpi.get('peak_lines_per_hour', 0):,}", 'P90 Lines/Hour', f"{kpi.get('p90_lines_per_hour', 0):.0f}"],
-            ['Total Units', f"{kpi.get('total_units', 0):,}", 'Unique SKU', f"{kpi.get('unique_sku', 0):,}"],
+            ['Total Pieces', f"{kpi.get('total_units', 0):,}", 'Unique SKU', f"{kpi.get('unique_sku', 0):,}"],
         ]
         pk_table = Table(perf_kpi_data, colWidths=[5 * cm, 3 * cm, 5 * cm, 3 * cm])
         pk_table.setStyle(TableStyle([
