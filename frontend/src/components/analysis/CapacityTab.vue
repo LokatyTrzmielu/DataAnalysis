@@ -429,8 +429,12 @@ watch(() => theme.dark, () => {
 onMounted(async () => {
   const { data } = await carriersApi.list()
   availableCarriers.value = data.filter(c => c.is_active)
-  selectedCarrierIds.value = new Set(availableCarriers.value.map(c => c.carrier_id))
-  if (cr.value) nextTick(() => renderCharts(cr.value!))
+  if (cr.value) {
+    selectedCarrierIds.value = new Set(cr.value.carriers_analyzed.filter(id => id !== 'NONE'))
+    nextTick(() => renderCharts(cr.value!))
+  } else {
+    selectedCarrierIds.value = new Set(availableCarriers.value.map(c => c.carrier_id))
+  }
 })
 
 const canRun = computed(() => !!props.run.masterdata_path && selectedCarrierIds.value.size > 0)
