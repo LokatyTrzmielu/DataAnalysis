@@ -393,11 +393,16 @@ class PerformanceAnalyzer:
     ) -> PerformanceKPI:
         """Calculate KPI using real date+hour data points for percentiles."""
         total_lines = len(df)
-        total_orders = df["order_id"].n_unique()
+        total_orders = df.unique(subset=["order_id", "order_date"]).height
         total_units = int(df["quantity"].sum() or 0)
         unique_sku = df["sku"].n_unique()
 
-        lines_per_order = df["order_id"].value_counts()["count"].to_list()
+        lines_per_order = (
+            df.group_by(["order_id", "order_date"])
+            .agg(pl.len().alias("count"))
+            ["count"]
+            .to_list()
+        )
         order_line_distribution = {
             "1":     sum(1 for x in lines_per_order if x == 1),
             "2":     sum(1 for x in lines_per_order if x == 2),
@@ -609,7 +614,7 @@ class PerformanceAnalyzer:
             for row in monthly_df.to_dicts()
         ]
 
-        # Weekday profile: avg lines per day for each weekday (0=Mon, 6=Sun)
+        # Weekday profile: avg lines per day for each weekday (1=Mon, 7=Sun ISO)
         weekday_df = df.with_columns([
             pl.col("timestamp").dt.weekday().alias("weekday"),
             pl.col("timestamp").dt.date().alias("_date"),

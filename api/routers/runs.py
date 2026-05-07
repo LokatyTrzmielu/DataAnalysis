@@ -891,7 +891,7 @@ async def run_performance(
     import polars as _pl
     _order_lines = (
         orders_df
-        .group_by("order_id")
+        .group_by(["order_id", "order_date"])
         .agg(_pl.len().alias("n"))
         ["n"]
         .to_list()
@@ -961,7 +961,7 @@ async def run_performance(
             for w in perf.weekly_trends
         ],
         "weekday_profile": [
-            {"day": _dow_labels[wd], "avg_lines": avg}
+            {"day": _dow_labels[wd - 1], "avg_lines": avg}
             for wd, avg in sorted(perf.weekday_profile.items())
         ],
         "lines_per_order_dist": _lpo_dist,
