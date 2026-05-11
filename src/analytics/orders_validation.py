@@ -6,6 +6,8 @@ from typing import Any, Optional
 
 import polars as pl
 
+from src.ingest.cleaning import clean_numeric_column
+
 
 _PLACEHOLDER_SKUS = {
     "", "n/a", "na", "-", "0", "null", "none", "unknown", "undefined", "?",
@@ -156,7 +158,10 @@ class OrdersValidator:
         if "quantity" not in df.columns:
             return empty
 
-        qty = df["quantity"].cast(pl.Float64, strict=False)
+        # Handles both already-numeric columns and Utf8 with European format ("1,5" → 1.5)
+        qty = df.with_columns(
+            clean_numeric_column(pl.col("quantity")).alias("__qty__")
+        )["__qty__"]
         qty_null = qty.is_null().sum()
         qty_zero = qty.filter(qty.eq(0)).len() if qty.drop_nulls().len() > 0 else 0
         qty_negative = qty.filter(qty.lt(0)).len() if qty.drop_nulls().len() > 0 else 0
