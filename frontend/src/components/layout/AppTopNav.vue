@@ -43,6 +43,7 @@
       </button>
       <span class="nav-user">{{ auth.user?.name }}</span>
       <RouterLink to="/settings" class="nav-link" :class="{ active: isActive('/settings') }">Settings</RouterLink>
+      <RouterLink to="/help" class="nav-link" :class="{ active: isActive('/help') }">Help</RouterLink>
       <button @click="auth.logout()" class="nav-logout">Sign out</button>
     </div>
   </nav>

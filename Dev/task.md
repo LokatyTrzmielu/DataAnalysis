@@ -411,6 +411,20 @@ aby załadować nośniki z polem priority.
 
 ---
 
+## Sekcja Help — strona /help (2026-05-11) - ZAKOŃCZONA
+
+| Faza | Zakres | Status |
+|------|--------|--------|
+| 1 | AppTopNav.vue — link Help między Settings a Sign out | ✅ |
+| 2 | router/index.ts — trasa `/help` | ✅ |
+| 3 | HelpView.vue — pełna strona z sticky sidebar + treścią | ✅ |
+
+**Zawartość:** Overview, Dashboard, Import, Quality, Performance, Capacity, Reports.  
+Każda sekcja zawiera formuły obliczeń, definicje metryk i wskazówki dla użytkownika.  
+Mechanizm: `IntersectionObserver` podświetla aktywną sekcję w sidebar przy scrollowaniu.
+
+---
+
 ## Możliwe Przyszłe Rozszerzenia
 
 - [ ] Phase 6: Dashboard UX, bulk actions, carrier management
