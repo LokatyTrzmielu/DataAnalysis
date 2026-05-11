@@ -204,13 +204,21 @@ class OrdersIngestPipeline:
         # Apply mapping
         df = self.wizard.apply_mapping(df, mapping)
 
-        # 3. SKU normalization
+        # 3. Clean quantity column (handles European formats: "1.500,00" → 1500.0)
+        if "quantity" in df.columns:
+            df = df.with_columns([
+                clean_numeric_column(pl.col("quantity"))
+                .cast(pl.Float64, strict=False)
+                .alias("quantity")
+            ])
+
+        # 4. SKU normalization
         sku_result = None
         if self.normalize_sku and "sku" in df.columns:
             sku_result = self.sku_normalizer.normalize_dataframe(df, "sku")
             df = sku_result.df
 
-        # 4. Date/time parsing → produce `timestamp` column
+        # 5. Date/time parsing → produce `timestamp` column
         has_hourly_data = False
 
         if "date" in df.columns:

@@ -1,8 +1,11 @@
 """Analysis runs CRUD router."""
 
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File, status
 from sqlalchemy import select, func
@@ -766,6 +769,7 @@ async def orders_from_dataset(
         )
         run.orders_validation_result = val_result
     except Exception:
+        logger.exception("Orders validation failed for run %s", run_id)
         run.orders_validation_result = None
 
     run.updated_at = datetime.now(timezone.utc)
@@ -846,6 +850,7 @@ async def ingest_orders(
         )
         run.orders_validation_result = val_result
     except Exception:
+        logger.exception("Orders validation failed for run %s", run_id)
         run.orders_validation_result = None
 
     run.updated_at = datetime.now(timezone.utc)

@@ -156,7 +156,7 @@ class OrdersValidator:
         if "quantity" not in df.columns:
             return empty
 
-        qty = df["quantity"]
+        qty = df["quantity"].cast(pl.Float64, strict=False)
         qty_null = qty.is_null().sum()
         qty_zero = qty.filter(qty.eq(0)).len() if qty.drop_nulls().len() > 0 else 0
         qty_negative = qty.filter(qty.lt(0)).len() if qty.drop_nulls().len() > 0 else 0
