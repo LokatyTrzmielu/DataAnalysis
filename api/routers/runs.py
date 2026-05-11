@@ -230,7 +230,13 @@ async def inspect_masterdata(
     from src.ingest.mapping import MappingWizard, MASTERDATA_SCHEMA
 
     reader = FileReader(persistent)
-    preview_df = reader.read(n_rows=5)
+    try:
+        preview_df = reader.read(n_rows=5)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Cannot read file: {exc}. Make sure the file is a valid CSV or Excel.",
+        ) from exc
     columns = preview_df.columns
 
     wizard = MappingWizard(MASTERDATA_SCHEMA, "masterdata")
@@ -656,7 +662,13 @@ async def inspect_orders(
     from src.ingest.mapping import MappingWizard, ORDERS_SCHEMA
 
     reader = FileReader(persistent)
-    preview_df = reader.read(n_rows=5)
+    try:
+        preview_df = reader.read(n_rows=5)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Cannot read file: {exc}. Make sure the file is a valid CSV or Excel.",
+        ) from exc
     columns = preview_df.columns
 
     wizard = MappingWizard(ORDERS_SCHEMA, "orders")

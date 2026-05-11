@@ -54,8 +54,12 @@ class FileReader:
         Returns:
             Detected separator
         """
-        with open(self.file_path, "r", encoding="utf-8-sig") as f:
-            lines = [f.readline() for _ in range(sample_lines)]
+        encoding = self.detect_encoding()
+        try:
+            with open(self.file_path, "r", encoding=encoding, errors="replace") as f:
+                lines = [f.readline() for _ in range(sample_lines)]
+        except (OSError, IOError):
+            return ","
 
         # Count separator occurrences
         separator_counts = {sep: 0 for sep in self.COMMON_SEPARATORS}
@@ -73,22 +77,24 @@ class FileReader:
         return best_separator
 
     def detect_encoding(self) -> str:
-        """Detect file encoding."""
-        # Try UTF-8 with BOM
+        """Detect file encoding. Tries common Polish/European encodings."""
         try:
             with open(self.file_path, "rb") as f:
-                first_bytes = f.read(3)
-                if first_bytes == b"\xef\xbb\xbf":
-                    return "utf-8-sig"
-        except (OSError, IOError) as e:
-            logger.warning(
-                "Failed to detect encoding for %s: %s. Defaulting to UTF-8.",
-                self.file_path,
-                e,
-            )
+                raw = f.read(3)
+            if raw == b"\xef\xbb\xbf":
+                return "utf-8-sig"
+        except (OSError, IOError):
+            return "latin1"
 
-        # Default UTF-8
-        return "utf-8"
+        for encoding in ("utf-8", "cp1250", "iso-8859-2", "latin1"):
+            try:
+                with open(self.file_path, "r", encoding=encoding) as f:
+                    f.read(4096)
+                return encoding
+            except (UnicodeDecodeError, LookupError):
+                continue
+
+        return "latin1"
 
     def read(
         self,
@@ -160,10 +166,24 @@ class FileReader:
 
         encoding = self.detect_encoding()
 
+        # Polars read_csv supports: utf8, utf8-lossy, latin1.
+        # For cp1250/iso-8859-2, pre-decode with Python and pass as utf-8 bytes.
+        if encoding in ("utf-8", "utf-8-sig"):
+            source: Path | bytes = self.file_path
+            pl_encoding = "utf8"
+        elif encoding == "latin1":
+            source = self.file_path
+            pl_encoding = "latin1"
+        else:
+            with open(self.file_path, "r", encoding=encoding, errors="replace") as f:
+                text = f.read()
+            source = text.encode("utf-8")
+            pl_encoding = "utf8"
+
         df = pl.read_csv(
-            self.file_path,
+            source,
             separator=separator,
-            encoding=encoding,
+            encoding=pl_encoding,
             skip_rows=skip_rows,
             n_rows=n_rows,
             infer_schema_length=10000,

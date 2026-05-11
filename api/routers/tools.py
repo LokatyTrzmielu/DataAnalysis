@@ -47,7 +47,13 @@ async def inspect_file(
         schema_type = file_type
 
         reader = FileReader(tmp_path)
-        preview_df = reader.read(n_rows=5)
+        try:
+            preview_df = reader.read(n_rows=5)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Cannot read file: {exc}. Make sure the file is a valid CSV or Excel.",
+            ) from exc
         columns = preview_df.columns
 
         wizard = MappingWizard(schema, schema_type)
