@@ -27,7 +27,7 @@ export interface CarrierCreate {
 export const carriersApi = {
   list: () => client.get<Carrier[]>('/carriers'),
   create: (data: CarrierCreate) => client.post<Carrier>('/carriers', data),
-  update: (carrierId: string, data: Partial<Carrier>) =>
+  update: (carrierId: string, data: Partial<CarrierCreate>) =>
     client.patch<Carrier>(`/carriers/${carrierId}`, data),
   delete: (carrierId: string) => client.delete(`/carriers/${carrierId}`),
 }

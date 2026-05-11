@@ -70,7 +70,17 @@ async def update_carrier(
     if carrier is None:
         raise HTTPException(status_code=404, detail="Carrier not found")
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    updates = body.model_dump(exclude_none=True)
+    new_carrier_id = updates.pop("carrier_id", None)
+    if new_carrier_id and new_carrier_id != carrier_id:
+        conflict = await db.execute(
+            select(Carrier).where(Carrier.carrier_id == new_carrier_id)
+        )
+        if conflict.scalar_one_or_none():
+            raise HTTPException(status_code=409, detail=f"Carrier '{new_carrier_id}' already exists")
+        carrier.carrier_id = new_carrier_id
+
+    for field, value in updates.items():
         setattr(carrier, field, value)
 
     await db.commit()

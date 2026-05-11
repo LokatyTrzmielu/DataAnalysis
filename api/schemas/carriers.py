@@ -17,6 +17,7 @@ class CarrierCreate(BaseModel):
 
 
 class CarrierUpdate(BaseModel):
+    carrier_id: Optional[str] = Field(default=None, min_length=1)
     name: Optional[str] = None
     inner_length_mm: Optional[float] = Field(default=None, gt=0)
     inner_width_mm: Optional[float] = Field(default=None, gt=0)

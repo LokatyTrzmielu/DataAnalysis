@@ -30,6 +30,7 @@ export const useCarriersStore = defineStore('carriers', () => {
     const { data: updated } = await carriersApi.update(carrierId, data)
     const idx = carriers.value.findIndex((c) => c.carrier_id === carrierId)
     if (idx !== -1) carriers.value[idx] = updated
+    else await fetchCarriers()
     return updated
   }
 

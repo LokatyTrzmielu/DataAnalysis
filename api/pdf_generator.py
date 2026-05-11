@@ -14,6 +14,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import (
     Image,
+    KeepTogether,
     PageBreak,
     Paragraph,
     SimpleDocTemplate,
@@ -35,7 +36,7 @@ _PAGE_W = 16  # chart width in cm (fits A4 with 2cm margins)
 
 def _fig_to_rl_image(fig, height_cm: float) -> Image:
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='white')
+    fig.savefig(buf, format='png', dpi=200, bbox_inches='tight', facecolor='white')
     plt.close(fig)
     buf.seek(0)
     return Image(buf, width=_PAGE_W * cm, height=height_cm * cm)
@@ -64,7 +65,7 @@ def _chart_carrier_fit(capacity_data: dict) -> Image | None:
     brd = [cs.get('borderline_count', 0) for cs in carrier_stats.values()]
     nft = [cs.get('not_fit_count', 0) for cs in carrier_stats.values()]
     x = list(range(len(names)))
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 6))
     ax.bar(x, fit, label='FIT', color=_C_FIT, zorder=3)
     ax.bar(x, brd, bottom=fit, label='BORDERLINE', color=_C_BORDERLINE, zorder=3)
     ax.bar(x, nft, bottom=[f + b for f, b in zip(fit, brd)], label='NOT FIT', color=_C_NOTFIT, zorder=3)
@@ -75,35 +76,35 @@ def _chart_carrier_fit(capacity_data: dict) -> Image | None:
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 7)
+    return _fig_to_rl_image(fig, 9)
 
 
 def _chart_volume_dist(rows: list) -> Image | None:
     vals = [r.get('volume_m3') for r in rows if r.get('volume_m3') is not None]
     if not vals:
         return None
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 4))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5.5))
     ax.hist(vals, bins=40, color=_C_PRIMARY, edgecolor='white', linewidth=0.4, zorder=3)
     ax.set_xlabel('Volume (m³)')
     ax.set_ylabel('SKU Count')
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 6)
+    return _fig_to_rl_image(fig, 8)
 
 
 def _chart_weight_dist(rows: list) -> Image | None:
     vals = [r.get('weight_kg') for r in rows if r.get('weight_kg') is not None]
     if not vals:
         return None
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 4))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5.5))
     ax.hist(vals, bins=40, color=_C_PRIMARY, edgecolor='white', linewidth=0.4, zorder=3)
     ax.set_xlabel('Weight (kg)')
     ax.set_ylabel('SKU Count')
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 6)
+    return _fig_to_rl_image(fig, 8)
 
 
 def _chart_margin_dist(rows: list) -> Image | None:
@@ -114,14 +115,14 @@ def _chart_margin_dist(rows: list) -> Image | None:
     ]
     if not vals:
         return None
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 4))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5.5))
     ax.hist(vals, bins=40, color=_C_PURPLE, edgecolor='white', linewidth=0.4, zorder=3)
     ax.set_xlabel('Margin (mm)')
     ax.set_ylabel('SKU Count')
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 6)
+    return _fig_to_rl_image(fig, 8)
 
 
 def _chart_dims_dist(rows: list) -> Image | None:
@@ -130,7 +131,7 @@ def _chart_dims_dist(rows: list) -> Image | None:
     h_vals = [r.get('height_mm') for r in rows if r.get('height_mm') is not None]
     if not (l_vals or w_vals or h_vals):
         return None
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 4))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5.5))
     if l_vals:
         ax.hist(l_vals, bins=40, alpha=0.6, label='Length', color=_C_PRIMARY, edgecolor='white', linewidth=0.3, zorder=3)
     if w_vals:
@@ -143,7 +144,7 @@ def _chart_dims_dist(rows: list) -> Image | None:
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 6)
+    return _fig_to_rl_image(fig, 8)
 
 
 # ── Performance charts ───────────────────────────────────────────────────────
@@ -153,7 +154,7 @@ def _chart_daily(daily_metrics: list) -> Image | None:
         return None
     dates = [m['date'] for m in daily_metrics]
     lines = [m['lines'] for m in daily_metrics]
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 4))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5.5))
     ax.bar(range(len(dates)), lines, color=_C_PRIMARY, zorder=3)
     step = max(1, len(dates) // 12)
     ax.set_xticks(range(0, len(dates), step))
@@ -162,7 +163,7 @@ def _chart_daily(daily_metrics: list) -> Image | None:
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 6)
+    return _fig_to_rl_image(fig, 8)
 
 
 def _chart_hourly(hourly_metrics: list) -> Image | None:
@@ -170,7 +171,7 @@ def _chart_hourly(hourly_metrics: list) -> Image | None:
         return None
     hours = [f"{m['hour']:02d}:00" for m in hourly_metrics]
     lines = [m['lines'] for m in hourly_metrics]
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 4))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5.5))
     ax.bar(range(len(hours)), lines, color=_C_PRIMARY, zorder=3)
     ax.set_xticks(range(len(hours)))
     ax.set_xticklabels(hours, rotation=45, ha='right', fontsize=7)
@@ -178,7 +179,7 @@ def _chart_hourly(hourly_metrics: list) -> Image | None:
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 6)
+    return _fig_to_rl_image(fig, 8)
 
 
 def _chart_weekly(weekly_trends: list) -> Image | None:
@@ -186,7 +187,7 @@ def _chart_weekly(weekly_trends: list) -> Image | None:
         return None
     labels = [f"W{m['week']:02d} {m['year']}" for m in weekly_trends]
     lines = [m['lines'] for m in weekly_trends]
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 4))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5.5))
     ax.bar(range(len(labels)), lines, color=_C_PRIMARY, zorder=3)
     step = max(1, len(labels) // 12)
     ax.set_xticks(range(0, len(labels), step))
@@ -195,7 +196,7 @@ def _chart_weekly(weekly_trends: list) -> Image | None:
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 6)
+    return _fig_to_rl_image(fig, 8)
 
 
 def _chart_weekday(weekday_profile: list) -> Image | None:
@@ -203,7 +204,7 @@ def _chart_weekday(weekday_profile: list) -> Image | None:
         return None
     days = [m['day'] for m in weekday_profile]
     vals = [m['avg_lines'] for m in weekday_profile]
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 4))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5.5))
     ax.bar(range(len(days)), vals, color=_C_PRIMARY, zorder=3)
     ax.set_xticks(range(len(days)))
     ax.set_xticklabels(days, fontsize=8)
@@ -211,7 +212,7 @@ def _chart_weekday(weekday_profile: list) -> Image | None:
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 6)
+    return _fig_to_rl_image(fig, 8)
 
 
 def _chart_lpo_dist(lpo_dist: list) -> Image | None:
@@ -219,7 +220,7 @@ def _chart_lpo_dist(lpo_dist: list) -> Image | None:
         return None
     bins = [m['bin'] for m in lpo_dist]
     counts = [m['count'] for m in lpo_dist]
-    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 4))
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5.5))
     ax.bar(range(len(bins)), counts, color=_C_PRIMARY, zorder=3)
     ax.set_xticks(range(len(bins)))
     ax.set_xticklabels(bins, fontsize=8)
@@ -228,7 +229,7 @@ def _chart_lpo_dist(lpo_dist: list) -> Image | None:
     _style_ax(ax)
     fig.patch.set_facecolor('white')
     plt.tight_layout()
-    return _fig_to_rl_image(fig, 6)
+    return _fig_to_rl_image(fig, 8)
 
 
 def _chart_heatmap(datehour_metrics: list) -> Image | None:
@@ -238,7 +239,7 @@ def _chart_heatmap(datehour_metrics: list) -> Image | None:
     data = {(m['date'], m['hour']): m['lines'] for m in datehour_metrics}
     z = [[data.get((date, h), 0) for h in range(24)] for date in dates]
     n_dates = len(dates)
-    fig_h = max(4, min(9, n_dates * 0.22 + 2))
+    fig_h = max(5, min(11, n_dates * 0.25 + 2.5))
     fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, fig_h))
     im = ax.pcolormesh(
         list(range(24)), list(range(n_dates)), z,
@@ -262,13 +263,41 @@ def _section(title: str, heading_style) -> list:
     return [PageBreak(), Paragraph(title, heading_style), Spacer(1, 0.3 * cm)]
 
 
-def _add_chart(story: list, img: Image | None, caption: str, small_style) -> None:
+def _add_chart(story: list, img: Image | None, caption: str, caption_style) -> None:
     if img is None:
         return
-    story.append(Paragraph(caption, small_style))
-    story.append(Spacer(1, 0.2 * cm))
-    story.append(img)
-    story.append(Spacer(1, 0.6 * cm))
+    story.append(KeepTogether([
+        Paragraph(caption, caption_style),
+        Spacer(1, 0.2 * cm),
+        img,
+        Spacer(1, 0.6 * cm),
+    ]))
+
+
+def _kpi_4col_table(pairs: list[tuple[str, str]], col_widths: list) -> Table:
+    """Build a 4-column (Metric, Value, Metric, Value) KPI table from a list of (metric, value) pairs."""
+    header = ['Metric', 'Value', 'Metric', 'Value']
+    rows = [header]
+    for i in range(0, len(pairs), 2):
+        if i + 1 < len(pairs):
+            rows.append([pairs[i][0], pairs[i][1], pairs[i + 1][0], pairs[i + 1][1]])
+        else:
+            rows.append([pairs[i][0], pairs[i][1], '', ''])
+    t = Table(rows, colWidths=col_widths)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#374151')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+        ('PADDING', (0, 0), (-1, -1), 6),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
+        ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 1), (2, -1), 'Helvetica-Bold'),
+    ]))
+    return t
 
 
 # ── Public API ───────────────────────────────────────────────────────────────
@@ -310,6 +339,12 @@ def generate_capacity_pdf(
 
     # ── Capacity KPI Summary ─────────────────────────────────────────────────
     story.append(Paragraph('Capacity Analysis', heading_style))
+
+    avg_l = capacity_data.get('avg_length_mm', 0) or 0
+    avg_w = capacity_data.get('avg_width_mm', 0) or 0
+    avg_h = capacity_data.get('avg_height_mm', 0) or 0
+    avg_wt = capacity_data.get('avg_weight_kg', 0) or 0
+
     kpi_data = [
         ['Metric', 'Value'],
         ['Total SKU', str(capacity_data.get('total_sku', '-'))],
@@ -317,6 +352,10 @@ def generate_capacity_pdf(
         ['FIT', str(capacity_data.get('fit_count', '-'))],
         ['BORDERLINE', str(capacity_data.get('borderline_count', '-'))],
         ['NOT FIT', str(capacity_data.get('not_fit_count', '-'))],
+        ['Avg Length (mm)', f"{avg_l:.1f}"],
+        ['Avg Width (mm)', f"{avg_w:.1f}"],
+        ['Avg Height (mm)', f"{avg_h:.1f}"],
+        ['Avg Weight (kg)', f"{avg_wt:.3f}"],
     ]
     kpi_table = Table(kpi_data, colWidths=[8 * cm, 6 * cm])
     kpi_table.setStyle(TableStyle([
@@ -335,7 +374,7 @@ def generate_capacity_pdf(
     carrier_stats: dict[str, Any] = capacity_data.get('carrier_stats', {})
     if carrier_stats:
         story.append(Paragraph('Carrier Breakdown', subheading_style))
-        header = ['Carrier', 'Fit %', 'FIT', 'BORDERLINE', 'NOT FIT', 'Locations', 'Avg Fill']
+        header = ['Carrier', 'Fit %', 'FIT', 'BRDLN', 'NOT FIT', 'Locations', 'Avg Fill', 'Total Vol (m³)', 'Stock Vol (m³)']
         rows_table = [header]
         for cid, cs in carrier_stats.items():
             rows_table.append([
@@ -346,17 +385,19 @@ def generate_capacity_pdf(
                 str(cs.get('not_fit_count', 0)),
                 str(cs.get('total_locations_required', 0)),
                 f"{cs.get('avg_filling_rate', 0) * 100:.1f}%",
+                f"{cs.get('total_volume_m3', 0):.2f}",
+                f"{cs.get('stock_volume_m3', 0):.2f}",
             ])
-        col_widths = [5 * cm, 2 * cm, 1.8 * cm, 2.5 * cm, 2 * cm, 2.5 * cm, 2 * cm]
+        col_widths = [3.5 * cm, 1.5 * cm, 1.4 * cm, 1.5 * cm, 1.5 * cm, 2.0 * cm, 1.5 * cm, 2.1 * cm, 2.0 * cm]
         ct = Table(rows_table, colWidths=col_widths)
         ct.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#374151')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
-            ('PADDING', (0, 0), (-1, -1), 5),
+            ('PADDING', (0, 0), (-1, -1), 4),
             ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
         ]))
         story.append(ct)
@@ -382,28 +423,70 @@ def generate_capacity_pdf(
         story.append(Paragraph(f'Period: {d_from} – {d_to}', small_style))
         story.append(Spacer(1, 0.3 * cm))
 
-        perf_kpi_data = [
-            ['Metric', 'Value', 'Metric', 'Value'],
-            ['Total Orders', f"{kpi.get('total_orders', 0):,}", 'Total Lines', f"{kpi.get('total_lines', 0):,}"],
-            ['Avg Lines/Order', f"{kpi.get('avg_lines_per_order', 0):.1f}", 'Avg Lines/Hour', f"{kpi.get('avg_lines_per_hour', 0):.1f}"],
-            ['Peak Lines/Hour', f"{kpi.get('peak_lines_per_hour', 0):,}", 'P90 Lines/Hour', f"{kpi.get('p90_lines_per_hour', 0):.0f}"],
-            ['Total Pieces', f"{kpi.get('total_units', 0):,}", 'Unique SKU', f"{kpi.get('unique_sku', 0):,}"],
+        col_w = [5 * cm, 3 * cm, 5 * cm, 3 * cm]
+
+        # Totals & Per Order
+        story.append(Paragraph('Totals', subheading_style))
+        totals_pairs = [
+            ('Total Lines', f"{kpi.get('total_lines', 0):,}"),
+            ('Total Orders', f"{kpi.get('total_orders', 0):,}"),
+            ('Total Pieces', f"{kpi.get('total_units', 0):,}"),
+            ('Unique SKU', f"{kpi.get('unique_sku', 0):,}"),
+            ('Avg Lines / Order', f"{kpi.get('avg_lines_per_order', 0):.2f}"),
+            ('Avg Units / Order', f"{kpi.get('avg_units_per_order', 0):.2f}"),
         ]
-        pk_table = Table(perf_kpi_data, colWidths=[5 * cm, 3 * cm, 5 * cm, 3 * cm])
-        pk_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1d4ed8')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
-            ('PADDING', (0, 0), (-1, -1), 6),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (2, 1), (2, -1), 'Helvetica-Bold'),
-        ]))
-        story.append(pk_table)
+        story.append(_kpi_4col_table(totals_pairs, col_w))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # Hourly Throughput
+        story.append(Paragraph('Hourly Throughput', subheading_style))
+        hourly_pairs = [
+            ('Avg Lines / Hour', f"{kpi.get('avg_lines_per_hour', 0):.1f}"),
+            ('Avg Orders / Hour', f"{kpi.get('avg_orders_per_hour', 0):.1f}"),
+            ('Avg Units / Hour', f"{kpi.get('avg_units_per_hour', 0):.1f}"),
+            ('Median Lines / Hour', f"{kpi.get('median_lines_per_hour', 0):.1f}"),
+            ('Median Orders / Hour', f"{kpi.get('median_orders_per_hour', 0):.1f}"),
+            ('Median Units / Hour', f"{kpi.get('median_units_per_hour', 0):.1f}"),
+            ('Peak Lines / Hour', f"{kpi.get('peak_lines_per_hour', 0):,}"),
+            ('Peak Orders / Hour', f"{kpi.get('peak_orders_per_hour', 0):,}"),
+            ('Peak Units / Hour', f"{kpi.get('peak_units_per_hour', 0):,}"),
+            ('P90 Lines / Hour', f"{kpi.get('p90_lines_per_hour', 0):.0f}"),
+            ('P95 Lines / Hour', f"{kpi.get('p95_lines_per_hour', 0):.0f}"),
+            ('P99 Lines / Hour', f"{kpi.get('p99_lines_per_hour', 0):.0f}"),
+        ]
+        story.append(_kpi_4col_table(hourly_pairs, col_w))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # Daily
+        story.append(Paragraph('Daily', subheading_style))
+        daily_pairs = [
+            ('Avg Lines / Day', f"{kpi.get('avg_lines_per_day', 0):.1f}"),
+            ('Avg Orders / Day', f"{kpi.get('avg_orders_per_day', 0):.1f}"),
+            ('Avg Units / Day', f"{kpi.get('avg_units_per_day', 0):.1f}"),
+            ('Median Lines / Day', f"{kpi.get('median_lines_per_day', 0):.1f}"),
+            ('Median Orders / Day', f"{kpi.get('median_orders_per_day', 0):.1f}"),
+            ('Median Units / Day', f"{kpi.get('median_units_per_day', 0):.1f}"),
+            ('Max Lines / Day', f"{kpi.get('max_lines_per_day', 0):,}"),
+            ('Max Orders / Day', f"{kpi.get('max_orders_per_day', 0):,}"),
+            ('Max Units / Day', f"{kpi.get('max_units_per_day', 0):,}"),
+        ]
+        story.append(_kpi_4col_table(daily_pairs, col_w))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # Per Shift
+        story.append(Paragraph('Per Shift', subheading_style))
+        shift_pairs = [
+            ('Avg Lines / Shift', f"{kpi.get('avg_lines_per_shift', 0):.1f}"),
+            ('Avg Orders / Shift', f"{kpi.get('avg_orders_per_shift', 0):.1f}"),
+            ('Avg Units / Shift', f"{kpi.get('avg_units_per_shift', 0):.1f}"),
+            ('Median Lines / Shift', f"{kpi.get('median_lines_per_shift', 0):.1f}"),
+            ('Median Orders / Shift', f"{kpi.get('median_orders_per_shift', 0):.1f}"),
+            ('Median Units / Shift', f"{kpi.get('median_units_per_shift', 0):.1f}"),
+            ('Max Lines / Shift', f"{kpi.get('max_lines_per_shift', 0):.0f}"),
+            ('Max Orders / Shift', f"{kpi.get('max_orders_per_shift', 0):.0f}"),
+            ('Max Units / Shift', f"{kpi.get('max_units_per_shift', 0):.0f}"),
+        ]
+        story.append(_kpi_4col_table(shift_pairs, col_w))
         story.append(Spacer(1, 0.5 * cm))
 
         story.extend(_section('Performance Charts', heading_style))
@@ -413,15 +496,6 @@ def generate_capacity_pdf(
         _add_chart(story, _chart_weekly(performance_data.get('weekly_trends', [])), 'Weekly Trend — Lines per Week', caption_style)
         _add_chart(story, _chart_weekday(performance_data.get('weekday_profile', [])), 'Day-of-Week Profile — Avg Lines per Day', caption_style)
         _add_chart(story, _chart_lpo_dist(performance_data.get('lines_per_order_dist', [])), 'Lines per Order Distribution', caption_style)
-
-    # ── Footer ───────────────────────────────────────────────────────────────
-    story.append(Spacer(1, 0.5 * cm))
-    story.append(Paragraph(
-        'This report was generated by Datavisor. '
-        'Borderline items fit within tolerance threshold. '
-        'Locations required assume full stock stored on single carrier type.',
-        small_style,
-    ))
 
     doc.build(story)
     return buf.getvalue()

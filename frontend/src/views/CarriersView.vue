@@ -22,13 +22,9 @@
         >Cancel</button>
       </div>
       <div class="grid grid-cols-2 gap-3 mb-4">
-        <div v-if="!editingCarrierId">
+        <div>
           <label class="label-apple" style="font-size:12px">Carrier ID</label>
           <input v-model="form.carrier_id" class="input-apple-sm" placeholder="e.g. NOSNIK_4" />
-        </div>
-        <div v-else class="flex flex-col justify-end">
-          <label class="label-apple" style="font-size:12px">Carrier ID</label>
-          <span style="font-size:14px;color:var(--app-text-sec);padding:6px 0">{{ editingCarrierId }}</span>
         </div>
         <div>
           <label class="label-apple" style="font-size:12px">Name</label>
@@ -165,6 +161,7 @@ async function saveCarrier() {
   try {
     if (editingCarrierId.value) {
       await carriersStore.updateCarrier(editingCarrierId.value, {
+        carrier_id: form.carrier_id,
         name: form.name,
         inner_length_mm: form.inner_length_mm,
         inner_width_mm: form.inner_width_mm,
