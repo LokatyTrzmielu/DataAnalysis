@@ -53,6 +53,10 @@
 | 40 | Dashboard run cache + carrier edit form | in-memory Map w Pinia store; formularz edycji nośnika w CarriersView + akcja `updateCarrier` | ✅ |
 | 41 | Multi-select bulk delete w RunsView | checkbox per wiersz, selection bar z Select-all/Delete/Clear, `Promise.all`, fix dark mode icon hover | ✅ |
 | 42 | Seria poprawek UI/UX (05-06) | fix dataset file on run delete; carrier selection po tab switch; Avg Dimensions null guard; autofocus modal; Units→Pieces rename | ✅ |
+| 43 | Fix: cp1250 CSV upload | detect_encoding 512 KB, detect_separator z detect_encoding, _read_csv pre-decode Python → UTF-8 bajty do Polars | ✅ |
+| 44 | Fix: Orders Validation pusta | clean_numeric_column quantity w OrdersIngestPipeline; defensywny cast w _check_quantity_anomalies; logger.exception w runs.py | ✅ |
+| 45 | Fix: 100% Quantity Null | zastąpienie cast(Float64) przez clean_numeric_column w _check_quantity_anomalies (europejski format "1,5") | ✅ |
+| 46 | Fix: Performance 500 | pre-processing orders_df przed analyze(): syntetyczny order_id, order_date z timestamp, quantity cleaning; try/except → HTTP 422 | ✅ |
 
 ---
 

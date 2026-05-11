@@ -368,5 +368,9 @@ Gdy plik Orders nie zawiera kolumny czasu (`has_hourly_data = False`), sekcja "D
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-05-03
-**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Phase 30: tabela "Throughput per Period" w Performance (avg/median/max per day/shift/hour dla Orders/Lines/Units). Phase 31: przełącznik Light/Dark mode w navbarze (AppTopNav), `prefers-color-scheme` fallback, usunięcie sekcji Appearance z Settings. Naprawiono runtime crash na starych wynikach Performance (`?? 0` fallback) oraz brakujące powiadomienie "Analysis complete".
+**Data:** 2026-05-12
+**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Seria 4 bugfixów (commits bbbaba9–5d21145):
+1. **CSV upload** — `readers.py`: detekcja kodowania 512 KB, pre-decode przez Python → UTF-8 bajty do Polars; obsługa cp1250/iso-8859-2 i wszystkich europejskich kodowań
+2. **Orders Validation pusta** — `pipeline.py`: `clean_numeric_column` dla `quantity` w OrdersIngestPipeline; `orders_validation.py`: defensywny cast; `runs.py`: logging do cichych except
+3. **100% Quantity Null** — `orders_validation.py`: zastąpienie bezpośredniego `cast(Float64)` przez `clean_numeric_column` — poprawna konwersja "1,5" → 1.5
+4. **Performance 500** — `runs.py` + `performance.py`: pre-processing orders_df (syntetyczny order_id, order_date z timestamp, quantity cleaning); try/except → HTTP 422

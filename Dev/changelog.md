@@ -11,6 +11,33 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-12] - Fix (main) — seria 4 commitów: polskie CSV, Orders Validation, Performance
+
+- **Fix: CSV upload failure dla polskich plików (cp1250)**:
+  - **Root cause**: `detect_separator()` używał hardcoded `encoding="utf-8-sig"` → `UnicodeDecodeError` na plikach cp1250; `detect_encoding()` próbkował tylko 4096 bajtów → polskie znaki po tej granicy powodowały fałszywe wykrycie utf-8
+  - **Fix** (`src/ingest/readers.py`): `detect_encoding()` próbkuje 512 KB; `detect_separator()` używa `detect_encoding()` i `errors="replace"`; `_read_csv()` zawsze pre-dekoduje plik przez Python (obsługa wszystkich kodowań), przekazuje UTF-8 bajty do Polars
+  - Commit: `bbbaba9`
+
+- **Fix: Orders Validation pusta po imporcie Orders**:
+  - **Root cause**: `OrdersIngestPipeline.run()` nie czyścił kolumny `quantity` → została jako Utf8; `OrdersValidator._check_quantity_anomalies()` wywołał `qty.eq(0)` na Utf8 → `InvalidOperationError`; cichy `except Exception` w `runs.py` łapał błąd → `orders_validation_result = None` → zakładka Validation nic nie pokazywała
+  - **Fix 1** (`src/ingest/pipeline.py`): dodano `clean_numeric_column(pl.col("quantity")).cast(pl.Float64)` po `apply_mapping()` — analogicznie jak `MasterdataIngestPipeline` robi dla `stock`
+  - **Fix 2** (`src/analytics/orders_validation.py`): defensywny `clean_numeric_column` na początku `_check_quantity_anomalies()` zamiast bezpośredniego `cast(Float64)`
+  - **Fix 3** (`api/routers/runs.py`): dodano `logger.exception()` do obu cichych `except Exception` dla orders validation
+  - Commit: `d65675a`
+
+- **Fix: 100% Quantity Null w Validation przy danych z przecinkiem**:
+  - **Root cause**: defensywny `cast(pl.Float64, strict=False)` w `_check_quantity_anomalies()` konwertował europejskie liczby ("1,5", "2,3") na `null` — Polars nie parsuje formatu z przecinkiem dziesiętnym bezpośrednio jako Float64
+  - **Fix** (`src/analytics/orders_validation.py`): zastąpiono bezpośredni cast przez `clean_numeric_column()` via `with_columns` — "1,5" → 1.5, "1.500,00" → 1500.0
+  - Commit: `6708449`
+
+- **Fix: Performance 500 gdy orders nie mają kolumny order_id / order_date**:
+  - **Root cause**: `PerformanceAnalyzer.analyze()` używa `order_id`, `order_date`, `quantity` w wielu miejscach; gdy CSV użytkownika nie mapuje `order_id` → `ColumnNotFoundError` → HTTP 500
+  - **Fix 1** (`api/routers/runs.py`, endpoint `run_performance`): pre-processing `orders_df` przed `analyzer.analyze()`: syntetyczny `order_id` (indeks wiersza) gdy brak, `order_date` z `timestamp` gdy brak, `clean_numeric_column` na `quantity` lub domyślnie 1.0; `analyze()` owinięty w try/except → HTTP 422 na błąd
+  - **Fix 2** (`src/analytics/performance.py`, metoda `analyze()`): analogiczne defensywne sprawdzenia po filtrze null timestamps
+  - Commit: `5d21145`
+
+---
+
 ### [2026-05-06] - Feature: Zastąpienie Duplicate przyciskiem Notes w RunsView (main)
 
 - **`frontend/src/views/RunsView.vue`** — usunięto przycisk Duplicate i funkcję `onDuplicate`; dodano przycisk Notes (ikona dokumentu z liniami) z rozwijającym się textarea poniżej wiersza; zapis z debouncingiem 500 ms przez `runStore.patchRun`; ikona świeci na niebiesko gdy notatka jest zapisana lub pole otwarte (ten sam wzorzec co DashboardView)
