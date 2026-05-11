@@ -450,10 +450,29 @@ class CapacityAnalyzer:
             }
         )
 
-        # Global statistics (sum of all carriers - for compatibility)
-        fit_count = result_df.filter(pl.col("fit_status") == "FIT").height
-        borderline_count = result_df.filter(pl.col("fit_status") == "BORDERLINE").height
-        not_fit_count = result_df.filter(pl.col("fit_status") == "NOT_FIT").height
+        # Global statistics per unique SKU (best status across carriers).
+        # In independent mode each SKU appears once per carrier; we take the
+        # best status (FIT > BORDERLINE > NOT_FIT) so that a SKU fitting any
+        # carrier counts as fitting overall.
+        if not prioritization_mode and not best_fit_mode:
+            sku_best = (
+                result_df
+                .with_columns(
+                    pl.when(pl.col("fit_status") == "FIT").then(2)
+                    .when(pl.col("fit_status") == "BORDERLINE").then(1)
+                    .otherwise(0)
+                    .alias("_priority")
+                )
+                .group_by("sku")
+                .agg(pl.col("_priority").max().alias("_max_priority"))
+            )
+            fit_count = sku_best.filter(pl.col("_max_priority") == 2).height
+            borderline_count = sku_best.filter(pl.col("_max_priority") == 1).height
+            not_fit_count = sku_best.filter(pl.col("_max_priority") == 0).height
+        else:
+            fit_count = result_df.filter(pl.col("fit_status") == "FIT").height
+            borderline_count = result_df.filter(pl.col("fit_status") == "BORDERLINE").height
+            not_fit_count = result_df.filter(pl.col("fit_status") == "NOT_FIT").height
 
         total = fit_count + borderline_count + not_fit_count
         fit_percentage = ((fit_count + borderline_count) / total * 100) if total > 0 else 0
