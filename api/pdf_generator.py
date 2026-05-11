@@ -245,8 +245,10 @@ def _chart_heatmap(datehour_metrics: list) -> Image | None:
         list(range(24)), list(range(n_dates)), z,
         cmap='Blues', vmin=0, shading='auto',
     )
-    ax.set_yticks(range(n_dates))
-    ax.set_yticklabels(dates, fontsize=max(5, 8 - n_dates // 20))
+    step = max(1, n_dates // 10)
+    tick_positions = list(range(0, n_dates, step))
+    ax.set_yticks(tick_positions)
+    ax.set_yticklabels([dates[i] for i in tick_positions], fontsize=8)
     ax.set_xticks(range(24))
     ax.set_xticklabels([f'{h:02d}' for h in range(24)], fontsize=7)
     ax.set_xlabel('Hour')
@@ -495,7 +497,7 @@ def generate_capacity_pdf(
 
         story.extend(_section('Performance Charts', heading_style))
         _add_chart(story, _chart_daily(performance_data.get('daily_metrics', [])), 'Daily Activity — Lines per Day', caption_style)
-        _add_chart(story, _chart_heatmap(performance_data.get('datehour_metrics', [])), 'Hourly Heatmap — Lines by Date × Hour', caption_style, keep_together=False)
+        _add_chart(story, _chart_heatmap(performance_data.get('datehour_metrics', [])), 'Hourly Heatmap — Lines by Date × Hour', caption_style)
         _add_chart(story, _chart_hourly(performance_data.get('hourly_metrics', [])), 'Hourly Throughput Profile — Avg Lines by Hour of Day', caption_style)
         _add_chart(story, _chart_weekly(performance_data.get('weekly_trends', [])), 'Weekly Trend — Lines per Week', caption_style)
         _add_chart(story, _chart_weekday(performance_data.get('weekday_profile', [])), 'Day-of-Week Profile — Avg Lines per Day', caption_style)
