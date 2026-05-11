@@ -239,7 +239,7 @@ def _chart_heatmap(datehour_metrics: list) -> Image | None:
     data = {(m['date'], m['hour']): m['lines'] for m in datehour_metrics}
     z = [[data.get((date, h), 0) for h in range(24)] for date in dates]
     n_dates = len(dates)
-    fig_h = max(5, min(11, n_dates * 0.25 + 2.5))
+    fig_h = max(5, min(8, n_dates * 0.25 + 2.5))
     fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, fig_h))
     im = ax.pcolormesh(
         list(range(24)), list(range(n_dates)), z,
@@ -263,15 +263,19 @@ def _section(title: str, heading_style) -> list:
     return [PageBreak(), Paragraph(title, heading_style), Spacer(1, 0.3 * cm)]
 
 
-def _add_chart(story: list, img: Image | None, caption: str, caption_style) -> None:
+def _add_chart(story: list, img: Image | None, caption: str, caption_style, keep_together: bool = True) -> None:
     if img is None:
         return
-    story.append(KeepTogether([
+    elements = [
         Paragraph(caption, caption_style),
         Spacer(1, 0.2 * cm),
         img,
         Spacer(1, 0.6 * cm),
-    ]))
+    ]
+    if keep_together:
+        story.append(KeepTogether(elements))
+    else:
+        story.extend(elements)
 
 
 def _kpi_4col_table(pairs: list[tuple[str, str]], col_widths: list) -> Table:
@@ -491,7 +495,7 @@ def generate_capacity_pdf(
 
         story.extend(_section('Performance Charts', heading_style))
         _add_chart(story, _chart_daily(performance_data.get('daily_metrics', [])), 'Daily Activity — Lines per Day', caption_style)
-        _add_chart(story, _chart_heatmap(performance_data.get('datehour_metrics', [])), 'Hourly Heatmap — Lines by Date × Hour', caption_style)
+        _add_chart(story, _chart_heatmap(performance_data.get('datehour_metrics', [])), 'Hourly Heatmap — Lines by Date × Hour', caption_style, keep_together=False)
         _add_chart(story, _chart_hourly(performance_data.get('hourly_metrics', [])), 'Hourly Throughput Profile — Avg Lines by Hour of Day', caption_style)
         _add_chart(story, _chart_weekly(performance_data.get('weekly_trends', [])), 'Weekly Trend — Lines per Week', caption_style)
         _add_chart(story, _chart_weekday(performance_data.get('weekday_profile', [])), 'Day-of-Week Profile — Avg Lines per Day', caption_style)
