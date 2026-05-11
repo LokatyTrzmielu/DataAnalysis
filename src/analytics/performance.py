@@ -235,6 +235,24 @@ class PerformanceAnalyzer:
         # Filter out rows with null timestamps
         df = df.filter(pl.col("timestamp").is_not_null())
 
+        # Ensure order_id exists (use row index if not mapped)
+        if "order_id" not in df.columns:
+            df = df.with_columns(
+                pl.Series("order_id", list(range(len(df))), dtype=pl.Int64)
+            )
+
+        # Ensure order_date exists
+        if "order_date" not in df.columns:
+            df = df.with_columns(pl.col("timestamp").dt.date().alias("order_date"))
+
+        # Ensure quantity is numeric (handles European format strings like "1,5")
+        if "quantity" in df.columns:
+            if df["quantity"].dtype in (pl.Utf8, pl.String):
+                from src.ingest.cleaning import clean_numeric_column
+                df = df.with_columns(clean_numeric_column(pl.col("quantity")).alias("quantity"))
+        else:
+            df = df.with_columns(pl.lit(1.0).alias("quantity"))
+
         # Filter out non-working days based on shift schedule
         excluded_nonworking_rows = 0
         if self.shift_schedule:

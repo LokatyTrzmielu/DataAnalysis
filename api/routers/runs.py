@@ -901,11 +901,33 @@ async def run_performance(
         ingest_result = pipeline.run(orders_path, mapping=parsed_mapping)
         orders_df = ingest_result.df
 
+    import polars as _pl
+    from src.ingest.cleaning import clean_numeric_column as _clean_num
+
+    # Ensure required columns exist before analyzer and group_by operations
+    if "order_id" not in orders_df.columns:
+        orders_df = orders_df.with_columns(
+            _pl.Series("order_id", list(range(len(orders_df))), dtype=_pl.Int64)
+        )
+    if "order_date" not in orders_df.columns and "timestamp" in orders_df.columns:
+        orders_df = orders_df.with_columns(
+            _pl.col("timestamp").dt.date().alias("order_date")
+        )
+    if "quantity" in orders_df.columns:
+        orders_df = orders_df.with_columns(
+            _clean_num(_pl.col("quantity")).alias("quantity")
+        )
+    else:
+        orders_df = orders_df.with_columns(_pl.lit(1.0).alias("quantity"))
+
     analyzer = PerformanceAnalyzer(productive_hours_per_shift=productive_hours)
-    perf = analyzer.analyze(orders_df)
+    try:
+        perf = analyzer.analyze(orders_df)
+    except Exception as exc:
+        logger.exception("Performance analysis failed for run %s", run_id)
+        raise HTTPException(status_code=422, detail=f"Performance analysis failed: {exc}") from exc
 
     # Compute lines-per-order histogram
-    import polars as _pl
     _order_lines = (
         orders_df
         .group_by(["order_id", "order_date"])
