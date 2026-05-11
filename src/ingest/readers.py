@@ -89,7 +89,7 @@ class FileReader:
         for encoding in ("utf-8", "cp1250", "iso-8859-2", "latin1"):
             try:
                 with open(self.file_path, "r", encoding=encoding) as f:
-                    f.read(4096)
+                    f.read(524288)  # 512 KB — enough to catch Polish chars anywhere in file
                 return encoding
             except (UnicodeDecodeError, LookupError):
                 continue
@@ -166,24 +166,15 @@ class FileReader:
 
         encoding = self.detect_encoding()
 
-        # Polars read_csv supports: utf8, utf8-lossy, latin1.
-        # For cp1250/iso-8859-2, pre-decode with Python and pass as utf-8 bytes.
-        if encoding in ("utf-8", "utf-8-sig"):
-            source: Path | bytes = self.file_path
-            pl_encoding = "utf8"
-        elif encoding == "latin1":
-            source = self.file_path
-            pl_encoding = "latin1"
-        else:
-            with open(self.file_path, "r", encoding=encoding, errors="replace") as f:
-                text = f.read()
-            source = text.encode("utf-8")
-            pl_encoding = "utf8"
+        # Always pre-decode with Python (handles all encodings) and pass UTF-8 bytes to Polars.
+        # Polars natively supports only utf8/utf8-lossy/latin1; this avoids that limitation.
+        with open(self.file_path, "r", encoding=encoding, errors="replace") as f:
+            content = f.read().encode("utf-8")
 
         df = pl.read_csv(
-            source,
+            content,
             separator=separator,
-            encoding=pl_encoding,
+            encoding="utf8",
             skip_rows=skip_rows,
             n_rows=n_rows,
             infer_schema_length=10000,
