@@ -495,6 +495,40 @@ def generate_capacity_pdf(
         story.append(_kpi_4col_table(shift_pairs, col_w))
         story.append(Spacer(1, 0.5 * cm))
 
+        # Pareto Concentration — start on a new page so the table is never clipped
+        pareto_bands = performance_data.get('pareto_bands', [])
+        if pareto_bands:
+            story.append(PageBreak())
+            story.append(Paragraph('Pareto Concentration', subheading_style))
+            pareto_header = ['MovedSKU', 'CumulSKU%', 'Lines/Day', 'Lines%', 'Cumul.Lines%', 'Pieces/Day', 'Pieces%', 'Cumul.Pieces%']
+            pareto_rows = [pareto_header]
+            for b in pareto_bands:
+                pareto_rows.append([
+                    str(b.get('moved_sku', '')),
+                    f"{b.get('cumulated_sku_pct', 0):.1f}%",
+                    f"{b.get('lines_day', 0):.1f}",
+                    f"{b.get('lines_day_pct', 0):.1f}%",
+                    f"{b.get('cumulated_lines_pct', 0):.1f}%",
+                    f"{b.get('pieces_day', 0):.1f}",
+                    f"{b.get('pieces_day_pct', 0):.1f}%",
+                    f"{b.get('cumulated_pieces_pct', 0):.1f}%",
+                ])
+            col_w_pareto = [2.1*cm, 2.0*cm, 2.2*cm, 1.8*cm, 2.5*cm, 2.3*cm, 1.8*cm, 2.3*cm]
+            pt = Table(pareto_rows, colWidths=col_w_pareto)
+            pt.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#374151')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 7),
+                ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#e5e7eb')),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ]))
+            story.append(pt)
+            story.append(Spacer(1, 0.4 * cm))
+
         story.extend(_section('Performance Charts', heading_style))
         _add_chart(story, _chart_daily(performance_data.get('daily_metrics', [])), 'Daily Activity — Lines per Day', caption_style)
         _add_chart(story, _chart_heatmap(performance_data.get('datehour_metrics', [])), 'Hourly Heatmap — Lines by Date × Hour', caption_style)

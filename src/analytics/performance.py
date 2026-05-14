@@ -88,6 +88,19 @@ class SKUFrequency:
 
 
 @dataclass
+class ParetoBandRow:
+    """One row of the Pareto concentration table (incremental band)."""
+    moved_sku: int
+    cumulated_sku_pct: float
+    lines_day: float
+    lines_day_pct: float
+    cumulated_lines_pct: float
+    pieces_day: float
+    pieces_day_pct: float
+    cumulated_pieces_pct: float
+
+
+@dataclass
 class PerformanceKPI:
     """Key performance indicators."""
     # Totals
@@ -178,6 +191,7 @@ class PerformanceAnalysisResult:
     weekday_profile: dict[int, float] = field(default_factory=dict)
     shifts_per_day: int = 2
     sku_pareto: list[SKUFrequency] = field(default_factory=list)
+    pareto_bands: list[ParetoBandRow] = field(default_factory=list)
     has_hourly_data: bool = False
     excluded_nonworking_rows: int = 0
     filtered_df: object = None  # pl.DataFrame after non-working day filter
@@ -312,6 +326,10 @@ class PerformanceAnalyzer:
         # 7. Calculate SKU Pareto
         sku_pareto = self._calculate_sku_pareto(df)
 
+        # 7b. Pareto concentration bands
+        total_days = max(len(daily), 1)
+        pareto_bands = self._calculate_pareto_bands(df, total_days)
+
         # 8. Calculate performance per shift
         shift_perf = self._calculate_shift_performance(df, date_from, date_to)
 
@@ -331,6 +349,7 @@ class PerformanceAnalyzer:
             monthly_trends=monthly_trends,
             weekday_profile=weekday_profile,
             sku_pareto=sku_pareto,
+            pareto_bands=pareto_bands,
             has_hourly_data=has_hourly_data,
             shifts_per_day=shifts_per_day,
             excluded_nonworking_rows=excluded_nonworking_rows,
@@ -688,6 +707,72 @@ class PerformanceAnalyzer:
                 cumulative_pct=round(cumulative_pct, 2),
                 abc_class=abc_class,
             ))
+
+        return results
+
+    def _calculate_pareto_bands(self, df: pl.DataFrame, total_days: int) -> list[ParetoBandRow]:
+        """Pareto concentration table — incremental bands of top-N SKUs."""
+        if "sku" not in df.columns or total_days <= 0:
+            return []
+
+        sku_df = (
+            df.group_by("sku")
+            .agg([
+                pl.len().alias("total_lines"),
+                pl.col("quantity").sum().alias("total_units"),
+            ])
+            .sort("total_lines", descending=True)
+        )
+
+        total_skus = len(sku_df)
+        if total_skus == 0:
+            return []
+
+        total_lines_all = sku_df["total_lines"].sum()
+        total_units_all = float(sku_df["total_units"].sum() or 0)
+        if total_lines_all == 0:
+            return []
+
+        total_lines_day = total_lines_all / total_days
+        total_pieces_day = total_units_all / total_days
+
+        FIXED = [
+            10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
+            200, 300, 400, 500, 600, 700, 800, 900, 1000,
+            2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000,
+            15000, 20000, 25000, 30000, 40000, 50000,
+        ]
+        breakpoints = [bp for bp in FIXED if bp < total_skus]
+        breakpoints.append(total_skus)
+
+        lines_list = sku_df["total_lines"].to_list()
+        units_list = [float(v) for v in sku_df["total_units"].to_list()]
+
+        results: list[ParetoBandRow] = []
+        prev_bp = 0
+        cumul_lines = 0
+        cumul_units = 0.0
+
+        for bp in breakpoints:
+            band_lines = sum(lines_list[prev_bp:bp])
+            band_units = sum(units_list[prev_bp:bp])
+            cumul_lines += band_lines
+            cumul_units += band_units
+
+            lines_day = band_lines / total_days
+            pieces_day = band_units / total_days
+
+            results.append(ParetoBandRow(
+                moved_sku=bp,
+                cumulated_sku_pct=round(bp / total_skus * 100, 1),
+                lines_day=round(lines_day, 1),
+                lines_day_pct=round(lines_day / total_lines_day * 100, 1) if total_lines_day else 0.0,
+                cumulated_lines_pct=round(cumul_lines / total_lines_all * 100, 1),
+                pieces_day=round(pieces_day, 1),
+                pieces_day_pct=round(pieces_day / total_pieces_day * 100, 1) if total_pieces_day else 0.0,
+                cumulated_pieces_pct=round(cumul_units / total_units_all * 100, 1) if total_units_all else 0.0,
+            ))
+            prev_bp = bp
 
         return results
 

@@ -26,6 +26,7 @@ CSV_REPORTS = {
     "DQ_Conflicts",
     "Capacity_Results",
     "SKU_Pareto",
+    "Pareto_Bands",
     "SolDimTool_DashboardInput",
 }
 
@@ -47,6 +48,10 @@ REPORT_COLUMNS: dict[str, list[str]] = {
     "SKU_Pareto": [
         "sku", "total_lines", "total_units", "total_orders",
         "frequency_rank", "cumulative_pct", "abc_class",
+    ],
+    "Pareto_Bands": [
+        "moved_sku", "cumulated_sku_pct", "lines_day", "lines_day_pct",
+        "cumulated_lines_pct", "pieces_day", "pieces_day_pct", "cumulated_pieces_pct",
     ],
     "SolDimTool_DashboardInput": ["Section", "Cell", "Metric", "Value", "Note"],
 }
@@ -310,6 +315,10 @@ async def download_csv_report(
             {**r, "cumulative_pct": f"{r['cumulative_pct']:.2f}%"}
             for r in pr.get("sku_pareto", [])
         ]
+    elif report_name == "Pareto_Bands":
+        if not pr:
+            raise HTTPException(status_code=422, detail="No performance results available.")
+        rows = pr.get("pareto_bands", [])
     elif report_name == "SolDimTool_DashboardInput":
         if not pr:
             raise HTTPException(status_code=422, detail="No performance results available.")
@@ -393,6 +402,13 @@ async def download_zip(
             zf.writestr(
                 f"{client}_SKU_Pareto.csv",
                 _rows_to_csv_bytes(pareto_rows, REPORT_COLUMNS.get("SKU_Pareto")),
+            )
+
+        # --- Pareto Bands ---
+        if pr:
+            zf.writestr(
+                f"{client}_Pareto_Bands.csv",
+                _rows_to_csv_bytes(pr.get("pareto_bands", []), REPORT_COLUMNS.get("Pareto_Bands")),
             )
 
         # --- SolDimTool Dashboard Input ---

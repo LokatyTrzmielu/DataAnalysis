@@ -207,6 +207,17 @@ export interface PerformanceSKUPareto {
   abc_class: string
 }
 
+export interface PerformanceParetoBand {
+  moved_sku: number
+  cumulated_sku_pct: number
+  lines_day: number
+  lines_day_pct: number
+  cumulated_lines_pct: number
+  pieces_day: number
+  pieces_day_pct: number
+  cumulated_pieces_pct: number
+}
+
 export interface PerformanceHourlyMetric {
   hour: number
   lines: number
@@ -238,6 +249,7 @@ export interface PerformanceResult {
   weekday_profile: PerformanceWeekdayPoint[]
   lines_per_order_dist: PerformanceLinesPerOrderBin[]
   sku_pareto: PerformanceSKUPareto[]
+  pareto_bands?: PerformanceParetoBand[]
   date_from: string
   date_to: string
   has_hourly_data: boolean

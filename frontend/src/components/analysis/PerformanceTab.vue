@@ -243,6 +243,55 @@
           >Load more ({{ filteredPareto.length - visiblePareto.length }} remaining)</button>
         </div>
       </div>
+
+      <!-- Pareto Concentration Table -->
+      <div v-if="pr.pareto_bands?.length" class="card-apple-list overflow-hidden">
+        <div class="px-4 py-3 flex flex-wrap gap-3 items-center justify-between perf-section-header">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Pareto Concentration</h4>
+            <span style="font-size:11px;color:var(--app-text-sec)">Top-N SKU contribution bands</span>
+          </div>
+          <button @click="exportParetoBandsCsv" class="btn-apple-pill" style="font-size:12px;padding:5px 10px">Export CSV</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead class="perf-thead sticky top-0">
+              <tr>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">MovedSKU</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">CumulatedSKU</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Lines/Day</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Lines%</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Cumul.Lines%</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Pieces/Day</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Pieces%</th>
+                <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Cumul.Pieces%</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in pr.pareto_bands" :key="row.moved_sku" class="perf-row">
+                <td class="px-3 py-1.5 text-right font-medium" style="color:var(--app-text)">{{ row.moved_sku.toLocaleString() }}</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.cumulated_sku_pct.toFixed(1) }}%</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.lines_day.toLocaleString() }}</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.lines_day_pct.toFixed(1) }}%</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.cumulated_lines_pct.toFixed(1) }}%</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.pieces_day.toLocaleString() }}</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.pieces_day_pct.toFixed(1) }}%</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.cumulated_pieces_pct.toFixed(1) }}%</td>
+              </tr>
+              <tr class="perf-row" style="font-weight:600;background:var(--table-header-bg)">
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text)">Total</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">100%</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ paretoBandTotals.lines_day.toLocaleString() }}</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">100%</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">100%</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ paretoBandTotals.pieces_day.toLocaleString() }}</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">100%</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -440,6 +489,31 @@ function exportParetoCsv() {
   const a = document.createElement('a')
   a.href = url
   a.download = 'sku_pareto.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const paretoBandTotals = computed(() => {
+  const bands = pr.value?.pareto_bands ?? []
+  return {
+    lines_day: Math.round(bands.reduce((s, b) => s + b.lines_day, 0)),
+    pieces_day: Math.round(bands.reduce((s, b) => s + b.pieces_day, 0)),
+  }
+})
+
+function exportParetoBandsCsv() {
+  const bands = pr.value?.pareto_bands
+  if (!bands?.length) return
+  const headers = ['moved_sku', 'cumulated_sku_pct', 'lines_day', 'lines_day_pct', 'cumulated_lines_pct', 'pieces_day', 'pieces_day_pct', 'cumulated_pieces_pct']
+  const rows = bands.map(b => [b.moved_sku, b.cumulated_sku_pct + '%', b.lines_day, b.lines_day_pct + '%', b.cumulated_lines_pct + '%', b.pieces_day, b.pieces_day_pct + '%', b.cumulated_pieces_pct + '%'])
+  const totals = paretoBandTotals.value
+  rows.push(['Total', '100%', totals.lines_day, '100%', '100%', totals.pieces_day, '100%', '100%'])
+  const csv = '﻿' + [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'pareto_bands.csv'
   a.click()
   URL.revokeObjectURL(url)
 }

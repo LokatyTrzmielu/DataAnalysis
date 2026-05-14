@@ -1016,6 +1016,19 @@ async def run_performance(
             }
             for s in perf.sku_pareto
         ],
+        "pareto_bands": [
+            {
+                "moved_sku": b.moved_sku,
+                "cumulated_sku_pct": b.cumulated_sku_pct,
+                "lines_day": b.lines_day,
+                "lines_day_pct": b.lines_day_pct,
+                "cumulated_lines_pct": b.cumulated_lines_pct,
+                "pieces_day": b.pieces_day,
+                "pieces_day_pct": b.pieces_day_pct,
+                "cumulated_pieces_pct": b.cumulated_pieces_pct,
+            }
+            for b in perf.pareto_bands
+        ],
         "date_from": str(perf.date_from),
         "date_to": str(perf.date_to),
         "has_hourly_data": perf.has_hourly_data,

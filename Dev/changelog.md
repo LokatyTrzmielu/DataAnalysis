@@ -11,6 +11,23 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-13] - Feature (main) — Pareto Concentration Table w ABC Classification
+
+- **Nowa tabela Pareto Concentration** w zakładce Performance (sekcja ABC):
+  - Pokazuje koncentrację aktywności w pasmach Top-N SKU (10, 20, ..., 100, 200, ..., total)
+  - Kolumny: MovedSKU, CumulatedSKU%, Lines/Day, Lines%, Cumul.Lines%, Pieces/Day, Pieces%, Cumul.Pieces%
+  - "Lines/Day" i "Pieces/Day" = średnia dzienna (total / liczba dni analizy)
+  - Wiersz "Total" podsumowuje całość
+  - Przycisk "Export CSV" bezpośrednio z tabeli
+  - **Backend** (`src/analytics/performance.py`): nowy dataclass `ParetoBandRow`, metoda `_calculate_pareto_bands()`, pole `pareto_bands` w `PerformanceAnalysisResult`
+  - **API** (`api/routers/runs.py`): serializacja `pareto_bands` w odpowiedzi performance
+  - **Reports CSV** (`api/routers/reports.py`): nowy typ raportu `"Pareto_Bands"`, endpoint CSV + ZIP
+  - **Reports tab** (`frontend/src/components/analysis/ReportsTab.vue`): przycisk "Pareto Bands"
+  - **PDF** (`api/pdf_generator.py`): tabela Pareto Concentration w sekcji Performance Analysis (po Per Shift, przed wykresami)
+  - **Frontend types** (`frontend/src/api/runs.ts`): interfejs `PerformanceParetoBand`, pole opcjonalne w `PerformanceResult`
+
+---
+
 ### [2026-05-12] - Fix (main) — seria 4 commitów: polskie CSV, Orders Validation, Performance
 
 - **Fix: CSV upload failure dla polskich plików (cp1250)**:

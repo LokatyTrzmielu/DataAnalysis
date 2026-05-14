@@ -84,6 +84,15 @@
         >
           {{ downloading === 'SKU_Pareto' ? 'Preparing…' : 'SKU Pareto' }}
         </button>
+        <button
+          @click="downloadCsv('Pareto_Bands')"
+          :disabled="!run.performance_result || downloading === 'Pareto_Bands'"
+          class="btn-apple-pill text-left"
+          style="justify-content:flex-start"
+          :style="(!run.performance_result || downloading === 'Pareto_Bands') ? 'opacity:0.4' : ''"
+        >
+          {{ downloading === 'Pareto_Bands' ? 'Preparing…' : 'Pareto Bands' }}
+        </button>
       </div>
       <p v-if="!run.capacity_result && !run.performance_result" class="mt-3" style="font-size:12px;color:var(--app-text-sec)">
         Run capacity or performance analysis to enable these exports.
