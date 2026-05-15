@@ -261,7 +261,7 @@
                   >{{ c.name }}</button>
                   <div
                     v-if="isCarrierDisabledInPareto(c.id)"
-                    class="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none z-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    class="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none z-50 opacity-0 group-hover:opacity-100 transition-opacity"
                     style="background:#1d1d1f;color:#fff"
                   >Not included in the current analysis scope</div>
                 </div>
@@ -289,7 +289,16 @@
           <span v-else>Threshold: <strong style="color:var(--app-text)">class A</strong> (default — click a row in Pareto Concentration to set a custom one)</span>
         </div>
         <div class="overflow-x-auto max-h-80">
-          <table class="w-full text-xs">
+          <table class="w-full text-xs" style="table-layout:fixed">
+            <colgroup>
+              <col style="width:52px" />
+              <col />
+              <col style="width:68px" />
+              <col style="width:52px" />
+              <col style="width:96px" />
+              <col style="width:108px" />
+              <col style="width:90px" />
+            </colgroup>
             <thead class="perf-thead sticky top-0">
               <tr>
                 <th class="px-3 py-2 text-left font-medium"  style="color:var(--app-text-sec)">Rank</th>
