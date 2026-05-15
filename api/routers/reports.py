@@ -47,7 +47,7 @@ REPORT_COLUMNS: dict[str, list[str]] = {
     "Capacity_Results": [],  # dynamic — derived from stored rows schema
     "SKU_Pareto": [
         "sku", "total_lines", "total_units", "total_orders",
-        "frequency_rank", "cumulative_pct", "abc_class",
+        "frequency_rank", "cumulative_pct", "abc_class", "recommendation", "fit_status",
     ],
     "Pareto_Bands": [
         "moved_sku", "cumulated_sku_pct", "lines_day", "lines_day_pct",

@@ -57,6 +57,9 @@
 | 44 | Fix: Orders Validation pusta | clean_numeric_column quantity w OrdersIngestPipeline; defensywny cast w _check_quantity_anomalies; logger.exception w runs.py | ✅ |
 | 45 | Fix: 100% Quantity Null | zastąpienie cast(Float64) przez clean_numeric_column w _check_quantity_anomalies (europejski format "1,5") | ✅ |
 | 46 | Fix: Performance 500 | pre-processing orders_df przed analyze(): syntetyczny order_id, order_date z timestamp, quantity cleaning; try/except → HTTP 422 | ✅ |
+| 47 | Feature: Rekomendacja maszynowa | kolumna Rekomendacja w SKU Pareto (A=Maszyna, B/C=Poza), klikalne wiersze Pareto Concentration → custom top-N próg, filtr Maszyna/Poza | ✅ |
+| 48 | Feature: Fit Status w SKU Pareto | kolumna FIT/BORDERLINE/NOT FIT z join capacity_result×sku_pareto; filtr; CSV export | ✅ |
+| 49 | Feature: Drag & Drop Priority nośników | priorytety per-run via drag & drop w Capacity Analysis (tryb Prioritized); backend używa pozycji w carrier_ids jako priorytetu | ✅ |
 
 ---
 

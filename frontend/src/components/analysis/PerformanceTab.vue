@@ -200,15 +200,27 @@
               A: {{ abcPct('A') }}% · B: {{ abcPct('B') }}% · C: {{ abcPct('C') }}%
             </span>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <select v-model="paretoAbcFilter" class="input-apple-sm" style="width:auto">
-              <option value="ALL">All ABC classes</option>
+              <option value="ALL">All</option>
               <option value="A">Class A</option>
               <option value="B">Class B</option>
               <option value="C">Class C</option>
+              <option value="MASZYNA">Maszyna</option>
+              <option value="POZA">Poza maszyną</option>
+              <option value="FIT">FIT</option>
+              <option value="BORDERLINE">Borderline</option>
+              <option value="NOT_FIT">NOT FIT</option>
             </select>
             <button @click="exportParetoCsv" class="btn-apple-pill" style="font-size:12px;padding:5px 10px">Export CSV</button>
           </div>
+        </div>
+        <div class="px-4 pb-2 flex items-center gap-2" style="font-size:11px;color:var(--app-text-sec)">
+          <span v-if="customTopN !== null">
+            Próg: top <strong style="color:var(--app-text)">{{ customTopN.toLocaleString() }} SKU</strong>
+            <button @click="customTopN = null; paretoVisibleCount = 50" class="ml-2 text-[#0071e3] hover:underline" style="font-size:11px">Resetuj próg</button>
+          </span>
+          <span v-else>Próg: <strong style="color:var(--app-text)">klasa A</strong> (domyślny — kliknij wiersz w Pareto Concentration, aby ustawić własny)</span>
         </div>
         <div class="overflow-x-auto max-h-80">
           <table class="w-full text-xs">
@@ -219,6 +231,8 @@
                 <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Lines</th>
                 <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">ABC</th>
                 <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Cumulative %</th>
+                <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">Rekomendacja</th>
+                <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">Fit Status</th>
               </tr>
             </thead>
             <tbody>
@@ -230,6 +244,16 @@
                   <span :class="['px-1.5 py-0.5 rounded text-xs font-medium', abcClass(row.abc_class)]">{{ row.abc_class }}</span>
                 </td>
                 <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.cumulative_pct.toFixed(1) }}%</td>
+                <td class="px-3 py-1.5 text-center">
+                  <span :class="['px-1.5 py-0.5 rounded text-xs font-medium', rowRecommendation(row) === 'Maszyna' ? 'badge-fit' : 'badge-abc-c']">
+                    {{ rowRecommendation(row) }}
+                  </span>
+                </td>
+                <td class="px-3 py-1.5 text-center">
+                  <span :class="['px-1.5 py-0.5 rounded text-xs font-medium', fitStatusClass(row.fit_status)]">
+                    {{ fitStatusLabel(row.fit_status) }}
+                  </span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -249,9 +273,12 @@
         <div class="px-4 py-3 flex flex-wrap gap-3 items-center justify-between perf-section-header">
           <div class="flex items-center gap-2 flex-wrap">
             <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Pareto Concentration</h4>
-            <span style="font-size:11px;color:var(--app-text-sec)">Top-N SKU contribution bands</span>
+            <span style="font-size:11px;color:var(--app-text-sec)">Kliknij wiersz, aby ustawić próg rekomendacji maszynowej</span>
           </div>
-          <button @click="exportParetoBandsCsv" class="btn-apple-pill" style="font-size:12px;padding:5px 10px">Export CSV</button>
+          <div class="flex items-center gap-2">
+            <button v-if="customTopN !== null" @click="customTopN = null; paretoVisibleCount = 50" class="btn-apple-pill" style="font-size:12px;padding:5px 10px;color:#0071e3">Resetuj próg</button>
+            <button @click="exportParetoBandsCsv" class="btn-apple-pill" style="font-size:12px;padding:5px 10px">Export CSV</button>
+          </div>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-xs">
@@ -268,7 +295,14 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in pr.pareto_bands" :key="row.moved_sku" class="perf-row">
+              <tr
+                v-for="row in pr.pareto_bands"
+                :key="row.moved_sku"
+                class="perf-row"
+                style="cursor:pointer"
+                :style="customTopN === row.moved_sku ? 'background:rgba(0,113,227,0.10);' : ''"
+                @click="setCustomTopN(row.moved_sku)"
+              >
                 <td class="px-3 py-1.5 text-right font-medium" style="color:var(--app-text)">{{ row.moved_sku.toLocaleString() }}</td>
                 <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.cumulated_sku_pct.toFixed(1) }}%</td>
                 <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.lines_day.toLocaleString() }}</td>
@@ -329,6 +363,7 @@ const analyzing = ref(false)
 const analysisError = ref('')
 const productiveHours = ref(7.0)
 const paretoAbcFilter = ref('ALL')
+const customTopN = ref<number | null>(null)
 
 const dailyChartEl = ref<HTMLElement>()
 const heatmapEl = ref<HTMLElement>()
@@ -347,10 +382,27 @@ function openZoom(key: string, title: string) {
 const pr = computed(() => props.run.performance_result as PerformanceResult | null)
 const ovr = computed(() => props.run.orders_validation_result as OrdersValidationResult | null)
 
+function rowRecommendation(row: { frequency_rank: number; recommendation: string }): string {
+  if (customTopN.value !== null) {
+    return row.frequency_rank <= customTopN.value ? 'Maszyna' : 'Poza maszyną'
+  }
+  return row.recommendation
+}
+
+function setCustomTopN(n: number) {
+  customTopN.value = customTopN.value === n ? null : n
+  paretoVisibleCount.value = 50
+}
+
 const filteredPareto = computed(() => {
   if (!pr.value) return []
   const rows = pr.value.sku_pareto
   if (paretoAbcFilter.value === 'ALL') return rows
+  if (paretoAbcFilter.value === 'MASZYNA') return rows.filter(r => rowRecommendation(r) === 'Maszyna')
+  if (paretoAbcFilter.value === 'POZA') return rows.filter(r => rowRecommendation(r) === 'Poza maszyną')
+  if (paretoAbcFilter.value === 'FIT') return rows.filter(r => r.fit_status === 'FIT')
+  if (paretoAbcFilter.value === 'BORDERLINE') return rows.filter(r => r.fit_status === 'BORDERLINE')
+  if (paretoAbcFilter.value === 'NOT_FIT') return rows.filter(r => r.fit_status === 'NOT_FIT')
   return rows.filter(r => r.abc_class === paretoAbcFilter.value)
 })
 
@@ -358,6 +410,7 @@ const paretoVisibleCount = ref(50)
 const visiblePareto = computed(() => filteredPareto.value.slice(0, paretoVisibleCount.value))
 
 watch(paretoAbcFilter, () => { paretoVisibleCount.value = 50 })
+watch(customTopN, () => { paretoVisibleCount.value = 50 })
 
 onMounted(() => {
   if (pr.value) renderCharts(pr.value)
@@ -467,6 +520,20 @@ function abcClass(cls: string) {
   return 'badge-abc-c'
 }
 
+function fitStatusClass(status: string | null | undefined): string {
+  if (status === 'FIT') return 'badge-fit'
+  if (status === 'BORDERLINE') return 'badge-bl'
+  if (status === 'NOT_FIT') return 'badge-nf'
+  return 'badge-abc-c'
+}
+
+function fitStatusLabel(status: string | null | undefined): string {
+  if (status === 'FIT') return 'FIT'
+  if (status === 'BORDERLINE') return 'Borderline'
+  if (status === 'NOT_FIT') return 'NOT FIT'
+  return 'N/A'
+}
+
 function abcPct(cls: string) {
   if (!pr.value?.sku_pareto?.length) return '0.0'
   const count = pr.value.sku_pareto.filter(r => r.abc_class === cls).length
@@ -475,13 +542,15 @@ function abcPct(cls: string) {
 
 function exportParetoCsv() {
   if (!pr.value?.sku_pareto?.length) return
-  const headers = ['rank', 'sku', 'lines', 'abc_class', 'cumulative_pct']
+  const headers = ['rank', 'sku', 'lines', 'abc_class', 'cumulative_pct', 'recommendation', 'fit_status']
   const rows = pr.value.sku_pareto.map(r => [
     r.frequency_rank,
     r.sku,
     r.total_lines,
     r.abc_class,
     r.cumulative_pct.toFixed(2) + '%',
+    rowRecommendation(r),
+    fitStatusLabel(r.fit_status),
   ])
   const csv = '﻿' + [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
@@ -537,6 +606,7 @@ function exportParetoBandsCsv() {
 /* ABC badge classes shared with CapacityTab */
 .badge-fit   { background: var(--badge-fit-bg); color: var(--badge-fit-color); }
 .badge-bl    { background: var(--badge-bl-bg);  color: var(--badge-bl-color); }
+.badge-nf    { background: var(--badge-nf-bg);  color: var(--badge-nf-color); }
 .badge-abc-c { background: var(--table-header-bg); color: var(--app-text-sec); }
 
 .chart-zoom-btn {

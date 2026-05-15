@@ -38,6 +38,30 @@
             v-model:modelValue="selectedCarrierIds"
             :showError="ranOnce && selectedCarrierIds.size === 0"
           />
+          <!-- Priority drag & drop — only in Prioritized mode -->
+          <div v-if="analysisMode === 'prioritized' && prioritizedOrder.length" class="mt-2">
+            <label class="block text-xs mb-1" style="color:var(--app-text-sec)">Priority order — drag to reorder</label>
+            <ul class="flex flex-col gap-1">
+              <li
+                v-for="(cid, idx) in prioritizedOrder"
+                :key="cid"
+                draggable="true"
+                @dragstart="onDragStart(idx)"
+                @dragover="onDragOver"
+                @drop="onDrop(idx)"
+                @dragend="dragIndex = null"
+                :class="['priority-row', dragIndex === idx ? 'is-dragging' : '']"
+              >
+                <span class="priority-num">{{ idx + 1 }}</span>
+                <span class="drag-handle">⠿</span>
+                <span class="priority-name">{{ carrierLabel(cid) }}</span>
+                <span class="priority-dims">{{ carrierDims(cid) }}</span>
+              </li>
+            </ul>
+          </div>
+          <p v-else-if="analysisMode === 'prioritized'" class="text-xs mt-1.5" style="color:var(--app-placeholder)">
+            Select carriers above to set priority order
+          </p>
         </div>
 
         <div>
@@ -297,6 +321,8 @@ const analysisMode = ref<'independent' | 'prioritized' | 'bestfit'>('independent
 const borderlineThreshold = ref(2.0)
 const availableCarriers = ref<Carrier[]>([])
 const selectedCarrierIds = ref(new Set<string>())
+const prioritizedOrder = ref<string[]>([])
+const dragIndex = ref<number | null>(null)
 const statusFilter = ref<'ALL' | 'FIT' | 'BORDERLINE' | 'NOT_FIT'>('ALL')
 const carrierFilter = ref('ALL')
 const abcFilter = ref<'ALL' | 'A' | 'B' | 'C' | 'NOT_IN_PARETO'>('ALL')
@@ -426,6 +452,42 @@ watch(() => theme.dark, () => {
   if (cr.value) nextTick(() => renderCharts(cr.value!))
 })
 
+watch(selectedCarrierIds, (newSet) => {
+  for (const id of newSet) {
+    if (!prioritizedOrder.value.includes(id)) prioritizedOrder.value.push(id)
+  }
+  prioritizedOrder.value = prioritizedOrder.value.filter(id => newSet.has(id))
+}, { deep: true })
+
+watch(analysisMode, (mode) => {
+  if (mode === 'prioritized' && prioritizedOrder.value.length === 0) {
+    prioritizedOrder.value = [...selectedCarrierIds.value]
+      .filter(id => availableCarriers.value.some(c => c.carrier_id === id))
+  }
+})
+
+function onDragStart(index: number) { dragIndex.value = index }
+function onDragOver(e: DragEvent) { e.preventDefault() }
+function onDrop(targetIndex: number) {
+  if (dragIndex.value === null || dragIndex.value === targetIndex) return
+  const arr = [...prioritizedOrder.value]
+  const removed = arr.splice(dragIndex.value, 1)
+  if (!removed[0]) return
+  arr.splice(targetIndex, 0, removed[0])
+  prioritizedOrder.value = arr
+  dragIndex.value = null
+}
+
+function carrierLabel(id: string) {
+  const c = availableCarriers.value.find(x => x.carrier_id === id)
+  return c?.name || id
+}
+function carrierDims(id: string) {
+  const c = availableCarriers.value.find(x => x.carrier_id === id)
+  if (!c) return ''
+  return `${c.inner_length_mm}×${c.inner_width_mm}×${c.inner_height_mm} mm · max ${c.max_weight_kg} kg`
+}
+
 onMounted(async () => {
   const { data } = await carriersApi.list()
   availableCarriers.value = data.filter(c => c.is_active)
@@ -509,7 +571,9 @@ async function runCapacity() {
       prioritization_mode: analysisMode.value === 'prioritized',
       best_fit_mode: analysisMode.value === 'bestfit',
       borderline_threshold: borderlineThreshold.value,
-      carrier_ids: [...selectedCarrierIds.value],
+      carrier_ids: analysisMode.value === 'prioritized'
+        ? [...prioritizedOrder.value]
+        : [...selectedCarrierIds.value],
     })
     emit('refreshed')
     notify.push({ type: 'success', title: 'Analysis complete' })
@@ -574,6 +638,28 @@ function exportCsv() {
 .badge-fit-text { color: var(--badge-fit-color); }
 .badge-bl-text  { color: var(--badge-bl-color); }
 .badge-nf-text  { color: var(--badge-nf-color); }
+
+/* Priority drag & drop list */
+.priority-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: grab;
+  background: var(--app-input-bg);
+  border: 1px solid var(--table-divider);
+  font-size: 12px;
+  color: var(--app-text);
+  user-select: none;
+  transition: background 0.1s, opacity 0.1s;
+}
+.priority-row:hover { background: var(--table-row-hover); }
+.priority-row.is-dragging { opacity: 0.4; cursor: grabbing; }
+.priority-num { width: 14px; font-weight: 600; color: var(--app-text-sec); flex-shrink: 0; text-align: right; }
+.drag-handle { color: var(--app-placeholder); font-size: 14px; flex-shrink: 0; }
+.priority-name { font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.priority-dims { color: var(--app-placeholder); font-size: 10px; flex-shrink: 0; }
 
 /* Expand chart button */
 .chart-zoom-btn {

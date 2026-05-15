@@ -11,6 +11,52 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-15] - Feature (feature/carrier-priority-drag-drop) — Drag & Drop Priority dla nośników w Capacity Analysis
+
+- **Priorytety per-run**: kolejność nośników w trybie Prioritized ustalana przez drag & drop w Capacity Analysis (nie w zakładce Carriers)
+- **Frontend** (`CapacityTab.vue`): lista z uchwytem drag & drop pojawia się gdy tryb = Prioritized; kolejność od góry do dołu = priorytet 1, 2, 3…; synchronizacja z CarrierMultiSelect (dodanie/usunięcie nośnika aktualizuje listę)
+- **Backend** (`api/routers/runs.py`): gdy `prioritization_mode=True` i `carrier_ids` podane, pozycja w liście = priorytet (index 0 → priority 1); fallback na DB priority gdy brak explicit carrier_ids
+- **Brak zmian w DB**: pole `priority` na modelu Carrier pozostaje jako fallback dla wywołań API
+
+---
+
+### [2026-05-15] - Feature (main) — PDF: Carrier Settings + BORDERLINE threshold
+
+- **Carrier Settings** (nowa sekcja w PDF przed Carrier Breakdown): tabela z nazwą carriера, wymiarami wewnętrznymi (L/W/H mm) i max wagą (kg); wyświetla wyłącznie carriers uczestniczące w analizie (wyklucza "NONE")
+- **BORDERLINE z progiem**: wiersz BORDERLINE w tabeli Capacity Analysis pokazuje teraz wartość progu w nawiasie, np. `BORDERLINE (2mm)`; fallback do `BORDERLINE` dla starych wyników bez tej wartości
+- **Backend** (`api/routers/runs.py`): `capacity_result` rozszerzony o `borderline_threshold_mm` i `carrier_settings` (słownik: carrier_id → name/dims/max_weight)
+- **PDF generator** (`api/pdf_generator.py`): nowa sekcja Carrier Settings z tabelą, dynamiczny label BORDERLINE
+
+---
+
+### [2026-05-15] - Feature (main) — Fit Status w SKU Pareto (join z capacity)
+
+- **Kolumna "Fit Status"** w tabeli SKU Pareto: FIT (zielony), Borderline (pomarańczowy), NOT FIT (czerwony), N/A (szary)
+- **Źródło danych**: join `capacity_result.rows` × `sku_pareto` na SKU w warstwie API; best-fit = max(FIT > BORDERLINE > NOT_FIT) across all carriers
+- **Filtr**: dropdown rozszerzony o opcje FIT / Borderline / NOT FIT
+- **Export CSV**: kolumna `fit_status` w eksporcie z przycisku i w ZIP Reports
+- **Backend** (`api/routers/runs.py`): budowanie `_sku_fit_map` przed serializacją; pole `fit_status` w każdym wierszu `sku_pareto`; działa gdy capacity nie była uruchomiona (fit_status = null)
+- **Reports** (`api/routers/reports.py`): `fit_status` dodane do `REPORT_COLUMNS["SKU_Pareto"]`
+- **Frontend types** (`frontend/src/api/runs.ts`): pole `fit_status: string | null` w `PerformanceSKUPareto`
+- **Frontend UI** (`frontend/src/components/analysis/PerformanceTab.vue`): `fitStatusClass()`, `fitStatusLabel()`, kolumna tabeli, filtr, CSS `.badge-nf`
+
+---
+
+### [2026-05-15] - Feature (main) — Rekomendacja maszynowa w SKU Pareto
+
+- **Kolumna "Rekomendacja"** w tabeli SKU Pareto: domyślnie klasa A = "Maszyna", B/C = "Poza maszyną"
+- **Klikalne wiersze w Pareto Concentration**: kliknięcie ustawia własny próg top-N (np. top 200 SKU); wiersz podświetlony; kliknięcie ponownie = reset do ABC
+- **Baner informacyjny** nad tabelą SKU Pareto: informuje o aktywnym progu (klasa A domyślny lub top-N custom)
+- **Filtr rozszerzony** w dropdownie: dodano opcje "Maszyna" i "Poza maszyną" (filtrują wg aktywnego progu)
+- **Export CSV** SKU Pareto zawiera kolumnę `recommendation`; Reports ZIP też (automatycznie przez dict keys)
+- **Backend** (`src/analytics/performance.py`): pole `recommendation` w dataclass `SKUFrequency`; przypisanie w `_calculate_sku_pareto()`
+- **API** (`api/routers/runs.py`): serializacja `recommendation` w `sku_pareto`
+- **Reports** (`api/routers/reports.py`): `recommendation` dodane do `REPORT_COLUMNS["SKU_Pareto"]`
+- **Frontend types** (`frontend/src/api/runs.ts`): pole `recommendation: string` w `PerformanceSKUPareto`
+- **Frontend UI** (`frontend/src/components/analysis/PerformanceTab.vue`): `customTopN` ref, `rowRecommendation()`, `setCustomTopN()`, baner, kolumna, klikalne wiersze
+
+---
+
 ### [2026-05-13] - Feature (main) — Pareto Concentration Table w ABC Classification
 
 - **Nowa tabela Pareto Concentration** w zakładce Performance (sekcja ABC):

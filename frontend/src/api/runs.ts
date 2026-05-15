@@ -205,6 +205,8 @@ export interface PerformanceSKUPareto {
   frequency_rank: number
   cumulative_pct: number
   abc_class: string
+  recommendation: string
+  fit_status: string | null
 }
 
 export interface PerformanceParetoBand {

@@ -442,25 +442,45 @@ async def run_capacity(
 
             df = ingest_result.df
 
+        ordered_ids = [cid.strip() for cid in carrier_ids.split(",") if cid.strip()]
+
         carrier_query = select(CarrierModel).where(CarrierModel.is_active == True)
-        if carrier_ids.strip():
-            requested = {cid.strip() for cid in carrier_ids.split(",") if cid.strip()}
-            carrier_query = carrier_query.where(CarrierModel.carrier_id.in_(requested))
-        db_carriers = (await db.execute(carrier_query)).scalars().all()
-        carriers = [
-            CarrierConfig(
-                carrier_id=c.carrier_id,
-                name=c.name,
-                inner_length_mm=c.inner_length_mm,
-                inner_width_mm=c.inner_width_mm,
-                inner_height_mm=c.inner_height_mm,
-                max_weight_kg=c.max_weight_kg,
-                is_active=c.is_active,
-                is_predefined=c.is_predefined,
-                priority=c.priority,
-            )
-            for c in db_carriers
-        ]
+        if ordered_ids:
+            carrier_query = carrier_query.where(CarrierModel.carrier_id.in_(ordered_ids))
+        db_carriers_list = (await db.execute(carrier_query)).scalars().all()
+
+        if prioritization_mode and ordered_ids:
+            db_map = {c.carrier_id: c for c in db_carriers_list}
+            carriers = []
+            for idx, cid in enumerate(ordered_ids):
+                if cid in db_map:
+                    c = db_map[cid]
+                    carriers.append(CarrierConfig(
+                        carrier_id=c.carrier_id,
+                        name=c.name,
+                        inner_length_mm=c.inner_length_mm,
+                        inner_width_mm=c.inner_width_mm,
+                        inner_height_mm=c.inner_height_mm,
+                        max_weight_kg=c.max_weight_kg,
+                        is_active=c.is_active,
+                        is_predefined=c.is_predefined,
+                        priority=idx + 1,
+                    ))
+        else:
+            carriers = [
+                CarrierConfig(
+                    carrier_id=c.carrier_id,
+                    name=c.name,
+                    inner_length_mm=c.inner_length_mm,
+                    inner_width_mm=c.inner_width_mm,
+                    inner_height_mm=c.inner_height_mm,
+                    max_weight_kg=c.max_weight_kg,
+                    is_active=c.is_active,
+                    is_predefined=c.is_predefined,
+                    priority=c.priority,
+                )
+                for c in db_carriers_list
+            ]
         analyzer = CapacityAnalyzer(carriers, borderline_threshold_mm=borderline_threshold)
         result = analyzer.analyze_dataframe(
             df,
@@ -480,6 +500,17 @@ async def run_capacity(
             "avg_height_mm": result.avg_height_mm,
             "avg_weight_kg": result.avg_weight_kg,
             "carriers_analyzed": result.carriers_analyzed,
+            "borderline_threshold_mm": borderline_threshold,
+            "carrier_settings": {
+                c.carrier_id: {
+                    "name": c.name,
+                    "inner_length_mm": c.inner_length_mm,
+                    "inner_width_mm": c.inner_width_mm,
+                    "inner_height_mm": c.inner_height_mm,
+                    "max_weight_kg": c.max_weight_kg,
+                }
+                for c in carriers
+            },
             "carrier_stats": {
                 cid: asdict(cs) for cid, cs in result.carrier_stats.items()
             },
@@ -944,6 +975,17 @@ async def run_performance(
 
     _dow_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
+    # Build SKU → best fit_status from capacity result (FIT > BORDERLINE > NOT_FIT)
+    _fit_priority = {"FIT": 3, "BORDERLINE": 2, "NOT_FIT": 1}
+    _sku_fit_map: dict[str, str] = {}
+    if run.capacity_result and "rows" in run.capacity_result:
+        for _r in run.capacity_result["rows"]:
+            _sku = _r.get("sku")
+            _status = _r.get("fit_status")
+            if _sku and _status:
+                if _sku not in _sku_fit_map or _fit_priority.get(_status, 0) > _fit_priority.get(_sku_fit_map[_sku], 0):
+                    _sku_fit_map[_sku] = _status
+
     run.performance_result = {
         "kpi": {
             "total_lines": perf.kpi.total_lines,
@@ -1013,6 +1055,8 @@ async def run_performance(
                 "frequency_rank": s.frequency_rank,
                 "cumulative_pct": s.cumulative_pct,
                 "abc_class": s.abc_class,
+                "recommendation": s.recommendation,
+                "fit_status": _sku_fit_map.get(s.sku),
             }
             for s in perf.sku_pareto
         ],

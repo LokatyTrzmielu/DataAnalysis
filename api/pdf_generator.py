@@ -351,12 +351,15 @@ def generate_capacity_pdf(
     avg_h = capacity_data.get('avg_height_mm', 0) or 0
     avg_wt = capacity_data.get('avg_weight_kg', 0) or 0
 
+    borderline_mm = capacity_data.get('borderline_threshold_mm')
+    brd_label = f"BORDERLINE ({borderline_mm:g}mm)" if borderline_mm is not None else "BORDERLINE"
+
     kpi_data = [
         ['Metric', 'Value'],
         ['Total SKU', str(capacity_data.get('total_sku', '-'))],
         ['Fit %', f"{capacity_data.get('fit_percentage', 0):.1f}%"],
         ['FIT', str(capacity_data.get('fit_count', '-'))],
-        ['BORDERLINE', str(capacity_data.get('borderline_count', '-'))],
+        [brd_label, str(capacity_data.get('borderline_count', '-'))],
         ['NOT FIT', str(capacity_data.get('not_fit_count', '-'))],
         ['Avg Length (mm)', f"{avg_l:.1f}"],
         ['Avg Width (mm)', f"{avg_w:.1f}"],
@@ -376,8 +379,41 @@ def generate_capacity_pdf(
     story.append(kpi_table)
     story.append(Spacer(1, 0.5 * cm))
 
-    # ── Carrier Breakdown table ──────────────────────────────────────────────
+    # ── Carrier Settings table ───────────────────────────────────────────────
+    carrier_settings: dict[str, Any] = capacity_data.get('carrier_settings', {})
     carrier_stats: dict[str, Any] = capacity_data.get('carrier_stats', {})
+    active_carrier_ids = [cid for cid in carrier_stats if cid != 'NONE']
+    if carrier_settings and active_carrier_ids:
+        story.append(Paragraph('Carrier Settings', subheading_style))
+        cs_header = ['Carrier', 'Length (mm)', 'Width (mm)', 'Height (mm)', 'Max Weight (kg)']
+        cs_rows = [cs_header]
+        for cid in active_carrier_ids:
+            if cid in carrier_settings:
+                cfg = carrier_settings[cid]
+                cs_rows.append([
+                    cfg.get('name', cid),
+                    f"{cfg.get('inner_length_mm', 0):.0f}",
+                    f"{cfg.get('inner_width_mm', 0):.0f}",
+                    f"{cfg.get('inner_height_mm', 0):.0f}",
+                    f"{cfg.get('max_weight_kg', 0):.1f}",
+                ])
+        col_widths_cs = [4.5 * cm, 2.8 * cm, 2.8 * cm, 2.8 * cm, 3.1 * cm]
+        cs_table = Table(cs_rows, colWidths=col_widths_cs)
+        cs_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#374151')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+            ('PADDING', (0, 0), (-1, -1), 5),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+        ]))
+        story.append(cs_table)
+        story.append(Spacer(1, 0.5 * cm))
+
+    # ── Carrier Breakdown table ──────────────────────────────────────────────
     if carrier_stats:
         story.append(Paragraph('Carrier Breakdown', subheading_style))
         header = ['Carrier', 'Fit %', 'FIT', 'BRDLN', 'NOT FIT', 'Locations', 'Avg Fill', 'Total Vol (m³)', 'Stock Vol (m³)']
