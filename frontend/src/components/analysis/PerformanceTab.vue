@@ -254,29 +254,34 @@
                 >All carriers</button>
                 <div v-for="c in availableCarriers" :key="c.id" class="relative group">
                   <button
-                    @click="!isCarrierDisabledInPareto(c.id) && (paretoCarrierFilter = c.id, paretoCarrierDropdownOpen = false)"
+                    @click="!isCarrierDisabledInPareto(c.id) && !carrierHasNoData(c.id) && (paretoCarrierFilter = c.id, paretoCarrierDropdownOpen = false)"
                     class="w-full text-left px-3 py-1.5 text-xs"
-                    :class="isCarrierDisabledInPareto(c.id) ? 'cursor-not-allowed' : 'hover:bg-black/5'"
-                    :style="isCarrierDisabledInPareto(c.id) ? 'color:var(--app-placeholder)' : (paretoCarrierFilter === c.id ? 'color:#0071e3;font-weight:600' : 'color:var(--app-text)')"
+                    :class="(isCarrierDisabledInPareto(c.id) || carrierHasNoData(c.id)) ? 'cursor-not-allowed' : 'hover:bg-black/5'"
+                    :style="(isCarrierDisabledInPareto(c.id) || carrierHasNoData(c.id)) ? 'color:var(--app-placeholder)' : (paretoCarrierFilter === c.id ? 'color:#0071e3;font-weight:600' : 'color:var(--app-text)')"
                   >{{ c.name }}</button>
                   <div
                     v-if="isCarrierDisabledInPareto(c.id)"
                     class="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none z-50 opacity-0 group-hover:opacity-100 transition-opacity"
                     style="background:#1d1d1f;color:#fff"
                   >Not included in the current analysis scope</div>
+                  <div
+                    v-else-if="carrierHasNoData(c.id)"
+                    class="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none z-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style="background:#1d1d1f;color:#fff"
+                  >No data for this carrier</div>
                 </div>
               </div>
             </div>
             <select v-model="paretoAbcFilter" class="input-apple-sm" style="width:auto">
               <option value="ALL">All</option>
-              <option value="A">Class A</option>
-              <option value="B">Class B</option>
-              <option value="C">Class C</option>
-              <option value="MASZYNA">Machine</option>
-              <option value="POZA">Non-machine</option>
-              <option value="FIT">FIT</option>
-              <option value="BORDERLINE">Borderline</option>
-              <option value="NOT_FIT">NOT FIT</option>
+              <option value="A"          :disabled="!abcFilterHasData.A">Class A</option>
+              <option value="B"          :disabled="!abcFilterHasData.B">Class B</option>
+              <option value="C"          :disabled="!abcFilterHasData.C">Class C</option>
+              <option value="MASZYNA"    :disabled="!abcFilterHasData.MASZYNA">Machine</option>
+              <option value="POZA"       :disabled="!abcFilterHasData.POZA">Non-machine</option>
+              <option value="FIT"        :disabled="!abcFilterHasData.FIT">FIT</option>
+              <option value="BORDERLINE" :disabled="!abcFilterHasData.BORDERLINE">Borderline</option>
+              <option value="NOT_FIT"    :disabled="!abcFilterHasData.NOT_FIT">NOT FIT</option>
             </select>
             <button @click="exportParetoCsv" class="btn-apple-pill" style="font-size:12px;padding:5px 10px">Export CSV</button>
           </div>
@@ -515,6 +520,25 @@ function rowRecommendation(row: { frequency_rank: number; recommendation: string
   return row.recommendation
 }
 
+function carrierHasNoData(carrierId: string): boolean {
+  if (!pr.value) return true
+  return !pr.value.sku_pareto.some(r => skuCarrierFitMap.value.get(r.sku)?.has(carrierId))
+}
+
+const abcFilterHasData = computed(() => {
+  const rows = carrierFilteredSkus.value
+  return {
+    A: rows.some(r => r.abc_class === 'A'),
+    B: rows.some(r => r.abc_class === 'B'),
+    C: rows.some(r => r.abc_class === 'C'),
+    MASZYNA: rows.some(r => rowRecommendation(r) === 'Machine'),
+    POZA: rows.some(r => rowRecommendation(r) === 'Non-machine'),
+    FIT: rows.some(r => r.fit_status === 'FIT'),
+    BORDERLINE: rows.some(r => r.fit_status === 'BORDERLINE'),
+    NOT_FIT: rows.some(r => r.fit_status === 'NOT_FIT'),
+  }
+})
+
 function setCustomTopN(n: number) {
   customTopN.value = customTopN.value === n ? null : n
   paretoVisibleCount.value = 50
@@ -538,10 +562,18 @@ watch(paretoAbcFilter, () => { paretoVisibleCount.value = 50 })
 watch(paretoCarrierFilter, () => { paretoVisibleCount.value = 50 })
 watch(customTopN, () => { paretoVisibleCount.value = 50 })
 
-// Reset pareto carrier filter if the selected carrier becomes disabled by analysis scope change
+// Reset pareto carrier filter if the selected carrier becomes disabled by analysis scope change or has no data
 watch([analysisScope, analysisCarrierIds], () => {
   if (paretoCarrierFilter.value !== 'ALL' && isCarrierDisabledInPareto(paretoCarrierFilter.value)) {
     paretoCarrierFilter.value = 'ALL'
+  }
+})
+
+// Reset ABC filter if selected option has no data (e.g. after carrier filter changes)
+watch(abcFilterHasData, (hasData) => {
+  const key = paretoAbcFilter.value as keyof typeof hasData
+  if (paretoAbcFilter.value !== 'ALL' && !hasData[key]) {
+    paretoAbcFilter.value = 'ALL'
   }
 })
 
