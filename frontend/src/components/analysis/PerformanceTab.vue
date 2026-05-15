@@ -233,10 +233,40 @@
             </span>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <select v-if="availableCarriers.length" v-model="paretoCarrierFilter" class="input-apple-sm" style="width:auto">
-              <option value="ALL">All carriers</option>
-              <option v-for="c in availableCarriers" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </select>
+            <!-- Custom carrier dropdown with disabled states and tooltips -->
+            <div v-if="availableCarriers.length" class="relative">
+              <button
+                @click="paretoCarrierDropdownOpen = !paretoCarrierDropdownOpen"
+                class="input-apple-sm flex items-center gap-1.5"
+                style="width:auto"
+              >
+                <span>{{ paretoCarrierFilter === 'ALL' ? 'All carriers' : (availableCarriers.find(c => c.id === paretoCarrierFilter)?.name ?? paretoCarrierFilter) }}</span>
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </button>
+              <!-- Backdrop -->
+              <div v-if="paretoCarrierDropdownOpen" class="fixed inset-0 z-40" @click="paretoCarrierDropdownOpen = false" />
+              <!-- Dropdown panel -->
+              <div v-if="paretoCarrierDropdownOpen" class="absolute top-full left-0 mt-1 z-50 py-1 rounded-lg shadow-lg min-w-max" style="background:var(--card-bg,#fff);border:1px solid var(--border-color,rgba(0,0,0,0.12))">
+                <button
+                  @click="paretoCarrierFilter = 'ALL'; paretoCarrierDropdownOpen = false"
+                  class="w-full text-left px-3 py-1.5 text-xs hover:bg-black/5"
+                  :style="paretoCarrierFilter === 'ALL' ? 'color:#0071e3;font-weight:600' : 'color:var(--app-text)'"
+                >All carriers</button>
+                <div v-for="c in availableCarriers" :key="c.id" class="relative group">
+                  <button
+                    @click="!isCarrierDisabledInPareto(c.id) && (paretoCarrierFilter = c.id, paretoCarrierDropdownOpen = false)"
+                    class="w-full text-left px-3 py-1.5 text-xs"
+                    :class="isCarrierDisabledInPareto(c.id) ? 'cursor-not-allowed' : 'hover:bg-black/5'"
+                    :style="isCarrierDisabledInPareto(c.id) ? 'color:var(--app-placeholder)' : (paretoCarrierFilter === c.id ? 'color:#0071e3;font-weight:600' : 'color:var(--app-text)')"
+                  >{{ c.name }}</button>
+                  <div
+                    v-if="isCarrierDisabledInPareto(c.id)"
+                    class="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none z-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style="background:#1d1d1f;color:#fff"
+                  >Not included in the current analysis scope</div>
+                </div>
+              </div>
+            </div>
             <select v-model="paretoAbcFilter" class="input-apple-sm" style="width:auto">
               <option value="ALL">All</option>
               <option value="A">Class A</option>
@@ -404,6 +434,7 @@ const analysisError = ref('')
 const productiveHours = ref(7.0)
 const paretoAbcFilter = ref('ALL')
 const paretoCarrierFilter = ref<string>('ALL')
+const paretoCarrierDropdownOpen = ref(false)
 const customTopN = ref<number | null>(null)
 
 const analysisScope = ref<'all' | 'carriers'>('all')
@@ -415,6 +446,10 @@ function toggleAnalysisCarrier(id: string, checked: boolean) {
   const next = new Set(analysisCarrierIds.value)
   checked ? next.add(id) : next.delete(id)
   analysisCarrierIds.value = next
+}
+
+function isCarrierDisabledInPareto(carrierId: string): boolean {
+  return analysisScope.value === 'carriers' && !analysisCarrierIds.value.has(carrierId)
 }
 
 const dailyChartEl = ref<HTMLElement>()
@@ -493,6 +528,13 @@ const visiblePareto = computed(() => filteredPareto.value.slice(0, paretoVisible
 watch(paretoAbcFilter, () => { paretoVisibleCount.value = 50 })
 watch(paretoCarrierFilter, () => { paretoVisibleCount.value = 50 })
 watch(customTopN, () => { paretoVisibleCount.value = 50 })
+
+// Reset pareto carrier filter if the selected carrier becomes disabled by analysis scope change
+watch([analysisScope, analysisCarrierIds], () => {
+  if (paretoCarrierFilter.value !== 'ALL' && isCarrierDisabledInPareto(paretoCarrierFilter.value)) {
+    paretoCarrierFilter.value = 'ALL'
+  }
+})
 
 onMounted(() => {
   if (pr.value) renderCharts(pr.value)
