@@ -354,9 +354,10 @@ export const runsApi = {
     })
   },
 
-  runPerformance: (id: string, productiveHours: number) => {
+  runPerformance: (id: string, productiveHours: number, carrierIds: string[] = []) => {
     const fd = new FormData()
     fd.append('productive_hours', String(productiveHours))
+    if (carrierIds.length > 0) fd.append('carrier_filter', carrierIds.join(','))
     return client.post<RunDetail>(`/runs/${id}/performance`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })

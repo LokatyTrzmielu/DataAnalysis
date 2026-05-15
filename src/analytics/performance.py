@@ -85,7 +85,7 @@ class SKUFrequency:
     frequency_rank: int
     cumulative_pct: float
     abc_class: str  # "A", "B", or "C"
-    recommendation: str  # "Maszyna" or "Poza maszyną"
+    recommendation: str  # "Machine" or "Non-machine"
 
 
 @dataclass
@@ -707,7 +707,7 @@ class PerformanceAnalyzer:
                 frequency_rank=rank,
                 cumulative_pct=round(cumulative_pct, 2),
                 abc_class=abc_class,
-                recommendation="Maszyna" if abc_class == "A" else "Poza maszyną",
+                recommendation="Machine" if abc_class == "A" else "Non-machine",
             ))
 
         return results

@@ -894,6 +894,7 @@ async def ingest_orders(
 async def run_performance(
     run_id: str,
     productive_hours: float = Form(default=7.0),
+    carrier_filter: str = Form(default=""),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResponse:
@@ -950,6 +951,31 @@ async def run_performance(
         )
     else:
         orders_df = orders_df.with_columns(_pl.lit(1.0).alias("quantity"))
+
+    # Carrier-scoped data filter
+    _selected_carriers = [c.strip() for c in carrier_filter.split(",") if c.strip()]
+    if _selected_carriers:
+        _allowed_skus: set[str] = set()
+        if run.capacity_result and "rows" in run.capacity_result:
+            for _row in run.capacity_result["rows"]:
+                if (
+                    _row.get("carrier_id") in _selected_carriers
+                    and _row.get("fit_status") in ("FIT", "BORDERLINE")
+                ):
+                    if _sku := _row.get("sku"):
+                        _allowed_skus.add(_sku)
+        if not _allowed_skus:
+            raise HTTPException(
+                status_code=422,
+                detail="No SKUs match the selected carrier(s) with FIT or BORDERLINE status. "
+                       "Run Capacity Analysis first or select different carriers.",
+            )
+        orders_df = orders_df.filter(_pl.col("sku").is_in(list(_allowed_skus)))
+        if orders_df.is_empty():
+            raise HTTPException(
+                status_code=422,
+                detail="After filtering to the selected carrier(s), no order lines remain.",
+            )
 
     analyzer = PerformanceAnalyzer(productive_hours_per_shift=productive_hours)
     try:

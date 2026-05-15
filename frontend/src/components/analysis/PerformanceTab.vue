@@ -17,8 +17,40 @@
           class="w-full accent-[#0071e3]"
         />
       </div>
+      <!-- Data scope — visible only when capacity_result has carriers -->
+      <div v-if="availableCarriers.length" class="mb-4">
+        <label class="block text-xs mb-1" style="color:var(--app-text-sec)">Data scope</label>
+        <div class="flex gap-3 text-xs mb-2">
+          <label class="flex items-center gap-1" style="color:var(--app-text-sec)">
+            <input v-model="analysisScope" type="radio" value="all" /> Entire file
+          </label>
+          <label class="flex items-center gap-1" style="color:var(--app-text-sec)">
+            <input v-model="analysisScope" type="radio" value="carriers" /> By carrier
+          </label>
+        </div>
+        <div v-if="analysisScope === 'carriers'" class="flex flex-col gap-1 ml-1">
+          <label
+            v-for="c in availableCarriers"
+            :key="c.id"
+            class="flex items-center gap-2 text-xs"
+            style="color:var(--app-text-sec)"
+          >
+            <input
+              type="checkbox"
+              :checked="analysisCarrierIds.has(c.id)"
+              @change="(e) => toggleAnalysisCarrier(c.id, (e.target as HTMLInputElement).checked)"
+              class="accent-[#0071e3]"
+            />
+            {{ c.name }}
+          </label>
+          <p v-if="analysisCarrierIds.size === 0" class="text-xs mt-1" style="color:#ff3b30">
+            Select at least one carrier
+          </p>
+        </div>
+      </div>
+
       <p v-if="analysisError" class="text-red-600 text-sm mb-2">{{ analysisError }}</p>
-      <button @click="doRunAnalysis" :disabled="analyzing" class="btn-apple-primary">
+      <button @click="doRunAnalysis" :disabled="analyzing || !canRunAnalysis" class="btn-apple-primary">
         {{ analyzing ? 'Analyzing…' : 'Run performance analysis →' }}
       </button>
     </div>
@@ -202,7 +234,7 @@
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <select v-if="availableCarriers.length" v-model="paretoCarrierFilter" class="input-apple-sm" style="width:auto">
-              <option value="ALL">Wszystkie nośniki</option>
+              <option value="ALL">All carriers</option>
               <option v-for="c in availableCarriers" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
             <select v-model="paretoAbcFilter" class="input-apple-sm" style="width:auto">
@@ -210,8 +242,8 @@
               <option value="A">Class A</option>
               <option value="B">Class B</option>
               <option value="C">Class C</option>
-              <option value="MASZYNA">Maszyna</option>
-              <option value="POZA">Poza maszyną</option>
+              <option value="MASZYNA">Machine</option>
+              <option value="POZA">Non-machine</option>
               <option value="FIT">FIT</option>
               <option value="BORDERLINE">Borderline</option>
               <option value="NOT_FIT">NOT FIT</option>
@@ -221,10 +253,10 @@
         </div>
         <div class="px-4 pb-2 flex items-center gap-2" style="font-size:11px;color:var(--app-text-sec)">
           <span v-if="customTopN !== null">
-            Próg: top <strong style="color:var(--app-text)">{{ customTopN.toLocaleString() }} SKU</strong>
-            <button @click="customTopN = null; paretoVisibleCount = 50" class="ml-2 text-[#0071e3] hover:underline" style="font-size:11px">Resetuj próg</button>
+            Threshold: top <strong style="color:var(--app-text)">{{ customTopN.toLocaleString() }} SKUs</strong>
+            <button @click="customTopN = null; paretoVisibleCount = 50" class="ml-2 text-[#0071e3] hover:underline" style="font-size:11px">Reset threshold</button>
           </span>
-          <span v-else>Próg: <strong style="color:var(--app-text)">klasa A</strong> (domyślny — kliknij wiersz w Pareto Concentration, aby ustawić własny)</span>
+          <span v-else>Threshold: <strong style="color:var(--app-text)">class A</strong> (default — click a row in Pareto Concentration to set a custom one)</span>
         </div>
         <div class="overflow-x-auto max-h-80">
           <table class="w-full text-xs">
@@ -235,7 +267,7 @@
                 <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Lines</th>
                 <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">ABC</th>
                 <th class="px-3 py-2 text-right font-medium" style="color:var(--app-text-sec)">Cumulative %</th>
-                <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">Rekomendacja</th>
+                <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">Recommendation</th>
                 <th class="px-3 py-2 text-center font-medium" style="color:var(--app-text-sec)">Fit Status</th>
               </tr>
             </thead>
@@ -249,7 +281,7 @@
                 </td>
                 <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ row.cumulative_pct.toFixed(1) }}%</td>
                 <td class="px-3 py-1.5 text-center">
-                  <span :class="['px-1.5 py-0.5 rounded text-xs font-medium', rowRecommendation(row) === 'Maszyna' ? 'badge-fit' : 'badge-abc-c']">
+                  <span :class="['px-1.5 py-0.5 rounded text-xs font-medium', rowRecommendation(row) === 'Machine' ? 'badge-fit' : 'badge-abc-c']">
                     {{ rowRecommendation(row) }}
                   </span>
                 </td>
@@ -278,13 +310,13 @@
           <div class="flex items-center gap-2 flex-wrap">
             <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Pareto Concentration</h4>
             <span v-if="paretoCarrierFilter !== 'ALL'" style="font-size:11px;color:var(--app-text-sec)">
-              Nośnik: <strong style="color:var(--app-text)">{{ availableCarriers.find(c => c.id === paretoCarrierFilter)?.name ?? paretoCarrierFilter }}</strong>
-              · {{ carrierFilteredSkus.length.toLocaleString() }} SKU
+              Carrier: <strong style="color:var(--app-text)">{{ availableCarriers.find(c => c.id === paretoCarrierFilter)?.name ?? paretoCarrierFilter }}</strong>
+              · {{ carrierFilteredSkus.length.toLocaleString() }} SKUs
             </span>
-            <span v-else style="font-size:11px;color:var(--app-text-sec)">Kliknij wiersz, aby ustawić próg rekomendacji maszynowej</span>
+            <span v-else style="font-size:11px;color:var(--app-text-sec)">Click a row to set the machine recommendation threshold</span>
           </div>
           <div class="flex items-center gap-2">
-            <button v-if="customTopN !== null" @click="customTopN = null; paretoVisibleCount = 50" class="btn-apple-pill" style="font-size:12px;padding:5px 10px;color:#0071e3">Resetuj próg</button>
+            <button v-if="customTopN !== null" @click="customTopN = null; paretoVisibleCount = 50" class="btn-apple-pill" style="font-size:12px;padding:5px 10px;color:#0071e3">Reset threshold</button>
             <button @click="exportParetoBandsCsv" class="btn-apple-pill" style="font-size:12px;padding:5px 10px">Export CSV</button>
           </div>
         </div>
@@ -374,6 +406,17 @@ const paretoAbcFilter = ref('ALL')
 const paretoCarrierFilter = ref<string>('ALL')
 const customTopN = ref<number | null>(null)
 
+const analysisScope = ref<'all' | 'carriers'>('all')
+const analysisCarrierIds = ref<Set<string>>(new Set())
+const canRunAnalysis = computed(() =>
+  analysisScope.value === 'all' || analysisCarrierIds.value.size > 0
+)
+function toggleAnalysisCarrier(id: string, checked: boolean) {
+  const next = new Set(analysisCarrierIds.value)
+  checked ? next.add(id) : next.delete(id)
+  analysisCarrierIds.value = next
+}
+
 const dailyChartEl = ref<HTMLElement>()
 const heatmapEl = ref<HTMLElement>()
 const hourlyThroughputEl = ref<HTMLElement>()
@@ -423,7 +466,7 @@ const carrierFilteredSkus = computed(() => {
 
 function rowRecommendation(row: { frequency_rank: number; recommendation: string }): string {
   if (customTopN.value !== null) {
-    return row.frequency_rank <= customTopN.value ? 'Maszyna' : 'Poza maszyną'
+    return row.frequency_rank <= customTopN.value ? 'Machine' : 'Non-machine'
   }
   return row.recommendation
 }
@@ -436,8 +479,8 @@ function setCustomTopN(n: number) {
 const filteredPareto = computed(() => {
   const rows = carrierFilteredSkus.value
   if (paretoAbcFilter.value === 'ALL') return rows
-  if (paretoAbcFilter.value === 'MASZYNA') return rows.filter(r => rowRecommendation(r) === 'Maszyna')
-  if (paretoAbcFilter.value === 'POZA') return rows.filter(r => rowRecommendation(r) === 'Poza maszyną')
+  if (paretoAbcFilter.value === 'MASZYNA') return rows.filter(r => rowRecommendation(r) === 'Machine')
+  if (paretoAbcFilter.value === 'POZA') return rows.filter(r => rowRecommendation(r) === 'Non-machine')
   if (paretoAbcFilter.value === 'FIT') return rows.filter(r => r.fit_status === 'FIT')
   if (paretoAbcFilter.value === 'BORDERLINE') return rows.filter(r => r.fit_status === 'BORDERLINE')
   if (paretoAbcFilter.value === 'NOT_FIT') return rows.filter(r => r.fit_status === 'NOT_FIT')
@@ -468,7 +511,10 @@ async function doRunAnalysis() {
   analysis.start()
   analysisError.value = ''
   try {
-    await runsApi.runPerformance(props.run.id, productiveHours.value)
+    const carrierIds = analysisScope.value === 'carriers'
+      ? [...analysisCarrierIds.value]
+      : []
+    await runsApi.runPerformance(props.run.id, productiveHours.value, carrierIds)
     emit('refreshed')
     notify.push({ type: 'success', title: 'Analysis complete' })
   } catch (e: unknown) {
