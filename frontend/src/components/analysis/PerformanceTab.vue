@@ -201,6 +201,10 @@
             </span>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
+            <select v-if="availableCarriers.length" v-model="paretoCarrierFilter" class="input-apple-sm" style="width:auto">
+              <option value="ALL">Wszystkie nośniki</option>
+              <option v-for="c in availableCarriers" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
             <select v-model="paretoAbcFilter" class="input-apple-sm" style="width:auto">
               <option value="ALL">All</option>
               <option value="A">Class A</option>
@@ -269,11 +273,15 @@
       </div>
 
       <!-- Pareto Concentration Table -->
-      <div v-if="pr.pareto_bands?.length" class="card-apple-list overflow-hidden">
+      <div v-if="activeParetoaBands.length" class="card-apple-list overflow-hidden">
         <div class="px-4 py-3 flex flex-wrap gap-3 items-center justify-between perf-section-header">
           <div class="flex items-center gap-2 flex-wrap">
             <h4 style="font-size:12px;font-weight:600;color:var(--app-text);letter-spacing:-0.12px">Pareto Concentration</h4>
-            <span style="font-size:11px;color:var(--app-text-sec)">Kliknij wiersz, aby ustawić próg rekomendacji maszynowej</span>
+            <span v-if="paretoCarrierFilter !== 'ALL'" style="font-size:11px;color:var(--app-text-sec)">
+              Nośnik: <strong style="color:var(--app-text)">{{ availableCarriers.find(c => c.id === paretoCarrierFilter)?.name ?? paretoCarrierFilter }}</strong>
+              · {{ carrierFilteredSkus.length.toLocaleString() }} SKU
+            </span>
+            <span v-else style="font-size:11px;color:var(--app-text-sec)">Kliknij wiersz, aby ustawić próg rekomendacji maszynowej</span>
           </div>
           <div class="flex items-center gap-2">
             <button v-if="customTopN !== null" @click="customTopN = null; paretoVisibleCount = 50" class="btn-apple-pill" style="font-size:12px;padding:5px 10px;color:#0071e3">Resetuj próg</button>
@@ -296,7 +304,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="row in pr.pareto_bands"
+                v-for="row in activeParetoaBands"
                 :key="row.moved_sku"
                 class="perf-row"
                 style="cursor:pointer"
@@ -363,6 +371,7 @@ const analyzing = ref(false)
 const analysisError = ref('')
 const productiveHours = ref(7.0)
 const paretoAbcFilter = ref('ALL')
+const paretoCarrierFilter = ref<string>('ALL')
 const customTopN = ref<number | null>(null)
 
 const dailyChartEl = ref<HTMLElement>()
@@ -382,6 +391,36 @@ function openZoom(key: string, title: string) {
 const pr = computed(() => props.run.performance_result as PerformanceResult | null)
 const ovr = computed(() => props.run.orders_validation_result as OrdersValidationResult | null)
 
+const availableCarriers = computed(() => {
+  const cr = props.run.capacity_result
+  if (!cr?.carriers_analyzed?.length) return []
+  return cr.carriers_analyzed.map(cid => ({
+    id: cid,
+    name: (cr.carrier_stats as Record<string, { carrier_name?: string }>)[cid]?.carrier_name ?? cid,
+  }))
+})
+
+const skuCarrierFitMap = computed(() => {
+  const cr = props.run.capacity_result
+  const map = new Map<string, Set<string>>()
+  if (!cr?.rows) return map
+  for (const row of cr.rows) {
+    if (row.fit_status === 'FIT' || row.fit_status === 'BORDERLINE') {
+      if (!map.has(row.sku)) map.set(row.sku, new Set())
+      map.get(row.sku)!.add(row.carrier_id)
+    }
+  }
+  return map
+})
+
+const carrierFilteredSkus = computed(() => {
+  if (!pr.value) return []
+  if (paretoCarrierFilter.value === 'ALL') return pr.value.sku_pareto
+  return pr.value.sku_pareto.filter(r =>
+    skuCarrierFitMap.value.get(r.sku)?.has(paretoCarrierFilter.value)
+  )
+})
+
 function rowRecommendation(row: { frequency_rank: number; recommendation: string }): string {
   if (customTopN.value !== null) {
     return row.frequency_rank <= customTopN.value ? 'Maszyna' : 'Poza maszyną'
@@ -395,8 +434,7 @@ function setCustomTopN(n: number) {
 }
 
 const filteredPareto = computed(() => {
-  if (!pr.value) return []
-  const rows = pr.value.sku_pareto
+  const rows = carrierFilteredSkus.value
   if (paretoAbcFilter.value === 'ALL') return rows
   if (paretoAbcFilter.value === 'MASZYNA') return rows.filter(r => rowRecommendation(r) === 'Maszyna')
   if (paretoAbcFilter.value === 'POZA') return rows.filter(r => rowRecommendation(r) === 'Poza maszyną')
@@ -410,6 +448,7 @@ const paretoVisibleCount = ref(50)
 const visiblePareto = computed(() => filteredPareto.value.slice(0, paretoVisibleCount.value))
 
 watch(paretoAbcFilter, () => { paretoVisibleCount.value = 50 })
+watch(paretoCarrierFilter, () => { paretoVisibleCount.value = 50 })
 watch(customTopN, () => { paretoVisibleCount.value = 50 })
 
 onMounted(() => {
@@ -535,9 +574,10 @@ function fitStatusLabel(status: string | null | undefined): string {
 }
 
 function abcPct(cls: string) {
-  if (!pr.value?.sku_pareto?.length) return '0.0'
-  const count = pr.value.sku_pareto.filter(r => r.abc_class === cls).length
-  return ((count / pr.value.sku_pareto.length) * 100).toFixed(1)
+  const skus = carrierFilteredSkus.value
+  if (!skus.length) return '0.0'
+  const count = skus.filter(r => r.abc_class === cls).length
+  return ((count / skus.length) * 100).toFixed(1)
 }
 
 function exportParetoCsv() {
@@ -562,8 +602,55 @@ function exportParetoCsv() {
   URL.revokeObjectURL(url)
 }
 
+const activeParetoaBands = computed((): PerformanceParetoBand[] => {
+  if (!pr.value) return []
+  if (paretoCarrierFilter.value === 'ALL') return pr.value.pareto_bands ?? []
+
+  const sorted = [...carrierFilteredSkus.value].sort((a, b) => b.total_lines - a.total_lines)
+  if (!sorted.length) return []
+
+  const totalDays = Math.max(pr.value.daily_metrics.length, 1)
+  const totalSkus = sorted.length
+  const totalLinesAll = sorted.reduce((s, r) => s + r.total_lines, 0)
+  const totalUnitsAll = sorted.reduce((s, r) => s + r.total_units, 0)
+  if (totalLinesAll === 0) return []
+
+  const totalLinesDay = totalLinesAll / totalDays
+  const totalPiecesDay = totalUnitsAll / totalDays
+
+  const FIXED = [10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,15000,20000,25000,30000,40000,50000]
+  const breakpoints = [...FIXED.filter(bp => bp < totalSkus), totalSkus]
+
+  const results: PerformanceParetoBand[] = []
+  let prevBp = 0
+  let cumulLines = 0
+  let cumulUnits = 0
+
+  for (const bp of breakpoints) {
+    const band = sorted.slice(prevBp, bp)
+    const bandLines = band.reduce((s, r) => s + r.total_lines, 0)
+    const bandUnits = band.reduce((s, r) => s + r.total_units, 0)
+    cumulLines += bandLines
+    cumulUnits += bandUnits
+    const linesDay = bandLines / totalDays
+    const piecesDay = bandUnits / totalDays
+    results.push({
+      moved_sku: bp,
+      cumulated_sku_pct: Math.round(bp / totalSkus * 1000) / 10,
+      lines_day: Math.round(linesDay * 10) / 10,
+      lines_day_pct: totalLinesDay ? Math.round(linesDay / totalLinesDay * 1000) / 10 : 0,
+      cumulated_lines_pct: Math.round(cumulLines / totalLinesAll * 1000) / 10,
+      pieces_day: Math.round(piecesDay * 10) / 10,
+      pieces_day_pct: totalPiecesDay ? Math.round(piecesDay / totalPiecesDay * 1000) / 10 : 0,
+      cumulated_pieces_pct: totalUnitsAll ? Math.round(cumulUnits / totalUnitsAll * 1000) / 10 : 0,
+    })
+    prevBp = bp
+  }
+  return results
+})
+
 const paretoBandTotals = computed(() => {
-  const bands = pr.value?.pareto_bands ?? []
+  const bands = activeParetoaBands.value
   return {
     lines_day: Math.round(bands.reduce((s, b) => s + b.lines_day, 0)),
     pieces_day: Math.round(bands.reduce((s, b) => s + b.pieces_day, 0)),
@@ -571,7 +658,7 @@ const paretoBandTotals = computed(() => {
 })
 
 function exportParetoBandsCsv() {
-  const bands = pr.value?.pareto_bands
+  const bands = activeParetoaBands.value
   if (!bands?.length) return
   const headers = ['moved_sku', 'cumulated_sku_pct', 'lines_day', 'lines_day_pct', 'cumulated_lines_pct', 'pieces_day', 'pieces_day_pct', 'cumulated_pieces_pct']
   const rows = bands.map(b => [b.moved_sku, b.cumulated_sku_pct + '%', b.lines_day, b.lines_day_pct + '%', b.cumulated_lines_pct + '%', b.pieces_day, b.pieces_day_pct + '%', b.cumulated_pieces_pct + '%'])
