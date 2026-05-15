@@ -11,6 +11,22 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-15] - Feature + Fix (main) — ABC Pareto & Performance carrier filter + SKU Pareto UX fixes
+
+- **Feature: ABC Pareto — carrier filter** (`PerformanceTab.vue`): nowy dropdown "Filter by carrier" w sekcji SKU Pareto; lista carriers pochodzi z `capacity_result.carrier_stats`; filtr zawęża tabelę i wykresy do SKU przypisanych do wybranego nośnika; opcja "All carriers" resetuje filtr
+
+- **Feature: Performance — data scope by carrier** (`api/routers/runs.py`, `PerformanceTab.vue`): nowy filtr "Data scope" w nagłówku Performance; całościowa analiza lub ograniczona do wybranego nośnika (tylko SKU przypisane w capacity_result); pełne tłumaczenie EN (usunięto ostatnie polskie stringi z zakładki Performance)
+
+- **Feature: PDF — Productive Hours & Data Scope** (`api/pdf_generator.py`, `api/routers/runs.py`): nowa tabela info w raporcie PDF Performance (sekcja Capacity); wiersze: "Productive hours / shift" i "Data scope" (nazwa nośnika lub "Entire file"); `data_scope` i `productive_hours_per_shift` serializowane w `performance_result`
+
+- **Fix: SKU Pareto carrier filter** — wyłączanie opcji niedostępnych poza aktualnym zakresem danych z tooltipem "Not in current data scope"
+
+- **Fix: SKU Pareto — column widths + tooltip position** — stałe szerokości kolumn (nie rozciągają się); tooltip pozycjonowany do lewej (zapobiega overflowowi poza ekran)
+
+- **Fix: SKU Pareto filters — gray out with no data** — opcje dropdownów (Fit Status, Recommendation) wyszarzone gdy brak danych dla danej opcji w aktualnym filtrze
+
+---
+
 ### [2026-05-15] - Feature (feature/carrier-priority-drag-drop) — Drag & Drop Priority dla nośników w Capacity Analysis
 
 - **Priorytety per-run**: kolejność nośników w trybie Prioritized ustalana przez drag & drop w Capacity Analysis (nie w zakładce Carriers)

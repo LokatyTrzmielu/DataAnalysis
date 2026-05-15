@@ -60,6 +60,10 @@
 | 47 | Feature: Rekomendacja maszynowa | kolumna Rekomendacja w SKU Pareto (A=Maszyna, B/C=Poza), klikalne wiersze Pareto Concentration → custom top-N próg, filtr Maszyna/Poza | ✅ |
 | 48 | Feature: Fit Status w SKU Pareto | kolumna FIT/BORDERLINE/NOT FIT z join capacity_result×sku_pareto; filtr; CSV export | ✅ |
 | 49 | Feature: Drag & Drop Priority nośników | priorytety per-run via drag & drop w Capacity Analysis (tryb Prioritized); backend używa pozycji w carrier_ids jako priorytetu | ✅ |
+| 50 | Feature: ABC Pareto carrier filter | dropdown "Filter by carrier" w SKU Pareto; zawęża tabelę i wykresy do SKU z wybranego nośnika (dane z capacity_result.carrier_stats) | ✅ |
+| 51 | Feature: Performance data scope by carrier | filtr zakresu danych w Performance — cały plik lub wybrany nośnik; pełne tłumaczenie EN w zakładce Performance | ✅ |
+| 52 | Feature: PDF Performance — productive hours & data scope | tabela info w PDF: "Productive hours / shift" i "Data scope" (nazwa nośnika lub "Entire file") | ✅ |
+| 53 | Fix: SKU Pareto filter UX (3 poprawki) | szare opcje niedostępne poza scope; stałe szerokości kolumn; tooltip do lewej; wyszarzanie opcji bez danych | ✅ |
 
 ---
 

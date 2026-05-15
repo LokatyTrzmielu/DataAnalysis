@@ -1103,6 +1103,11 @@ async def run_performance(
         "date_to": str(perf.date_to),
         "has_hourly_data": perf.has_hourly_data,
         "shifts_per_day": perf.shifts_per_day,
+        "productive_hours_per_shift": productive_hours,
+        "data_scope": {
+            "type": "entire_file" if not _selected_carriers else "carriers",
+            "carrier_ids": _selected_carriers,
+        },
     }
     run.status = "performance_done"
     run.updated_at = datetime.now(timezone.utc)

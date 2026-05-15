@@ -467,6 +467,32 @@ def generate_capacity_pdf(
 
         col_w = [5 * cm, 3 * cm, 5 * cm, 3 * cm]
 
+        # Productive hours & Data scope info block
+        prod_hours = performance_data.get('productive_hours_per_shift', 7.0)
+        scope_info = performance_data.get('data_scope', {})
+        if scope_info.get('type') == 'carriers':
+            cids = scope_info.get('carrier_ids', [])
+            c_settings = capacity_data.get('carrier_settings', {}) if capacity_data else {}
+            scope_label = ', '.join(
+                c_settings.get(cid, {}).get('name', cid) for cid in cids
+            ) or ', '.join(cids)
+        else:
+            scope_label = 'Entire file'
+        info_data = [
+            ['Productive hours / shift', f'{prod_hours:g}h'],
+            ['Data scope', scope_label],
+        ]
+        info_table = Table(info_data, colWidths=[6 * cm, 10 * cm])
+        info_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.HexColor('#f0f4ff'), colors.white]),
+            ('PADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.4 * cm))
+
         # Totals & Per Order
         story.append(Paragraph('Totals', subheading_style))
         totals_pairs = [

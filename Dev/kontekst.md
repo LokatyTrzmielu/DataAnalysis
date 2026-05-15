@@ -368,9 +368,9 @@ Gdy plik Orders nie zawiera kolumny czasu (`has_hourly_data = False`), sekcja "D
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-05-12
-**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Seria 4 bugfixów (commits bbbaba9–5d21145):
-1. **CSV upload** — `readers.py`: detekcja kodowania 512 KB, pre-decode przez Python → UTF-8 bajty do Polars; obsługa cp1250/iso-8859-2 i wszystkich europejskich kodowań
-2. **Orders Validation pusta** — `pipeline.py`: `clean_numeric_column` dla `quantity` w OrdersIngestPipeline; `orders_validation.py`: defensywny cast; `runs.py`: logging do cichych except
-3. **100% Quantity Null** — `orders_validation.py`: zastąpienie bezpośredniego `cast(Float64)` przez `clean_numeric_column` — poprawna konwersja "1,5" → 1.5
-4. **Performance 500** — `runs.py` + `performance.py`: pre-processing orders_df (syntetyczny order_id, order_date z timestamp, quantity cleaning); try/except → HTTP 422
+**Data:** 2026-05-15
+**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Nowe funkcje i poprawki (commits f8b726f–787f434 + uncommitted):
+1. **ABC Pareto carrier filter** — `PerformanceTab.vue`: dropdown filtra po nośniku w SKU Pareto; dane z `capacity_result.carrier_stats`
+2. **Performance data scope** — `runs.py` + `PerformanceTab.vue`: filtr zakresu — cały plik lub wybrany nośnik; pełne EN tłumaczenie
+3. **PDF Performance info** — `pdf_generator.py` + `runs.py`: tabela "Productive hours / shift" i "Data scope" w raporcie PDF
+4. **SKU Pareto UX fixes** — stałe szerokości kolumn; tooltip do lewej; szare opcje poza zakresem danych; wyszarzanie opcji bez danych
