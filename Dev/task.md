@@ -64,6 +64,7 @@
 | 51 | Feature: Performance data scope by carrier | filtr zakresu danych w Performance — cały plik lub wybrany nośnik; pełne tłumaczenie EN w zakładce Performance | ✅ |
 | 52 | Feature: PDF Performance — productive hours & data scope | tabela info w PDF: "Productive hours / shift" i "Data scope" (nazwa nośnika lub "Entire file") | ✅ |
 | 53 | Fix: SKU Pareto filter UX (3 poprawki) | szare opcje niedostępne poza scope; stałe szerokości kolumn; tooltip do lewej; wyszarzanie opcji bez danych | ✅ |
+| 54 | Feature: Time-saved counter per user | model TimeSavingEvent + service + endpoint `/users/me/time-savings` + integracja w datasets/runs/reports + backfill CLI + TimeSavedCard w Settings + 23 testy | ✅ |
 
 ---
 

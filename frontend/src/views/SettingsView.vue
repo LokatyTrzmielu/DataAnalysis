@@ -19,6 +19,9 @@
       </div>
     </section>
 
+    <!-- Time saved -->
+    <TimeSavedCard />
+
     <!-- Change password -->
     <section class="card-apple">
       <h2 class="mb-4" style="font-size:12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.12px;text-transform:uppercase">Change password</h2>
@@ -53,6 +56,7 @@ import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
 import { useNotificationsStore } from '@/stores/notifications'
+import TimeSavedCard from '@/components/settings/TimeSavedCard.vue'
 
 const auth = useAuthStore()
 const notify = useNotificationsStore()
