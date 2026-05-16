@@ -601,3 +601,140 @@ def generate_capacity_pdf(
 
     doc.build(story)
     return buf.getvalue()
+
+
+# ── Container Order Calculator (Tools › second tile) ────────────────────────
+
+def _chart_bins_per_variant(summaries: list) -> Image | None:
+    """Bar chart: bins to order per variant code, coloured by height tier."""
+    if not summaries:
+        return None
+    codes = [s.code for s in summaries]
+    bins = [s.bins_required for s in summaries]
+    heights = [s.bin_height_mm for s in summaries]
+    height_colors = {138: '#93c5fd', 188: '#60a5fa', 238: '#3b82f6', 288: '#1d4ed8'}
+    bar_colors = [height_colors.get(h, _C_PRIMARY) for h in heights]
+
+    fig, ax = plt.subplots(figsize=(_PAGE_W / 2.54, 5))
+    ax.bar(range(len(codes)), bins, color=bar_colors, zorder=3)
+    ax.set_xticks(range(len(codes)))
+    ax.set_xticklabels(codes, rotation=35, ha='right', fontsize=8)
+    ax.set_ylabel('Bins to order')
+    _style_ax(ax)
+    fig.patch.set_facecolor('white')
+    plt.tight_layout()
+    return _fig_to_rl_image(fig, 7.5)
+
+
+def generate_container_order_pdf(plan, params, run) -> bytes:
+    """Two-page summary PDF for a container order plan.
+
+    `plan` is api.schemas.container_order.ContainerPlanResponse,
+    `params` is PlanParamsRequest, `run` is the SQLAlchemy AnalysisRun.
+    """
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=2 * cm, leftMargin=2 * cm,
+                            topMargin=2 * cm, bottomMargin=2 * cm)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'title', parent=styles['Title'], fontSize=20, textColor=colors.HexColor('#111827'),
+        spaceAfter=6,
+    )
+    sub_style = ParagraphStyle(
+        'sub', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#6b7280'),
+        spaceAfter=14,
+    )
+    heading_style = ParagraphStyle(
+        'h', parent=styles['Heading2'], fontSize=14, textColor=colors.HexColor('#111827'),
+        spaceAfter=8,
+    )
+    caption_style = ParagraphStyle(
+        'cap', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#6b7280'),
+    )
+
+    story: list = []
+    story.append(Paragraph('Container Order — Kardex VBM Box', title_style))
+    story.append(Paragraph(
+        f"Client: <b>{run.client_name}</b> · Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        sub_style,
+    ))
+
+    # KPI block
+    kpi_pairs = [
+        ('Total bins to order', f"{plan.total_bins:,}"),
+        ('SKUs planned', f"{plan.total_sku_planned:,}"),
+        ('SKUs covered', f"{plan.total_sku_covered:,}  ({plan.coverage_pct:.1f}%)"),
+        ('Avg cell fill', f"{plan.avg_fill_pct:.1f}%"),
+        ('Variants selected', str(len(plan.summaries))),
+        ('Orphans (no variant)', str(len(plan.orphans))),
+    ]
+    story.append(_kpi_4col_table(kpi_pairs, [4.2 * cm, 3.8 * cm, 4.2 * cm, 3.8 * cm]))
+    story.append(Spacer(1, 0.6 * cm))
+
+    # Bar chart
+    _add_chart(story, _chart_bins_per_variant(plan.summaries),
+               'Bins required per variant', caption_style)
+
+    # Variant table
+    story.append(Paragraph('Order summary', heading_style))
+    table_data = [['Variant', 'Footprint', 'Height', 'Cell (mm)', 'Locs/bin',
+                   'SKU', 'Locations', 'Bins', 'Avg fill']]
+    for s in plan.summaries:
+        cell = f"{s.cell_length_mm}×{s.cell_width_mm}×{s.cell_height_mm}"
+        table_data.append([
+            s.code, s.footprint_label, str(s.bin_height_mm), cell,
+            str(s.locations_per_bin), str(s.sku_count), str(s.total_locations),
+            str(s.bins_required), f"{s.avg_fill_pct:.0f}%",
+        ])
+    table_data.append(['TOTAL', '', '', '', '', str(plan.total_sku_covered), '',
+                       str(plan.total_bins), f"{plan.avg_fill_pct:.0f}%"])
+    t = Table(table_data, colWidths=[2.2 * cm, 3.5 * cm, 1.4 * cm, 2.4 * cm, 1.6 * cm,
+                                      1.4 * cm, 2.0 * cm, 1.4 * cm, 1.6 * cm])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#374151')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#d1d5db')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f9fafb')]),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e5e7eb')),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('ALIGN', (4, 0), (-1, -1), 'RIGHT'),
+        ('PADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 0.6 * cm))
+
+    # Parameters echo
+    story.append(PageBreak())
+    story.append(Paragraph('Parameters used', heading_style))
+    param_rows = [
+        ['Mode', params.mode],
+        ['Goal', params.auto_goal if params.mode == 'auto' else (params.guided_preset if params.mode == 'guided' else 'manual')],
+        ['ABC filter', ', '.join(params.abc_classes) or 'all'],
+        ['Only Machine', 'Yes' if params.only_machine else 'No'],
+        ['Stock multiplier', f"{params.stock_multiplier:.2f}"],
+        ['Location fill rate', f"{params.location_fill_rate * 100:.0f}%"],
+        ['Locations per SKU (min / max)', f"{params.min_locations_per_sku} / {params.max_locations_per_sku}"],
+        ['Run ID', run.id],
+    ]
+    pt = Table(param_rows, colWidths=[6 * cm, 10 * cm])
+    pt.setStyle(TableStyle([
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#e5e7eb')),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#6b7280')),
+        ('PADDING', (0, 0), (-1, -1), 5),
+    ]))
+    story.append(pt)
+
+    if plan.orphans:
+        story.append(Spacer(1, 0.6 * cm))
+        story.append(Paragraph(
+            f"<b>{len(plan.orphans)} SKU(s) without an assigned variant</b> "
+            "— see the .xlsx export, sheet 'Orphans', for the full list.",
+            caption_style,
+        ))
+
+    doc.build(story)
+    return buf.getvalue()
