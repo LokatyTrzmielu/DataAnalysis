@@ -2,6 +2,7 @@ import client from './client'
 
 export interface RunListItem {
   id: string
+  owner_id: string
   client_name: string
   status: string
   is_public: boolean

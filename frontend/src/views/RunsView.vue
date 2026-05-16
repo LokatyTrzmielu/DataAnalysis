@@ -92,8 +92,9 @@
           @mouseover="(e) => (e.currentTarget as HTMLElement).style.background='var(--table-row-hover)'"
           @mouseleave="(e) => (e.currentTarget as HTMLElement).style.background=''"
         >
-          <!-- Checkbox -->
+          <!-- Checkbox (only for owner) -->
           <div
+            v-if="isOwner(run)"
             @click.prevent="toggleSelect(run.id)"
             class="w-4 h-4 rounded flex-shrink-0 flex items-center justify-center cursor-pointer mr-3 transition-colors"
             :style="selectedIds.has(run.id)
@@ -104,6 +105,7 @@
               <path d="M1 4l2.5 2.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
+          <div v-else class="w-4 h-4 mr-3 shrink-0" />
 
           <!-- Name — clickable -->
           <RouterLink :to="`/runs/${run.id}`" class="flex-1 min-w-0 flex items-center gap-3" style="text-decoration:none">
@@ -118,10 +120,12 @@
           <!-- Actions -->
           <div class="flex items-center gap-2 shrink-0 ml-3">
             <StatusBadge :status="run.status" />
+            <span v-if="!isOwner(run)" title="Shared with you" style="font-size:11px;color:#0071e3;background:rgba(0,113,227,0.1);padding:2px 6px;border-radius:4px;white-space:nowrap">Shared</span>
             <span class="shrink-0" style="font-size:12px;color:var(--app-text-sec)">{{ formatDate(run.created_at) }}</span>
 
-            <!-- Notes -->
+            <!-- Notes (only for owner) -->
             <button
+              v-if="isOwner(run)"
               @click.prevent="toggleNotes(run.id)"
               class="p-1.5 rounded transition-colors"
               :style="openNotesId === run.id || run.notes ? 'color:#0071e3' : 'color:var(--app-placeholder)'"
@@ -132,8 +136,9 @@
               </svg>
             </button>
 
-            <!-- Toggle public -->
+            <!-- Toggle public (only for owner) -->
             <button
+              v-if="isOwner(run)"
               @click.prevent="onTogglePublic(run)"
               class="p-1.5 rounded transition-colors"
               :style="run.is_public ? 'color:#0071e3' : 'color:var(--app-placeholder)'"
@@ -144,14 +149,14 @@
               </svg>
             </button>
 
-            <!-- Delete / confirm -->
-            <template v-if="confirmDelete === run.id">
+            <!-- Delete / confirm (only for owner) -->
+            <template v-if="isOwner(run) && confirmDelete === run.id">
               <span class="text-xs mr-1" style="color:var(--app-text-sec)">Delete?</span>
               <button @click.prevent="onDelete(run.id)" class="text-xs font-medium mr-1" style="color:#ff3b30">Yes</button>
               <button @click.prevent="confirmDelete = null" class="text-xs" style="color:var(--app-text-sec)">No</button>
             </template>
             <button
-              v-else
+              v-else-if="isOwner(run)"
               @click.prevent="confirmDelete = run.id"
               class="p-1.5 rounded transition-colors"
               style="color:var(--app-placeholder)"
@@ -189,6 +194,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useRunStore } from '@/stores/run'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useAuthStore } from '@/stores/auth'
 import type { RunListItem } from '@/api/runs'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import NewRunModal from '@/components/analysis/NewRunModal.vue'
@@ -196,6 +202,11 @@ import NewRunModal from '@/components/analysis/NewRunModal.vue'
 const runStore = useRunStore()
 const router = useRouter()
 const notify = useNotificationsStore()
+const authStore = useAuthStore()
+
+function isOwner(run: RunListItem) {
+  return run.owner_id === authStore.user?.id
+}
 const showModal = ref(false)
 const confirmDelete = ref<string | null>(null)
 const selectedIds = ref(new Set<string>())

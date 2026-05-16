@@ -152,17 +152,11 @@ async def list_runs(
     shared_run_ids_q = select(RunShare.run_id).where(
         RunShare.shared_with_user_id == current_user.id
     )
-    if my_only:
-        query = select(*_LIST_COLS).where(
-            (AnalysisRun.owner_id == current_user.id)
-            | (AnalysisRun.id.in_(shared_run_ids_q))
-        )
-    else:
-        query = select(*_LIST_COLS).where(
-            (AnalysisRun.owner_id == current_user.id)
-            | (AnalysisRun.is_public.is_(True))
-            | (AnalysisRun.id.in_(shared_run_ids_q))
-        )
+    query = select(*_LIST_COLS).where(
+        (AnalysisRun.owner_id == current_user.id)
+        | (AnalysisRun.is_public.is_(True))
+        | (AnalysisRun.id.in_(shared_run_ids_q))
+    )
     if search:
         query = query.where(AnalysisRun.client_name.ilike(f"%{search}%"))
     if status_filter:
@@ -187,6 +181,7 @@ async def list_runs(
         items=[
             RunListItem(
                 id=r.id,
+                owner_id=r.owner_id,
                 client_name=r.client_name,
                 status=r.status,
                 is_public=r.is_public,

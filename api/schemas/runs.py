@@ -66,6 +66,7 @@ class RunResponse(BaseModel):
 
 class RunListItem(BaseModel):
     id: str
+    owner_id: str
     client_name: str
     status: str
     is_public: bool

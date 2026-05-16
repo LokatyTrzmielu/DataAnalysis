@@ -8,6 +8,7 @@
         <div class="flex items-center gap-2">
         <StatusBadge :status="run.status" />
         <button
+          v-if="isOwner"
           @click="showNotes = true"
           class="btn-apple-pill"
           :style="notesValue ? 'color:#0071e3;border-color:#0071e3' : ''"
@@ -19,6 +20,7 @@
           Notes
         </button>
         <button
+          v-if="isOwner"
           @click="showShare = true"
           class="btn-apple-pill"
           title="Share"
@@ -33,7 +35,7 @@
       <!-- Bottom row: analysis name -->
       <div class="mt-2 flex items-center gap-2">
         <input
-          v-if="renaming"
+          v-if="renaming && isOwner"
           ref="renameInput"
           v-model="renameValue"
           @blur="saveRename"
@@ -44,8 +46,9 @@
         <h2
           v-else
           class="run-title"
-          title="Click to rename"
-          @click="startRename"
+          :title="isOwner ? 'Click to rename' : ''"
+          :style="isOwner ? '' : 'cursor:default'"
+          @click="isOwner ? startRename() : undefined"
         >{{ run.client_name }}</h2>
       </div>
     </div>
@@ -91,9 +94,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useRunStore } from '@/stores/run'
+import { useAuthStore } from '@/stores/auth'
 import type { RunDetail } from '@/api/runs'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import ImportTab from '@/components/analysis/ImportTab.vue'
@@ -106,8 +110,10 @@ import NotesModal from '@/components/analysis/NotesModal.vue'
 
 const route = useRoute()
 const runStore = useRunStore()
+const authStore = useAuthStore()
 
 const run = ref<RunDetail | null>(null)
+const isOwner = computed(() => run.value?.owner_id === authStore.user?.id)
 const loading = ref(true)
 const activeTab = ref('import')
 const showShare = ref(false)

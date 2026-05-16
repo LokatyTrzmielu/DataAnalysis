@@ -66,6 +66,69 @@
           </div>
         </section>
 
+        <!-- SHARING -->
+        <section id="sharing" class="help-section">
+          <div class="help-section-header">
+            <span class="help-section-icon">🔗</span>
+            <h2 class="help-section-title">Sharing</h2>
+          </div>
+          <p class="help-text">
+            Analyses can be shared with other Datavisor users or made publicly visible. Shared
+            users get read-only access — they can view all tabs and download reports, but cannot
+            rename, edit notes, delete, or change sharing settings.
+          </p>
+
+          <div class="help-card">
+            <h3 class="help-card-title">Share with a specific user</h3>
+            <ul class="help-list">
+              <li>Open the analysis and click <strong>Share</strong> in the top-right header.</li>
+              <li>Enter the other user's email address and confirm. They will immediately see the analysis in their Analyses list with a <strong>Shared</strong> badge.</li>
+              <li>You can view and revoke individual shares from the same Share panel.</li>
+            </ul>
+          </div>
+
+          <div class="help-card">
+            <h3 class="help-card-title">Make an analysis public</h3>
+            <ul class="help-list">
+              <li>In the Analyses list, click the <strong>globe icon</strong> next to the analysis name to toggle public access on or off.</li>
+              <li>Public analyses appear in every user's Analyses list, also marked with a globe icon.</li>
+              <li>Only the owner can revert a public analysis back to private.</li>
+            </ul>
+          </div>
+
+          <div class="help-card">
+            <h3 class="help-card-title">Access levels</h3>
+            <div class="help-cols-table" style="margin-top:4px">
+              <div class="help-col-row" style="grid-template-columns:200px 80px 1fr">
+                <span style="font-weight:600;font-size:13px">Action</span>
+                <span style="font-weight:600;font-size:13px">Owner</span>
+                <span style="font-weight:600;font-size:13px">Viewer (shared / public)</span>
+              </div>
+              <div class="help-col-row" style="grid-template-columns:200px 80px 1fr">
+                <span>View tabs &amp; results</span><span style="color:#1e8c40">✓</span><span style="color:#1e8c40">✓</span>
+              </div>
+              <div class="help-col-row" style="grid-template-columns:200px 80px 1fr">
+                <span>Download reports &amp; CSVs</span><span style="color:#1e8c40">✓</span><span style="color:#1e8c40">✓</span>
+              </div>
+              <div class="help-col-row" style="grid-template-columns:200px 80px 1fr">
+                <span>Rename analysis</span><span style="color:#1e8c40">✓</span><span style="color:var(--app-text-sec)">—</span>
+              </div>
+              <div class="help-col-row" style="grid-template-columns:200px 80px 1fr">
+                <span>Add / edit notes</span><span style="color:#1e8c40">✓</span><span style="color:var(--app-text-sec)">—</span>
+              </div>
+              <div class="help-col-row" style="grid-template-columns:200px 80px 1fr">
+                <span>Toggle public</span><span style="color:#1e8c40">✓</span><span style="color:var(--app-text-sec)">—</span>
+              </div>
+              <div class="help-col-row" style="grid-template-columns:200px 80px 1fr">
+                <span>Manage shares</span><span style="color:#1e8c40">✓</span><span style="color:var(--app-text-sec)">—</span>
+              </div>
+              <div class="help-col-row" style="grid-template-columns:200px 80px 1fr">
+                <span>Delete analysis</span><span style="color:#1e8c40">✓</span><span style="color:var(--app-text-sec)">—</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- IMPORT -->
         <section id="import" class="help-section">
           <div class="help-section-header">
@@ -395,6 +458,7 @@ const activeSection = ref('overview')
 const sections = [
   { id: 'overview',    label: 'Overview',     icon: '🗺' },
   { id: 'dashboard',   label: 'Dashboard',    icon: '📊' },
+  { id: 'sharing',     label: 'Sharing',      icon: '🔗' },
   { id: 'import',      label: 'Import',       icon: '📥' },
   { id: 'quality',     label: 'Quality',      icon: '🔍' },
   { id: 'performance', label: 'Performance',  icon: '⚡' },
