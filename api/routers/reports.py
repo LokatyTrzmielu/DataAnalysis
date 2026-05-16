@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_current_user, get_db
 from api.models.analysis_run import AnalysisRun
 from api.models.user import User
+from api.services.time_saving import record_event as record_time_saving_event
 from sqlalchemy import select
 
 router = APIRouter(prefix="/api/v1/runs", tags=["reports"])
@@ -353,6 +354,14 @@ async def download_zip(
     pr = run.performance_result or {}
     client = run.client_name or run.id
 
+    csv_count = 0
+    if cr:
+        csv_count += 1  # Capacity_Results
+    if qr:
+        csv_count += 6  # Summary + 5 DQ lists
+    if pr:
+        csv_count += 3  # SKU_Pareto + Pareto_Bands + SolDimTool
+
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
 
@@ -418,6 +427,14 @@ async def download_zip(
                 _rows_to_csv_bytes(_generate_soldimtool_rows(pr), REPORT_COLUMNS.get("SolDimTool_DashboardInput")),
             )
 
+    await record_time_saving_event(
+        db,
+        current_user.id,
+        "report_exported_zip",
+        run_id=run.id,
+        csv_count=csv_count,
+    )
+
     return Response(
         content=buf.getvalue(),
         media_type="application/zip",
@@ -451,6 +468,16 @@ async def download_pdf(
         capacity_data=run.capacity_result,
         run_id=run.id,
         performance_data=run.performance_result,
+    )
+
+    chart_count = 2 if not run.performance_result else 5
+
+    await record_time_saving_event(
+        db,
+        current_user.id,
+        "report_exported_pdf",
+        run_id=run.id,
+        chart_count=chart_count,
     )
 
     filename = f"{run.client_name or run.id}_report.pdf"

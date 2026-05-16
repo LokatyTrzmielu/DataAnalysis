@@ -11,7 +11,7 @@ from sqlalchemy import text
 
 from api.database import Base, engine
 from api.models import *  # noqa: F401, F403 — register all ORM models with Base
-from api.routers import analyze, auth, carriers, datasets, reports, runs, tools
+from api.routers import analyze, auth, carriers, datasets, reports, runs, time_saving, tools
 
 # Origins allowed for CORS (dev: Vite dev server; prod: frontend URL)
 ALLOWED_ORIGINS = [
@@ -85,6 +85,7 @@ app.include_router(carriers.router)
 app.include_router(reports.router)
 app.include_router(datasets.router)
 app.include_router(tools.router)
+app.include_router(time_saving.router)
 
 
 @app.get("/health")

@@ -11,6 +11,29 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-16] - Feature (feature/time-saved-counter) — Time-saved counter per user
+
+- **Backend: TimeSavingEvent model + service** (`api/models/time_saving_event.py`, `api/services/time_saving.py`): nowa tabela `time_saving_events` (per-user FK, event_type, manual_seconds, scale_value, run_id, context JSON, indeksy na user_id+created_at); `TIME_SAVING_RULES` z bazowymi estymacjami czasu manualnego (15min import masterdata, 30min DQ, 45min capacity, 40min performance + 25min Pareto, 45min PDF, 25min ZIP) + skalowanie z liczbą wierszy/SKU/carrier/wykresów/CSV; `calculate_manual_seconds()` pure-function; `record_event()` failsafe (try/except + rollback)
+
+- **Backend: endpoint `GET /api/v1/users/me/time-savings`** (`api/routers/time_saving.py`): zwraca `total_seconds`, `total_events` i `breakdown` (per event_type, label, count, seconds, sortowane DESC po seconds); strict per-user isolation przez `Depends(get_current_user)`
+
+- **Backend: integracja w istniejących endpointach** (`api/routers/datasets.py`, `runs.py`, `reports.py`): wywołania `record_event` po imporcie datasetu (masterdata/orders), po Quality, Capacity, Performance, po eksporcie ZIP i PDF; każde wewnątrz try/except — błąd telemetrii nigdy nie psuje samej analizy
+
+- **Backend: backfill CLI** (`api/scripts/backfill_time_savings.py`): jednorazowy skrypt `python -m api.scripts.backfill_time_savings`; iteruje po `AnalysisRun`, tworzy historyczne eventy dla nie-NULL `quality_result/capacity_result/performance_result` (timestamp z `updated_at`); idempotentny — sprawdza istnienie eventu po (run_id, event_type)
+
+- **Frontend: `TimeSavedCard.vue` w Settings** (`frontend/src/views/SettingsView.vue`, `frontend/src/components/settings/TimeSavedCard.vue`, `frontend/src/api/timeSavings.ts`): nowa karta między Account a Change password; duży licznik `⏱ Xh Ymin` + count operacji + tabela breakdown per typ (label / count / time); loading + empty + error states; helper `formatDuration()` formatuje sekundy w postaci `Xh Ymin`
+
+- **Testy** (`tests/test_time_saving.py`): 23 testy obejmujące `calculate_manual_seconds` (różne event_types, skalowanie, edge cases), persystencję `record_event` + agregację `get_summary_for_user`, izolację per-user, endpoint (401 bez tokenu, empty summary, seeded events, isolation między userami), failsafe (unknown event_type, błąd commitu)
+
+- **Średnie wartości manualnej pracy** (estymacje analityka logistyki w Excel/SQL):
+  - Masterdata import 3000 SKU ≈ 30 min · Orders import 50k linii ≈ 3h 40min
+  - Quality 5000 rows ≈ 45 min · Capacity 3000 SKU × 5 carriers ≈ 1h 40min
+  - Performance 50k linii + Pareto ≈ 1h 55min · PDF (5 charts) ≈ 1h 10min · ZIP (8 CSV) ≈ 41 min
+
+- **Poprawka skalowania Performance** (`api/services/time_saving.py`, `api/scripts/backfill_time_savings.py`): podczas weryfikacji backfill dla Admina (3 analizy z 236k–975k linii) początkowe `per_1000_lines = 4 min` dawało nierealistyczne 65h dla pojedynczego runu (manualna analiza w SQL skaluje się sub-liniowo). Zmiana: `per_1000_lines: 1 min` + nowe pole `max_seconds: 6h` jako rozsądny ceiling per event (`calculate_manual_seconds` aplikuje cap jeśli reguła go specyfikuje). Backfill scripts naprawiony — `carriers_analyzed` w `capacity_result` to lista, więc używamy `len(...)`. Test `test_performance_caps_huge_datasets` waliduje cap dla 1M linii. Po poprawce Admin (3 historyczne analizy) widzi realistyczne ~27h 18min zamiast wcześniejszych ~141h.
+
+---
+
 ### [2026-05-15] - Feature + Fix (main) — ABC Pareto & Performance carrier filter + SKU Pareto UX fixes
 
 - **Feature: ABC Pareto — carrier filter** (`PerformanceTab.vue`): nowy dropdown "Filter by carrier" w sekcji SKU Pareto; lista carriers pochodzi z `capacity_result.carrier_stats`; filtr zawęża tabelę i wykresy do SKU przypisanych do wybranego nośnika; opcja "All carriers" resetuje filtr

@@ -16,6 +16,7 @@ from api.models.analysis_run import AnalysisRun
 from api.models.carrier import Carrier as CarrierModel
 from api.models.user import User
 from api.models.run_share import RunShare
+from api.services.time_saving import record_event as record_time_saving_event
 from api.schemas.runs import (
     RunCreate, RunPatch, RunListItem, RunListResponse, RunResponse,
     MappingInspectResponse, ColumnSuggestion, ShareRequest, RunShareItem,
@@ -520,6 +521,16 @@ async def run_capacity(
         run.updated_at = datetime.now(timezone.utc)
         await db.commit()
         await db.refresh(run)
+
+        await record_time_saving_event(
+            db,
+            current_user.id,
+            "capacity_run",
+            run_id=run.id,
+            sku_count=result.total_sku,
+            carrier_count=len(carriers),
+        )
+
         return _run_to_response(run)
 
     finally:
@@ -665,6 +676,15 @@ async def run_quality(
         run.updated_at = datetime.now(timezone.utc)
         await db.commit()
         await db.refresh(run)
+
+        await record_time_saving_event(
+            db,
+            current_user.id,
+            "quality_run",
+            run_id=run.id,
+            row_count=metrics.total_records,
+        )
+
         return _run_to_response(run)
 
     finally:
@@ -1113,6 +1133,16 @@ async def run_performance(
     run.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(run)
+
+    await record_time_saving_event(
+        db,
+        current_user.id,
+        "performance_run",
+        run_id=run.id,
+        lines_count=perf.kpi.total_lines,
+        includes_pareto=True,
+    )
+
     return _run_to_response(run)
 
 

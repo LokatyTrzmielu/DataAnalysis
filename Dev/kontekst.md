@@ -61,9 +61,11 @@ api/                    # FastAPI backend
 ├── dependencies.py     # get_db(), get_current_user() (JWT)
 ├── seed.py             # CLI: init DB + seed carriers + create user
 ├── pdf_generator.py    # ReportLab PDF generation
-├── models/             # ORM: User, AnalysisRun, Carrier, UploadStaging, Dataset
+├── models/             # ORM: User, AnalysisRun, Carrier, UploadStaging, Dataset, TimeSavingEvent
 ├── schemas/            # Pydantic schemas: auth, analysis, carriers, runs, dataset
-└── routers/            # auth, analyze, runs, carriers, reports, datasets
+├── services/           # Backend services: time_saving (TIME_SAVING_RULES + record_event + summary)
+├── scripts/            # Maintenance CLI: backfill_time_savings
+└── routers/            # auth, analyze, runs, carriers, reports, datasets, time_saving
 
 frontend/               # Vue 3 + TypeScript
 ├── src/
@@ -368,8 +370,11 @@ Gdy plik Orders nie zawiera kolumny czasu (`has_hourly_data = False`), sekcja "D
 
 ## Ostatnia Aktualizacja
 
-**Data:** 2026-05-15
-**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Nowe funkcje i poprawki (commits f8b726f–787f434 + uncommitted):
+**Data:** 2026-05-16
+**Status:** FastAPI + Vue 3 migration — Phases 1–5 ukończone. Branch `feature/time-saved-counter`:
+1. **Time-saved counter per user** — `api/models/time_saving_event.py`, `api/services/time_saving.py`, `api/routers/time_saving.py`, `api/scripts/backfill_time_savings.py`, `frontend/src/components/settings/TimeSavedCard.vue`, `frontend/src/api/timeSavings.ts`, `frontend/src/views/SettingsView.vue`, `tests/test_time_saving.py` (23 testy ✅): nowa tabela `time_saving_events`, endpoint `GET /api/v1/users/me/time-savings`, wywołania `record_event` (failsafe) po imporcie datasetu / Quality / Capacity / Performance / PDF / ZIP; backfill CLI; karta "Time saved" w Settings — duży licznik `⏱ Xh Ymin` + breakdown per typ. Estymacje czasu manualnego w `TIME_SAVING_RULES` (15min import, 30min DQ, 45min capacity, 40min perf + 25min Pareto, 45min PDF, 25min ZIP) + skalowanie z rozmiarem danych (per_1000_rows / per_1000_skus / per_carrier / per_csv / per_chart).
+
+### Wcześniej (2026-05-15):
 1. **ABC Pareto carrier filter** — `PerformanceTab.vue`: dropdown filtra po nośniku w SKU Pareto; dane z `capacity_result.carrier_stats`
 2. **Performance data scope** — `runs.py` + `PerformanceTab.vue`: filtr zakresu — cały plik lub wybrany nośnik; pełne EN tłumaczenie
 3. **PDF Performance info** — `pdf_generator.py` + `runs.py`: tabela "Productive hours / shift" i "Data scope" w raporcie PDF
