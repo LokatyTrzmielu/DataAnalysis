@@ -99,7 +99,7 @@
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
-          <div ref="carrierChartEl" style="height:200px"></div>
+          <div ref="carrierChartEl" style="height:280px"></div>
         </div>
         <!-- Volume Distribution -->
         <div class="card-apple">
@@ -109,7 +109,7 @@
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
-          <div ref="dimsChartEl" style="height:200px"></div>
+          <div ref="dimsChartEl" style="height:280px"></div>
         </div>
         <!-- Margin Distribution -->
         <div class="card-apple">
@@ -119,7 +119,7 @@
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
-          <div ref="weightChartEl" style="height:200px"></div>
+          <div ref="weightChartEl" style="height:280px"></div>
         </div>
         <!-- Dimensions Distribution -->
         <div class="card-apple">
@@ -129,7 +129,7 @@
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
-          <div ref="dimsDistChartEl" style="height:200px"></div>
+          <div ref="dimsDistChartEl" style="height:280px"></div>
         </div>
         <!-- Weight Distribution -->
         <div class="card-apple">
@@ -139,7 +139,7 @@
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
-          <div ref="weightDistChartEl" style="height:200px"></div>
+          <div ref="weightDistChartEl" style="height:280px"></div>
         </div>
       </div>
 

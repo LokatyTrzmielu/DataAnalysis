@@ -151,7 +151,7 @@
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
-        <div ref="dailyChartEl" style="height:220px"></div>
+        <div ref="dailyChartEl" style="height:300px"></div>
       </div>
 
       <!-- Chart 2: Hourly Heatmap -->
@@ -162,7 +162,7 @@
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
-        <div ref="heatmapEl" style="height:300px"></div>
+        <div ref="heatmapEl" style="height:380px"></div>
       </div>
 
       <!-- Chart 3: Hourly Throughput -->
@@ -173,7 +173,7 @@
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
-        <div ref="hourlyThroughputEl" style="height:200px"></div>
+        <div ref="hourlyThroughputEl" style="height:280px"></div>
       </div>
 
       <!-- Chart 4: Weekly Trend -->
@@ -184,7 +184,7 @@
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
-        <div ref="weeklyTrendEl" style="height:220px"></div>
+        <div ref="weeklyTrendEl" style="height:300px"></div>
       </div>
 
       <!-- Chart 5: Day-of-Week Profile -->
@@ -195,7 +195,7 @@
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
-        <div ref="dowProfileEl" style="height:180px"></div>
+        <div ref="dowProfileEl" style="height:260px"></div>
       </div>
 
       <!-- Lines per Order Distribution KPI cards -->
@@ -220,7 +220,7 @@
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 3.5V1H3.5M7.5 1H10v2.5M10 7.5V10H7.5M3.5 10H1V7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
-        <div ref="linesPerOrderEl" style="height:200px"></div>
+        <div ref="linesPerOrderEl" style="height:280px"></div>
       </div>
 
       <!-- SKU Pareto Table -->
@@ -294,16 +294,7 @@
           <span v-else>Threshold: <strong style="color:var(--app-text)">class A</strong> (default — click a row in Pareto Concentration to set a custom one)</span>
         </div>
         <div class="overflow-x-auto max-h-80">
-          <table class="w-full text-xs" style="table-layout:fixed">
-            <colgroup>
-              <col style="width:52px" />
-              <col />
-              <col style="width:68px" />
-              <col style="width:52px" />
-              <col style="width:96px" />
-              <col style="width:108px" />
-              <col style="width:90px" />
-            </colgroup>
+          <table class="w-full text-xs">
             <thead class="perf-thead sticky top-0">
               <tr>
                 <th class="px-3 py-2 text-left font-medium"  style="color:var(--app-text-sec)">Rank</th>

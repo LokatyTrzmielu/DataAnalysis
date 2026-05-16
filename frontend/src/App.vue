@@ -2,7 +2,7 @@
   <div style="min-height:100vh">
     <ToastContainer />
     <AppTopNav v-if="auth.isAuthenticated" />
-    <main :class="route.meta.fullscreen ? 'min-h-screen flex items-center justify-center' : 'mx-auto max-w-[980px] px-5 py-8'">
+    <main :class="route.meta.fullscreen ? 'min-h-screen flex items-center justify-center' : 'mx-auto max-w-[1400px] px-6 py-8'">
       <RouterView />
     </main>
   </div>

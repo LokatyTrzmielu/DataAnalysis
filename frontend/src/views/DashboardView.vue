@@ -128,6 +128,44 @@
               <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Capacity not run</p>
             </div>
           </div>
+
+          <!-- Carrier breakdown table -->
+          <div v-if="carrierRows.length" class="card-apple" style="margin-top:12px;padding:0;overflow:hidden">
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--app-border)">
+                    <th style="text-align:left;padding:8px 12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.2px;white-space:nowrap">Carrier</th>
+                    <th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.2px;white-space:nowrap">Fit %</th>
+                    <th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.2px;white-space:nowrap">FIT</th>
+                    <th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.2px;white-space:nowrap">BORDERLINE</th>
+                    <th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.2px;white-space:nowrap">NOT FIT</th>
+                    <th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.2px;white-space:nowrap">Locations</th>
+                    <th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.2px;white-space:nowrap">Volume (m³)</th>
+                    <th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.2px;white-space:nowrap">Stock vol. (m³)</th>
+                    <th style="text-align:right;padding:8px 12px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.2px;white-space:nowrap">Filling rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(cs, i) in carrierRows"
+                    :key="cs.carrier_id"
+                    :style="i % 2 === 1 ? 'background:var(--app-surface-alt, rgba(0,0,0,0.02))' : ''"
+                  >
+                    <td style="padding:7px 12px;color:var(--app-text);font-weight:500;white-space:nowrap">{{ cs.carrier_name }}</td>
+                    <td style="padding:7px 12px;text-align:right;color:var(--app-text);font-variant-numeric:tabular-nums">{{ cs.fit_percentage.toFixed(1) }}%</td>
+                    <td style="padding:7px 12px;text-align:right;color:#1a9e5c;font-weight:600;font-variant-numeric:tabular-nums">{{ cs.fit_count.toLocaleString() }}</td>
+                    <td style="padding:7px 12px;text-align:right;color:#e07b00;font-variant-numeric:tabular-nums">{{ cs.borderline_count.toLocaleString() }}</td>
+                    <td style="padding:7px 12px;text-align:right;color:#d93025;font-variant-numeric:tabular-nums">{{ cs.not_fit_count.toLocaleString() }}</td>
+                    <td style="padding:7px 12px;text-align:right;color:var(--app-text);font-variant-numeric:tabular-nums">{{ cs.total_locations_required.toLocaleString() }}</td>
+                    <td style="padding:7px 12px;text-align:right;color:var(--app-text);font-variant-numeric:tabular-nums">{{ cs.total_volume_m3.toFixed(2) }}</td>
+                    <td style="padding:7px 12px;text-align:right;color:var(--app-text);font-variant-numeric:tabular-nums">{{ cs.stock_volume_m3.toFixed(2) }}</td>
+                    <td style="padding:7px 12px;text-align:right;color:var(--app-text);font-variant-numeric:tabular-nums">{{ (cs.avg_filling_rate * 100).toFixed(1) }}%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <!-- Cross-validation -->
@@ -225,7 +263,7 @@
     </div><!-- /left col -->
 
     <!-- Right: Recent analyses list -->
-    <div style="width:270px;flex-shrink:0;position:sticky;top:20px">
+    <div style="width:310px;flex-shrink:0;position:sticky;top:20px">
       <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Recent analyses</h3>
       <div v-if="runStore.loading" style="font-size:14px;color:var(--app-text-sec)">Loading…</div>
       <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:var(--app-text-sec)">
@@ -346,6 +384,12 @@ const capacity = computed(() => latestRun.value?.capacity_result ?? null)
 const quality  = computed(() => latestRun.value?.quality_result as any ?? null)
 const perf     = computed(() => latestRun.value?.performance_result ?? null)
 const ovr      = computed(() => latestRun.value?.orders_validation_result ?? null)
+
+const carrierRows = computed(() => {
+  const stats = capacity.value?.carrier_stats
+  if (!stats) return []
+  return Object.values(stats).filter(cs => cs.carrier_id !== 'NONE')
+})
 
 const avgDimensions = computed(() => {
   if (!capacity.value) return null
