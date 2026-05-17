@@ -46,6 +46,11 @@ const router = createRouter({
       component: () => import('@/views/tools/DataPreparationView.vue'),
     },
     {
+      path: '/tools/container-order',
+      name: 'container-order',
+      component: () => import('@/views/tools/ContainerOrderView.vue'),
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
