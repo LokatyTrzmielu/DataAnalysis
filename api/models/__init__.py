@@ -7,6 +7,7 @@ from api.models.carrier import Carrier
 from api.models.upload_staging import UploadStaging
 from api.models.dataset import Dataset
 from api.models.time_saving_event import TimeSavingEvent
+from api.models.container_order_plan import ContainerOrderPlan
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "UploadStaging",
     "Dataset",
     "TimeSavingEvent",
+    "ContainerOrderPlan",
 ]

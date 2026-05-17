@@ -55,6 +55,8 @@ class Variant:
     `cell_*_mm` are the inside dimensions of a single cell after dividers.
     `locations_per_bin` is how many cells one physical bin provides.
     `max_weight_kg_per_cell` is the proportional weight cap (bin cap / cells).
+    `frames_per_bin` is the EasyClick frame count (one base 138 mm + N frames
+    of 50 mm each); needed for procurement breakdown.
     """
 
     code: str  # e.g. "1/4-188" — used as variant_id everywhere
@@ -68,9 +70,16 @@ class Variant:
     max_weight_kg_per_cell: float
     cell_volume_L: float
     in_auto_catalog: bool
+    frames_per_bin: int = 0  # default for backwards compatibility — computed in
+                              # _build_catalog() from bin_height_mm
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+# Kardex VBM Box base bin is 138 mm; EasyClick frames add 50 mm each.
+BASE_BIN_HEIGHT_MM = 138
+FRAME_INCREMENT_MM = 50
 
 
 def _build_catalog() -> list[Variant]:
@@ -84,6 +93,7 @@ def _build_catalog() -> list[Variant]:
         for tier in HEIGHT_TIERS_MM:
             cell_h = tier - HEIGHT_FLOOR_LOSS_MM
             cell_vol_L = (fp_len * fp_wid * cell_h) / 1_000_000.0  # mm³ → L
+            frames_per_bin = (tier - BASE_BIN_HEIGHT_MM) // FRAME_INCREMENT_MM
             variants.append(Variant(
                 code=f"{fp_key}-{tier}",
                 footprint_key=fp_key,
@@ -96,6 +106,7 @@ def _build_catalog() -> list[Variant]:
                 max_weight_kg_per_cell=round(weight_per_cell, 3),
                 cell_volume_L=round(cell_vol_L, 3),
                 in_auto_catalog=in_auto,
+                frames_per_bin=frames_per_bin,
             ))
     return variants
 
@@ -121,6 +132,11 @@ class PlanParams:
     abc_classes: tuple[str, ...] = ("A", "B")  # subset of ("A","B","C"); empty = all
     only_machine: bool = True
     include_borderline: bool = True  # treat BORDERLINE same as FIT
+
+    # Missing-data handling
+    impute_missing_dimensions: bool = True  # True → fill 0/null length/width/height/weight
+                                            # with dataset median (and flag the SKU);
+                                            # False → orphan such SKUs
 
     # Volumetric knobs
     stock_multiplier: float = 1.0  # 0.5..3.0
@@ -157,6 +173,12 @@ class Assignment:
     height_mm: float
     weight_kg: float
     stock_volume_L: float
+    fit_status: str | None = None       # "FIT" | "BORDERLINE" — from the source
+                                         # MiB capacity row; surfaced so the UI
+                                         # and exports can flag tight fits
+    dimensions_imputed: bool = False  # True ⇒ length/width/height/weight came from
+                                       # dataset median, not the original row
+    orphan_reason: str | None = None   # populated only when variant_code is None
 
 
 @dataclass
@@ -171,8 +193,10 @@ class VariantSummary:
     locations_per_bin: int
     sku_count: int
     total_locations: int
-    bins_required: int
+    bins_required: int          # physical bins == bases (one base per bin)
     avg_fill_pct: float
+    frames_per_bin: int = 0      # EasyClick frames per bin (0/1/2/3)
+    total_frames_required: int = 0  # bins_required * frames_per_bin
 
 
 @dataclass
@@ -180,12 +204,13 @@ class ContainerPlan:
     assignments: list[Assignment]
     summaries: list[VariantSummary]
     orphans: list[Assignment]  # subset of assignments where variant_code is None
-    total_bins: int
+    total_bins: int            # also equals total bases (one base per physical bin)
     total_sku_planned: int
     total_sku_covered: int
     coverage_pct: float
     avg_fill_pct: float
     selected_variant_codes: list[str]
+    total_frames: int = 0      # sum of frames across all variants
     params_echo: dict = field(default_factory=dict)
 
 
@@ -207,11 +232,22 @@ def _sku_fits_variant(length: float, width: float, height: float, weight: float,
 
 def _locations_needed(stock_vol_L: float, v: Variant, fill_rate: float,
                       min_loc: int, max_loc: int) -> int:
+    """Locations required to hold ``stock_vol_L`` at the requested ``fill_rate``.
+
+    Returns 0 when the required number of locations exceeds ``max_loc`` — this
+    signals the caller that the SKU cannot be stored in this variant under the
+    user's per-SKU cap. ``_compute_fits`` then drops the variant from the SKU's
+    candidate set; if no variant survives the SKU becomes an orphan, which is
+    what the user expects when they tighten ``max_locations_per_sku``.
+    """
     if v.cell_volume_L <= 0:
-        return min_loc
+        # No volumetric info — reserve the minimum unless even that exceeds cap.
+        return min_loc if min_loc <= max_loc else 0
     raw = stock_vol_L / (v.cell_volume_L * fill_rate)
-    n = max(min_loc, math.ceil(raw))
-    return min(n, max_loc)
+    n_required = max(min_loc, math.ceil(raw))
+    if n_required > max_loc:
+        return 0
+    return n_required
 
 
 def _select_capacity_rows(capacity_result: dict | None) -> list[dict]:
@@ -239,19 +275,35 @@ def _abc_map(performance_result: dict | None) -> dict[str, dict]:
 
 
 def _filter_skus(rows: list[dict], abc: dict[str, dict], params: PlanParams) -> list[dict]:
-    """Apply ABC, recommendation, fit-status filters. Returns surviving rows."""
+    """Apply ABC, recommendation, fit-status filters. Returns surviving rows.
+
+    Filter mode depends on whether Performance data exists for the run:
+
+    * **Strict** (``abc`` non-empty — Performance was run): a SKU without a
+      ``sku_pareto`` entry is excluded whenever the user opted into a specific
+      ABC subset or toggled ``only_machine`` on. The user explicitly picked
+      a constraint, and a SKU we don't know anything about cannot be assumed
+      to satisfy it — leaking such SKUs into the plan shows up in the UI as
+      rows with "—" in the ABC / Recom. columns, which is confusing.
+
+    * **Lenient** (``abc`` empty — Performance not run): both ABC and
+      ``only_machine`` filters are skipped. The user hasn't classified their
+      SKUs yet; they should still be able to plan containers using just
+      Masterdata + Capacity.
+    """
     allowed_fit = {"FIT", "BORDERLINE"} if params.include_borderline else {"FIT"}
     abc_set = set(params.abc_classes) if params.abc_classes else None
+    perf_available = bool(abc)
     out: list[dict] = []
     for row in rows:
         if row.get("fit_status") not in allowed_fit:
             continue
         meta = abc.get(row["sku"])
-        if abc_set is not None and meta is not None:
-            if meta.get("abc_class") not in abc_set:
+        if abc_set is not None and perf_available:
+            if meta is None or meta.get("abc_class") not in abc_set:
                 continue
-        if params.only_machine and meta is not None:
-            if meta.get("recommendation") != "Machine":
+        if params.only_machine and perf_available:
+            if meta is None or meta.get("recommendation") != "Machine":
                 continue
         out.append(row)
     return out
@@ -286,40 +338,124 @@ class _SkuFit:
     abc_class: str | None
     recommendation: str | None
     candidates: dict[str, tuple[int, float]]  # variant_code → (locations, fill_pct)
+    # Effective values (may be imputed). These are what the planner used and what
+    # ``_plan_from_selection`` echoes into the Assignment so the UI shows what was
+    # actually fed to the matcher.
+    length_mm: float = 0.0
+    width_mm: float = 0.0
+    height_mm: float = 0.0
+    weight_kg: float = 0.0
+    stock_volume_L: float = 0.0  # post stock_multiplier
+    fit_status: str | None = None
+    dimensions_imputed: bool = False
+    orphan_reason: str | None = None
+
+
+_DIM_FIELDS = ("length_mm", "width_mm", "height_mm", "weight_kg")
+
+
+def _dataset_medians(rows: list[dict]) -> dict[str, float]:
+    """Median of each dimension/weight across rows with a non-zero value.
+
+    Falls back to ``0.0`` when no row in the dataset has a valid value for the
+    field — which makes imputation a no-op for that field (the SKU then still
+    fails the geometric check and ends up as an orphan).
+    """
+    out: dict[str, float] = {}
+    for field in _DIM_FIELDS:
+        values = sorted(
+            float(r.get(field) or 0) for r in rows
+            if r.get(field) is not None and float(r.get(field) or 0) > 0
+        )
+        if not values:
+            out[field] = 0.0
+            continue
+        mid = len(values) // 2
+        out[field] = values[mid] if len(values) % 2 else (values[mid - 1] + values[mid]) / 2
+    return out
+
+
+def _row_has_missing_dims(row: dict) -> bool:
+    return any(
+        row.get(f) is None or float(row.get(f) or 0) <= 0
+        for f in _DIM_FIELDS
+    )
 
 
 def _compute_fits(rows: list[dict], abc: dict[str, dict], catalog: list[Variant],
                   params: PlanParams) -> list[_SkuFit]:
+    medians = _dataset_medians(rows) if params.impute_missing_dimensions else {}
     fits: list[_SkuFit] = []
     for row in rows:
         sku = row["sku"]
-        length = float(row.get("length_mm") or 0)
-        width = float(row.get("width_mm") or 0)
-        height = float(row.get("height_mm") or 0)
-        weight = float(row.get("weight_kg") or 0)
+        raw_length = float(row.get("length_mm") or 0)
+        raw_width = float(row.get("width_mm") or 0)
+        raw_height = float(row.get("height_mm") or 0)
+        raw_weight = float(row.get("weight_kg") or 0)
+        has_missing = _row_has_missing_dims(row)
+
+        meta = abc.get(sku) or {}
+
+        # Handle missing data per user preference.
+        if has_missing and not params.impute_missing_dimensions:
+            fits.append(_SkuFit(
+                sku=sku, row=row,
+                abc_class=meta.get("abc_class"),
+                recommendation=meta.get("recommendation"),
+                candidates={},
+                length_mm=raw_length, width_mm=raw_width,
+                height_mm=raw_height, weight_kg=raw_weight,
+                stock_volume_L=float(row.get("stored_volume_L") or 0) * params.stock_multiplier,
+                fit_status=row.get("fit_status"),
+                dimensions_imputed=False,
+                orphan_reason="missing_dimensions",
+            ))
+            continue
+
+        if has_missing:
+            length = raw_length if raw_length > 0 else medians.get("length_mm", 0.0)
+            width = raw_width if raw_width > 0 else medians.get("width_mm", 0.0)
+            height = raw_height if raw_height > 0 else medians.get("height_mm", 0.0)
+            weight = raw_weight if raw_weight > 0 else medians.get("weight_kg", 0.0)
+            imputed = (length, width, height, weight) != (raw_length, raw_width, raw_height, raw_weight)
+        else:
+            length, width, height, weight = raw_length, raw_width, raw_height, raw_weight
+            imputed = False
+
         stock_vol_L = float(row.get("stored_volume_L") or 0) * params.stock_multiplier
 
         candidates: dict[str, tuple[int, float]] = {}
-        for v in catalog:
-            if not _sku_fits_variant(length, width, height, weight, v):
-                continue
-            locs = _locations_needed(
-                stock_vol_L, v, params.location_fill_rate,
-                params.min_locations_per_sku, params.max_locations_per_sku,
-            )
-            if locs <= 0:
-                continue
-            used_vol = stock_vol_L
-            total_cell_vol = locs * v.cell_volume_L
-            fill_pct = (used_vol / total_cell_vol * 100) if total_cell_vol > 0 else 0.0
-            candidates[v.code] = (locs, round(fill_pct, 2))
+        # If even after imputation we still have a zero dimension, the SKU cannot
+        # be planned — falls through with empty candidates and is orphaned.
+        if length > 0 and width > 0 and height > 0:
+            for v in catalog:
+                if not _sku_fits_variant(length, width, height, weight, v):
+                    continue
+                locs = _locations_needed(
+                    stock_vol_L, v, params.location_fill_rate,
+                    params.min_locations_per_sku, params.max_locations_per_sku,
+                )
+                if locs <= 0:
+                    continue
+                used_vol = stock_vol_L
+                total_cell_vol = locs * v.cell_volume_L
+                fill_pct = (used_vol / total_cell_vol * 100) if total_cell_vol > 0 else 0.0
+                candidates[v.code] = (locs, round(fill_pct, 2))
 
-        meta = abc.get(sku) or {}
+        orphan_reason = None
+        if not candidates:
+            orphan_reason = "missing_dimensions" if has_missing else "no_fitting_variant"
+
         fits.append(_SkuFit(
             sku=sku, row=row,
             abc_class=meta.get("abc_class"),
             recommendation=meta.get("recommendation"),
             candidates=candidates,
+            length_mm=length, width_mm=width, height_mm=height, weight_kg=weight,
+            stock_volume_L=stock_vol_L,
+            fit_status=row.get("fit_status"),
+            dimensions_imputed=imputed,
+            orphan_reason=orphan_reason,
         ))
     return fits
 
@@ -421,17 +557,18 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
 
     for f in fits:
         v_code = _best_variant_for_sku(f, selection, by_variant, goal)
-        row = f.row
-        stock_L = float(row.get("stored_volume_L") or 0) * params.stock_multiplier
         if v_code is None:
+            # Orphan from any cause — preserve reason set by ``_compute_fits``.
+            reason = f.orphan_reason or "no_fitting_variant"
             a = Assignment(
                 sku=f.sku, variant_code=None, locations=0, bins=0, cell_fill_pct=0.0,
                 abc_class=f.abc_class, recommendation=f.recommendation,
-                length_mm=float(row.get("length_mm") or 0),
-                width_mm=float(row.get("width_mm") or 0),
-                height_mm=float(row.get("height_mm") or 0),
-                weight_kg=float(row.get("weight_kg") or 0),
-                stock_volume_L=round(stock_L, 3),
+                length_mm=f.length_mm, width_mm=f.width_mm,
+                height_mm=f.height_mm, weight_kg=f.weight_kg,
+                stock_volume_L=round(f.stock_volume_L, 3),
+                fit_status=f.fit_status,
+                dimensions_imputed=f.dimensions_imputed,
+                orphan_reason=reason,
             )
             orphans.append(a)
             assignments.append(a)
@@ -442,11 +579,12 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
         a = Assignment(
             sku=f.sku, variant_code=v_code, locations=locs, bins=bins_for_sku,
             cell_fill_pct=fill, abc_class=f.abc_class, recommendation=f.recommendation,
-            length_mm=float(row.get("length_mm") or 0),
-            width_mm=float(row.get("width_mm") or 0),
-            height_mm=float(row.get("height_mm") or 0),
-            weight_kg=float(row.get("weight_kg") or 0),
-            stock_volume_L=round(stock_L, 3),
+            length_mm=f.length_mm, width_mm=f.width_mm,
+            height_mm=f.height_mm, weight_kg=f.weight_kg,
+            stock_volume_L=round(f.stock_volume_L, 3),
+            fit_status=f.fit_status,
+            dimensions_imputed=f.dimensions_imputed,
+            orphan_reason=None,
         )
         assignments.append(a)
         locs_per_variant[v_code] += locs
@@ -455,6 +593,7 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
 
     summaries: list[VariantSummary] = []
     total_bins = 0
+    total_frames = 0
     fill_acc = 0.0
     fill_n = 0
     for code, locs in locs_per_variant.items():
@@ -463,6 +602,8 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
         v = by_variant[code]
         bins = math.ceil(locs / v.locations_per_bin)
         total_bins += bins
+        frames_for_variant = bins * v.frames_per_bin
+        total_frames += frames_for_variant
         sku_n = skus_per_variant[code]
         avg_fill = (fill_sum_per_variant[code] / sku_n) if sku_n else 0.0
         fill_acc += fill_sum_per_variant[code]
@@ -480,6 +621,8 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
             total_locations=locs,
             bins_required=bins,
             avg_fill_pct=round(avg_fill, 2),
+            frames_per_bin=v.frames_per_bin,
+            total_frames_required=frames_for_variant,
         ))
     # Sort summaries: most bins first.
     summaries.sort(key=lambda s: (-s.bins_required, s.code))
@@ -499,6 +642,7 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
         coverage_pct=round(coverage, 2),
         avg_fill_pct=avg_fill,
         selected_variant_codes=[s.code for s in summaries],
+        total_frames=total_frames,
         params_echo=asdict(params),
     )
 

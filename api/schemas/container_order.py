@@ -7,17 +7,29 @@ from pydantic import BaseModel, Field
 
 
 class EligibleAnalysis(BaseModel):
-    """One completed analysis suitable for container ordering (uses MiB carrier)."""
+    """One completed analysis suitable for container ordering (uses MiB carrier).
+
+    Holds both global stats (whole dataset, may include other carriers) and
+    MiB-specific stats. The tool only plans SKUs that fit MiB, so the
+    ``mib_*`` numbers are what the user should look at.
+    """
 
     run_id: str
     client_name: str
     status: str
     created_at: datetime
-    sku_count: int
-    fit_count: int
-    fit_pct: float
+    sku_count: int            # total unique SKUs in dataset
+    fit_count: int            # global FIT (best status across analyzed carriers)
+    fit_pct: float            # global FIT+BORDERLINE share
     has_performance: bool
     abc_distribution: dict[str, int] = Field(default_factory=dict)  # {"A": n, "B": n, "C": n}
+    # MiB-specific (the SKUs actually planned by this tool)
+    mib_fit_count: int = 0
+    mib_borderline_count: int = 0
+    mib_not_fit_count: int = 0
+    mib_fit_pct: float = 0.0
+    mib_planned_sku: int = 0          # FIT + BORDERLINE for MiB
+    carriers_analyzed: list[str] = Field(default_factory=list)
 
 
 class PlanParamsRequest(BaseModel):
@@ -26,6 +38,7 @@ class PlanParamsRequest(BaseModel):
     abc_classes: list[str] = ["A", "B"]
     only_machine: bool = True
     include_borderline: bool = True
+    impute_missing_dimensions: bool = True
 
     stock_multiplier: float = 1.0
     location_fill_rate: float = 0.9
@@ -68,6 +81,9 @@ class AssignmentRow(BaseModel):
     height_mm: float
     weight_kg: float
     stock_volume_L: float
+    fit_status: Optional[str] = None
+    dimensions_imputed: bool = False
+    orphan_reason: Optional[str] = None
 
 
 class VariantSummaryRow(BaseModel):
@@ -83,12 +99,16 @@ class VariantSummaryRow(BaseModel):
     total_locations: int
     bins_required: int
     avg_fill_pct: float
+    # Procurement breakdown — EasyClick frame count needed to build N bins of
+    # this variant. Each bin = 1 base (138 mm) + frames_per_bin frames (50 mm each).
+    frames_per_bin: int = 0
+    total_frames_required: int = 0
 
 
 class ContainerPlanResponse(BaseModel):
     run_id: str
     client_name: str
-    total_bins: int
+    total_bins: int             # also equals total bases (one base per physical bin)
     total_sku_planned: int
     total_sku_covered: int
     coverage_pct: float
@@ -98,6 +118,7 @@ class ContainerPlanResponse(BaseModel):
     assignments: list[AssignmentRow]
     orphans: list[AssignmentRow]
     params_echo: dict[str, Any]
+    total_frames: int = 0       # aggregate EasyClick frame count across all variants
 
 
 class CatalogResponse(BaseModel):
@@ -110,3 +131,57 @@ class ExportRequest(BaseModel):
     params: PlanParamsRequest
     plan: ContainerPlanResponse
     format: Literal["xlsx", "pdf", "csv"]
+
+
+# ── Saved plans (history) ──────────────────────────────────────────────────
+
+
+class SavedPlanCreate(BaseModel):
+    """Body for POST /plans — frontend ships the params + plan it currently
+    holds in the Pinia store; server snapshots them under the user's account."""
+
+    run_id: str
+    label: Optional[str] = None
+    notes: Optional[str] = None
+    params: PlanParamsRequest
+    plan: ContainerPlanResponse
+
+
+class SavedPlanPatch(BaseModel):
+    """PATCH body for renaming / annotating a saved plan."""
+
+    label: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class SavedPlanResponse(BaseModel):
+    """List-view of a saved plan — lightweight (no full plan/params blobs).
+    Used by GET /plans and POST /plans."""
+
+    id: str
+    label: str
+    client_name: str
+    source_run_id: Optional[str] = None
+    source_run_available: bool
+    created_at: datetime
+    updated_at: datetime
+    # Headline KPIs lifted from the plan snapshot:
+    total_bins: int
+    total_frames: int
+    total_sku_covered: int
+    coverage_pct: float
+    mode: str
+    notes: Optional[str] = None
+
+
+class SavedPlanDetail(SavedPlanResponse):
+    """Full detail — includes the original params and the full plan snapshot,
+    enough to restore the Calculation tab UI state from history."""
+
+    params: PlanParamsRequest
+    plan: ContainerPlanResponse
+
+
+class SavedPlanListResponse(BaseModel):
+    items: list[SavedPlanResponse]
+    total: int

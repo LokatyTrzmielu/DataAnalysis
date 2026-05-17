@@ -7,14 +7,16 @@ completed analysis. See src/analytics/container_planner.py for the algorithm.
 from __future__ import annotations
 
 import io
+from datetime import datetime, timezone
 from typing import Iterable
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_current_user, get_db
 from api.models.analysis_run import AnalysisRun
+from api.models.container_order_plan import ContainerOrderPlan
 from api.models.run_share import RunShare
 from api.models.user import User
 from api.schemas.container_order import (
@@ -24,6 +26,11 @@ from api.schemas.container_order import (
     EligibleAnalysis,
     ExportRequest,
     PlanParamsRequest,
+    SavedPlanCreate,
+    SavedPlanDetail,
+    SavedPlanListResponse,
+    SavedPlanPatch,
+    SavedPlanResponse,
     VariantInfo,
     VariantSummaryRow,
 )
@@ -35,6 +42,21 @@ router = APIRouter(prefix="/api/v1/tools/container-order", tags=["tools-containe
 def _has_mib(run: AnalysisRun) -> bool:
     cap = run.capacity_result or {}
     return cp.MIB_CARRIER_ID in (cap.get("carriers_analyzed") or [])
+
+
+def _mib_stats(run: AnalysisRun) -> tuple[int, int, int, float]:
+    """Return (fit, borderline, not_fit, fit_pct) for the MiB carrier.
+
+    Falls back to zeros for older runs that don't carry per-carrier stats.
+    """
+    cap = run.capacity_result or {}
+    stats = (cap.get("carrier_stats") or {}).get(cp.MIB_CARRIER_ID) or {}
+    return (
+        int(stats.get("fit_count") or 0),
+        int(stats.get("borderline_count") or 0),
+        int(stats.get("not_fit_count") or 0),
+        float(stats.get("fit_percentage") or 0.0),
+    )
 
 
 def _abc_counts(run: AnalysisRun) -> dict[str, int]:
@@ -52,6 +74,7 @@ def _params_to_dataclass(p: PlanParamsRequest) -> cp.PlanParams:
         abc_classes=tuple(p.abc_classes),
         only_machine=p.only_machine,
         include_borderline=p.include_borderline,
+        impute_missing_dimensions=p.impute_missing_dimensions,
         stock_multiplier=p.stock_multiplier,
         location_fill_rate=p.location_fill_rate,
         min_locations_per_sku=p.min_locations_per_sku,
@@ -78,6 +101,7 @@ def _plan_to_response(run: AnalysisRun, plan: cp.ContainerPlan) -> ContainerPlan
         assignments=[AssignmentRow(**a.__dict__) for a in plan.assignments],
         orphans=[AssignmentRow(**a.__dict__) for a in plan.orphans],
         params_echo=plan.params_echo,
+        total_frames=plan.total_frames,
     )
 
 
@@ -125,6 +149,7 @@ async def list_eligible_analyses(
         if not _has_mib(run):
             continue
         cap = run.capacity_result or {}
+        mib_fit, mib_borderline, mib_not_fit, mib_pct = _mib_stats(run)
         items.append(EligibleAnalysis(
             run_id=run.id,
             client_name=run.client_name,
@@ -135,6 +160,12 @@ async def list_eligible_analyses(
             fit_pct=float(cap.get("fit_percentage") or 0.0),
             has_performance=bool(run.performance_result),
             abc_distribution=_abc_counts(run),
+            mib_fit_count=mib_fit,
+            mib_borderline_count=mib_borderline,
+            mib_not_fit_count=mib_not_fit,
+            mib_fit_pct=mib_pct,
+            mib_planned_sku=mib_fit + mib_borderline,
+            carriers_analyzed=list(cap.get("carriers_analyzed") or []),
         ))
     return items
 
@@ -179,11 +210,11 @@ async def export_plan(
 
     if body.format == "xlsx":
         from api.excel_generator import generate_order_xlsx
-        data = generate_order_xlsx(plan, body.params, run)
+        data = generate_order_xlsx(plan, body.params, run, current_user)
         media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     elif body.format == "pdf":
         from api.pdf_generator import generate_container_order_pdf
-        data = generate_container_order_pdf(plan, body.params, run)
+        data = generate_container_order_pdf(plan, body.params, run, current_user)
         media = "application/pdf"
     elif body.format == "csv":
         data = _generate_summary_csv(plan)
@@ -199,14 +230,179 @@ async def export_plan(
 
 
 def _generate_summary_csv(plan: ContainerPlanResponse) -> bytes:
-    """One-sheet summary CSV — same columns as Sheet 1 in the xlsx."""
+    """One-sheet summary CSV — same columns as Sheet 1 in the xlsx, including
+    the Bases / Frames procurement breakdown."""
     buf = io.StringIO()
-    buf.write("variant_code;footprint;bin_height_mm;cell_LxWxH_mm;locations_per_bin;sku_count;total_locations;bins_required;avg_fill_pct\n")
+    buf.write(
+        "variant_code;footprint;bin_height_mm;cell_LxWxH_mm;locations_per_bin;"
+        "sku_count;total_locations;bins_required;bases;frames;avg_fill_pct\n"
+    )
     for s in plan.summaries:
         cell = f"{s.cell_length_mm}x{s.cell_width_mm}x{s.cell_height_mm}"
         buf.write(
             f"{s.code};{s.footprint_label};{s.bin_height_mm};{cell};{s.locations_per_bin};"
-            f"{s.sku_count};{s.total_locations};{s.bins_required};{s.avg_fill_pct}\n"
+            f"{s.sku_count};{s.total_locations};{s.bins_required};"
+            f"{s.bins_required};{s.total_frames_required};{s.avg_fill_pct}\n"
         )
-    buf.write(f"\nTOTAL;;;;;{plan.total_sku_covered};;{plan.total_bins};{plan.avg_fill_pct}\n")
+    buf.write(
+        f"\nTOTAL;;;;;{plan.total_sku_covered};;{plan.total_bins};"
+        f"{plan.total_bins};{plan.total_frames};{plan.avg_fill_pct}\n"
+    )
     return buf.getvalue().encode("utf-8-sig")
+
+
+# ── Saved plans (history) ──────────────────────────────────────────────────
+
+
+async def _get_owned_saved_plan(plan_id: str, db: AsyncSession, user: User) -> ContainerOrderPlan:
+    """Owner-only access for v1 (no sharing yet). 404 if missing, 403 if not owner."""
+    row = (await db.execute(
+        select(ContainerOrderPlan).where(ContainerOrderPlan.id == plan_id)
+    )).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Saved plan not found")
+    if row.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return row
+
+
+async def _existing_run_ids(db: AsyncSession, run_ids: Iterable[str]) -> set[str]:
+    """Return the subset of run_ids that still exist in analysis_runs."""
+    ids = [rid for rid in run_ids if rid]
+    if not ids:
+        return set()
+    rows = (await db.execute(
+        select(AnalysisRun.id).where(AnalysisRun.id.in_(ids))
+    )).scalars().all()
+    return set(rows)
+
+
+def _saved_plan_response(p: ContainerOrderPlan, source_run_available: bool) -> SavedPlanResponse:
+    plan_snapshot = p.plan or {}
+    params_snapshot = p.params or {}
+    return SavedPlanResponse(
+        id=p.id,
+        label=p.label,
+        client_name=p.client_name,
+        source_run_id=p.source_run_id,
+        source_run_available=source_run_available,
+        created_at=p.created_at,
+        updated_at=p.updated_at,
+        total_bins=int(plan_snapshot.get("total_bins") or 0),
+        total_frames=int(plan_snapshot.get("total_frames") or 0),
+        total_sku_covered=int(plan_snapshot.get("total_sku_covered") or 0),
+        coverage_pct=float(plan_snapshot.get("coverage_pct") or 0.0),
+        mode=str(params_snapshot.get("mode") or ""),
+        notes=p.notes,
+    )
+
+
+@router.post("/plans", response_model=SavedPlanResponse, status_code=201)
+async def save_plan(
+    body: SavedPlanCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SavedPlanResponse:
+    """Save the current computed plan to the user's history.
+
+    The frontend ships back the full PlanParamsRequest + ContainerPlanResponse
+    it has in store, so the server doesn't recompute. Snapshots are immutable
+    against later changes to the source AnalysisRun.
+    """
+    run = await _get_accessible_run(body.run_id, db, current_user)
+    default_label = f"{run.client_name} — {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+    label = (body.label or "").strip() or default_label
+
+    saved = ContainerOrderPlan(
+        owner_id=current_user.id,
+        source_run_id=run.id,
+        label=label,
+        client_name=run.client_name,
+        params=body.params.model_dump(),
+        plan=body.plan.model_dump(),
+        notes=(body.notes or None),
+    )
+    db.add(saved)
+    await db.commit()
+    await db.refresh(saved)
+    return _saved_plan_response(saved, source_run_available=True)
+
+
+@router.get("/plans", response_model=SavedPlanListResponse)
+async def list_saved_plans(
+    page: int = 1,
+    page_size: int = 20,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SavedPlanListResponse:
+    """Paginated history list for the current user, newest first."""
+    page = max(1, page)
+    page_size = max(1, min(100, page_size))
+
+    base = select(ContainerOrderPlan).where(ContainerOrderPlan.owner_id == current_user.id)
+    total = (await db.execute(
+        select(func.count()).select_from(base.subquery())
+    )).scalar_one()
+
+    rows: list[ContainerOrderPlan] = (await db.execute(
+        base.order_by(ContainerOrderPlan.created_at.desc())
+            .offset((page - 1) * page_size).limit(page_size)
+    )).scalars().all()
+
+    alive = await _existing_run_ids(db, [r.source_run_id for r in rows if r.source_run_id])
+    items = [
+        _saved_plan_response(r, source_run_available=(r.source_run_id in alive))
+        for r in rows
+    ]
+    return SavedPlanListResponse(items=items, total=int(total))
+
+
+@router.get("/plans/{plan_id}", response_model=SavedPlanDetail)
+async def get_saved_plan(
+    plan_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SavedPlanDetail:
+    """Full snapshot — used to restore the Calculation tab from history."""
+    row = await _get_owned_saved_plan(plan_id, db, current_user)
+    alive = await _existing_run_ids(db, [row.source_run_id] if row.source_run_id else [])
+    base = _saved_plan_response(row, source_run_available=(row.source_run_id in alive))
+    return SavedPlanDetail(
+        **base.model_dump(),
+        params=PlanParamsRequest(**(row.params or {})),
+        plan=ContainerPlanResponse(**(row.plan or {})),
+    )
+
+
+@router.patch("/plans/{plan_id}", response_model=SavedPlanResponse)
+async def patch_saved_plan(
+    plan_id: str,
+    body: SavedPlanPatch,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SavedPlanResponse:
+    """Rename or update notes on a saved plan. Owner only."""
+    row = await _get_owned_saved_plan(plan_id, db, current_user)
+    if body.label is not None:
+        label = body.label.strip()
+        if label:
+            row.label = label
+    if body.notes is not None:
+        row.notes = body.notes.strip() or None
+    row.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(row)
+    alive = await _existing_run_ids(db, [row.source_run_id] if row.source_run_id else [])
+    return _saved_plan_response(row, source_run_available=(row.source_run_id in alive))
+
+
+@router.delete("/plans/{plan_id}", status_code=204)
+async def delete_saved_plan(
+    plan_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    row = await _get_owned_saved_plan(plan_id, db, current_user)
+    await db.delete(row)
+    await db.commit()
+    return Response(status_code=204)

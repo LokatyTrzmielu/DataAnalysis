@@ -5,11 +5,18 @@ export interface EligibleAnalysis {
   client_name: string
   status: string
   created_at: string
-  sku_count: number
-  fit_count: number
-  fit_pct: number
+  sku_count: number          // total unique SKUs in dataset
+  fit_count: number          // global FIT (best across analyzed carriers)
+  fit_pct: number            // global FIT+BORDERLINE %
   has_performance: boolean
   abc_distribution: Record<string, number>
+  // MiB-specific — what the planner actually uses
+  mib_fit_count: number
+  mib_borderline_count: number
+  mib_not_fit_count: number
+  mib_fit_pct: number
+  mib_planned_sku: number    // FIT + BORDERLINE for MiB
+  carriers_analyzed: string[]
 }
 
 export interface VariantInfo {
@@ -30,6 +37,7 @@ export interface PlanParams {
   abc_classes: string[]
   only_machine: boolean
   include_borderline: boolean
+  impute_missing_dimensions: boolean
   stock_multiplier: number
   location_fill_rate: number
   min_locations_per_sku: number
@@ -54,6 +62,9 @@ export interface AssignmentRow {
   height_mm: number
   weight_kg: number
   stock_volume_L: number
+  fit_status: string | null
+  dimensions_imputed: boolean
+  orphan_reason: string | null
 }
 
 export interface VariantSummaryRow {
@@ -67,14 +78,16 @@ export interface VariantSummaryRow {
   locations_per_bin: number
   sku_count: number
   total_locations: number
-  bins_required: number
+  bins_required: number       // also = bases (1 base per bin)
   avg_fill_pct: number
+  frames_per_bin: number
+  total_frames_required: number
 }
 
 export interface ContainerPlan {
   run_id: string
   client_name: string
-  total_bins: number
+  total_bins: number           // also = total bases
   total_sku_planned: number
   total_sku_covered: number
   coverage_pct: number
@@ -84,11 +97,45 @@ export interface ContainerPlan {
   assignments: AssignmentRow[]
   orphans: AssignmentRow[]
   params_echo: Record<string, unknown>
+  total_frames: number
 }
 
 export interface CatalogResponse {
   auto_codes: string[]
   full: VariantInfo[]
+}
+
+// ── Saved plans (history) ────────────────────────────────────────────────
+
+export interface SavedPlanResponse {
+  id: string
+  label: string
+  client_name: string
+  source_run_id: string | null
+  source_run_available: boolean
+  created_at: string
+  updated_at: string
+  total_bins: number
+  total_frames: number
+  total_sku_covered: number
+  coverage_pct: number
+  mode: string
+  notes: string | null
+}
+
+export interface SavedPlanDetail extends SavedPlanResponse {
+  params: PlanParams
+  plan: ContainerPlan
+}
+
+export interface SavedPlanListResponse {
+  items: SavedPlanResponse[]
+  total: number
+}
+
+export interface SavedPlanPatch {
+  label?: string | null
+  notes?: string | null
 }
 
 export const containerOrderApi = {
@@ -107,6 +154,36 @@ export const containerOrderApi = {
       { run_id: runId, params, plan, format },
       { responseType: 'blob' },
     ),
+
+  // history
+  listSavedPlans: (page = 1, pageSize = 20) =>
+    client.get<SavedPlanListResponse>('/tools/container-order/plans', {
+      params: { page, page_size: pageSize },
+    }),
+
+  savePlan: (
+    runId: string,
+    params: PlanParams,
+    plan: ContainerPlan,
+    label?: string,
+    notes?: string,
+  ) =>
+    client.post<SavedPlanResponse>('/tools/container-order/plans', {
+      run_id: runId,
+      params,
+      plan,
+      label: label || null,
+      notes: notes || null,
+    }),
+
+  getSavedPlan: (planId: string) =>
+    client.get<SavedPlanDetail>(`/tools/container-order/plans/${planId}`),
+
+  patchSavedPlan: (planId: string, patch: SavedPlanPatch) =>
+    client.patch<SavedPlanResponse>(`/tools/container-order/plans/${planId}`, patch),
+
+  deleteSavedPlan: (planId: string) =>
+    client.delete(`/tools/container-order/plans/${planId}`),
 }
 
 export function defaultParams(): PlanParams {
@@ -114,6 +191,7 @@ export function defaultParams(): PlanParams {
     abc_classes: ['A', 'B'],
     only_machine: true,
     include_borderline: true,
+    impute_missing_dimensions: true,
     stock_multiplier: 1.0,
     location_fill_rate: 0.9,
     min_locations_per_sku: 1,

@@ -1,12 +1,12 @@
 <template>
   <div ref="containerRef" class="bin3d-container">
     <div v-if="!variant" class="bin3d-empty">
-      Wybierz wariant po lewej, by zobaczyć podgląd 3D.
+      Pick a variant on the left to see the 3D preview.
     </div>
     <div class="bin3d-caption" v-if="variant">
-      <span style="font-weight:600">{{ variant.code }}</span>
-      <span style="color:var(--app-text-sec);margin-left:6px">
-        — {{ variant.locations_per_bin }} komór, {{ variant.cell_length_mm }}×{{ variant.cell_width_mm }}×{{ variant.cell_height_mm }} mm
+      <span class="caption-primary">{{ variant.code }}</span>
+      <span class="caption-secondary">
+        — {{ variant.locations_per_bin }} cells, {{ variant.cell_length_mm }}×{{ variant.cell_width_mm }}×{{ variant.cell_height_mm }} mm
       </span>
     </div>
   </div>
@@ -43,7 +43,7 @@ const FLOOR_COLOR = 0x2e587f
 
 function setup(el: HTMLDivElement) {
   scene = new THREE.Scene()
-  scene.background = new THREE.Color(0xf3f4f6)
+  scene.background = new THREE.Color(currentSceneBg())
 
   const width = el.clientWidth || 400
   const height = el.clientHeight || 320
@@ -192,16 +192,30 @@ function handleResize() {
   renderer.setSize(w, h)
 }
 
+function currentSceneBg(): number {
+  return document.documentElement.classList.contains('dark') ? 0x1c1c1e : 0xf3f4f6
+}
+
+let themeObserver: MutationObserver | null = null
+function watchTheme() {
+  themeObserver = new MutationObserver(() => {
+    if (scene) scene.background = new THREE.Color(currentSceneBg())
+  })
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+}
+
 onMounted(() => {
   if (!containerRef.value) return
   setup(containerRef.value)
   if (props.variant) buildBin(props.variant)
   window.addEventListener('resize', handleResize)
+  watchTheme()
 })
 
 onBeforeUnmount(() => {
   cancelAnimationFrame(frameId)
   window.removeEventListener('resize', handleResize)
+  if (themeObserver) themeObserver.disconnect()
   if (renderer) {
     renderer.dispose()
     renderer.domElement.remove()
@@ -235,18 +249,26 @@ watch(() => props.variant, (v) => {
   text-align: center;
   padding: 16px;
 }
+/* Single color for the whole chip; secondary span fades via opacity so we
+   never have to worry about a per-span dark-mode override missing. */
 .bin3d-caption {
   position: absolute;
   left: 12px;
   bottom: 10px;
   font-size: 11.5px;
-  background: rgba(255, 255, 255, 0.92);
+  background: #ffffff;
+  color: #1d1d1f;
   padding: 4px 8px;
   border-radius: 6px;
+  border: 1px solid var(--app-border);
   pointer-events: none;
 }
+.bin3d-caption .caption-primary { font-weight: 600; }
+.bin3d-caption .caption-secondary { opacity: 0.7; margin-left: 6px; }
+
 :global(html.dark) .bin3d-caption {
-  background: rgba(31, 41, 55, 0.92);
-  color: #e5e7eb;
+  background: #1d1d1f;
+  color: #f5f5f7;
+  border-color: rgba(255, 255, 255, 0.22);
 }
 </style>

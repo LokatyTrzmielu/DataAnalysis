@@ -15,12 +15,12 @@
       >{{ variant.bin_height_mm }}mm</span>
     </div>
 
-    <svg :viewBox="`0 0 ${vbW} ${vbH}`" class="block mb-1.5" style="width:100%;height:62px">
-      <rect x="0" y="0" :width="vbW" :height="vbH" fill="#f3f4f6" stroke="#cbd5e1" stroke-width="2" rx="4"/>
+    <svg :viewBox="`0 0 ${vbW} ${vbH}`" class="block mb-1.5 variant-card-svg" style="width:100%" preserveAspectRatio="xMidYMid meet">
+      <rect x="0" y="0" :width="vbW" :height="vbH" class="bin-bg" stroke-width="2" rx="4"/>
       <g v-for="(c, i) in cells" :key="i">
         <rect
           :x="c.x" :y="c.y" :width="c.w" :height="c.h"
-          fill="#dbeafe" stroke="#0071e3" stroke-width="1.5"
+          class="bin-cell" stroke-width="1.5"
         />
       </g>
     </svg>
@@ -80,14 +80,30 @@ const cells = computed(() => {
 
 <style scoped>
 .variant-card {
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
+  height: 100%;
   background: var(--app-surface);
   border: 1px solid var(--app-border);
   border-radius: 10px;
   padding: 8px 10px;
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease;
+  text-align: left;
+  overflow: hidden;             /* prevent dimension/counter text from spilling out
+                                   when the card is squeezed by a tight grid row */
+}
+.variant-card > svg {
+  flex: 1 1 0;                  /* shrink to whatever is left after header + counters */
+  min-height: 0;
+  max-height: 100%;
+}
+.variant-card > p {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .variant-card:hover {
   border-color: #0071e3;
@@ -97,4 +113,10 @@ const cells = computed(() => {
   background: rgba(0, 113, 227, 0.06);
   box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25);
 }
+
+/* Bin schematic uses CSS-driven fills/strokes so it adapts to dark mode. */
+.variant-card-svg .bin-bg { fill: #f3f4f6; stroke: #cbd5e1; }
+.variant-card-svg .bin-cell { fill: #dbeafe; stroke: #0071e3; }
+:global(html.dark) .variant-card-svg .bin-bg { fill: #2c2c2e; stroke: #5a5a5e; }
+:global(html.dark) .variant-card-svg .bin-cell { fill: rgba(0, 113, 227, 0.28); stroke: #0a84ff; }
 </style>
