@@ -245,6 +245,23 @@ class TestOrdersValidatorQuantityAnomalies:
         assert result["qty_null_count"] == 0
         assert result["qty_outlier_count"] == 0
 
+    def test_sample_rows_collected_per_issue(self):
+        """Each qty issue type stores the offending rows (capped) so the
+        Excel export can list them on their own sheet."""
+        df = pl.DataFrame({
+            "order_id": ["O1", "O2", "O3", "O4"],
+            "sku": ["A", "B", "C", "D"],
+            "quantity": [None, 0, -2, 5],
+            "order_date": [date(2024, 10, 1)] * 4,
+        })
+        result = OrdersValidator().validate(df)
+        assert {r["order_id"] for r in result["qty_null_rows"]} == {"O1"}
+        assert {r["order_id"] for r in result["qty_zero_rows"]} == {"O2"}
+        assert {r["order_id"] for r in result["qty_negative_rows"]} == {"O3"}
+        # Each row includes the cleaned numeric quantity under the canonical key.
+        assert result["qty_zero_rows"][0]["quantity"] == 0
+        assert result["qty_negative_rows"][0]["quantity"] == -2
+
 
 # ============================================================================
 # SKU cross-validation
@@ -263,6 +280,28 @@ class TestOrdersValidatorSkuCrossValidation:
         df = _make_orders(3)
         result = OrdersValidator().validate(df, masterdata_path=tmp_path / "nonexistent.csv")
         assert result["sku_xval_available"] is False
+
+    def test_path_without_mapping_skips_cross_validation(self, tmp_path):
+        """Regression: pre-quality-check masterdata files must NOT trigger
+        heuristic SKU detection. Reported case: a 'Material' column was
+        auto-mapped to SKU and surfaced bogus unknown/inactive SKUs."""
+        md_file = tmp_path / "masterdata.csv"
+        md_file.write_text("Material;length_mm;width_mm\nA;100;50\nB;200;60\n", encoding="utf-8")
+
+        df = _make_orders(3)
+        result = OrdersValidator().validate(df, masterdata_path=md_file, masterdata_mapping=None)
+        assert result["sku_xval_available"] is False
+        assert result["orders_skus_not_in_masterdata_count"] == 0
+        assert result["masterdata_skus_not_in_orders_count"] == 0
+
+    def test_explicit_masterdata_df_enables_cross_validation(self):
+        df = _make_orders(3)  # SKU-000, SKU-001, SKU-002
+        md_df = pl.DataFrame({"sku": ["SKU-000", "SKU-001", "SKU-EXTRA"]})
+        result = OrdersValidator().validate(df, masterdata_df=md_df)
+        assert result["sku_xval_available"] is True
+        # SKU-002 in orders is not in masterdata; SKU-EXTRA in masterdata is not in orders.
+        assert result["orders_skus_not_in_masterdata_count"] == 1
+        assert result["masterdata_skus_not_in_orders_count"] == 1
 
 
 # ============================================================================
