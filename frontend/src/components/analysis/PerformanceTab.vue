@@ -415,7 +415,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import type { RunDetail, PerformanceResult, OrdersValidationResult } from '@/api/runs'
+import type { RunDetail, PerformanceResult, OrdersValidationResult, PerformanceParetoBand } from '@/api/runs'
 import { runsApi } from '@/api/runs'
 import KpiCard from '@/components/shared/KpiCard.vue'
 import ChartZoomModal from '@/components/shared/ChartZoomModal.vue'

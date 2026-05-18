@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-4">
     <!-- Source files reference -->
     <div v-if="run.masterdata_original_filename || run.orders_original_filename" class="card-apple">
@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <!-- Main downloads (ZIP + PDF) -->
+    <!-- Main downloads (ZIP + PDF + Excel) -->
     <div class="card-apple">
       <h3 class="mb-4" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Download full reports</h3>
       <div class="flex gap-3 flex-wrap">
@@ -28,25 +28,33 @@
         </button>
         <button
           @click="downloadPdf"
-          :disabled="!run.capacity_result || downloadingPdf"
+          :disabled="!canDownloadPdf || downloadingPdf"
           class="btn-apple-dark"
-          :style="(!run.capacity_result || downloadingPdf) ? 'opacity:0.4' : ''"
+          :style="(!canDownloadPdf || downloadingPdf) ? 'opacity:0.4' : ''"
         >
           {{ downloadingPdf ? 'Preparing…' : 'Download PDF' }}
         </button>
+        <button
+          @click="downloadXlsx"
+          :disabled="!canDownloadXlsx || downloadingXlsx"
+          class="btn-apple-dark"
+          :style="(!canDownloadXlsx || downloadingXlsx) ? 'opacity:0.4' : ''"
+        >
+          {{ downloadingXlsx ? 'Preparing…' : 'Download Excel' }}
+        </button>
       </div>
       <p v-if="!run.capacity_result" class="mt-3" style="font-size:12px;color:var(--app-text-sec)">
-        Run capacity analysis first to enable report download.
+        ZIP requires capacity results. PDF works with capacity, performance, or both. Excel covers data quality.
       </p>
       <p v-if="error" class="mt-3" style="font-size:14px;color:#ff3b30">{{ error }}</p>
     </div>
 
-    <!-- DQ CSV reports -->
+    <!-- Masterdata Issues -->
     <div class="card-apple">
-      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Data Quality CSV reports</h3>
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Masterdata Issues</h3>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <button
-          v-for="rep in dqReports"
+          v-for="rep in masterdataReports"
           :key="rep.name"
           @click="downloadCsv(rep.name)"
           :disabled="!run.quality_result || downloading === rep.name"
@@ -58,7 +66,41 @@
         </button>
       </div>
       <p v-if="!run.quality_result" class="mt-3" style="font-size:12px;color:var(--app-text-sec)">
-        Run quality check first to enable DQ reports.
+        Run quality check on Masterdata first to enable these reports.
+      </p>
+    </div>
+
+    <!-- Orders Issues -->
+    <div class="card-apple">
+      <h3 class="mb-1" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Orders Issues</h3>
+      <p class="mb-3" style="font-size:12px;color:var(--app-text-sec)">
+        Date gaps, missing/invalid quantities, and SKU cross-validation against Masterdata.
+        Full lists are available in the Excel export above.
+      </p>
+      <div v-if="ovr" class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+        <div>
+          <span class="text-xs" style="color:var(--app-text-sec)">Date gaps</span>
+          <p class="font-semibold" style="color:var(--app-text)">{{ ovr.gap_count }}</p>
+        </div>
+        <div>
+          <span class="text-xs" style="color:var(--app-text-sec)">Missing SKUs</span>
+          <p class="font-semibold" :style="ovr.missing_sku_count > 0 ? 'color:#ff3b30' : 'color:var(--app-text)'">{{ ovr.missing_sku_count }}</p>
+        </div>
+        <div>
+          <span class="text-xs" style="color:var(--app-text-sec)">Qty anomalies</span>
+          <p class="font-semibold" style="color:var(--app-text)">{{ qtyAnomalies }}</p>
+        </div>
+        <div>
+          <span class="text-xs" style="color:var(--app-text-sec)">Unknown SKUs</span>
+          <p class="font-semibold" style="color:var(--app-text)">{{ ovr.orders_skus_not_in_masterdata_count }}</p>
+        </div>
+        <div>
+          <span class="text-xs" style="color:var(--app-text-sec)">Inactive SKUs</span>
+          <p class="font-semibold" style="color:var(--app-text)">{{ ovr.masterdata_skus_not_in_orders_count }}</p>
+        </div>
+      </div>
+      <p v-else class="mt-2" style="font-size:12px;color:var(--app-text-sec)">
+        Ingest Orders first to enable order-level data quality reporting.
       </p>
     </div>
 
@@ -124,18 +166,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { RunDetail } from '@/api/runs'
+import { ref, computed } from 'vue'
+import type { RunDetail, OrdersValidationResult } from '@/api/runs'
 import { runsApi } from '@/api/runs'
 
 const props = defineProps<{ run: RunDetail }>()
 
 const downloadingZip = ref(false)
 const downloadingPdf = ref(false)
+const downloadingXlsx = ref(false)
 const downloading = ref<string | null>(null)
 const error = ref('')
 
-const dqReports = [
+const masterdataReports = [
   { name: 'DQ_Summary', label: 'DQ Summary' },
   { name: 'DQ_MissingCritical', label: 'Missing Critical' },
   { name: 'DQ_SuspectOutliers', label: 'Suspect Outliers' },
@@ -143,6 +186,22 @@ const dqReports = [
   { name: 'DQ_Duplicates', label: 'Duplicates' },
   { name: 'DQ_Conflicts', label: 'Conflicts' },
 ]
+
+const ovr = computed(() => props.run.orders_validation_result as OrdersValidationResult | null)
+
+const qtyAnomalies = computed(() => {
+  const o = ovr.value
+  if (!o) return 0
+  return o.qty_null_count + o.qty_zero_count + o.qty_negative_count + o.qty_outlier_count
+})
+
+const canDownloadPdf = computed(
+  () => !!(props.run.capacity_result || props.run.performance_result),
+)
+
+const canDownloadXlsx = computed(
+  () => !!(props.run.quality_result || props.run.orders_validation_result),
+)
 
 async function blobErrorMessage(err: unknown): Promise<string> {
   try {
@@ -181,6 +240,19 @@ async function downloadPdf() {
     error.value = 'PDF download failed: ' + await blobErrorMessage(e)
   } finally {
     downloadingPdf.value = false
+  }
+}
+
+async function downloadXlsx() {
+  downloadingXlsx.value = true
+  error.value = ''
+  try {
+    const { data } = await runsApi.downloadDqXlsx(props.run.id)
+    triggerDownload(data as Blob, `${props.run.client_name}_data_quality.xlsx`)
+  } catch (e) {
+    error.value = 'Excel download failed: ' + await blobErrorMessage(e)
+  } finally {
+    downloadingXlsx.value = false
   }
 }
 

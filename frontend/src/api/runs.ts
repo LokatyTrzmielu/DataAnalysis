@@ -370,6 +370,9 @@ export const runsApi = {
   downloadPdf: (id: string) =>
     client.get(`/runs/${id}/reports/pdf`, { responseType: 'blob' }),
 
+  downloadDqXlsx: (id: string) =>
+    client.get(`/runs/${id}/reports/xlsx`, { responseType: 'blob' }),
+
   downloadCsvReport: (id: string, reportName: string) =>
     client.get(`/runs/${id}/reports/csv/${reportName}`, { responseType: 'blob' }),
 }

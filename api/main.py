@@ -5,8 +5,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from api.database import Base, engine
@@ -92,3 +94,24 @@ app.include_router(time_saving.router)
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# Portable / single-port deployment: when a built SPA exists at frontend/dist,
+# serve it directly from this app. In dev (Vite on :5173) the dist is absent
+# and this block is skipped, so nothing changes for the normal dev workflow.
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if FRONTEND_DIST.is_dir():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=FRONTEND_DIST / "assets"),
+        name="spa-assets",
+    )
+
+    _API_PREFIXES = ("api/", "health", "docs", "redoc", "openapi.json")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str) -> FileResponse:
+        # Guard: never return index.html for unknown API/docs routes — let them 404.
+        if full_path.startswith(_API_PREFIXES):
+            raise HTTPException(status_code=404)
+        return FileResponse(FRONTEND_DIST / "index.html")

@@ -67,7 +67,7 @@
             <div v-for="field in requiredFields" :key="field.name" class="flex flex-col gap-1">
               <label class="text-xs" style="color:var(--app-text-sec)">
                 {{ field.name }}
-                <span v-if="duplicateColumns.includes(userMapping[field.name])" class="ml-1" style="color:#ff9500" title="Duplicate mapping">⚠</span>
+                <span v-if="userMapping[field.name] && duplicateColumns.includes(userMapping[field.name]!)" class="ml-1" style="color:#ff9500" title="Duplicate mapping">⚠</span>
                 <span v-else-if="!userMapping[field.name]" class="ml-1" style="color:#ff3b30">*</span>
               </label>
               <select
