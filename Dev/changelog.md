@@ -11,6 +11,28 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-18] - Feature (feature/portable-static-serving) — wersja Portable Windows aplikacji
+
+Branch: `feature/portable-static-serving` · commits `45be975` + `9d9ce89` (jeszcze nie zmergowany).
+
+- **api/main.py**: warunkowy `StaticFiles` mount + SPA catchall pod `/{full_path:path}` gdy `frontend/dist/` istnieje. Guard wycina `api/`, `health`, `docs`, `redoc`, `openapi.json` z fallbacku — kierują do właściwych routerów / 404. Dev workflow (Vite :5173 + uvicorn :8000) bez zmian, bo bez zbudowanego dist mount się nie aktywuje.
+
+- **Dev/Build-Portable.ps1**: skrypt buildujący paczkę portable do `D:\VS\Portable\Datavisor-Portable\`. Pobiera embeddable CPython 3.11.9 (~15 MB ZIP), bootstrapuje pip, instaluje 18 runtime depsów z hardcoded listy (sync z `pyproject.toml`, bez `asyncpg` bo portable jedzie tylko na SQLite), robocopy api/src/frontend\dist do `app/`, generuje `Start.bat`/`Stop.bat`/`README-PORTABLE.md`. Opcjonalny `-SmokeTest` flag.
+
+- **Embedded Python `_pth` hack**: embeddable Python ignoruje `PYTHONPATH` i CWD — sys.path jest sztywno z `python311._pth`. Build dopisuje `..\..\app` (relatywnie do `runtime\python\`) żeby `python -m api.seed` i `uvicorn api.main:app` znajdowały moduły.
+
+- **Start.bat**: ustawia absolutne `DATABASE_URL` (SQLite file w roocie paczki, slash-normalizowane), seeduje DB przy pierwszym starcie (`api.seed admin@local.app admin Admin` — 3 predefined carriers + admin), sprawdza wolny port 8000, uruchamia uvicorn ukryty w tle, czeka na `/health` (do 15 s), otwiera przeglądarkę. PID do `logs\server.pid`.
+
+- **Smoke test PASS**: `/health` → 200 OK; `/` → SPA index.html; `/dashboard/foo` → SPA (deep-link); `/api/v1/runs` → 401 (router wygrywa z catchall). Embedded Python 3.11.9 zaimportował wszystkie ciężkie C-extensions: polars, duckdb, pyarrow, matplotlib, bcrypt, jose. Paczka **540 MB rozpakowana**, ~150 MB w ZIP (oszacowane).
+
+- **Wykluczenia z paczki**: `Dev/`, `uploads/`, `tests/`, `tests_alan/`, `node_modules/`, `__pycache__`, `.git`, `.claude`, `.devcontainer`, `.playwright-mcp`, `datavisor.db` (z głównego dev), `data/datasets`.
+
+- **Pliki nowe**: `Dev/Build-Portable.ps1`. Modified: `api/main.py`.
+
+- **Co dalej**: spakować `Compress-Archive` do ZIP-a v0.1.0 i wysłać koledze. Każda nowa zmiana w aplikacji wymaga re-buildu paczki (`.\Dev\Build-Portable.ps1 -Force`).
+
+---
+
 ### [2026-05-17] - Feature (feature/container-order-tool → main) — Container Order Calculator (Kardex VBM Box)
 
 Merge: `b24a61f` · GitHub Issue: [#49](https://github.com/LokatyTrzmielu/DataAnalysis/issues/49). Branch usunięty po merge'u.
