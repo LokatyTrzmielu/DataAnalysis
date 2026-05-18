@@ -231,7 +231,7 @@ set /a tries=0
 :waitloop
 set /a tries+=1
 timeout /t 1 /nobreak >nul
-powershell -NoProfile -Command "try { (Invoke-WebRequest http://localhost:8000/health -UseBasicParsing -TimeoutSec 1).StatusCode } catch { 0 }" > "%TEMP%\datavisor_health.txt"
+powershell -NoProfile -Command "try { (Invoke-WebRequest http://127.0.0.1:8000/health -UseBasicParsing -TimeoutSec 2).StatusCode } catch { 0 }" > "%TEMP%\datavisor_health.txt"
 set /p health=<"%TEMP%\datavisor_health.txt"
 del "%TEMP%\datavisor_health.txt" 2>nul
 if "%health%"=="200" goto ready
