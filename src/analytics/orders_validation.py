@@ -2,11 +2,68 @@
 
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import polars as pl
 
 from src.ingest.cleaning import clean_numeric_column
+
+
+_QTY_ISSUE_KIND = Literal["null", "zero", "negative", "outlier"]
+
+
+def compute_qty_issue_rows(
+    df: pl.DataFrame,
+    issue: _QTY_ISSUE_KIND,
+    limit: Optional[int] = None,
+) -> list[dict[str, Any]]:
+    """Return every order line matching one of the four quantity issues.
+
+    Re-runs the same filter the OrdersValidator uses, but skips the validator's
+    100-row sampling cap so CSV exports can ship the full list. ``limit=None``
+    means no cap.
+    """
+    if "quantity" not in df.columns:
+        return []
+
+    df_with_qty = df.with_columns(
+        clean_numeric_column(pl.col("quantity")).alias("__qty__")
+    )
+    qty = df_with_qty["__qty__"]
+
+    if issue == "null":
+        expr = pl.col("__qty__").is_null()
+    elif issue == "zero":
+        expr = pl.col("__qty__").eq(0)
+    elif issue == "negative":
+        expr = pl.col("__qty__").lt(0)
+    elif issue == "outlier":
+        positive = qty.drop_nulls().filter(qty.drop_nulls().gt(0))
+        if positive.len() <= 3:
+            return []
+        mean_val = float(positive.mean() or 0)
+        std_val = float(positive.std() or 0)
+        if std_val <= 0:
+            return []
+        threshold = round(mean_val + 3 * std_val, 2)
+        expr = pl.col("__qty__").gt(threshold)
+    else:
+        return []
+
+    keep_cols = [
+        c for c in ("order_id", "sku", "order_date", "order_hour", "__qty__")
+        if c in df_with_qty.columns
+    ]
+    sub = df_with_qty.filter(expr).select(keep_cols)
+    if limit is not None:
+        sub = sub.head(limit)
+    rows = sub.to_dicts()
+    for r in rows:
+        if "__qty__" in r:
+            r["quantity"] = r.pop("__qty__")
+        if "order_date" in r and r["order_date"] is not None:
+            r["order_date"] = str(r["order_date"])
+    return rows
 
 
 _PLACEHOLDER_SKUS = {
@@ -188,26 +245,13 @@ class OrdersValidator:
                 outlier_count = positive.filter(positive.gt(outlier_threshold)).len()
 
         # Sample rows per issue type — capped so the JSON column stays bounded.
-        keep_cols = [
-            c for c in ("order_id", "sku", "order_date", "order_hour", "__qty__")
-            if c in df_with_qty.columns
-        ]
-
-        def _sample(filter_expr: pl.Expr) -> list[dict[str, Any]]:
-            sub = df_with_qty.filter(filter_expr).select(keep_cols).head(self._QTY_SAMPLE_LIMIT)
-            rows = sub.to_dicts()
-            for r in rows:
-                if "__qty__" in r:
-                    r["quantity"] = r.pop("__qty__")
-                if "order_date" in r and r["order_date"] is not None:
-                    r["order_date"] = str(r["order_date"])
-            return rows
-
-        null_rows = _sample(pl.col("__qty__").is_null())
-        zero_rows = _sample(pl.col("__qty__").eq(0)) if qty_zero else []
-        neg_rows = _sample(pl.col("__qty__").lt(0)) if qty_negative else []
+        # Full lists for CSV exports are produced by compute_qty_issue_rows().
+        limit = self._QTY_SAMPLE_LIMIT
+        null_rows = compute_qty_issue_rows(df, "null", limit=limit)
+        zero_rows = compute_qty_issue_rows(df, "zero", limit=limit) if qty_zero else []
+        neg_rows = compute_qty_issue_rows(df, "negative", limit=limit) if qty_negative else []
         outlier_rows = (
-            _sample(pl.col("__qty__").gt(outlier_threshold)) if outlier_count else []
+            compute_qty_issue_rows(df, "outlier", limit=limit) if outlier_count else []
         )
 
         return {

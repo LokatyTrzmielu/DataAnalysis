@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import polars as pl
 import pytest
 
-from src.analytics.orders_validation import OrdersValidator
+from src.analytics.orders_validation import OrdersValidator, compute_qty_issue_rows
 
 
 def _make_orders(
@@ -342,3 +342,47 @@ class TestOrdersValidatorWeekdayProfile:
         result = OrdersValidator().validate(df)
         assert result["weekday_distribution"] == {}
         assert result["most_active_weekday"] is None
+
+
+# ============================================================================
+# compute_qty_issue_rows — full (uncapped) row exports for CSV
+# ============================================================================
+
+
+class TestComputeQtyIssueRows:
+    """The CSV export path bypasses the 100-row sampling cap inside the
+    validator so users get the entire offending set."""
+
+    def test_returns_all_zero_rows_no_cap(self):
+        n = 250
+        df = pl.DataFrame({
+            "order_id": [f"O{i}" for i in range(n)],
+            "sku": ["A"] * n,
+            "quantity": [0] * n,
+            "order_date": [date(2024, 10, 1)] * n,
+        })
+        rows = compute_qty_issue_rows(df, "zero")
+        assert len(rows) == n
+
+    def test_limit_honoured(self):
+        df = pl.DataFrame({
+            "order_id": [f"O{i}" for i in range(20)],
+            "sku": ["A"] * 20,
+            "quantity": [None] * 20,
+            "order_date": [date(2024, 10, 1)] * 20,
+        })
+        rows = compute_qty_issue_rows(df, "null", limit=5)
+        assert len(rows) == 5
+
+    def test_outlier_threshold_matches_validator(self):
+        n = 200
+        quantities = [1, 2, 3] * 66 + [2, 2_000_000]
+        df = pl.DataFrame({
+            "order_id": [f"O{i}" for i in range(n)],
+            "sku": ["A"] * n,
+            "quantity": quantities,
+            "order_date": [date(2024, 10, 1)] * n,
+        })
+        rows = compute_qty_issue_rows(df, "outlier")
+        assert len(rows) == 1
+        assert rows[0]["quantity"] == 2_000_000

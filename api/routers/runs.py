@@ -97,6 +97,49 @@ def _load_orders_df(run: "AnalysisRun"):  # type: ignore[name-defined]
     return pipeline.run(path, mapping=mapping).df
 
 
+def _load_masterdata_df(run: "AnalysisRun"):  # type: ignore[name-defined]
+    """Load the ingested masterdata DataFrame for a run.
+
+    Returns None when masterdata is unavailable. Mirrors :func:`_load_orders_df`
+    so background re-runs of the quality pipeline can pick up the correct
+    user-confirmed column mapping (datasets carry a confirmed mapping in the
+    duckdb cache; raw files use ``run.masterdata_mapping``).
+    """
+    if not run.masterdata_path:
+        return None
+
+    masterdata_path = run.masterdata_path
+
+    if masterdata_path.endswith(".duckdb"):
+        from src.storage.data_store import DataStore
+        dataset_id = Path(masterdata_path).stem
+        store = DataStore()
+        if not store.exists(dataset_id):
+            return None
+        return store.load(dataset_id, "masterdata")
+
+    path = Path(masterdata_path)
+    if not path.exists():
+        return None
+
+    from src.ingest.pipeline import MasterdataIngestPipeline
+    from src.ingest.mapping import MappingResult, ColumnMapping
+    pipeline = MasterdataIngestPipeline()
+    mapping = None
+    if run.masterdata_mapping:
+        mr = MappingResult()
+        for target_field, source_col in run.masterdata_mapping.items():
+            if source_col:
+                mr.mappings[target_field] = ColumnMapping(
+                    target_field=target_field,
+                    source_column=source_col,
+                    confidence=1.0,
+                    is_auto=False,
+                )
+        mapping = mr
+    return pipeline.run(path, mapping=mapping).df
+
+
 @router.post("", response_model=RunResponse, status_code=status.HTTP_201_CREATED)
 async def create_run(
     body: RunCreate,

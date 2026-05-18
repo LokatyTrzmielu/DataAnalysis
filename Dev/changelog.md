@@ -11,6 +11,33 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-18] - Fix (fix/dq-value-and-full-csv) — backfill DQ value, pełne CSV qty, animacja czołgu na Reports
+
+**Value column dla istniejących runów (`api/routers/reports.py` + `api/routers/runs.py`):**
+
+- Poprzednia poprawka populowała `value` w `quality_result` tylko dla nowych runów. Istniejące runy nadal pokazywały pustą kolumnę `value` w arkuszu *MD - Suspect Outliers* (i innych MD - *).
+- Dodany helper `_quality_result_needs_value_backfill()` wykrywa stare wpisy bez `value`. `_maybe_backfill_quality_result()` przeładowuje masterdata przez nowy `_load_masterdata_df()` (mirror `_load_orders_df` — dataset .duckdb lub raw plik z user-confirmed mapping) i re-runuje `QualityPipeline`, zapisując świeżą `quality_result` do DB.
+- Backfill odpalany jest w trzech miejscach: `/reports/xlsx`, `/reports/csv/DQ_*`. Po pierwszym pobraniu Excel/CSV stara run dostaje swoje `value` zapisane na stałe.
+
+**Pełne listy CSV — usunięcie 100-row cap dla qty issues (`src/analytics/orders_validation.py` + `api/routers/reports.py`):**
+
+- `OrdersValidator._check_quantity_anomalies()` nadal zapisuje **sampled preview** (max 100 wierszy) do JSON-a `orders_validation_result` (żeby kolumna nie puchła).
+- Nowy module-level helper **`compute_qty_issue_rows(df, issue, limit=None)`** wykonuje ten sam filtr (null / zero / negative / outlier ≥ mean+3σ) na świeżym orders DataFrame **bez żadnego cap**.
+- CSV endpointy `/reports/csv/Orders_QtyNull|Zero|Negative|Outliers` przeładowują orders df i wywołują `compute_qty_issue_rows` bez limitu — eksport zawiera teraz wszystkie dotknięte wiersze. Fallback do JSON-owego preview, jeśli przeładowanie się nie uda.
+- Masterdata DQ CSV są pełne od początku (`DQListBuilder` nie ma cap-a) — backfill wystarczy żeby `value` pojawiło się dla starszych runów.
+- Nowe testy: `TestComputeQtyIssueRows::test_returns_all_zero_rows_no_cap` (250 wierszy bez przycinania), `test_limit_honoured`, `test_outlier_threshold_matches_validator`.
+
+**Animacja czołgu podczas eksportów (`frontend/src/components/analysis/ReportsTab.vue`):**
+
+- Wszystkie cztery handlery downloadu (ZIP / PDF / Excel / per-CSV) wywołują teraz `useAnalysisStore.start()` przed requestem i `stop()` w bloku `finally`, dokładnie jak `CapacityTab` / `ImportTab`.
+- Ikona czołgu w `AppTopNav` (`nav-tank` z klasą `is-shooting`) animuje się przez cały czas pracy backendu — szczególnie ważne dla backfillów Quality Pipeline / OrdersValidator, które mogą trwać kilka sekund.
+
+**Tests**: `tests/test_orders_validation.py` (31) + `tests/test_quality.py` (32) green.
+
+**Branch**: `fix/dq-value-and-full-csv` (jeszcze nie zmergowany).
+
+---
+
 ### [2026-05-18] - Fix (fix/dq-excel-and-orders-csv) — Excel value column, gap consistency, qty backfill, Orders CSVs
 
 **Excel (`api/dq_excel_generator.py` + `api/routers/runs.py`):**
