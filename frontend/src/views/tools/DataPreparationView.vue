@@ -303,11 +303,12 @@ function removeFile(index: number) {
 }
 
 async function doInspect() {
-  if (selectedFiles.value.length === 0) return
+  const firstFile = selectedFiles.value[0]
+  if (!firstFile) return
   inspecting.value = true
   uploadError.value = ''
   try {
-    const { data } = await toolsApi.inspectFile(selectedFiles.value[0], fileType.value)
+    const { data } = await toolsApi.inspectFile(firstFile, fileType.value)
     inspectResult.value = data
     const mapping: Record<string, string> = {}
     for (const field of data.schema_fields) {
@@ -315,7 +316,7 @@ async function doInspect() {
       mapping[field.name] = sug?.source_column ?? ''
     }
     userMapping.value = mapping
-    datasetName.value = `merged_${selectedFiles.value[0].name.replace(/\.[^.]+$/, '')}`
+    datasetName.value = `merged_${firstFile.name.replace(/\.[^.]+$/, '')}`
     step.value = 'mapping'
   } catch (e: unknown) {
     uploadError.value = (e as Error).message || 'Failed to read file.'
