@@ -163,15 +163,8 @@ async def import_dataset(
     await db.commit()
     await db.refresh(dataset)
 
-    await record_time_saving_event(
-        db,
-        current_user.id,
-        f"dataset_imported_{file_type}",
-        row_count=result.rows_imported,
-    )
-
     size_mb = round(duckdb_path.stat().st_size / 1_048_576, 2)
-    return DatasetResponse(
+    response = DatasetResponse(
         id=dataset.id,
         name=dataset.name,
         file_type=dataset.file_type,
@@ -181,6 +174,15 @@ async def import_dataset(
         size_mb=size_mb,
         created_at=dataset.created_at,
     )
+
+    await record_time_saving_event(
+        db,
+        current_user.id,
+        f"dataset_imported_{file_type}",
+        row_count=result.rows_imported,
+    )
+
+    return response
 
 
 @router.get("", response_model=DatasetListResponse)
