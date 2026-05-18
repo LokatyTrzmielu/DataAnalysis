@@ -82,6 +82,8 @@ export interface VariantSummaryRow {
   avg_fill_pct: number
   frames_per_bin: number
   total_frames_required: number
+  dividers_required: number     // bins × locations_per_bin
+  total_weight_kg: number       // Σ stocked weight assigned to this variant
 }
 
 export interface ContainerPlan {

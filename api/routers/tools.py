@@ -15,6 +15,7 @@ from api.models.dataset import Dataset
 from api.models.user import User
 from api.schemas.dataset import DatasetResponse
 from api.schemas.runs import ColumnSuggestion, MappingInspectResponse
+from api.services.time_saving import record_event as record_time_saving_event
 from src.storage.data_store import DataStore, hash_bytes
 
 router = APIRouter(prefix="/api/v1/tools", tags=["tools"])
@@ -165,6 +166,14 @@ async def merge_files(
         db.add(dataset)
         await db.commit()
         await db.refresh(dataset)
+
+        await record_time_saving_event(
+            db,
+            current_user.id,
+            "data_preparation_merge",
+            file_count=len(files),
+            row_count=merged.height,
+        )
 
         size_mb = round(duckdb_path.stat().st_size / 1_048_576, 2)
         return DatasetResponse(

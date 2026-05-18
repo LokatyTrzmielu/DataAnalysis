@@ -356,6 +356,44 @@ def _generate_soldimtool_rows(pr: dict) -> list[dict]:
     return rows
 
 
+def _capacity_rows_with_carrier_name(cr: dict) -> list[dict]:
+    """Return capacity rows with ``carrier_id`` swapped for ``carrier_name``.
+
+    Looks up the human-readable name via ``carrier_settings`` (with a fallback
+    to ``carrier_stats``) so the exported CSV shows the carrier name in place
+    of the internal ID. Column position is preserved.
+    """
+    rows = cr.get("rows", []) or []
+    if not rows:
+        return rows
+
+    settings = cr.get("carrier_settings") or {}
+    stats = cr.get("carrier_stats") or {}
+
+    def _name_for(cid: str | None) -> str:
+        if not cid:
+            return ""
+        if cid == "NONE":
+            return "Does not fit any carrier"
+        info = settings.get(cid) or {}
+        name = info.get("name")
+        if name:
+            return name
+        stat = stats.get(cid) or {}
+        return stat.get("carrier_name") or cid
+
+    enriched: list[dict] = []
+    for r in rows:
+        new_row: dict = {}
+        for k, v in r.items():
+            if k == "carrier_id":
+                new_row["carrier_name"] = _name_for(v)
+            else:
+                new_row[k] = v
+        enriched.append(new_row)
+    return enriched
+
+
 def _rows_to_csv_bytes(rows: list[dict], columns: list[str] | None = None) -> bytes:
     """Convert a list of dicts to UTF-8 BOM CSV bytes (separator ';').
 
@@ -457,7 +495,7 @@ async def download_csv_report(
     elif report_name == "Capacity_Results":
         if not cr:
             raise HTTPException(status_code=422, detail="No capacity results available.")
-        rows = cr.get("rows", [])
+        rows = _capacity_rows_with_carrier_name(cr)
     elif report_name == "SKU_Pareto":
         if not pr:
             raise HTTPException(status_code=422, detail="No performance results available.")
@@ -516,7 +554,7 @@ async def download_zip(
 
         # --- Capacity Results ---
         if cr:
-            rows = cr.get("rows", [])
+            rows = _capacity_rows_with_carrier_name(cr)
             zf.writestr(
                 f"{client}_Capacity_Results.csv",
                 _rows_to_csv_bytes(rows, REPORT_COLUMNS.get("Capacity_Results")),

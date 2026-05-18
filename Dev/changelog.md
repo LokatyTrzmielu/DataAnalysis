@@ -11,6 +11,65 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-18] - Feature (fix/capacity-csv-carrier-name) — Time saved: cover Container Order + Data Preparation
+
+**New event types in `api/services/time_saving.py`:**
+
+- `container_order_run` — recorded on every `POST /tools/container-order/calculate/{run_id}`. Estimate: **60 min base + 25 min / 1 000 SKUs + 3 min / variant**, capped at 8 h. Manual equivalent: hand-building the 48-variant Kardex VBM catalog and VLOOKUP-mapping each SKU to a best-fit footprint × height. Context: `sku_count`, `variant_count`.
+- `container_order_exported` — recorded on every `POST /tools/container-order/export/{run_id}`. Estimate: **20 min base + 10 min / sheet** (xlsx 4, pdf 2, csv 1). Context: `sheet_count`.
+- `data_preparation_merge` — recorded on every `POST /tools/data-preparation/merge`. Estimate: **25 min base + 5 min / file + 3 min / 1 000 merged rows**. Manual equivalent: opening N spreadsheets, aligning headers, concat + dedup in Excel / Power Query. Context: `file_count`, `row_count`.
+
+**Service plumbing:**
+
+- `calculate_manual_seconds` learned three new scale knobs: `variant_count`, `file_count`, `sheet_count`. Same opt-in pattern as the existing `per_*` keys — rules without them are unaffected.
+- `_pick_scale_value` now considers the new keys when persisting a representative scale_value for later inspection.
+- `EVENT_LABELS` gained user-facing labels for the three new events ("Container Order — plan calculation" etc.).
+
+**Routers:**
+
+- `api/routers/container_order.py`: `calculate_plan` records the run event after the plan is computed (uses `plan.total_sku_planned` + `len(plan.summaries)`); `export_plan` records the export event with the format's sheet count.
+- `api/routers/tools.py`: `merge_files` records the merge event right after the dataset is committed, using the file count and merged row count.
+
+**UI:**
+
+- `frontend/src/components/settings/TimeSavedCard.vue` — the "How time is estimated" popover now lists Data Preparation, Container Order — plan calculation (with 8 h cap note), Container Order — export, and the previously-missing Data quality Excel export line.
+
+**Tests:**
+
+- `tests/test_time_saving.py` — 4 new unit tests covering both base+scale arithmetic and the 8 h cap on `container_order_run`. Full file: 28 passed.
+
+**Why this entry sits on `fix/capacity-csv-carrier-name`:** the user asked to bundle the time-saving extension with the in-flight Container Order weight-enforcement work and ship in one push.
+
+---
+
+### [2026-05-18] - Fix (fix/capacity-csv-carrier-name) — Container Order: bin-weight enforcement + Dividers column
+
+**Bin-total weight cap is now enforced via stacking-aware per-cell weight check (`src/analytics/container_planner.py`):**
+
+- Existing per-unit weight check at `_sku_fits_variant` rejected SKUs whose single-unit weight exceeded `max_weight_kg_per_cell` (proportional cap: `35 kg × cell_area / usable_bin_area`). But many lightweight units could still stack in a cell and exceed the proportional cap — silently breaking the 35 kg bin limit.
+- `_locations_needed()` now optionally takes `unit_vol_L` and `unit_weight_kg`. When both are provided, it computes `n_weight = ceil(total_stock_weight / max_weight_kg_per_cell)` and uses `max(n_vol, n_weight)`. By induction every cell respects its proportional cap ⇒ every physical bin stays under 35 kg.
+- `_compute_fits()` passes the new args through; signature defaults preserve backwards compatibility with any external callers.
+- New tests: `test_locations_needed_bumps_when_stacking_exceeds_weight_cap`, `test_locations_needed_unchanged_when_weight_within_cap`, `test_plan_bin_total_weight_stays_under_cap`.
+
+**Dividers column added across Summary + every export:**
+
+- `VariantSummary` (and `VariantSummaryRow` schema) gained `dividers_required` (= `bins_required × locations_per_bin`) and `total_weight_kg` (Σ of `stock_qty × unit_weight` across SKUs assigned to the variant).
+- `_plan_from_selection()` accumulates per-variant weight as assignments are processed; uses `stock_volume_L / unit_vol_L` as the unit count.
+- Frontend `ContainerOrderView.vue`: new "Dividers" column between Frames and Fill; TOTAL row uses a `totalDividers` computed property. Small caption under the hero counter clarifies the bin weight cap and points to xlsx/csv for the per-variant total weight.
+- Exports:
+  - CSV (`_generate_summary_csv`): `dividers` + `total_weight_kg` columns appended; TOTAL row sums both.
+  - Excel (`_sheet_order_summary`): new "Dividers" and "Total weight (kg)" columns; TOTAL row updated.
+  - PDF (`generate_container_order_pdf`): new "Dividers" column; total_weight intentionally omitted to keep the table within A4 portrait width (column widths trimmed; total now 14.9 cm). Excel/CSV remain the authoritative per-variant weight source.
+- New test: `test_variant_summary_dividers_required_equals_bins_times_locations`.
+
+---
+
+### [2026-05-18] - Fix (fix/capacity-csv-carrier-name) — Capacity_Results CSV: carrier_id → carrier_name
+
+W `api/routers/reports.py` kolumna `carrier_id` w eksporcie *Capacity_Results* (single CSV + ZIP bundle) zastąpiona przez `carrier_name` zawierającą czytelną nazwę nośnika. Nowy helper `_capacity_rows_with_carrier_name()` mapuje ID → nazwę używając `carrier_settings` zapisanego w `capacity_result` (fallback do `carrier_stats.carrier_name` dla starszych runów). Specjalny marker `"NONE"` (SKU nie pasuje do żadnego nośnika) renderuje się jako *"Does not fit any carrier"*. Kolejność kolumn zachowana — `carrier_name` pojawia się w miejscu starego `carrier_id`. Frontend Capacity Tab eksport (`CapacityTab.vue::exportCsv`) ma już obie kolumny, nieruszony.
+
+---
+
 ### [2026-05-18] - Fix (fix/pdf-rename-units-to-pieces) — PDF: "Units" → "Pieces"
 
 W `api/pdf_generator.py` 10 user-facing labelek w sekcjach *Totals / Hourly Throughput / Daily / Per Shift* przemianowanych z `Units` na `Pieces` (np. *Avg Pieces / Order*, *Peak Pieces / Hour*, *Max Pieces / Shift*). Klucze KPI (`total_units`, `avg_units_per_hour` itp.) i import `reportlab.lib.units` nietknięte — to wewnętrzne identyfikatory danych. Spójność z istniejącymi już Pieces w sekcji *Pareto Concentration* (Pieces/Day, Cumul.Pieces%).

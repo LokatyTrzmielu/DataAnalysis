@@ -197,6 +197,10 @@ class VariantSummary:
     avg_fill_pct: float
     frames_per_bin: int = 0      # EasyClick frames per bin (0/1/2/3)
     total_frames_required: int = 0  # bins_required * frames_per_bin
+    dividers_required: int = 0      # bins_required * locations_per_bin — total
+                                    # divider cells to order across all bins
+    total_weight_kg: float = 0.0    # Σ (stock_qty × unit_weight) across SKUs in
+                                    # this variant — for bin-weight transparency
 
 
 @dataclass
@@ -230,9 +234,22 @@ def _sku_fits_variant(length: float, width: float, height: float, weight: float,
     return fits_a or fits_b
 
 
-def _locations_needed(stock_vol_L: float, v: Variant, fill_rate: float,
-                      min_loc: int, max_loc: int) -> int:
+def _locations_needed(
+    stock_vol_L: float,
+    v: Variant,
+    fill_rate: float,
+    min_loc: int,
+    max_loc: int,
+    unit_vol_L: float = 0.0,
+    unit_weight_kg: float = 0.0,
+) -> int:
     """Locations required to hold ``stock_vol_L`` at the requested ``fill_rate``.
+
+    When ``unit_vol_L`` and ``unit_weight_kg`` are provided, the function also
+    enforces the per-cell weight cap: stacking lightweight units to fill a cell
+    volumetrically must not exceed ``v.max_weight_kg_per_cell``. This keeps
+    total bin weight ≤ ``BIN_MAX_WEIGHT_KG`` (35 kg) by induction — if every
+    cell respects its proportional cap, the bin total is bounded.
 
     Returns 0 when the required number of locations exceeds ``max_loc`` — this
     signals the caller that the SKU cannot be stored in this variant under the
@@ -243,8 +260,12 @@ def _locations_needed(stock_vol_L: float, v: Variant, fill_rate: float,
     if v.cell_volume_L <= 0:
         # No volumetric info — reserve the minimum unless even that exceeds cap.
         return min_loc if min_loc <= max_loc else 0
-    raw = stock_vol_L / (v.cell_volume_L * fill_rate)
-    n_required = max(min_loc, math.ceil(raw))
+    n_vol = math.ceil(stock_vol_L / (v.cell_volume_L * fill_rate))
+    n_weight = 0
+    if unit_vol_L > 0 and unit_weight_kg > 0 and v.max_weight_kg_per_cell > 0:
+        total_stock_weight = (stock_vol_L / unit_vol_L) * unit_weight_kg
+        n_weight = math.ceil(total_stock_weight / v.max_weight_kg_per_cell)
+    n_required = max(min_loc, n_vol, n_weight)
     if n_required > max_loc:
         return 0
     return n_required
@@ -428,12 +449,15 @@ def _compute_fits(rows: list[dict], abc: dict[str, dict], catalog: list[Variant]
         # If even after imputation we still have a zero dimension, the SKU cannot
         # be planned — falls through with empty candidates and is orphaned.
         if length > 0 and width > 0 and height > 0:
+            unit_vol_L = (length * width * height) / 1_000_000.0
             for v in catalog:
                 if not _sku_fits_variant(length, width, height, weight, v):
                     continue
                 locs = _locations_needed(
                     stock_vol_L, v, params.location_fill_rate,
                     params.min_locations_per_sku, params.max_locations_per_sku,
+                    unit_vol_L=unit_vol_L,
+                    unit_weight_kg=weight,
                 )
                 if locs <= 0:
                     continue
@@ -554,6 +578,7 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
     locs_per_variant: dict[str, int] = {c: 0 for c in selection}
     skus_per_variant: dict[str, int] = {c: 0 for c in selection}
     fill_sum_per_variant: dict[str, float] = {c: 0.0 for c in selection}
+    weight_sum_per_variant: dict[str, float] = {c: 0.0 for c in selection}
 
     for f in fits:
         v_code = _best_variant_for_sku(f, selection, by_variant, goal)
@@ -590,6 +615,14 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
         locs_per_variant[v_code] += locs
         skus_per_variant[v_code] += 1
         fill_sum_per_variant[v_code] += fill
+        # Total stocked weight contributed by this SKU = stock_qty × unit_weight.
+        # stock_qty derived from stock_vol_L / unit_vol_L; safe-guard against
+        # zero unit volume (orphaned earlier, but defensive here too).
+        unit_vol_L = (f.length_mm * f.width_mm * f.height_mm) / 1_000_000.0
+        if unit_vol_L > 0:
+            weight_sum_per_variant[v_code] += (
+                f.stock_volume_L / unit_vol_L
+            ) * f.weight_kg
 
     summaries: list[VariantSummary] = []
     total_bins = 0
@@ -623,6 +656,8 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
             avg_fill_pct=round(avg_fill, 2),
             frames_per_bin=v.frames_per_bin,
             total_frames_required=frames_for_variant,
+            dividers_required=bins * v.locations_per_bin,
+            total_weight_kg=round(weight_sum_per_variant[code], 2),
         ))
     # Sort summaries: most bins first.
     summaries.sort(key=lambda s: (-s.bins_required, s.code))

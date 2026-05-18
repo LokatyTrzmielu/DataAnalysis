@@ -103,6 +103,12 @@ class VariantSummaryRow(BaseModel):
     # this variant. Each bin = 1 base (138 mm) + frames_per_bin frames (50 mm each).
     frames_per_bin: int = 0
     total_frames_required: int = 0
+    # Total divider cells to order = bins_required × locations_per_bin.
+    dividers_required: int = 0
+    # Σ stocked weight assigned to this variant (kg) — for bin-weight transparency.
+    # By construction (per-cell weight cap enforced in _locations_needed), this
+    # divided by bins_required is ≤ 35 kg.
+    total_weight_kg: float = 0.0
 
 
 class ContainerPlanResponse(BaseModel):

@@ -299,6 +299,94 @@ def test_fill_pct_never_exceeds_100():
 
 
 # ---------------------------------------------------------------------------
+# Bin-total weight enforcement (stacking)
+# ---------------------------------------------------------------------------
+
+
+def test_locations_needed_bumps_when_stacking_exceeds_weight_cap():
+    """Lightweight units that would volumetrically fill a cell to a weight
+    above max_weight_kg_per_cell must trigger additional locations so the
+    per-cell load (and therefore the per-bin load) stays under cap."""
+    v_quarter = next(v for v in cp.CATALOG_FULL
+                     if v.footprint_key == "1/4" and v.bin_height_mm == 138)
+    # Unit 100×80×80 mm = 0.64 L, 1.0 kg. 100 units → 64 L total stock, 100 kg total.
+    # Cell ≈ 8.07 L, cell cap ≈ 8.76 kg.
+    # Volume-only: ceil(64 / (8.07 × 0.9)) ≈ 9 locs.
+    # Weight stacking: ceil(100 / 8.76) ≈ 12 locs → expect at least 12.
+    unit_vol_L = (100 * 80 * 80) / 1_000_000.0
+    n = cp._locations_needed(
+        stock_vol_L=64.0, v=v_quarter, fill_rate=0.9,
+        min_loc=1, max_loc=50000,
+        unit_vol_L=unit_vol_L, unit_weight_kg=1.0,
+    )
+    n_vol_only = cp._locations_needed(
+        stock_vol_L=64.0, v=v_quarter, fill_rate=0.9,
+        min_loc=1, max_loc=50000,
+    )
+    assert n > n_vol_only, "weight stacking must add locations beyond volume math"
+    # Total per-cell weight after the bump must respect the cap.
+    weight_per_cell = 100.0 / n
+    assert weight_per_cell <= v_quarter.max_weight_kg_per_cell + 1e-9
+
+
+def test_locations_needed_unchanged_when_weight_within_cap():
+    """When stacking weight is well below the cell cap, location count must
+    match the volume-only formula (no regression on the common case)."""
+    v_full = next(v for v in cp.CATALOG_FULL
+                  if v.footprint_key == "1/1" and v.bin_height_mm == 138)
+    unit_vol_L = (100 * 100 * 100) / 1_000_000.0  # 1 L per unit
+    n_weighted = cp._locations_needed(
+        stock_vol_L=100.0, v=v_full, fill_rate=0.5,
+        min_loc=1, max_loc=50000,
+        unit_vol_L=unit_vol_L, unit_weight_kg=0.1,  # very light
+    )
+    n_vol_only = cp._locations_needed(
+        stock_vol_L=100.0, v=v_full, fill_rate=0.5,
+        min_loc=1, max_loc=50000,
+    )
+    assert n_weighted == n_vol_only
+
+
+def test_plan_bin_total_weight_stays_under_cap():
+    """End-to-end: after planning, total_weight_kg / bins_required ≤ 35 for
+    every variant in the summary — bin weight cap respected."""
+    # Mix of SKUs, some heavy enough to push per-cell weight close to cap.
+    rows = [
+        _row(f"s{i}", 100, 80, 80, 1.0, stock_vol_L=10 + i) for i in range(20)
+    ]
+    cap = {"rows": rows, "carriers_analyzed": [cp.MIB_CARRIER_ID]}
+    plan = cp.plan_containers(
+        cap, None,
+        cp.PlanParams(abc_classes=(), only_machine=False),
+    )
+    for s in plan.summaries:
+        avg_bin_weight = s.total_weight_kg / s.bins_required if s.bins_required else 0
+        assert avg_bin_weight <= cp.BIN_MAX_WEIGHT_KG + 1e-6, (
+            f"variant {s.code} avg bin weight {avg_bin_weight:.2f} exceeds "
+            f"{cp.BIN_MAX_WEIGHT_KG} kg cap"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Dividers column
+# ---------------------------------------------------------------------------
+
+
+def test_variant_summary_dividers_required_equals_bins_times_locations():
+    """dividers_required is the procurement value the user orders — must equal
+    bins × locations_per_bin for every variant in the plan."""
+    rows = [_row(f"s{i}", 100, 80, 80, 0.3, stock_vol_L=3) for i in range(12)]
+    cap = {"rows": rows, "carriers_analyzed": [cp.MIB_CARRIER_ID]}
+    plan = cp.plan_containers(
+        cap, None,
+        cp.PlanParams(abc_classes=(), only_machine=False),
+    )
+    assert plan.summaries, "plan must produce at least one variant"
+    for s in plan.summaries:
+        assert s.dividers_required == s.bins_required * s.locations_per_bin
+
+
+# ---------------------------------------------------------------------------
 # Filtering
 # ---------------------------------------------------------------------------
 

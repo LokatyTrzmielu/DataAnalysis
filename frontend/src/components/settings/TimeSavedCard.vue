@@ -60,14 +60,21 @@
           <ul style="list-style:none;padding:0;margin:0;display:grid;gap:4px">
             <li><strong>Masterdata import</strong> — 15 min base + 5 min per 1 000 rows</li>
             <li><strong>Orders import</strong> — 20 min base + 4 min per 1 000 rows</li>
+            <li><strong>Data Preparation — file merge</strong> — 25 min base + 5 min per file + 3 min per 1 000 merged rows</li>
             <li><strong>Quality (DQ) analysis</strong> — 30 min base + 3 min per 1 000 rows</li>
             <li><strong>Capacity analysis</strong> — 45 min base + 10 min per 1 000 SKU + 5 min per carrier</li>
             <li>
               <strong>Performance + SKU Pareto</strong> — 40 min base + 1 min per 1 000 lines + 25 min for ABC Pareto
               <span style="color:var(--app-text-sec)">(capped at 6 h per run, because manual SQL aggregations scale sub-linearly)</span>
             </li>
+            <li>
+              <strong>Container Order — plan calculation</strong> — 60 min base + 25 min per 1 000 SKU + 3 min per variant
+              <span style="color:var(--app-text-sec)">(capped at 8 h per run — hand-mapping a 48-variant Kardex VBM catalog onto thousands of SKUs)</span>
+            </li>
+            <li><strong>Container Order — export</strong> — 20 min base + 10 min per sheet (xlsx 4, pdf 2, csv 1)</li>
             <li><strong>Report ZIP</strong> — 25 min base + 2 min per CSV file</li>
             <li><strong>Report PDF</strong> — 45 min base + 5 min per chart</li>
+            <li><strong>Data quality Excel export</strong> — 25 min base</li>
           </ul>
           <p style="color:var(--app-text-sec);margin:10px 0 0 0;font-size:11px">
             Total = sum of every event recorded for your account. Counter is strictly per-user — you only see your own work.

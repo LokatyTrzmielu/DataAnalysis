@@ -377,15 +377,16 @@
         <div class="overflow-x-auto mb-4" style="border:1px solid var(--app-border);border-radius:10px">
           <table class="w-full" style="font-size:12.5px;border-collapse:collapse;table-layout:fixed">
             <colgroup>
-              <col style="width:12%" />
-              <col style="width:26%" />
-              <col style="width:9%" />
-              <col style="width:9%" />
-              <col style="width:10%" />
-              <col style="width:9%" />
-              <col style="width:9%" />
+              <col style="width:11%" />
+              <col style="width:22%" />
+              <col style="width:8%" />
+              <col style="width:7%" />
               <col style="width:9%" />
               <col style="width:7%" />
+              <col style="width:7%" />
+              <col style="width:8%" />
+              <col style="width:9%" />
+              <col style="width:6%" />
             </colgroup>
             <thead style="background:var(--table-header-bg)">
               <tr>
@@ -397,6 +398,7 @@
                 <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500">Bins</th>
                 <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500" title="Base containers (1 per bin)">Bases</th>
                 <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500" title="EasyClick frames per variant (bins × frames_per_bin)">Frames</th>
+                <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500" title="Divider cells to order (bins × locations_per_bin)">Dividers</th>
                 <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500">Fill</th>
               </tr>
             </thead>
@@ -410,6 +412,7 @@
                 <td class="px-3 py-1.5 text-right" style="color:var(--app-text);font-weight:600">{{ s.bins_required }}</td>
                 <td class="px-3 py-1.5 text-right" style="color:var(--app-text)">{{ s.bins_required }}</td>
                 <td class="px-3 py-1.5 text-right" style="color:var(--app-text)">{{ s.total_frames_required }}</td>
+                <td class="px-3 py-1.5 text-right" style="color:var(--app-text)">{{ s.dividers_required }}</td>
                 <td class="px-3 py-1.5 text-right" style="color:var(--app-text-sec)">{{ s.avg_fill_pct.toFixed(0) }}%</td>
               </tr>
               <tr style="background:var(--table-header-bg);font-weight:600">
@@ -417,11 +420,17 @@
                 <td class="px-3 py-2 text-right" style="color:var(--app-text)">{{ store.plan.total_bins }}</td>
                 <td class="px-3 py-2 text-right" style="color:var(--app-text)">{{ store.plan.total_bins }}</td>
                 <td class="px-3 py-2 text-right" style="color:var(--app-text)">{{ store.plan.total_frames }}</td>
+                <td class="px-3 py-2 text-right" style="color:var(--app-text)">{{ totalDividers }}</td>
                 <td class="px-3 py-2 text-right" style="color:var(--app-text-sec)">{{ store.plan.avg_fill_pct.toFixed(0) }}%</td>
               </tr>
             </tbody>
           </table>
         </div>
+
+        <p class="mb-2" style="font-size:11px;color:var(--app-text-sec)">
+          Bin weight cap 35 kg is enforced per-cell (proportional to footprint).
+          Total weight per variant is included in the .xlsx and .csv exports.
+        </p>
 
         <p v-if="store.plan.orphans.length > 0" class="warning-text" style="font-size:12px">
           ⚠ {{ store.plan.orphans.length }} SKUs were not assigned — they will be listed in the “Orphans” sheet of the export.
@@ -690,6 +699,12 @@ function variantInfoFor(code: string): VariantInfo {
 
 const selectedVariantInfo = computed<VariantInfo | null>(() => {
   return selectedVariantCode.value ? variantInfoFor(selectedVariantCode.value) : null
+})
+
+const totalDividers = computed(() => {
+  const summaries = store.plan?.summaries
+  if (!summaries) return 0
+  return summaries.reduce((sum, s) => sum + (s.dividers_required || 0), 0)
 })
 
 async function doExport(format: 'xlsx' | 'pdf' | 'csv') {

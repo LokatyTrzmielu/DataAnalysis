@@ -19,6 +19,7 @@ from api.models.analysis_run import AnalysisRun
 from api.models.container_order_plan import ContainerOrderPlan
 from api.models.run_share import RunShare
 from api.models.user import User
+from api.services.time_saving import record_event as record_time_saving_event
 from api.schemas.container_order import (
     AssignmentRow,
     CatalogResponse,
@@ -190,6 +191,14 @@ async def calculate_plan(
         run.performance_result,
         _params_to_dataclass(params),
     )
+    await record_time_saving_event(
+        db,
+        current_user.id,
+        "container_order_run",
+        run_id=run.id,
+        sku_count=plan.total_sku_planned,
+        variant_count=len(plan.summaries),
+    )
     return _plan_to_response(run, plan)
 
 
@@ -212,15 +221,26 @@ async def export_plan(
         from api.excel_generator import generate_order_xlsx
         data = generate_order_xlsx(plan, body.params, run, current_user)
         media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        sheet_count = 4   # Order Summary, SKU Assignment, Parameters, Orphans
     elif body.format == "pdf":
         from api.pdf_generator import generate_container_order_pdf
         data = generate_container_order_pdf(plan, body.params, run, current_user)
         media = "application/pdf"
+        sheet_count = 2   # KPI+chart+table page, parameters page
     elif body.format == "csv":
         data = _generate_summary_csv(plan)
         media = "text/csv"
+        sheet_count = 1
     else:
         raise HTTPException(status_code=422, detail=f"Unsupported format: {body.format}")
+
+    await record_time_saving_event(
+        db,
+        current_user.id,
+        "container_order_exported",
+        run_id=run.id,
+        sheet_count=sheet_count,
+    )
 
     return Response(
         content=data,
@@ -231,22 +251,29 @@ async def export_plan(
 
 def _generate_summary_csv(plan: ContainerPlanResponse) -> bytes:
     """One-sheet summary CSV — same columns as Sheet 1 in the xlsx, including
-    the Bases / Frames procurement breakdown."""
+    the Bases / Frames / Dividers procurement breakdown."""
     buf = io.StringIO()
     buf.write(
         "variant_code;footprint;bin_height_mm;cell_LxWxH_mm;locations_per_bin;"
-        "sku_count;total_locations;bins_required;bases;frames;avg_fill_pct\n"
+        "sku_count;total_locations;bins_required;bases;frames;dividers;"
+        "total_weight_kg;avg_fill_pct\n"
     )
+    total_dividers = 0
+    total_weight = 0.0
     for s in plan.summaries:
         cell = f"{s.cell_length_mm}x{s.cell_width_mm}x{s.cell_height_mm}"
+        total_dividers += s.dividers_required
+        total_weight += s.total_weight_kg
         buf.write(
             f"{s.code};{s.footprint_label};{s.bin_height_mm};{cell};{s.locations_per_bin};"
             f"{s.sku_count};{s.total_locations};{s.bins_required};"
-            f"{s.bins_required};{s.total_frames_required};{s.avg_fill_pct}\n"
+            f"{s.bins_required};{s.total_frames_required};{s.dividers_required};"
+            f"{s.total_weight_kg:.2f};{s.avg_fill_pct}\n"
         )
     buf.write(
         f"\nTOTAL;;;;;{plan.total_sku_covered};;{plan.total_bins};"
-        f"{plan.total_bins};{plan.total_frames};{plan.avg_fill_pct}\n"
+        f"{plan.total_bins};{plan.total_frames};{total_dividers};"
+        f"{total_weight:.2f};{plan.avg_fill_pct}\n"
     )
     return buf.getvalue().encode("utf-8-sig")
 

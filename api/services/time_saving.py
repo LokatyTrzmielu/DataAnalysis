@@ -61,6 +61,21 @@ TIME_SAVING_RULES: dict[str, dict[str, int]] = {
     "report_exported_xlsx": {
         "base_seconds": 25 * 60,           # collecting DQ lists, formatting sheets
     },
+    "container_order_run": {
+        "base_seconds": 60 * 60,           # hand-build 48-variant Kardex VBM catalog, set up params
+        "per_1000_skus": 25 * 60,          # VLOOKUP-style best-fit search per SKU across variants
+        "per_variant": 3 * 60,             # bins / bases / frames / dividers aggregation per variant
+        "max_seconds": 8 * 3600,           # ceiling — keep one event below a working day
+    },
+    "container_order_exported": {
+        "base_seconds": 20 * 60,           # set up the output document
+        "per_sheet": 10 * 60,              # xlsx = 4 sheets, pdf = 2 pages, csv = 1
+    },
+    "data_preparation_merge": {
+        "base_seconds": 25 * 60,           # open files, agree on schema, build mapping
+        "per_file": 5 * 60,                # align / normalise each extra spreadsheet
+        "per_1000_rows": 3 * 60,           # concat + dedup + sanity-check in Excel / Power Query
+    },
 }
 
 # Mapping for grouping events in the Settings UI.
@@ -74,6 +89,9 @@ EVENT_LABELS: dict[str, str] = {
     "report_exported_zip": "Report ZIP export",
     "report_exported_pdf": "Report PDF export",
     "report_exported_xlsx": "Data quality Excel export",
+    "container_order_run": "Container Order — plan calculation",
+    "container_order_exported": "Container Order — export",
+    "data_preparation_merge": "Data Preparation — file merge",
 }
 
 
@@ -132,6 +150,18 @@ def calculate_manual_seconds(event_type: str, **context: Any) -> int:
     if chart_count and "per_chart" in rule:
         seconds += rule["per_chart"] * chart_count
 
+    variant_count = int(context.get("variant_count") or 0)
+    if variant_count and "per_variant" in rule:
+        seconds += rule["per_variant"] * variant_count
+
+    file_count = int(context.get("file_count") or 0)
+    if file_count and "per_file" in rule:
+        seconds += rule["per_file"] * file_count
+
+    sheet_count = int(context.get("sheet_count") or 0)
+    if sheet_count and "per_sheet" in rule:
+        seconds += rule["per_sheet"] * sheet_count
+
     if context.get("includes_pareto") and "pareto_bonus" in rule:
         seconds += rule["pareto_bonus"]
 
@@ -146,7 +176,17 @@ def calculate_manual_seconds(event_type: str, **context: Any) -> int:
 
 def _pick_scale_value(context: dict[str, Any]) -> int | None:
     """Pick the most representative scale number to persist for later inspection."""
-    for key in ("sku_count", "lines_count", "row_count", "carrier_count", "csv_count", "chart_count"):
+    for key in (
+        "sku_count",
+        "lines_count",
+        "row_count",
+        "carrier_count",
+        "variant_count",
+        "csv_count",
+        "chart_count",
+        "sheet_count",
+        "file_count",
+    ):
         v = context.get(key)
         if v:
             return int(v)

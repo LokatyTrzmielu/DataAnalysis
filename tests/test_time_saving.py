@@ -73,6 +73,29 @@ class TestCalculateManualSeconds:
         # 8 csv = 25min base + 16min = 41min = 2460s
         assert calculate_manual_seconds("report_exported_zip", csv_count=8) == 2460
 
+    def test_container_order_run_scales_with_sku_and_variants(self):
+        # 2000 SKU x 7 variants = 60min base + 50min sku + 21min variants = 131min = 7860s
+        assert calculate_manual_seconds(
+            "container_order_run", sku_count=2000, variant_count=7
+        ) == 131 * 60
+
+    def test_container_order_run_caps_huge_datasets(self):
+        # 100k SKU + 12 variants would raw = 60 + 2500 + 36 = 2596min ~ 43h, capped at 8h.
+        seconds = calculate_manual_seconds(
+            "container_order_run", sku_count=100_000, variant_count=12
+        )
+        assert seconds == 8 * 3600
+
+    def test_container_order_export_scales_with_sheets(self):
+        # xlsx export = 20min base + 4 sheets * 10min = 60min = 3600s
+        assert calculate_manual_seconds("container_order_exported", sheet_count=4) == 3600
+
+    def test_data_preparation_merge_scales_with_files_and_rows(self):
+        # 3 files, 5000 rows = 25min base + 15min files + 15min rows = 55min = 3300s
+        assert calculate_manual_seconds(
+            "data_preparation_merge", file_count=3, row_count=5000
+        ) == 55 * 60
+
     def test_zero_scale_treated_as_no_scale(self):
         assert calculate_manual_seconds("dataset_imported_masterdata", row_count=0) == 15 * 60
 
