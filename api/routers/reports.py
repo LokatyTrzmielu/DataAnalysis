@@ -78,6 +78,112 @@ _ORDERS_REPORT_TO_FIELD = {
     "Orders_QtyOutliers": "qty_outlier_rows",
 }
 
+# Orders qty CSV reports re-run the filter against the orders dataframe with
+# no row cap. ``qty_*_rows`` in the JSON column is only a sampled preview.
+_ORDERS_QTY_REPORT_TO_KIND: dict[str, str] = {
+    "Orders_QtyNull": "null",
+    "Orders_QtyZero": "zero",
+    "Orders_QtyNegative": "negative",
+    "Orders_QtyOutliers": "outlier",
+}
+
+
+_QUALITY_DETAIL_KEYS = (
+    "missing_critical",
+    "suspect_outliers",
+    "high_risk_borderline",
+    "duplicates",
+    "conflicts",
+)
+
+
+def _quality_result_needs_value_backfill(qr: dict | None) -> bool:
+    """True when stored DQ items predate the ``value`` field on quality_result."""
+    if not qr:
+        return False
+    for key in _QUALITY_DETAIL_KEYS:
+        items = qr.get(key) or []
+        for item in items:
+            if "value" not in item:
+                return True
+            break
+    return False
+
+
+async def _maybe_backfill_quality_result(db: AsyncSession, run: AnalysisRun) -> dict | None:
+    """Re-run the QualityPipeline so ``quality_result`` picks up the ``value`` column.
+
+    Triggered when older runs are exported — those rows lack the ``value``
+    field on each DQ item. We reload masterdata, re-run the pipeline, and
+    overwrite ``quality_result`` so the cached JSON matches today's schema.
+    """
+    from api.routers.runs import _load_masterdata_df
+
+    try:
+        df = _load_masterdata_df(run)
+    except Exception:
+        return None
+    if df is None:
+        return None
+
+    try:
+        from src.quality.pipeline import QualityPipeline
+
+        result = QualityPipeline().run(df)
+        dq = result.dq_lists
+        metrics = result.metrics_after
+        imputation = result.imputation
+
+        imputed_dims = sum(
+            s.imputed_count for s in (imputation.stats if imputation else [])
+            if s.field_name in ("length_mm", "width_mm", "height_mm")
+        )
+        imputed_weight = sum(
+            s.imputed_count for s in (imputation.stats if imputation else [])
+            if s.field_name == "weight_kg"
+        )
+
+        run.quality_result = {
+            "total_records": metrics.total_records,
+            "dimensions_coverage_pct": metrics.dimensions_coverage_pct,
+            "weight_coverage_pct": metrics.weight_coverage_pct,
+            "stock_coverage_pct": metrics.stock_coverage_pct,
+            "missing_critical_count": len(dq.missing_critical),
+            "suspect_outliers_count": len(dq.suspect_outliers),
+            "high_risk_borderline_count": len(dq.high_risk_borderline),
+            "duplicates_count": len(dq.duplicates),
+            "conflicts_count": len(dq.conflicts),
+            "collisions_count": len(dq.collisions),
+            "imputed_dimensions_count": imputed_dims,
+            "imputed_weight_count": imputed_weight,
+            "overall_score": result.quality_score,
+            "missing_critical": [
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
+                for i in dq.missing_critical
+            ],
+            "suspect_outliers": [
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
+                for i in dq.suspect_outliers
+            ],
+            "high_risk_borderline": [
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
+                for i in dq.high_risk_borderline
+            ],
+            "duplicates": [
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
+                for i in dq.duplicates
+            ],
+            "conflicts": [
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
+                for i in dq.conflicts
+            ],
+        }
+        await db.commit()
+        await db.refresh(run)
+        return run.quality_result
+    except Exception:
+        return None
+
 
 # ---------------------------------------------------------------------------
 # SolDimTool Dashboard Input — JSON-based calculator
@@ -293,10 +399,31 @@ async def download_csv_report(
     if report_name in _ORDERS_REPORT_TO_FIELD:
         if not ovr:
             raise HTTPException(status_code=422, detail="No orders validation results available.")
-        # Auto-backfill for runs created before per-issue row collection was added.
-        if report_name != "Orders_DateGaps" and not ovr.get(_ORDERS_REPORT_TO_FIELD[report_name]):
-            ovr = await _maybe_backfill_orders_validation(db, run) or ovr
-        rows = ovr.get(_ORDERS_REPORT_TO_FIELD[report_name], []) or []
+        # Qty CSV exports re-run the filter against the live orders df so the
+        # output isn't truncated by the 100-row sampling cap.
+        if report_name in _ORDERS_QTY_REPORT_TO_KIND:
+            rows = []
+            try:
+                from api.routers.runs import _load_orders_df
+                from src.analytics.orders_validation import compute_qty_issue_rows
+
+                orders_df = _load_orders_df(run)
+                if orders_df is not None:
+                    rows = compute_qty_issue_rows(
+                        orders_df,
+                        _ORDERS_QTY_REPORT_TO_KIND[report_name],
+                    )
+            except Exception:
+                rows = []
+            # Fallback to the cached (sampled) preview if reloading the
+            # source dataframe fails — better partial than nothing.
+            if not rows:
+                if not ovr.get(_ORDERS_REPORT_TO_FIELD[report_name]):
+                    ovr = await _maybe_backfill_orders_validation(db, run) or ovr
+                rows = ovr.get(_ORDERS_REPORT_TO_FIELD[report_name], []) or []
+        else:
+            # Orders_DateGaps — full list lives in the JSON.
+            rows = ovr.get(_ORDERS_REPORT_TO_FIELD[report_name], []) or []
     elif report_name == "DQ_Summary":
         if not qr:
             raise HTTPException(status_code=422, detail="No quality results available.")
@@ -314,26 +441,19 @@ async def download_csv_report(
             "imputed_dimensions_count": qr.get("imputed_dimensions_count"),
             "imputed_weight_count": qr.get("imputed_weight_count"),
         }]
-    elif report_name == "DQ_MissingCritical":
+    elif report_name in ("DQ_MissingCritical", "DQ_SuspectOutliers", "DQ_HighRiskBorderline", "DQ_Duplicates", "DQ_Conflicts"):
         if not qr:
             raise HTTPException(status_code=422, detail="No quality results available.")
-        rows = qr.get("missing_critical", [])
-    elif report_name == "DQ_SuspectOutliers":
-        if not qr:
-            raise HTTPException(status_code=422, detail="No quality results available.")
-        rows = qr.get("suspect_outliers", [])
-    elif report_name == "DQ_HighRiskBorderline":
-        if not qr:
-            raise HTTPException(status_code=422, detail="No quality results available.")
-        rows = qr.get("high_risk_borderline", [])
-    elif report_name == "DQ_Duplicates":
-        if not qr:
-            raise HTTPException(status_code=422, detail="No quality results available.")
-        rows = qr.get("duplicates", [])
-    elif report_name == "DQ_Conflicts":
-        if not qr:
-            raise HTTPException(status_code=422, detail="No quality results available.")
-        rows = qr.get("conflicts", [])
+        if _quality_result_needs_value_backfill(qr):
+            qr = await _maybe_backfill_quality_result(db, run) or qr
+        key_map = {
+            "DQ_MissingCritical": "missing_critical",
+            "DQ_SuspectOutliers": "suspect_outliers",
+            "DQ_HighRiskBorderline": "high_risk_borderline",
+            "DQ_Duplicates": "duplicates",
+            "DQ_Conflicts": "conflicts",
+        }
+        rows = qr.get(key_map[report_name], [])
     elif report_name == "Capacity_Results":
         if not cr:
             raise HTTPException(status_code=422, detail="No capacity results available.")
@@ -548,9 +668,12 @@ async def download_dq_xlsx(
             detail="No data quality results available. Run quality check first.",
         )
 
-    # Self-heal pre-existing runs that lack per-issue row collections.
+    # Self-heal pre-existing runs that lack per-issue row collections or
+    # whose quality_result DQ items predate the `value` column.
     if _orders_validation_needs_backfill(run.orders_validation_result or {}):
         await _maybe_backfill_orders_validation(db, run)
+    if _quality_result_needs_value_backfill(run.quality_result):
+        await _maybe_backfill_quality_result(db, run)
 
     from api.dq_excel_generator import generate_dq_xlsx
 

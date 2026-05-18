@@ -156,8 +156,11 @@
 import { ref, computed } from 'vue'
 import type { RunDetail, OrdersValidationResult } from '@/api/runs'
 import { runsApi } from '@/api/runs'
+import { useAnalysisStore } from '@/stores/analysis'
 
 const props = defineProps<{ run: RunDetail }>()
+
+const analysis = useAnalysisStore()
 
 const downloadingZip = ref(false)
 const downloadingPdf = ref(false)
@@ -208,6 +211,7 @@ async function blobErrorMessage(err: unknown): Promise<string> {
 async function downloadZip() {
   downloadingZip.value = true
   error.value = ''
+  analysis.start()
   try {
     const { data } = await runsApi.downloadZip(props.run.id)
     triggerDownload(data as Blob, `${props.run.client_name}_report.zip`)
@@ -215,12 +219,14 @@ async function downloadZip() {
     error.value = 'ZIP download failed: ' + await blobErrorMessage(e)
   } finally {
     downloadingZip.value = false
+    analysis.stop()
   }
 }
 
 async function downloadPdf() {
   downloadingPdf.value = true
   error.value = ''
+  analysis.start()
   try {
     const { data } = await runsApi.downloadPdf(props.run.id)
     triggerDownload(data as Blob, `${props.run.client_name}_report.pdf`)
@@ -228,12 +234,14 @@ async function downloadPdf() {
     error.value = 'PDF download failed: ' + await blobErrorMessage(e)
   } finally {
     downloadingPdf.value = false
+    analysis.stop()
   }
 }
 
 async function downloadXlsx() {
   downloadingXlsx.value = true
   error.value = ''
+  analysis.start()
   try {
     const { data } = await runsApi.downloadDqXlsx(props.run.id)
     triggerDownload(data as Blob, `${props.run.client_name}_data_quality.xlsx`)
@@ -241,12 +249,14 @@ async function downloadXlsx() {
     error.value = 'Excel download failed: ' + await blobErrorMessage(e)
   } finally {
     downloadingXlsx.value = false
+    analysis.stop()
   }
 }
 
 async function downloadCsv(reportName: string) {
   downloading.value = reportName
   error.value = ''
+  analysis.start()
   try {
     const { data } = await runsApi.downloadCsvReport(props.run.id, reportName)
     triggerDownload(data as Blob, `${props.run.client_name}_${reportName}.csv`)
@@ -254,6 +264,7 @@ async function downloadCsv(reportName: string) {
     error.value = `Failed to download ${reportName}: ` + await blobErrorMessage(e)
   } finally {
     downloading.value = null
+    analysis.stop()
   }
 }
 
