@@ -24,9 +24,19 @@
 .PARAMETER SmokeTest
     After building, launch the package and probe /health, then stop.
 
+.PARAMETER CodeOnly
+    Skip Python runtime download and pip install. Only refresh app code
+    (api, src, frontend\dist) and regenerate launcher scripts. Requires an
+    existing package at OutputDir. Use for fast iteration after `npm run build`.
+
 .EXAMPLE
     .\Dev\Build-Portable.ps1 -Force
     .\Dev\Build-Portable.ps1 -Force -SmokeTest
+
+.EXAMPLE
+    # Fast iteration after frontend rebuild (~20 s, no network I/O):
+    cd D:\VS\DataAnalysis\frontend; npm run build; cd ..
+    .\Dev\Build-Portable.ps1 -CodeOnly
 #>
 [CmdletBinding()]
 param(
@@ -34,7 +44,8 @@ param(
     [string]$PythonVersion = '3.11.9',
     [switch]$Force,
     [switch]$SkipPythonDownload,
-    [switch]$SmokeTest
+    [switch]$SmokeTest,
+    [switch]$CodeOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -98,7 +109,13 @@ if (-not (Test-Path "$RepoRoot\frontend\dist\index.html")) {
     throw "frontend\dist\index.html missing. Build the SPA first: cd frontend; npm run build"
 }
 
-if (Test-Path $OutputDir) {
+if ($CodeOnly) {
+    if (-not (Test-Path "$OutputDir\runtime\python\python.exe")) {
+        throw "-CodeOnly requires an existing package. Run full build first: .\Dev\Build-Portable.ps1 -Force"
+    }
+    Write-Step "Code-only refresh: keeping runtime\python and existing data\."
+}
+elseif (Test-Path $OutputDir) {
     if (-not $Force) {
         throw "Output exists: $OutputDir. Pass -Force to overwrite."
     }
@@ -106,65 +123,74 @@ if (Test-Path $OutputDir) {
     Remove-Item $OutputDir -Recurse -Force
 }
 
-# ---------------------------------------------------------------------------
-# 2. Create folder structure
-# ---------------------------------------------------------------------------
-Write-Step "Creating folder structure"
-$Dirs = @(
-    $OutputDir,
-    "$OutputDir\runtime\python",
-    "$OutputDir\app",
-    "$OutputDir\data\datasets",
-    "$OutputDir\data\uploads",
-    "$OutputDir\logs"
-)
-$Dirs | ForEach-Object { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
-
-# ---------------------------------------------------------------------------
-# 3. Download embeddable Python
-# ---------------------------------------------------------------------------
-if ((-not (Test-Path $EmbedZip)) -or (-not $SkipPythonDownload)) {
-    Write-Step "Downloading $PythonZipUrl"
-    Invoke-WebRequest -Uri $PythonZipUrl -OutFile $EmbedZip
-} else {
-    Write-Step "Using cached embeddable Python: $EmbedZip"
-}
-Write-Step "Extracting embeddable Python"
-Expand-Archive -Path $EmbedZip -DestinationPath "$OutputDir\runtime\python" -Force
-
-# ---------------------------------------------------------------------------
-# 4. Enable site-packages in embeddable runtime
-# ---------------------------------------------------------------------------
-Write-Step "Enabling site-packages and app path in ._pth"
-$PthFile = Get-ChildItem "$OutputDir\runtime\python\python*._pth" | Select-Object -First 1
-if (-not $PthFile) { throw "._pth file not found in embeddable distribution" }
-$pth = Get-Content $PthFile.FullName
-$pth = $pth -replace '^\s*#\s*import site', 'import site'
-# Add app/ to sys.path so `python -m api.seed` and `uvicorn api.main:app` resolve.
-# Path is relative to python.exe directory (runtime\python\), so up two levels to portable
-# root and then into app.
-if (-not ($pth -match [regex]::Escape('..\..\app'))) {
-    $pth = @($pth[0]) + '..\..\app' + ($pth[1..($pth.Count - 1)])
-}
-$pth | Set-Content $PthFile.FullName -Encoding ascii
-
 $PythonExe = Join-Path $OutputDir 'runtime\python\python.exe'
 
-# ---------------------------------------------------------------------------
-# 5. Bootstrap pip
-# ---------------------------------------------------------------------------
-Write-Step "Bootstrapping pip"
-$GetPipScript = Join-Path $OutputDir 'runtime\python\get-pip.py'
-Invoke-WebRequest -Uri $GetPipUrl -OutFile $GetPipScript
-& $PythonExe $GetPipScript --no-warn-script-location
-if ($LASTEXITCODE -ne 0) { throw "get-pip.py failed with exit code $LASTEXITCODE" }
+if (-not $CodeOnly) {
+    # -----------------------------------------------------------------------
+    # 2. Create folder structure
+    # -----------------------------------------------------------------------
+    Write-Step "Creating folder structure"
+    $Dirs = @(
+        $OutputDir,
+        "$OutputDir\runtime\python",
+        "$OutputDir\app",
+        "$OutputDir\data\datasets",
+        "$OutputDir\data\uploads",
+        "$OutputDir\logs"
+    )
+    $Dirs | ForEach-Object { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
 
-# ---------------------------------------------------------------------------
-# 6. Install runtime dependencies
-# ---------------------------------------------------------------------------
-Write-Step "Installing $($RuntimeDeps.Count) runtime dependencies (this may take a few minutes)"
-& $PythonExe -m pip install --no-warn-script-location --no-cache-dir @RuntimeDeps
-if ($LASTEXITCODE -ne 0) { throw "pip install failed with exit code $LASTEXITCODE" }
+    # -----------------------------------------------------------------------
+    # 3. Download embeddable Python
+    # -----------------------------------------------------------------------
+    if ((-not (Test-Path $EmbedZip)) -or (-not $SkipPythonDownload)) {
+        Write-Step "Downloading $PythonZipUrl"
+        Invoke-WebRequest -Uri $PythonZipUrl -OutFile $EmbedZip
+    } else {
+        Write-Step "Using cached embeddable Python: $EmbedZip"
+    }
+    Write-Step "Extracting embeddable Python"
+    Expand-Archive -Path $EmbedZip -DestinationPath "$OutputDir\runtime\python" -Force
+
+    # -----------------------------------------------------------------------
+    # 4. Enable site-packages in embeddable runtime
+    # -----------------------------------------------------------------------
+    Write-Step "Enabling site-packages and app path in ._pth"
+    $PthFile = Get-ChildItem "$OutputDir\runtime\python\python*._pth" | Select-Object -First 1
+    if (-not $PthFile) { throw "._pth file not found in embeddable distribution" }
+    $pth = Get-Content $PthFile.FullName
+    $pth = $pth -replace '^\s*#\s*import site', 'import site'
+    # Add app/ to sys.path so `python -m api.seed` and `uvicorn api.main:app` resolve.
+    # Path is relative to python.exe directory (runtime\python\), so up two levels to
+    # portable root and then into app.
+    if (-not ($pth -match [regex]::Escape('..\..\app'))) {
+        $pth = @($pth[0]) + '..\..\app' + ($pth[1..($pth.Count - 1)])
+    }
+    $pth | Set-Content $PthFile.FullName -Encoding ascii
+
+    # -----------------------------------------------------------------------
+    # 5. Bootstrap pip
+    # -----------------------------------------------------------------------
+    Write-Step "Bootstrapping pip"
+    $GetPipScript = Join-Path $OutputDir 'runtime\python\get-pip.py'
+    Invoke-WebRequest -Uri $GetPipUrl -OutFile $GetPipScript
+    & $PythonExe $GetPipScript --no-warn-script-location
+    if ($LASTEXITCODE -ne 0) { throw "get-pip.py failed with exit code $LASTEXITCODE" }
+
+    # -----------------------------------------------------------------------
+    # 6. Install runtime dependencies
+    # -----------------------------------------------------------------------
+    Write-Step "Installing $($RuntimeDeps.Count) runtime dependencies (this may take a few minutes)"
+    & $PythonExe -m pip install --no-warn-script-location --no-cache-dir @RuntimeDeps
+    if ($LASTEXITCODE -ne 0) { throw "pip install failed with exit code $LASTEXITCODE" }
+}
+else {
+    # Code-only path: ensure runtime data dirs exist (no-op if already there).
+    foreach ($d in 'data\datasets', 'data\uploads', 'logs') {
+        $p = Join-Path $OutputDir $d
+        if (-not (Test-Path $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null }
+    }
+}
 
 # ---------------------------------------------------------------------------
 # 7. Copy application code
