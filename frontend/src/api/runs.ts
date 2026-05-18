@@ -45,6 +45,7 @@ export interface OrdersValidationResult {
   total_calendar_days: number
   gap_count: number
   max_gap_days: number
+  total_gap_days?: number
   gap_list: DateGap[]
   // Quantity anomalies
   qty_null_count: number
@@ -52,6 +53,10 @@ export interface OrdersValidationResult {
   qty_negative_count: number
   qty_outlier_count: number
   qty_outlier_threshold: number
+  qty_null_rows?: Record<string, unknown>[]
+  qty_zero_rows?: Record<string, unknown>[]
+  qty_negative_rows?: Record<string, unknown>[]
+  qty_outlier_rows?: Record<string, unknown>[]
   // SKU cross-validation
   sku_xval_available: boolean
   orders_skus_not_in_masterdata_count: number

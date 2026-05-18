@@ -72,34 +72,21 @@
 
     <!-- Orders Issues -->
     <div class="card-apple">
-      <h3 class="mb-1" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Orders Issues</h3>
-      <p class="mb-3" style="font-size:12px;color:var(--app-text-sec)">
-        Date gaps, missing/invalid quantities, and SKU cross-validation against Masterdata.
-        Full lists are available in the Excel export above.
-      </p>
-      <div v-if="ovr" class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-        <div>
-          <span class="text-xs" style="color:var(--app-text-sec)">Date gaps</span>
-          <p class="font-semibold" style="color:var(--app-text)">{{ ovr.gap_count }}</p>
-        </div>
-        <div>
-          <span class="text-xs" style="color:var(--app-text-sec)">Missing SKUs</span>
-          <p class="font-semibold" :style="ovr.missing_sku_count > 0 ? 'color:#ff3b30' : 'color:var(--app-text)'">{{ ovr.missing_sku_count }}</p>
-        </div>
-        <div>
-          <span class="text-xs" style="color:var(--app-text-sec)">Qty anomalies</span>
-          <p class="font-semibold" style="color:var(--app-text)">{{ qtyAnomalies }}</p>
-        </div>
-        <div>
-          <span class="text-xs" style="color:var(--app-text-sec)">Unknown SKUs</span>
-          <p class="font-semibold" style="color:var(--app-text)">{{ ovr.orders_skus_not_in_masterdata_count }}</p>
-        </div>
-        <div>
-          <span class="text-xs" style="color:var(--app-text-sec)">Inactive SKUs</span>
-          <p class="font-semibold" style="color:var(--app-text)">{{ ovr.masterdata_skus_not_in_orders_count }}</p>
-        </div>
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Orders Issues</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <button
+          v-for="rep in ordersReports"
+          :key="rep.name"
+          @click="downloadCsv(rep.name)"
+          :disabled="!ovr || downloading === rep.name"
+          class="btn-apple-pill text-left"
+          style="justify-content:flex-start"
+          :style="(!ovr || downloading === rep.name) ? 'opacity:0.4' : ''"
+        >
+          {{ downloading === rep.name ? 'Preparing…' : rep.label }}
+        </button>
       </div>
-      <p v-else class="mt-2" style="font-size:12px;color:var(--app-text-sec)">
+      <p v-if="!ovr" class="mt-3" style="font-size:12px;color:var(--app-text-sec)">
         Ingest Orders first to enable order-level data quality reporting.
       </p>
     </div>
@@ -179,7 +166,6 @@ const downloading = ref<string | null>(null)
 const error = ref('')
 
 const masterdataReports = [
-  { name: 'DQ_Summary', label: 'DQ Summary' },
   { name: 'DQ_MissingCritical', label: 'Missing Critical' },
   { name: 'DQ_SuspectOutliers', label: 'Suspect Outliers' },
   { name: 'DQ_HighRiskBorderline', label: 'High Risk Borderline' },
@@ -187,13 +173,15 @@ const masterdataReports = [
   { name: 'DQ_Conflicts', label: 'Conflicts' },
 ]
 
-const ovr = computed(() => props.run.orders_validation_result as OrdersValidationResult | null)
+const ordersReports = [
+  { name: 'Orders_DateGaps', label: 'Date Gaps' },
+  { name: 'Orders_QtyNull', label: 'Qty Null' },
+  { name: 'Orders_QtyZero', label: 'Qty Zero' },
+  { name: 'Orders_QtyNegative', label: 'Qty Negative' },
+  { name: 'Orders_QtyOutliers', label: 'Qty Outliers' },
+]
 
-const qtyAnomalies = computed(() => {
-  const o = ovr.value
-  if (!o) return 0
-  return o.qty_null_count + o.qty_zero_count + o.qty_negative_count + o.qty_outlier_count
-})
+const ovr = computed(() => props.run.orders_validation_result as OrdersValidationResult | null)
 
 const canDownloadPdf = computed(
   () => !!(props.run.capacity_result || props.run.performance_result),
