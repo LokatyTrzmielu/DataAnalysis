@@ -11,6 +11,17 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-18] - Fix (main) — Container Order PDF: split cramped "Order summary" into two tables
+
+- 12-column "Order summary" in `api/pdf_generator.py` :: `generate_container_order_pdf` was too dense on A4 portrait — column headers were truncating and rows wrapped unpredictably. Replaced with two tables, each with its own TOTAL row:
+  1. **Order summary** — Variant, Footprint, Cell (mm), Locs/bin, SKU, Locations, Bins, Avg fill.
+  2. **Procurement breakdown** — Variant, Bins, Bases, Frames, Dividers.
+- Dropped the standalone `Height` column (height is encoded in the variant code, e.g. `1/4-188`, and present in the Excel sheet).
+- Font bumped 8 → 9 pt, padding 4 → 5 px now that each table has room to breathe.
+- Smoke-tested via in-process render: 41 KB PDF, no ReportLab errors.
+
+---
+
 ### [2026-05-18] - Feature (fix/capacity-csv-carrier-name) — Time saved: cover Container Order + Data Preparation
 
 **New event types in `api/services/time_saving.py`:**
