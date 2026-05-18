@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_current_user, get_db
+from api.dependencies import get_current_user, get_optional_user, get_db
 from api.models.dataset import Dataset
 from api.models.user import User
 from api.services.time_saving import record_event as record_time_saving_event
@@ -97,7 +97,7 @@ async def import_dataset(
     file_type: str = Form(..., description="'masterdata' or 'orders'"),
     mapping_json: str | None = Form(default=None, description="JSON mapping: target_field -> source_column"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_optional_user),
 ) -> DatasetResponse:
     """Import an Excel/CSV file, persist it as a DuckDB dataset, and return a dataset_id.
 
@@ -175,12 +175,13 @@ async def import_dataset(
         created_at=dataset.created_at,
     )
 
-    await record_time_saving_event(
-        db,
-        current_user.id,
-        f"dataset_imported_{file_type}",
-        row_count=result.rows_imported,
-    )
+    if current_user:
+        await record_time_saving_event(
+            db,
+            current_user.id,
+            f"dataset_imported_{file_type}",
+            row_count=result.rows_imported,
+        )
 
     return response
 
