@@ -135,13 +135,16 @@ class OrdersValidator:
 
         gap_intervals.sort(key=lambda g: g["days"], reverse=True)
         max_gap = gap_intervals[0]["days"] if gap_intervals else 0
+        total_gap_days = sum(g["days"] for g in gap_intervals)
 
         return {
             "date_coverage_pct": coverage_pct,
             "total_calendar_days": total_calendar,
             "gap_count": len(gap_intervals),
             "max_gap_days": max_gap,
-            "gap_list": gap_intervals[:20],
+            "total_gap_days": total_gap_days,
+            # Full list — Summary's gap_count must match what the export shows.
+            "gap_list": gap_intervals,
         }
 
     # ── Quantity anomalies ────────────────────────────────────────────────────

@@ -324,11 +324,11 @@ async def masterdata_from_dataset(
         "imputed_dimensions_count": imputed_dims,
         "imputed_weight_count": imputed_weight,
         "overall_score": quality_result.quality_score,
-        "missing_critical": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.missing_critical],
-        "suspect_outliers": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.suspect_outliers],
-        "high_risk_borderline": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.high_risk_borderline],
-        "duplicates": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.duplicates],
-        "conflicts": [{"sku": i.sku, "field": i.field, "details": i.details or ""} for i in dq.conflicts],
+        "missing_critical": [{"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""} for i in dq.missing_critical],
+        "suspect_outliers": [{"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""} for i in dq.suspect_outliers],
+        "high_risk_borderline": [{"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""} for i in dq.high_risk_borderline],
+        "duplicates": [{"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""} for i in dq.duplicates],
+        "conflicts": [{"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""} for i in dq.conflicts],
     }
     run.masterdata_path = row.duckdb_path
     run.masterdata_original_filename = row.name
@@ -631,23 +631,23 @@ async def run_quality(
             "overall_score": quality_result.quality_score,
             # Detailed DQ lists for CSV download
             "missing_critical": [
-                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
                 for i in dq.missing_critical
             ],
             "suspect_outliers": [
-                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
                 for i in dq.suspect_outliers
             ],
             "high_risk_borderline": [
-                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
                 for i in dq.high_risk_borderline
             ],
             "duplicates": [
-                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
                 for i in dq.duplicates
             ],
             "conflicts": [
-                {"sku": i.sku, "field": i.field, "details": i.details or ""}
+                {"sku": i.sku, "field": i.field, "value": i.value or "", "details": i.details or ""}
                 for i in dq.conflicts
             ],
         }

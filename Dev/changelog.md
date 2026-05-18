@@ -11,6 +11,35 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-18] - Fix (fix/dq-excel-and-orders-csv) — Excel value column, gap consistency, qty backfill, Orders CSVs
+
+**Excel (`api/dq_excel_generator.py` + `api/routers/runs.py`):**
+
+- Kolumna **value** w arkuszach MD - * była pusta — `runs.py` serializował tylko `{sku, field, details}`, gubiąc `value` z `DQListItem`. Oba miejsca persistujące `quality_result` (`/quality` + `/masterdata/from-dataset`) zapisują teraz `value`. Dla istniejących runów wartość będzie pusta do następnego Quality Check.
+- **Trzy arkusze Summary scalone w jeden** — `Summary` zawiera teraz trzy sekcje (Info / Masterdata / Orders) jako pasy nagłówkowe, zamiast oddzielnych zakładek.
+
+**Spójność Date Gaps (`src/analytics/orders_validation.py`):**
+
+- `gap_list` było wcześniej przycinane do 20 najdłuższych przerw (sort by days desc → `[:20]`), przez co Summary pokazywał `gap_count=40` a arkusz `Orders - Date Gaps` miał tylko 20 wierszy. **Cap usunięty** — pełna lista przerw trafia do JSON-a i Excel.
+- Dodane pole **`total_gap_days`** (suma dni przerw) i pokazane w sekcji Orders w Summary, żeby od razu odróżnić *liczbę przerw* od *liczby dni w przerwach*.
+
+**Qty Outliers — brakujące wiersze dla starszych runów (`api/routers/reports.py`):**
+
+- Run z `qty_outlier_count=5486` ale pustym `qty_outlier_rows` (bo `orders_validation_result` powstał zanim feature wylądował) — endpoint `/reports/xlsx` wykrywa teraz brak nowych pól (`qty_*_rows`, `total_gap_days`) i **automatycznie re-runuje** `OrdersValidator` na bieżącym orders df, zapisując świeży wynik do DB.
+- Helper `_maybe_backfill_orders_validation()` szanuje gate cross-validation (masterdata bez `masterdata_mapping` i bez `quality_result` → bez auto-mappingu).
+
+**Reports tab — 5 CSV per sekcja (`frontend/src/components/analysis/ReportsTab.vue` + `api/routers/reports.py`):**
+
+- **Masterdata Issues**: usunięty przycisk *DQ Summary*. Zostaje 5 przycisków: Missing Critical / Suspect Outliers / High Risk Borderline / Duplicates / Conflicts.
+- **Orders Issues**: tekst podsumowania zastąpiony **5 przyciskami CSV** (jak Masterdata): Date Gaps / Qty Null / Qty Zero / Qty Negative / Qty Outliers. Backend dostał 5 nowych typów raportów w `CSV_REPORTS` + `_ORDERS_REPORT_TO_FIELD`, kolumny `order_id, sku, order_date, order_hour, quantity`.
+- CSV endpointy dla orders qty również wywołują backfill, jeśli pole `qty_*_rows` jest puste a count > 0.
+
+**Tests**: `tests/test_orders_validation.py` (28) + `tests/test_quality.py` (32) green.
+
+**Branch**: `fix/dq-excel-and-orders-csv` (jeszcze nie zmergowany).
+
+---
+
 ### [2026-05-18] - Fix (fix/reports-excel-and-cross-validation) — SKU cross-validation gate + rozbudowa Excel DQ
 
 **Bug fix: `src/analytics/orders_validation.py` `_check_sku_crossvalidation`**

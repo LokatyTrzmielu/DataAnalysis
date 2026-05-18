@@ -25,11 +25,19 @@ CSV_REPORTS = {
     "DQ_HighRiskBorderline",
     "DQ_Duplicates",
     "DQ_Conflicts",
+    "Orders_DateGaps",
+    "Orders_QtyNull",
+    "Orders_QtyZero",
+    "Orders_QtyNegative",
+    "Orders_QtyOutliers",
     "Capacity_Results",
     "SKU_Pareto",
     "Pareto_Bands",
     "SolDimTool_DashboardInput",
 }
+
+_DQ_COLUMNS = ["sku", "field", "value", "details"]
+_QTY_ROW_COLUMNS = ["order_id", "sku", "order_date", "order_hour", "quantity"]
 
 # Known column headers per report type (used to write empty CSVs with headers)
 REPORT_COLUMNS: dict[str, list[str]] = {
@@ -40,11 +48,16 @@ REPORT_COLUMNS: dict[str, list[str]] = {
         "duplicates_count", "conflicts_count",
         "imputed_dimensions_count", "imputed_weight_count",
     ],
-    "DQ_MissingCritical": ["sku", "field", "details"],
-    "DQ_SuspectOutliers": ["sku", "field", "details"],
-    "DQ_HighRiskBorderline": ["sku", "field", "details"],
-    "DQ_Duplicates": ["sku", "field", "details"],
-    "DQ_Conflicts": ["sku", "field", "details"],
+    "DQ_MissingCritical": _DQ_COLUMNS,
+    "DQ_SuspectOutliers": _DQ_COLUMNS,
+    "DQ_HighRiskBorderline": _DQ_COLUMNS,
+    "DQ_Duplicates": _DQ_COLUMNS,
+    "DQ_Conflicts": _DQ_COLUMNS,
+    "Orders_DateGaps": ["from", "to", "days"],
+    "Orders_QtyNull": _QTY_ROW_COLUMNS,
+    "Orders_QtyZero": _QTY_ROW_COLUMNS,
+    "Orders_QtyNegative": _QTY_ROW_COLUMNS,
+    "Orders_QtyOutliers": _QTY_ROW_COLUMNS,
     "Capacity_Results": [],  # dynamic — derived from stored rows schema
     "SKU_Pareto": [
         "sku", "total_lines", "total_units", "total_orders",
@@ -55,6 +68,14 @@ REPORT_COLUMNS: dict[str, list[str]] = {
         "cumulated_lines_pct", "pieces_day", "pieces_day_pct", "cumulated_pieces_pct",
     ],
     "SolDimTool_DashboardInput": ["Section", "Cell", "Metric", "Value", "Note"],
+}
+
+_ORDERS_REPORT_TO_FIELD = {
+    "Orders_DateGaps": "gap_list",
+    "Orders_QtyNull": "qty_null_rows",
+    "Orders_QtyZero": "qty_zero_rows",
+    "Orders_QtyNegative": "qty_negative_rows",
+    "Orders_QtyOutliers": "qty_outlier_rows",
 }
 
 
@@ -265,10 +286,18 @@ async def download_csv_report(
     qr = run.quality_result or {}
     cr = run.capacity_result or {}
     pr = run.performance_result or {}
+    ovr = run.orders_validation_result or {}
 
     rows: list[dict] = []
 
-    if report_name == "DQ_Summary":
+    if report_name in _ORDERS_REPORT_TO_FIELD:
+        if not ovr:
+            raise HTTPException(status_code=422, detail="No orders validation results available.")
+        # Auto-backfill for runs created before per-issue row collection was added.
+        if report_name != "Orders_DateGaps" and not ovr.get(_ORDERS_REPORT_TO_FIELD[report_name]):
+            ovr = await _maybe_backfill_orders_validation(db, run) or ovr
+        rows = ovr.get(_ORDERS_REPORT_TO_FIELD[report_name], []) or []
+    elif report_name == "DQ_Summary":
         if not qr:
             raise HTTPException(status_code=422, detail="No quality results available.")
         rows = [{
@@ -442,6 +471,64 @@ async def download_zip(
     )
 
 
+async def _maybe_backfill_orders_validation(db: AsyncSession, run: AnalysisRun) -> dict | None:
+    """Re-run OrdersValidator for runs created before per-issue row collection landed.
+
+    Triggered when ``orders_validation_result`` exists but lacks the new
+    row-level fields (e.g. ``qty_outlier_rows``). Returns the refreshed
+    dict (also persisted on ``run``) or ``None`` when the orders dataframe
+    can't be reloaded.
+    """
+    from api.routers.runs import _load_orders_df
+    from src.analytics.orders_validation import OrdersValidator
+    from src.storage.data_store import DataStore
+    from pathlib import Path
+
+    try:
+        orders_df = _load_orders_df(run)
+    except Exception:
+        return None
+    if orders_df is None:
+        return None
+
+    masterdata_df = None
+    masterdata_path = None
+    masterdata_mapping = None
+    if run.masterdata_path:
+        if run.masterdata_path.endswith(".duckdb"):
+            try:
+                md_dataset_id = Path(run.masterdata_path).stem
+                store = DataStore()
+                if store.exists(md_dataset_id):
+                    masterdata_df = store.load(md_dataset_id, "masterdata")
+            except Exception:
+                masterdata_df = None
+        elif run.quality_result and run.masterdata_mapping:
+            masterdata_path = Path(run.masterdata_path)
+            masterdata_mapping = run.masterdata_mapping
+
+    try:
+        result = OrdersValidator().validate(
+            orders_df,
+            masterdata_path=masterdata_path,
+            masterdata_mapping=masterdata_mapping,
+            masterdata_df=masterdata_df,
+        )
+        run.orders_validation_result = result
+        await db.commit()
+        await db.refresh(run)
+        return result
+    except Exception:
+        return None
+
+
+def _orders_validation_needs_backfill(ovr: dict) -> bool:
+    if not ovr:
+        return False
+    expected_keys = ("qty_null_rows", "qty_zero_rows", "qty_negative_rows", "qty_outlier_rows", "total_gap_days")
+    return any(k not in ovr for k in expected_keys)
+
+
 @router.get("/{run_id}/reports/xlsx")
 async def download_dq_xlsx(
     run_id: str,
@@ -460,6 +547,10 @@ async def download_dq_xlsx(
             status_code=422,
             detail="No data quality results available. Run quality check first.",
         )
+
+    # Self-heal pre-existing runs that lack per-issue row collections.
+    if _orders_validation_needs_backfill(run.orders_validation_result or {}):
+        await _maybe_backfill_orders_validation(db, run)
 
     from api.dq_excel_generator import generate_dq_xlsx
 
