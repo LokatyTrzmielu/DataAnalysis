@@ -709,18 +709,24 @@ def generate_container_order_pdf(plan, params, run, user=None) -> bytes:
     _add_chart(story, _chart_bins_per_variant(plan.summaries),
                'Bins required per variant', caption_style)
 
-    # Variant table — Bases + Frames columns give the procurement breakdown.
+    # Variant table — Bases + Frames + Dividers columns give the procurement
+    # breakdown. Total weight is omitted here to keep the table within A4
+    # portrait width — see the Excel "Order Summary" sheet for that column.
     story.append(Paragraph('Order summary', heading_style))
     table_data = [['Variant', 'Footprint', 'Height', 'Cell (mm)', 'Locs/bin',
-                   'SKU', 'Locations', 'Bins', 'Bases', 'Frames', 'Avg fill']]
+                   'SKU', 'Locations', 'Bins', 'Bases', 'Frames', 'Dividers',
+                   'Avg fill']]
+    total_dividers = 0
     for s in plan.summaries:
         cell = f"{s.cell_length_mm}×{s.cell_width_mm}×{s.cell_height_mm}"
+        total_dividers += s.dividers_required
         table_data.append([
             s.code, s.footprint_label, str(s.bin_height_mm), cell,
             str(s.locations_per_bin), str(s.sku_count), str(s.total_locations),
             str(s.bins_required),
             str(s.bins_required),               # Bases = bins
             str(s.total_frames_required),       # Frames
+            str(s.dividers_required),           # Dividers
             f"{s.avg_fill_pct:.0f}%",
         ])
     total_locations = sum(s.total_locations for s in plan.summaries)
@@ -728,10 +734,11 @@ def generate_container_order_pdf(plan, params, run, user=None) -> bytes:
                        str(total_locations), str(plan.total_bins),
                        str(plan.total_bins),                # Bases total
                        str(plan.total_frames),              # Frames total
+                       str(total_dividers),                 # Dividers total
                        f"{plan.avg_fill_pct:.0f}%"])
-    t = Table(table_data, colWidths=[2.0 * cm, 2.8 * cm, 1.3 * cm, 2.0 * cm, 1.3 * cm,
-                                      1.2 * cm, 1.7 * cm, 1.2 * cm, 1.2 * cm, 1.2 * cm,
-                                      1.4 * cm])
+    t = Table(table_data, colWidths=[1.7 * cm, 2.4 * cm, 1.1 * cm, 1.7 * cm, 1.1 * cm,
+                                      1.0 * cm, 1.5 * cm, 1.0 * cm, 1.0 * cm, 1.0 * cm,
+                                      1.2 * cm, 1.2 * cm])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#374151')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),

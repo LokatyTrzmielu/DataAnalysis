@@ -45,26 +45,34 @@ def _autosize(ws) -> None:
 
 def _sheet_order_summary(wb: Workbook, plan: Any) -> None:
     ws = wb.create_sheet("Order Summary", 0)
-    # "Bases" and "Frames" make the procurement breakdown explicit. Each physical
-    # bin needs 1 base (138 mm) + N frames (50 mm each, where N depends on tier).
+    # "Bases", "Frames" and "Dividers" make the procurement breakdown explicit.
+    # Each physical bin needs 1 base (138 mm) + N frames (50 mm each) +
+    # locations_per_bin divider cells.
     headers = ["Variant", "Footprint", "Bin height (mm)", "Cell L×W×H (mm)",
                "Locations / bin", "SKU count", "Locations total", "Bins to order",
-               "Bases", "Frames", "Avg cell fill (%)"]
+               "Bases", "Frames", "Dividers", "Total weight (kg)",
+               "Avg cell fill (%)"]
     ws.append(headers)
     _style_header(ws, 1, len(headers))
 
+    total_dividers = 0
+    total_weight = 0.0
     for s in plan.summaries:
         cell = f"{s.cell_length_mm}×{s.cell_width_mm}×{s.cell_height_mm}"
+        total_dividers += s.dividers_required
+        total_weight += s.total_weight_kg
         ws.append([
             s.code, s.footprint_label, s.bin_height_mm, cell,
             s.locations_per_bin, s.sku_count, s.total_locations,
             s.bins_required,
             s.bins_required,            # Bases — 1 base per bin
             s.total_frames_required,    # Frames — bins × frames_per_bin
+            s.dividers_required,        # Dividers — bins × locations_per_bin
+            round(s.total_weight_kg, 2),
             s.avg_fill_pct,
         ])
 
-    # TOTAL row — sums for column 7 (Locations), 8 (Bins), 9 (Bases), 10 (Frames).
+    # TOTAL row.
     total_locations = sum(s.total_locations for s in plan.summaries)
     total_row = ws.max_row + 1
     ws.cell(row=total_row, column=1, value="TOTAL")
@@ -73,7 +81,9 @@ def _sheet_order_summary(wb: Workbook, plan: Any) -> None:
     ws.cell(row=total_row, column=8, value=plan.total_bins)
     ws.cell(row=total_row, column=9, value=plan.total_bins)        # Bases total
     ws.cell(row=total_row, column=10, value=plan.total_frames)     # Frames total
-    ws.cell(row=total_row, column=11, value=plan.avg_fill_pct)
+    ws.cell(row=total_row, column=11, value=total_dividers)        # Dividers total
+    ws.cell(row=total_row, column=12, value=round(total_weight, 2))
+    ws.cell(row=total_row, column=13, value=plan.avg_fill_pct)
     for col in range(1, len(headers) + 1):
         c = ws.cell(row=total_row, column=col)
         c.fill = TOTAL_FILL
