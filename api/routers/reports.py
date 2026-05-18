@@ -442,23 +442,65 @@ async def download_zip(
     )
 
 
-@router.get("/{run_id}/reports/pdf")
-async def download_pdf(
+@router.get("/{run_id}/reports/xlsx")
+async def download_dq_xlsx(
     run_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    """Generate and return a PDF capacity analysis report for a run."""
+    """Generate and return a multi-sheet Data Quality xlsx workbook for a run."""
     result = await db.execute(select(AnalysisRun).where(AnalysisRun.id == run_id))
     run = result.scalar_one_or_none()
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
     if run.owner_id != current_user.id and not run.is_public:
         raise HTTPException(status_code=403, detail="Access denied")
-    if not run.capacity_result:
+    if not (run.quality_result or run.orders_validation_result):
         raise HTTPException(
             status_code=422,
-            detail="No capacity results available. Run capacity analysis first.",
+            detail="No data quality results available. Run quality check first.",
+        )
+
+    from api.dq_excel_generator import generate_dq_xlsx
+
+    xlsx_bytes = generate_dq_xlsx(run, user=current_user)
+
+    await record_time_saving_event(
+        db,
+        current_user.id,
+        "report_exported_xlsx",
+        run_id=run.id,
+    )
+
+    filename = f"{run.client_name or run.id}_data_quality.xlsx"
+    return Response(
+        content=xlsx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/{run_id}/reports/pdf")
+async def download_pdf(
+    run_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    """Generate and return a PDF report for a run.
+
+    Accepts runs that have capacity results, performance results, or both.
+    Capacity-only and performance-only exports skip the missing section.
+    """
+    result = await db.execute(select(AnalysisRun).where(AnalysisRun.id == run_id))
+    run = result.scalar_one_or_none()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if run.owner_id != current_user.id and not run.is_public:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if not run.capacity_result and not run.performance_result:
+        raise HTTPException(
+            status_code=422,
+            detail="No capacity or performance results available. Run an analysis first.",
         )
 
     from api.pdf_generator import generate_capacity_pdf
@@ -468,9 +510,15 @@ async def download_pdf(
         capacity_data=run.capacity_result,
         run_id=run.id,
         performance_data=run.performance_result,
+        user=current_user,
     )
 
-    chart_count = 2 if not run.performance_result else 5
+    if run.capacity_result and run.performance_result:
+        chart_count = 5
+    elif run.capacity_result:
+        chart_count = 2
+    else:
+        chart_count = 3
 
     await record_time_saving_event(
         db,

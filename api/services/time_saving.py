@@ -58,6 +58,9 @@ TIME_SAVING_RULES: dict[str, dict[str, int]] = {
         "base_seconds": 45 * 60,           # rebuilding charts in PowerPoint/Word
         "per_chart": 5 * 60,
     },
+    "report_exported_xlsx": {
+        "base_seconds": 25 * 60,           # collecting DQ lists, formatting sheets
+    },
 }
 
 # Mapping for grouping events in the Settings UI.
@@ -70,6 +73,7 @@ EVENT_LABELS: dict[str, str] = {
     "performance_run": "Performance + SKU Pareto",
     "report_exported_zip": "Report ZIP export",
     "report_exported_pdf": "Report PDF export",
+    "report_exported_xlsx": "Data quality Excel export",
 }
 
 
