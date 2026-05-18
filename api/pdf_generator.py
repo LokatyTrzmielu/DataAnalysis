@@ -531,7 +531,7 @@ def generate_capacity_pdf(
             ('Total Pieces', f"{kpi.get('total_units', 0):,}"),
             ('Unique SKU', f"{kpi.get('unique_sku', 0):,}"),
             ('Avg Lines / Order', f"{kpi.get('avg_lines_per_order', 0):.2f}"),
-            ('Avg Units / Order', f"{kpi.get('avg_units_per_order', 0):.2f}"),
+            ('Avg Pieces / Order', f"{kpi.get('avg_units_per_order', 0):.2f}"),
         ]
         story.append(_kpi_4col_table(totals_pairs, col_w))
         story.append(Spacer(1, 0.4 * cm))
@@ -541,13 +541,13 @@ def generate_capacity_pdf(
         hourly_pairs = [
             ('Avg Lines / Hour', f"{kpi.get('avg_lines_per_hour', 0):.1f}"),
             ('Avg Orders / Hour', f"{kpi.get('avg_orders_per_hour', 0):.1f}"),
-            ('Avg Units / Hour', f"{kpi.get('avg_units_per_hour', 0):.1f}"),
+            ('Avg Pieces / Hour', f"{kpi.get('avg_units_per_hour', 0):.1f}"),
             ('Median Lines / Hour', f"{kpi.get('median_lines_per_hour', 0):.1f}"),
             ('Median Orders / Hour', f"{kpi.get('median_orders_per_hour', 0):.1f}"),
-            ('Median Units / Hour', f"{kpi.get('median_units_per_hour', 0):.1f}"),
+            ('Median Pieces / Hour', f"{kpi.get('median_units_per_hour', 0):.1f}"),
             ('Peak Lines / Hour', f"{kpi.get('peak_lines_per_hour', 0):,}"),
             ('Peak Orders / Hour', f"{kpi.get('peak_orders_per_hour', 0):,}"),
-            ('Peak Units / Hour', f"{kpi.get('peak_units_per_hour', 0):,}"),
+            ('Peak Pieces / Hour', f"{kpi.get('peak_units_per_hour', 0):,}"),
             ('P90 Lines / Hour', f"{kpi.get('p90_lines_per_hour', 0):.0f}"),
             ('P95 Lines / Hour', f"{kpi.get('p95_lines_per_hour', 0):.0f}"),
             ('P99 Lines / Hour', f"{kpi.get('p99_lines_per_hour', 0):.0f}"),
@@ -560,13 +560,13 @@ def generate_capacity_pdf(
         daily_pairs = [
             ('Avg Lines / Day', f"{kpi.get('avg_lines_per_day', 0):.1f}"),
             ('Avg Orders / Day', f"{kpi.get('avg_orders_per_day', 0):.1f}"),
-            ('Avg Units / Day', f"{kpi.get('avg_units_per_day', 0):.1f}"),
+            ('Avg Pieces / Day', f"{kpi.get('avg_units_per_day', 0):.1f}"),
             ('Median Lines / Day', f"{kpi.get('median_lines_per_day', 0):.1f}"),
             ('Median Orders / Day', f"{kpi.get('median_orders_per_day', 0):.1f}"),
-            ('Median Units / Day', f"{kpi.get('median_units_per_day', 0):.1f}"),
+            ('Median Pieces / Day', f"{kpi.get('median_units_per_day', 0):.1f}"),
             ('Max Lines / Day', f"{kpi.get('max_lines_per_day', 0):,}"),
             ('Max Orders / Day', f"{kpi.get('max_orders_per_day', 0):,}"),
-            ('Max Units / Day', f"{kpi.get('max_units_per_day', 0):,}"),
+            ('Max Pieces / Day', f"{kpi.get('max_units_per_day', 0):,}"),
         ]
         story.append(_kpi_4col_table(daily_pairs, col_w))
         story.append(Spacer(1, 0.4 * cm))
@@ -576,13 +576,13 @@ def generate_capacity_pdf(
         shift_pairs = [
             ('Avg Lines / Shift', f"{kpi.get('avg_lines_per_shift', 0):.1f}"),
             ('Avg Orders / Shift', f"{kpi.get('avg_orders_per_shift', 0):.1f}"),
-            ('Avg Units / Shift', f"{kpi.get('avg_units_per_shift', 0):.1f}"),
+            ('Avg Pieces / Shift', f"{kpi.get('avg_units_per_shift', 0):.1f}"),
             ('Median Lines / Shift', f"{kpi.get('median_lines_per_shift', 0):.1f}"),
             ('Median Orders / Shift', f"{kpi.get('median_orders_per_shift', 0):.1f}"),
-            ('Median Units / Shift', f"{kpi.get('median_units_per_shift', 0):.1f}"),
+            ('Median Pieces / Shift', f"{kpi.get('median_units_per_shift', 0):.1f}"),
             ('Max Lines / Shift', f"{kpi.get('max_lines_per_shift', 0):.0f}"),
             ('Max Orders / Shift', f"{kpi.get('max_orders_per_shift', 0):.0f}"),
-            ('Max Units / Shift', f"{kpi.get('max_units_per_shift', 0):.0f}"),
+            ('Max Pieces / Shift', f"{kpi.get('max_units_per_shift', 0):.0f}"),
         ]
         story.append(_kpi_4col_table(shift_pairs, col_w))
         story.append(Spacer(1, 0.5 * cm))

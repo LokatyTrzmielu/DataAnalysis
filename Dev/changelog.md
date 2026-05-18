@@ -11,6 +11,12 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-18] - Fix (fix/pdf-rename-units-to-pieces) — PDF: "Units" → "Pieces"
+
+W `api/pdf_generator.py` 10 user-facing labelek w sekcjach *Totals / Hourly Throughput / Daily / Per Shift* przemianowanych z `Units` na `Pieces` (np. *Avg Pieces / Order*, *Peak Pieces / Hour*, *Max Pieces / Shift*). Klucze KPI (`total_units`, `avg_units_per_hour` itp.) i import `reportlab.lib.units` nietknięte — to wewnętrzne identyfikatory danych. Spójność z istniejącymi już Pieces w sekcji *Pareto Concentration* (Pieces/Day, Cumul.Pieces%).
+
+---
+
 ### [2026-05-18] - Fix (fix/dq-value-and-full-csv) — backfill DQ value, pełne CSV qty, animacja czołgu na Reports
 
 **Value column dla istniejących runów (`api/routers/reports.py` + `api/routers/runs.py`):**
