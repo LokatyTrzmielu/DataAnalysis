@@ -712,6 +712,14 @@ def generate_container_order_pdf(plan, params, run, user=None) -> bytes:
     # Variant tables — split in two so each cell breathes within A4 portrait.
     # Total weight is omitted here — see the Excel "Order Summary" sheet for it.
 
+    # Wrappable footprint label — the catalog labels go up to ~22 chars
+    # ("2 cells (split length)"), which would overflow a fixed cell. Rendering
+    # the label as a Paragraph lets ReportLab wrap to a second line cleanly.
+    fp_style = ParagraphStyle(
+        'fp', parent=styles['Normal'], fontSize=9,
+        leading=10.5, textColor=colors.HexColor('#111827'),
+    )
+
     # ── Table 1: capacity & fit ────────────────────────────────────────────
     story.append(Paragraph('Order summary', heading_style))
     cap_data = [['Variant', 'Footprint', 'Cell (mm)', 'Locs/bin',
@@ -719,7 +727,9 @@ def generate_container_order_pdf(plan, params, run, user=None) -> bytes:
     for s in plan.summaries:
         cell = f"{s.cell_length_mm}×{s.cell_width_mm}×{s.cell_height_mm}"
         cap_data.append([
-            s.code, s.footprint_label, cell,
+            s.code,
+            Paragraph(s.footprint_label, fp_style),
+            cell,
             str(s.locations_per_bin), str(s.sku_count), str(s.total_locations),
             str(s.bins_required), f"{s.avg_fill_pct:.0f}%",
         ])
@@ -727,8 +737,13 @@ def generate_container_order_pdf(plan, params, run, user=None) -> bytes:
     cap_data.append(['TOTAL', '', '', '',
                      str(plan.total_sku_covered), str(total_locations),
                      str(plan.total_bins), f"{plan.avg_fill_pct:.0f}%"])
-    t1 = Table(cap_data, colWidths=[1.9 * cm, 2.6 * cm, 2.8 * cm, 1.6 * cm,
-                                     1.4 * cm, 1.9 * cm, 1.4 * cm, 1.8 * cm])
+    # Widths sized to the worst-case content at 9 pt Helvetica plus 4 pt of
+    # horizontal padding each side: variant codes up to "1/12_3x4-288" (12 ch),
+    # cell dims up to "617×408×128" (11 ch), numeric headers (Locations,
+    # Locs/bin, Avg fill) all 8–9 char wide. Footprint stays at 3.4 cm and
+    # wraps inside its Paragraph if a label still overflows.
+    t1 = Table(cap_data, colWidths=[2.5 * cm, 3.4 * cm, 2.4 * cm, 1.8 * cm,
+                                     1.2 * cm, 2.1 * cm, 1.3 * cm, 1.9 * cm])
     t1.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#374151')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -739,13 +754,19 @@ def generate_container_order_pdf(plan, params, run, user=None) -> bytes:
         ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e5e7eb')),
         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
         ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-        ('PADDING', (0, 0), (-1, -1), 5),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
     story.append(t1)
     story.append(Spacer(1, 0.4 * cm))
 
     # ── Table 2: procurement breakdown ─────────────────────────────────────
-    story.append(Paragraph('Procurement breakdown', heading_style))
+    # Wrap heading + table in KeepTogether so the procurement breakdown never
+    # splits across pages — ReportLab will insert a page break before it if
+    # the current page can't hold the whole element.
     proc_data = [['Variant', 'Bins', 'Bases', 'Frames', 'Dividers']]
     total_dividers = 0
     for s in plan.summaries:
@@ -775,7 +796,10 @@ def generate_container_order_pdf(plan, params, run, user=None) -> bytes:
         ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
         ('PADDING', (0, 0), (-1, -1), 5),
     ]))
-    story.append(t2)
+    story.append(KeepTogether([
+        Paragraph('Procurement breakdown', heading_style),
+        t2,
+    ]))
     story.append(Spacer(1, 0.6 * cm))
 
     # Parameters echo

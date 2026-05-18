@@ -11,6 +11,14 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-18] - Fix (main) — Container Order PDF: column widths + procurement on one page
+
+- **Order summary** column widths re-balanced to the actual rendered text width at 9 pt Helvetica (verified via `reportlab.pdfbase.pdfmetrics.stringWidth`). New widths: Variant 2.5 → fits `1/12_3x4-288`; Footprint 3.4 (Paragraph cell, wraps if a label still overflows); Cell (mm) 2.4 → fits `617×408×128`; Locs/bin 1.8; SKU 1.2; Locations 2.1; Bins 1.3; Avg fill 1.9. Total 16.6 cm vs 17.0 cm A4-portrait usable — small breathing room kept on purpose.
+- Horizontal padding tightened from 5 → 4 pt and explicit MIDDLE vertical alignment added so wrapped footprint cells line up with the single-line numeric cells.
+- **Procurement breakdown** now wraps its heading + table in `KeepTogether`, so ReportLab forces a page break before it if the current page can't fit the whole element. Eliminates the half-on-page-1, half-on-page-2 splits the user was seeing.
+
+---
+
 ### [2026-05-18] - Feature (main) — Container Order SKU table: add Bins + Pcs/location
 
 - `Assignment` (planner) and `AssignmentRow` (Pydantic + TS) gained `pcs_per_location: int`. Formula: `ceil(stock_qty / locations)` where `stock_qty = stock_volume_L / unit_volume_L` — the operationally meaningful number of pieces planned per allocated cell. Zero for orphans (no variant) or rows with missing dimensions.
