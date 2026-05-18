@@ -173,6 +173,10 @@ class Assignment:
     height_mm: float
     weight_kg: float
     stock_volume_L: float
+    # Pieces of this SKU stored per allocated location:
+    #   ceil(stock_qty / locations) where stock_qty = stock_vol_L / unit_vol_L.
+    # Zero for orphans (locations == 0) or when unit volume is unknown.
+    pcs_per_location: int = 0
     fit_status: str | None = None       # "FIT" | "BORDERLINE" — from the source
                                          # MiB capacity row; surfaced so the UI
                                          # and exports can flag tight fits
@@ -601,12 +605,18 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
         locs, fill = f.candidates[v_code]
         v = by_variant[v_code]
         bins_for_sku = math.ceil(locs / v.locations_per_bin)
+        # Derive pcs/location from masterdata stock + unit volume — what the
+        # warehouse will physically slot into each allocated cell.
+        unit_vol_L = (f.length_mm * f.width_mm * f.height_mm) / 1_000_000.0
+        stock_qty = (f.stock_volume_L / unit_vol_L) if unit_vol_L > 0 else 0.0
+        pcs_per_loc = math.ceil(stock_qty / locs) if (locs > 0 and stock_qty > 0) else 0
         a = Assignment(
             sku=f.sku, variant_code=v_code, locations=locs, bins=bins_for_sku,
             cell_fill_pct=fill, abc_class=f.abc_class, recommendation=f.recommendation,
             length_mm=f.length_mm, width_mm=f.width_mm,
             height_mm=f.height_mm, weight_kg=f.weight_kg,
             stock_volume_L=round(f.stock_volume_L, 3),
+            pcs_per_location=pcs_per_loc,
             fit_status=f.fit_status,
             dimensions_imputed=f.dimensions_imputed,
             orphan_reason=None,
@@ -616,13 +626,9 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
         skus_per_variant[v_code] += 1
         fill_sum_per_variant[v_code] += fill
         # Total stocked weight contributed by this SKU = stock_qty × unit_weight.
-        # stock_qty derived from stock_vol_L / unit_vol_L; safe-guard against
-        # zero unit volume (orphaned earlier, but defensive here too).
-        unit_vol_L = (f.length_mm * f.width_mm * f.height_mm) / 1_000_000.0
+        # stock_qty already computed above (safe-guarded against zero unit vol).
         if unit_vol_L > 0:
-            weight_sum_per_variant[v_code] += (
-                f.stock_volume_L / unit_vol_L
-            ) * f.weight_kg
+            weight_sum_per_variant[v_code] += stock_qty * f.weight_kg
 
     summaries: list[VariantSummary] = []
     total_bins = 0

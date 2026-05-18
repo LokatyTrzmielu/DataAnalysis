@@ -16,14 +16,16 @@
     <div class="overflow-x-auto" style="border:1px solid var(--app-border);border-radius:10px">
       <table class="w-full" style="font-size:12px;border-collapse:collapse;table-layout:fixed">
         <colgroup>
-          <col style="width:24%" />
-          <col style="width:14%" />
-          <col style="width:9%" />
-          <col style="width:7%" />
+          <col style="width:20%" />
           <col style="width:13%" />
-          <col style="width:15%" />
+          <col style="width:8%" />
+          <col style="width:6%" />
+          <col style="width:11%" />
+          <col style="width:13%" />
           <col style="width:9%" />
-          <col style="width:9%" />
+          <col style="width:8%" />
+          <col style="width:6%" />
+          <col style="width:6%" />
         </colgroup>
         <thead style="background:var(--table-header-bg)">
           <tr>
@@ -84,7 +86,13 @@
                 @click.stop="toggleFilter('asn', $event)"
               >▾</button>
             </th>
+            <th
+              class="px-2 py-2 text-right"
+              style="color:var(--app-text-sec);font-weight:500"
+              title="Pieces of this SKU stored per allocated location (stock ÷ locations)"
+            >Pcs/loc</th>
             <th class="px-2 py-2 text-right" style="color:var(--app-text-sec);font-weight:500">Locations</th>
+            <th class="px-2 py-2 text-right" style="color:var(--app-text-sec);font-weight:500">Bins</th>
             <th class="px-2 py-2 text-right" style="color:var(--app-text-sec);font-weight:500">Fill</th>
           </tr>
         </thead>
@@ -128,13 +136,17 @@
                 {{ row.orphan_reason === 'missing_dimensions' ? 'missing dimensions' : 'no variant' }}
               </span>
             </td>
+            <td class="px-2 py-1.5 text-right" style="color:var(--app-text)">
+              {{ row.pcs_per_location > 0 ? row.pcs_per_location.toLocaleString() : '—' }}
+            </td>
             <td class="px-2 py-1.5 text-right" style="color:var(--app-text)">{{ row.locations }}</td>
+            <td class="px-2 py-1.5 text-right" style="color:var(--app-text)">{{ row.bins }}</td>
             <td class="px-2 py-1.5 text-right" style="color:var(--app-text-sec)">
               {{ row.cell_fill_pct.toFixed(0) }}%
             </td>
           </tr>
           <tr v-if="visibleRows.length === 0">
-            <td colspan="8" class="px-2 py-6 text-center" style="color:var(--app-text-sec)">
+            <td colspan="10" class="px-2 py-6 text-center" style="color:var(--app-text-sec)">
               {{ baseAssignments.length === 0 ? emptyMessage : 'No SKUs match the filters.' }}
             </td>
           </tr>

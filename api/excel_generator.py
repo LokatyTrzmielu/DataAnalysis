@@ -94,18 +94,24 @@ def _sheet_order_summary(wb: Workbook, plan: Any) -> None:
 
 def _sheet_sku_assignment(wb: Workbook, plan: Any) -> None:
     ws = wb.create_sheet("SKU Assignment")
-    headers = ["SKU", "Fit", "Imputed", "Variant", "ABC", "Recommendation",
+    # "Pcs/location" sits right after Variant — the headline number the
+    # warehouse cares about: how many physical pieces of this SKU end up in
+    # each allocated cell of the assigned variant.
+    headers = ["SKU", "Fit", "Imputed", "Variant", "Pcs/location",
+               "ABC", "Recommendation",
                "Length (mm)", "Width (mm)", "Height (mm)", "Weight (kg)",
                "Stock vol (L)", "Locations", "Bins", "Cell fill (%)"]
     ws.append(headers)
     _style_header(ws, 1, len(headers))
 
     for a in plan.assignments:
+        pcs_loc = getattr(a, "pcs_per_location", 0) or 0
         ws.append([
             a.sku,
             a.fit_status or "",
             "Yes" if a.dimensions_imputed else "",
             a.variant_code or "—",
+            pcs_loc if pcs_loc > 0 else "",
             a.abc_class or "",
             a.recommendation or "",
             a.length_mm, a.width_mm, a.height_mm, a.weight_kg, a.stock_volume_L,

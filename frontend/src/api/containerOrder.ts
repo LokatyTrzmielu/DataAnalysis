@@ -62,6 +62,7 @@ export interface AssignmentRow {
   height_mm: number
   weight_kg: number
   stock_volume_L: number
+  pcs_per_location: number   // pieces of this SKU planned per allocated location
   fit_status: string | null
   dimensions_imputed: boolean
   orphan_reason: string | null

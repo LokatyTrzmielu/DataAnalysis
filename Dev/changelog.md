@@ -11,6 +11,16 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-18] - Feature (main) — Container Order SKU table: add Bins + Pcs/location
+
+- `Assignment` (planner) and `AssignmentRow` (Pydantic + TS) gained `pcs_per_location: int`. Formula: `ceil(stock_qty / locations)` where `stock_qty = stock_volume_L / unit_volume_L` — the operationally meaningful number of pieces planned per allocated cell. Zero for orphans (no variant) or rows with missing dimensions.
+- Planner (`_plan_from_selection`) now derives `unit_vol_L` once and reuses it for both `pcs_per_location` and the per-variant weight sum (was computed twice before).
+- Frontend `SkuAssignmentTable.vue` — new columns inserted right after **Variant** (Pcs/loc) and right after **Locations** (Bins). Colgroup widths rebalanced to 10 cols; orphans render "—" in Pcs/loc.
+- Excel export `_sheet_sku_assignment` — `Pcs/location` column inserted after Variant, blank string for orphans so spreadsheet sorts cleanly.
+- 2 new planner tests: the user's worked example (1520 pcs / 152 locations = 10 pcs/loc) is now an explicit invariant + orphans must read 0.
+
+---
+
 ### [2026-05-18] - Fix (main) — Container Order PDF: split cramped "Order summary" into two tables
 
 - 12-column "Order summary" in `api/pdf_generator.py` :: `generate_container_order_pdf` was too dense on A4 portrait — column headers were truncating and rows wrapped unpredictably. Replaced with two tables, each with its own TOTAL row:

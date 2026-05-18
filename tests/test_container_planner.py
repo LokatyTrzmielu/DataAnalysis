@@ -264,6 +264,46 @@ def test_imputation_on_orphans_when_no_dataset_median_available():
     assert blank.orphan_reason == "missing_dimensions"
 
 
+def test_pcs_per_location_matches_stock_divided_by_locations():
+    """For an assigned SKU, pcs_per_location must be ceil(stock_qty / locations),
+    where stock_qty = stock_volume_L / unit_volume_L. Orphans stay at 0."""
+    import math
+    rows = [{
+        "sku": "ABC",
+        "carrier_id": cp.MIB_CARRIER_ID,
+        "fit_status": "FIT",
+        "length_mm": 80, "width_mm": 60, "height_mm": 40, "weight_kg": 0.3,
+        "stored_volume_L": 300.0,  # 1562.5 pcs of 0.192 L each
+    }]
+    cap = {"rows": rows, "carriers_analyzed": [cp.MIB_CARRIER_ID]}
+    plan = cp.plan_containers(
+        cap, None, cp.PlanParams(abc_classes=(), only_machine=False),
+    )
+    a = plan.assignments[0]
+    assert a.variant_code is not None
+    unit_vol_L = a.length_mm * a.width_mm * a.height_mm / 1_000_000
+    expected_stock_qty = a.stock_volume_L / unit_vol_L
+    expected_pcs_per_loc = math.ceil(expected_stock_qty / a.locations)
+    assert a.pcs_per_location == expected_pcs_per_loc
+    # Capacity (pcs/loc × locations) must be enough to hold the stock.
+    assert a.pcs_per_location * a.locations >= expected_stock_qty
+
+
+def test_pcs_per_location_is_zero_for_orphans():
+    """Orphans (no fitting variant or missing dims) report pcs_per_location = 0
+    so the UI can render '—' instead of a misleading number."""
+    rows = [_row_no_dims("blank-sku")]
+    cap = {"rows": rows, "carriers_analyzed": [cp.MIB_CARRIER_ID]}
+    plan = cp.plan_containers(
+        cap, None,
+        cp.PlanParams(abc_classes=(), only_machine=False,
+                      impute_missing_dimensions=False),
+    )
+    blank = plan.assignments[0]
+    assert blank.variant_code is None
+    assert blank.pcs_per_location == 0
+
+
 def test_dataset_medians_helper_skips_zero_values():
     """Direct unit test of the median helper — zeros must NOT skew the median."""
     rows = [

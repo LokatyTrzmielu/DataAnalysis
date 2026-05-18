@@ -81,6 +81,9 @@ class AssignmentRow(BaseModel):
     height_mm: float
     weight_kg: float
     stock_volume_L: float
+    # Pieces of this SKU planned per allocated location — derived from
+    # masterdata stock and unit volume. Zero for orphans / unknown dimensions.
+    pcs_per_location: int = 0
     fit_status: Optional[str] = None
     dimensions_imputed: bool = False
     orphan_reason: Optional[str] = None
