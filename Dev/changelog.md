@@ -11,6 +11,29 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-18] - Feature (main) — Container Order: parameter audit + UI gap fixes + regression tests
+
+User reported that flipping scenarios in the Calculation tab didn't change the result. A full audit found three legitimate "looks broken but isn't" causes; each is now visible to the user.
+
+**Verification artefact:** `Dev/CONTAINER_ORDER_PARAMS_AUDIT.md` — per-parameter table with file:line for every consumption site, plus a *"What looks broken but isn't"* explainer for the three ⚠ rows.
+
+**UI fixes in `frontend/src/views/tools/ContainerOrderView.vue`:**
+- **`include_borderline` toggle** — added in row 1 next to *Only Machine* / *Impute missing*. The parameter was wired correctly in `_filter_skus` (`container_planner.py:315`) but had no UI control; the store always sent the default `true`. Defaults to ON.
+- **Inert-mode hint** — under the ABC checkboxes and inline next to *Only Machine*, shown when `currentRun.has_performance === false`. Explains that both filters are silently no-ops without Performance data (lenient-mode branch at `container_planner.py:317`).
+- **`params_echo` reveal** — collapsible *"Parameters actually used by the planner"* fold-out under the Planning results summary. Renders `plan.params_echo` as a 2-column key/value grid so the user can verify what the backend actually acted on. Helpful when an inert combination silently skipped a filter.
+- New CSS: `.hint-inert`, `.params-echo`, `.params-echo-grid` — amber-coloured hint copy and monospace echo table.
+
+**Regression coverage in `tests/test_container_planner_params.py` (new, 18 tests):**
+- One *effect* test per parameter (13 tests) — proves the planner output actually changes when the parameter changes.
+- Three *documented no-op* tests pinning the inert combinations: `auto_max_variants` outside `mode="auto"`; `abc_classes` without performance data; `only_machine` without performance data. If anyone "fixes" these branches later, the no-op tests will flag the change for review.
+- The `guided_preset` test uses a homogeneous two-SKU fixture so `full_coverage`'s early-stop beats `standard`'s k=8 ceiling — proving the two presets route to different algorithms even though they share a catalog.
+
+**No backend behaviour changed.** Every parameter was already wired correctly *for the cases it applies to*; the fix was making the cases visible.
+
+Full suite: 86 passed (40 planner + 18 new + 28 time-saving).
+
+---
+
 ### [2026-05-18] - Fix (main) — Container Order PDF: column widths + procurement on one page
 
 - **Order summary** column widths re-balanced to the actual rendered text width at 9 pt Helvetica (verified via `reportlab.pdfbase.pdfmetrics.stringWidth`). New widths: Variant 2.5 → fits `1/12_3x4-288`; Footprint 3.4 (Paragraph cell, wraps if a label still overflows); Cell (mm) 2.4 → fits `617×408×128`; Locs/bin 1.8; SKU 1.2; Locations 2.1; Bins 1.3; Avg fill 1.9. Total 16.6 cm vs 17.0 cm A4-portrait usable — small breathing room kept on purpose.

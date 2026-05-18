@@ -129,7 +129,7 @@
 
         <!-- ─── Compact parameters block ─── -->
         <div class="params-compact mb-5">
-          <!-- Row 1: ABC checkboxes + 2 toggles -->
+          <!-- Row 1: ABC checkboxes + 3 toggles -->
           <div class="params-row">
             <div class="param-cell">
               <span class="param-label">ABC classes</span>
@@ -139,8 +139,14 @@
                   {{ c }}
                 </label>
               </div>
+              <span v-if="filterIsInert" class="hint-inert">
+                Filter only takes effect when the source run has Performance results.
+              </span>
             </div>
-            <div class="param-cell toggle-inline" title="Filter out SKUs marked Non-machine based on Performance.">
+            <div
+              class="param-cell toggle-inline"
+              title="Filter out SKUs marked Non-machine based on Performance."
+            >
               <span class="param-label" style="margin-bottom:0">Only Machine</span>
               <button
                 type="button"
@@ -150,6 +156,9 @@
                 aria-label="Only Machine SKUs"
                 @click="store.params.only_machine = !store.params.only_machine"
               ></button>
+              <span v-if="filterIsInert" class="hint-inert hint-inert-inline">
+                no effect — Performance data missing
+              </span>
             </div>
             <div class="param-cell toggle-inline" title="OFF → SKUs with missing values fall into orphans with reason 'missing_dimensions'.">
               <span class="param-label" style="margin-bottom:0">Impute missing</span>
@@ -160,6 +169,20 @@
                 :aria-pressed="store.params.impute_missing_dimensions"
                 aria-label="Impute missing dimensions"
                 @click="store.params.impute_missing_dimensions = !store.params.impute_missing_dimensions"
+              ></button>
+            </div>
+            <div
+              class="param-cell toggle-inline"
+              title="Plan also for SKUs marked BORDERLINE by the Capacity analysis (tight fit)."
+            >
+              <span class="param-label" style="margin-bottom:0">Include borderline</span>
+              <button
+                type="button"
+                class="toggle-switch"
+                :class="{ 'is-on': store.params.include_borderline }"
+                :aria-pressed="store.params.include_borderline"
+                aria-label="Include BORDERLINE SKUs"
+                @click="store.params.include_borderline = !store.params.include_borderline"
               ></button>
             </div>
           </div>
@@ -289,6 +312,18 @@
               Selected {{ store.plan.summaries.length }} variants ·
               coverage {{ store.plan.coverage_pct.toFixed(1) }}% ({{ store.plan.total_sku_covered }} / {{ store.plan.total_sku_planned }} SKUs)
             </p>
+            <!-- Transparency: show exactly which params the backend acted on.
+                 Helps the user spot inert toggles (e.g. ABC filter when the
+                 source run has no Performance results). -->
+            <details class="params-echo">
+              <summary>Parameters actually used by the planner</summary>
+              <div class="params-echo-grid">
+                <template v-for="(value, key) in paramsEchoDisplay" :key="key">
+                  <span class="echo-key">{{ key }}</span>
+                  <span class="echo-val">{{ value }}</span>
+                </template>
+              </div>
+            </details>
           </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
@@ -643,6 +678,28 @@ function modeLabel(m: string): string {
   return m === 'auto' ? 'Auto' : m === 'guided' ? 'Guided' : 'Manual'
 }
 
+// True when ABC + Only Machine filters won't fire because the source run
+// has no Performance results to consult. The backend silently falls into
+// "lenient mode" in this case — surfacing it here so the user knows their
+// toggles aren't being ignored, they just can't apply.
+const filterIsInert = computed(() =>
+  store.currentRun !== null && store.currentRun.has_performance === false,
+)
+
+// Tidy params_echo for display — primitives kept as-is, arrays joined,
+// empty arrays shown as "—", objects JSON-stringified compactly.
+const paramsEchoDisplay = computed<Record<string, string>>(() => {
+  const echo = (store.plan?.params_echo ?? {}) as Record<string, unknown>
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(echo)) {
+    if (v === null || v === undefined) { out[k] = '—'; continue }
+    if (Array.isArray(v)) { out[k] = v.length ? v.join(', ') : '—'; continue }
+    if (typeof v === 'object') { out[k] = JSON.stringify(v); continue }
+    out[k] = String(v)
+  }
+  return out
+})
+
 function toggleAbc(c: string) {
   const set = new Set<string>(store.params.abc_classes)
   if (set.has(c)) set.delete(c)
@@ -939,6 +996,48 @@ watch(step, (next) => {
   border: 1px dashed var(--app-border);
   border-radius: 10px;
 }
+
+/* "This control is silently ignored right now" copy — shown next to ABC /
+   Only Machine when the source run has no Performance results. */
+.hint-inert {
+  display: block;
+  font-size: 10.5px;
+  color: #b45309;       /* amber — distinct from error red, same family as borderline chip */
+  margin-top: 4px;
+  line-height: 1.35;
+}
+.hint-inert-inline {
+  display: inline-block;
+  margin-top: 0;
+  margin-left: 6px;
+}
+:global(html.dark) .hint-inert { color: #fcd34d; }
+
+/* params_echo fold-out — shows exactly what the backend acted on. */
+.params-echo {
+  margin-top: 6px;
+}
+.params-echo > summary {
+  font-size: 11.5px;
+  color: var(--app-text-sec);
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 0;
+}
+.params-echo > summary:hover { color: var(--app-text); }
+.params-echo-grid {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 14px;
+  font-size: 11.5px;
+  padding: 8px 10px;
+  background: var(--table-header-bg);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.params-echo-grid .echo-key { color: var(--app-text-sec); }
+.params-echo-grid .echo-val { color: var(--app-text); word-break: break-word; }
 
 /* ─── History tab ─── */
 .empty-history {
