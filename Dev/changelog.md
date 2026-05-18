@@ -13,7 +13,17 @@ Rejestr zmian w projekcie Datavisor.
 
 ### [2026-05-18] - Feature (feature/portable-static-serving) — wersja Portable Windows aplikacji
 
-Branch: `feature/portable-static-serving` · commits `45be975` + `9d9ce89` (jeszcze nie zmergowany).
+Branch: `feature/portable-static-serving` · commits `45be975`, `9d9ce89`, `1e198a2`, `13756e4`, `33e332f`, `7d24d67` (jeszcze nie zmergowany).
+
+**Dodano w iteracji 2 (po pierwszym smoke teście u użytkownika):**
+
+- **Fix `13756e4`**: Start.bat health-probe `localhost` → `127.0.0.1` (+ `TimeoutSec` 1→2). Na Windowsie z domyślnym `hosts`, `localhost` rozwiązuje się najpierw na IPv6 (`::1`), uvicorn nasłuchuje tylko na IPv4 — `Invoke-WebRequest -TimeoutSec 1` nie zdąży zfailować i przełączyć się. Skutek był taki, że Start.bat krzyczał "serwer nie wystartowal" mimo że uvicorn działał poprawnie. Przeglądarki radzą sobie z fallbackiem, dlatego app był dostępny od razu.
+
+- **Fix `33e332f`**: 4 błędy TypeScriptowe wyłapane przez pierwsze faktyczne `vue-tsc --build` (Vite dev je pomijał, więc nigdy nie wypłynęły). Wszystkie zachowawcze: brakujący type import `PerformanceParetoBand` w `PerformanceTab.vue`, guard na `undefined` w `DatasetsView.duplicateColumns.includes()`, hoist+early-return z `selectedFiles.value[0]` w `DataPreparationView.doInspect()`. Build vite v7 + tsc strict przechodzi czysto, output zawiera świeży chunk `ContainerOrderView` (550 KB) który nigdy nie był dotąd w `dist/`.
+
+- **Feature `7d24d67`**: flaga `-CodeOnly` w `Dev/Build-Portable.ps1`. Pomija download Pythona, get-pip i `pip install` (sekcje 2-6), robi tylko robocopy `api`/`src`/`frontend\dist` do `app/` + regenerację `Start.bat`/`Stop.bat`/README. Workflow iteracyjny: `npm run build; .\Dev\Build-Portable.ps1 -CodeOnly` (~20 s zamiast ~10 min, bez network I/O). Wymaga że paczka już istnieje (sprawdza obecność `runtime\python\python.exe`, w przeciwnym razie rzuca błąd z hintem żeby uruchomić pełny build z `-Force`).
+
+**Iteracja 1 (wcześniej tego dnia):**
 
 - **api/main.py**: warunkowy `StaticFiles` mount + SPA catchall pod `/{full_path:path}` gdy `frontend/dist/` istnieje. Guard wycina `api/`, `health`, `docs`, `redoc`, `openapi.json` z fallbacku — kierują do właściwych routerów / 404. Dev workflow (Vite :5173 + uvicorn :8000) bez zmian, bo bez zbudowanego dist mount się nie aktywuje.
 
