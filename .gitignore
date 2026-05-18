@@ -30,3 +30,6 @@ ui-ux-pro-max-skill/
 # Large generated test data files
 tests_alan/*_large.csv
 tests_alan/Zlecenia_2025.csv
+
+# Reference calculator workbooks (local-only, not part of the codebase)
+Dev/Calculators/
