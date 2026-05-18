@@ -135,11 +135,17 @@ Expand-Archive -Path $EmbedZip -DestinationPath "$OutputDir\runtime\python" -For
 # ---------------------------------------------------------------------------
 # 4. Enable site-packages in embeddable runtime
 # ---------------------------------------------------------------------------
-Write-Step "Enabling site-packages (._pth)"
+Write-Step "Enabling site-packages and app path in ._pth"
 $PthFile = Get-ChildItem "$OutputDir\runtime\python\python*._pth" | Select-Object -First 1
 if (-not $PthFile) { throw "._pth file not found in embeddable distribution" }
 $pth = Get-Content $PthFile.FullName
 $pth = $pth -replace '^\s*#\s*import site', 'import site'
+# Add app/ to sys.path so `python -m api.seed` and `uvicorn api.main:app` resolve.
+# Path is relative to python.exe directory (runtime\python\), so up two levels to portable
+# root and then into app.
+if (-not ($pth -match [regex]::Escape('..\..\app'))) {
+    $pth = @($pth[0]) + '..\..\app' + ($pth[1..($pth.Count - 1)])
+}
 $pth | Set-Content $PthFile.FullName -Encoding ascii
 
 $PythonExe = Join-Path $OutputDir 'runtime\python\python.exe'
