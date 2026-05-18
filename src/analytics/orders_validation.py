@@ -146,6 +146,8 @@ class OrdersValidator:
 
     # ── Quantity anomalies ────────────────────────────────────────────────────
 
+    _QTY_SAMPLE_LIMIT = 100  # cap rows per issue type stored in the JSON result
+
     def _check_quantity_anomalies(self, df: pl.DataFrame) -> dict[str, Any]:
         empty = {
             "qty_null_count": 0,
@@ -153,15 +155,20 @@ class OrdersValidator:
             "qty_negative_count": 0,
             "qty_outlier_count": 0,
             "qty_outlier_threshold": 0.0,
+            "qty_null_rows": [],
+            "qty_zero_rows": [],
+            "qty_negative_rows": [],
+            "qty_outlier_rows": [],
         }
 
         if "quantity" not in df.columns:
             return empty
 
         # Handles both already-numeric columns and Utf8 with European format ("1,5" → 1.5)
-        qty = df.with_columns(
+        df_with_qty = df.with_columns(
             clean_numeric_column(pl.col("quantity")).alias("__qty__")
-        )["__qty__"]
+        )
+        qty = df_with_qty["__qty__"]
         qty_null = qty.is_null().sum()
         qty_zero = qty.filter(qty.eq(0)).len() if qty.drop_nulls().len() > 0 else 0
         qty_negative = qty.filter(qty.lt(0)).len() if qty.drop_nulls().len() > 0 else 0
@@ -177,12 +184,39 @@ class OrdersValidator:
                 outlier_threshold = round(mean_val + 3 * std_val, 2)
                 outlier_count = positive.filter(positive.gt(outlier_threshold)).len()
 
+        # Sample rows per issue type — capped so the JSON column stays bounded.
+        keep_cols = [
+            c for c in ("order_id", "sku", "order_date", "order_hour", "__qty__")
+            if c in df_with_qty.columns
+        ]
+
+        def _sample(filter_expr: pl.Expr) -> list[dict[str, Any]]:
+            sub = df_with_qty.filter(filter_expr).select(keep_cols).head(self._QTY_SAMPLE_LIMIT)
+            rows = sub.to_dicts()
+            for r in rows:
+                if "__qty__" in r:
+                    r["quantity"] = r.pop("__qty__")
+                if "order_date" in r and r["order_date"] is not None:
+                    r["order_date"] = str(r["order_date"])
+            return rows
+
+        null_rows = _sample(pl.col("__qty__").is_null())
+        zero_rows = _sample(pl.col("__qty__").eq(0)) if qty_zero else []
+        neg_rows = _sample(pl.col("__qty__").lt(0)) if qty_negative else []
+        outlier_rows = (
+            _sample(pl.col("__qty__").gt(outlier_threshold)) if outlier_count else []
+        )
+
         return {
             "qty_null_count": int(qty_null or 0),
             "qty_zero_count": int(qty_zero or 0),
             "qty_negative_count": int(qty_negative or 0),
             "qty_outlier_count": int(outlier_count or 0),
             "qty_outlier_threshold": outlier_threshold,
+            "qty_null_rows": null_rows,
+            "qty_zero_rows": zero_rows,
+            "qty_negative_rows": neg_rows,
+            "qty_outlier_rows": outlier_rows,
         }
 
     # ── SKU cross-validation ──────────────────────────────────────────────────
@@ -205,25 +239,28 @@ class OrdersValidator:
         if "sku" not in df.columns:
             return unavailable
 
+        # Cross-validation requires a *confirmed* masterdata source. We accept:
+        #   1. masterdata_df pre-loaded by the caller (e.g. from a curated dataset
+        #      with a confirmed column mapping), or
+        #   2. a raw masterdata file + an explicit user-confirmed column mapping.
+        # Falling back to heuristic auto-mapping is intentionally NOT supported —
+        # the SKU column can be misidentified and produce nonsense lists.
         try:
             if masterdata_df is not None:
                 loaded_df = masterdata_df
-            elif masterdata_path and masterdata_path.exists():
+            elif masterdata_path and masterdata_path.exists() and masterdata_mapping:
                 from src.ingest.pipeline import MasterdataIngestPipeline
                 from src.ingest.mapping import MappingResult, ColumnMapping
 
                 pipeline = MasterdataIngestPipeline()
 
-                if masterdata_mapping:
-                    mappings = {
-                        k: ColumnMapping(target_field=k, source_column=v, confidence=1.0, is_auto=False)
-                        for k, v in masterdata_mapping.items()
-                        if v
-                    }
-                    mapping = MappingResult(mappings=mappings, missing_required=[])
-                    loaded_df = pipeline.run(masterdata_path, mapping=mapping).df
-                else:
-                    loaded_df = pipeline.run(masterdata_path).df
+                mappings = {
+                    k: ColumnMapping(target_field=k, source_column=v, confidence=1.0, is_auto=False)
+                    for k, v in masterdata_mapping.items()
+                    if v
+                }
+                mapping = MappingResult(mappings=mappings, missing_required=[])
+                loaded_df = pipeline.run(masterdata_path, mapping=mapping).df
             else:
                 return unavailable
 
