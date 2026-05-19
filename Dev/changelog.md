@@ -11,6 +11,72 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-19] - Fix (main) — Container Order: 6-orientation SKU fit check (matches Capacity)
+
+User asked whether the planner tests all 6 SKU orientations. It didn't — `_sku_fits_variant` only checked 2 (horizontal rotation, height pinned to vertical). Long-and-thin SKUs (cables, profiles, sheets) that would fit when laid flat were silently orphaned.
+
+**`src/analytics/container_planner.py`:**
+- New `ORIENTATIONS` tuple (mirrors `capacity.py`) — all 6 permutations of `(L, W, H) → (cell_X, cell_Y, cell_Z)`.
+- New `_allowed_orientations(constraint)` filters by per-SKU constraint: `UPRIGHT_ONLY` → 2 orientations (H on Z); `FLAT_ONLY` → 4 orientations (H off Z); `ANY` / `None` → all 6.
+- `_sku_fits_variant` rewritten to iterate over allowed orientations and return `True` if any fits. Height vs `cell_height_mm` is no longer a hard pre-filter — a tall SKU that's short on another axis now passes via lay-flat.
+- `_compute_fits` reads `row.get("orientation_constraint") or "ANY"` and threads it through.
+
+**`src/analytics/capacity.py`:**
+- Forwards `orientation_constraint` (the input DataFrame value, default `ANY`) into every emitted result row dict, both in the FIT/BORDERLINE path and the NOT_FIT marker row.
+- Added `orientation_constraint: pl.Utf8` to the explicit DataFrame schema so the column survives serialisation.
+- No change to fit logic — Capacity already does 6 orientations.
+
+**Backwards compatibility:**
+- Older `capacity_result` blobs without the new column → planner defaults to `"ANY"` → 6-orientation check → strict superset of previous behaviour. Nothing that previously fit becomes an orphan; some previously-orphaned SKUs now find variants.
+- `orientation_constraint` not surfaced in API schema, frontend types, or exports — internal decision only.
+
+**Tests** in `tests/test_container_planner_params.py` (+5 new, 99 passed total):
+- `test_long_thin_sku_fits_via_lay_flat_orientation` — SKU 100×100×400 fits 1/2L-138 (305×411×110) via lay-flat (height → cell Y axis).
+- `test_upright_only_constraint_blocks_lay_flat` — same SKU with `UPRIGHT_ONLY` orphans correctly (h=400 > 360 = max cell height).
+- `test_flat_only_constraint_forces_lay_flat` — SKU that fits upright but also flat; constraint filters to flat-only orientations.
+- `test_orientation_constraint_missing_defaults_to_any` — older row (no key) behaves identically to explicit `ANY`.
+- `test_height_no_longer_hard_pre_filter` — tall SKU that fits in `max_coverage` auto mode via lay-flat across the catalog.
+
+**Docs:**
+- `Dev/CONTAINER_ORDER_TOOL.md` — new *"Test 6 orientacji SKU"* section with the constraint table.
+- `Dev/CONTAINER_ORDER_PARAMS_AUDIT.md` — new *"Geometric fit check (orientations)"* row.
+
+---
+
+### [2026-05-19] - Fix (main) — Container Order: geometry/weight model + NOT_FIT pass-through + params_echo clarity
+
+User clarified the Kardex VBM Box spec and reported two transparency issues. Fixed in one pass:
+
+**Catalog geometry (`src/analytics/container_planner.py`):**
+- Interior: 611 × 411 (was 617 × 408 — too long, too narrow).
+- Floor loss: 28 mm (was 10 mm). Interior heights now 110 / 160 / 210 / 260 / 310 / 360 mm.
+- Height tiers extended: `(138, 188, 238, 288, 338, 388)` — dividers + frames now go all six tiers (previous "dividers stop at 288" turned out to be over-conservative). Catalog: 48 → **72 variants**; auto subset: 28 → **42**.
+- `FOOTPRINTS` cell L/W rebuilt as integer floor of `611/n` and `411/n` (1/1 = 611×411, 1/4 = 305×205, 1/24 = 101×102, etc.).
+
+**Weight model:**
+- New constants: `BIN_GROSS_MAX_KG = 35.0`, `BIN_TARE_KG = 2.35`, `BIN_NET_MAX_KG = 32.65`. Per-cell proportional cap is now computed on the **net** 32.65 kg of usable stock weight, not gross. By induction this keeps the gross bin weight (stock + tare) ≤ 35 kg.
+- `BIN_MAX_WEIGHT_KG` kept as deprecated alias that resolves to `BIN_NET_MAX_KG` for external callers.
+- New `VariantSummary.bin_gross_weight_kg` field — avg full bin weight including tare. Mirrored in `api/schemas/container_order.py` and `frontend/src/api/containerOrder.ts` for the SKU table and exports.
+- Frames assumed weightless (documented in `Dev/CONTAINER_ORDER_TOOL.md`) pending Kardex data.
+
+**NOT_FIT pass-through (the user's bug report):**
+- `_filter_skus` no longer silently drops `NOT_FIT` rows. The upstream Capacity analysis tests against a single MiB inner-dimension set (`carriers.yml` `inner_height_mm: 210`) but VBM Box has six height tiers — a SKU between 211–360 mm tall used to vanish at the filter. Now passes through to the per-variant check; SKUs that don't fit any variant in the catalog become **transparent orphans** with `orphan_reason="no_fitting_variant"`.
+- `include_borderline` keeps its meaning: OFF drops BORDERLINE-classified rows; ON includes them alongside FIT and NOT_FIT.
+
+**`params_echo` clarity in `ContainerOrderView.vue`:**
+- Replaced the flat `paramsEchoDisplay` with two computed groups: **"Active in this calculation"** + **"Stored from a previous mode — not used in this calculation"**. Mode-conditional keys route based on the current `mode`: `auto_max_variants` (auto), `guided_preset` (guided), `manual_variant_codes` (manual). Everything else is always active. The unused group is muted with an amber left border.
+
+**Tests:**
+- Recalibrated 5 existing tests (catalog size 48 → 72, auto 28 → 42, tier list, weight cap 35 → 32.65, 1/6 proportional cap 5.8 → 5.4 kg).
+- 8 new tests in `tests/test_container_planner_params.py`: interior dims, tier extension, volume table cross-check, tare reduces cell cap, gross bin weight surfacing, NOT_FIT-with-fitting-variant pass-through, NOT_FIT-with-no-variant transparent orphan, `include_borderline` semantic preservation.
+- Full suite: **94 passed** (40 planner + 26 param + 28 time-saving).
+
+**Docs:**
+- `Dev/CONTAINER_ORDER_TOOL.md` rewritten spec section to match the new geometry, weight model, and NOT_FIT handling.
+- `Dev/CONTAINER_ORDER_PARAMS_AUDIT.md` `include_borderline` row marked ✅, new row for the removed NOT_FIT gate.
+
+---
+
 ### [2026-05-18] - Feature (main) — Container Order: parameter audit + UI gap fixes + regression tests
 
 User reported that flipping scenarios in the Calculation tab didn't change the result. A full audit found three legitimate "looks broken but isn't" causes; each is now visible to the user.

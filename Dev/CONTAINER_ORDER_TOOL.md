@@ -19,41 +19,70 @@ Daje:
 
 ## Źródło prawdy dla katalogu
 
-Plik PDF `Dev/Calculators/Flyer_PL_Kardex-VBM-Box.pdf` (Kardex VBM Box flyer):
+Plik PDF `Dev/Calculators/Flyer_PL_Kardex-VBM-Box.pdf` (Kardex VBM Box flyer) + uściślenia od użytkownika z 2026-05-19:
 
-- Pojemnik bazowy: **640 × 440 × 138 mm**, 27.6 L, max 35 kg.
-- Wnętrze użytkowe: ~617 × 408 mm.
-- System EasyClick: frames podnoszą bin co +50 mm.
-- Wysokości: 138 / 188 / 238 / 288 / 338 / 388 mm.
-  **Dividery działają tylko do 288 mm** → narzędzie używa 4 wysokości: 138/188/238/288.
-- Modułowość: komory są wielokrotnościami 103 mm wzdłuż i 102 mm wszerz.
+- Pojemnik bazowy: **640 × 440 × 138 mm** (zewn.), wnętrze **611 × 411 × 110 mm**, ok. 27.6 L, gross max 35 kg.
+- Waga pustego pojemnika (tare): **2.35 kg** → użyteczna nośność stocka per bin = **32.65 kg**.
+  (Założenie: ramki EasyClick traktujemy jako 0 kg do czasu uzyskania danych z Kardex.)
+- Dno bina pochłania **28 mm** wysokości (`bin_height − interior_height`).
+- System EasyClick: każda ramka dodaje **+50 mm** w pełni użytecznej wysokości wnętrza.
+- Wysokości: 138 / 188 / 238 / 288 / 338 / 388 mm → wnętrze 110 / 160 / 210 / 260 / 310 / 360 mm.
+- Dividery działają na całej wysokości każdego tieru (poprzednia uwaga "tylko do 288 mm" była zbyt zachowawcza).
 
 ## Katalog wariantów
 
-12 footprintów × 4 wysokości = **48 wariantów (pełny katalog, tryb Manual)**.
-7 z nich oznaczono jako "auto" → **28 wariantów (tryby Auto i Guided)**.
+12 footprintów × 6 wysokości = **72 warianty (pełny katalog, tryb Manual)**.
+7 footprintów oznaczonych jako "auto" → **42 warianty (tryby Auto i Guided)**.
 
-Wymiary komór (długość × szerokość, w mm):
+Wymiary komór (długość × szerokość, integer floor z `611/n` i `411/n`):
 
 | Footprint   | Komora (L×W) | Komór | Auto |
 |-------------|--------------|------:|:----:|
-| `1/1`       | 617 × 408    |  1    | ✓ |
-| `1/2L`      | 309 × 408    |  2    | ✓ |
-| `1/2W`      | 617 × 204    |  2    | ✓ |
-| `1/3W`      | 617 × 136    |  3    | ✓ |
-| `1/3L`      | 206 × 408    |  3    |   |
-| `1/4`       | 309 × 204    |  4    | ✓ |
-| `1/6_3x2`   | 206 × 204    |  6    | ✓ |
-| `1/6_2x3`   | 309 × 136    |  6    |   |
-| `1/8`       | 309 × 102    |  8    |   |
-| `1/12_3x4`  | 206 × 102    | 12    | ✓ |
-| `1/12_6x2`  | 103 × 204    | 12    |   |
-| `1/24`      | 103 × 102    | 24    |   |
+| `1/1`       | 611 × 411    |  1    | ✓ |
+| `1/2L`      | 305 × 411    |  2    | ✓ |
+| `1/2W`      | 611 × 205    |  2    | ✓ |
+| `1/3W`      | 611 × 137    |  3    | ✓ |
+| `1/3L`      | 203 × 411    |  3    |   |
+| `1/4`       | 305 × 205    |  4    | ✓ |
+| `1/6_3x2`   | 203 × 205    |  6    | ✓ |
+| `1/6_2x3`   | 305 × 137    |  6    |   |
+| `1/8`       | 305 × 102    |  8    |   |
+| `1/12_3x4`  | 203 × 102    | 12    | ✓ |
+| `1/12_6x2`  | 101 × 205    | 12    |   |
+| `1/24`      | 101 × 102    | 24    |   |
 
-Waga maksymalna na komorę = `35 kg × (pole_komory / pole_użytkowe_bin)`.
-Wewnętrzna wysokość komory = `tier - 10 mm` (utracone na dno).
+Waga maksymalna na komorę = `32.65 kg × (pole_komory / pole_wnętrza_bin)` — czyli proporcjonalny cap nakłada się na **netto** stockową nośność, nie brutto.
 
-Kody wariantów: `{footprint}-{bin_height_mm}` — np. `1/4-188`, `1/24-138`.
+Po obliczeniu planu `VariantSummary.bin_gross_weight_kg` raportuje średnie **brutto** (stock per bin + tare 2.35 kg) — pozwala zweryfikować, że 35-kg cap jest respektowany w eksportach.
+
+Wewnętrzna wysokość komory = `bin_height_mm − 28` (utracone na dno).
+
+Kody wariantów: `{footprint}-{bin_height_mm}` — np. `1/4-188`, `1/24-388`.
+
+## Test 6 orientacji SKU (2026-05-19)
+
+Wcześniej `_sku_fits_variant` testował tylko **2 orientacje** (rotacja w płaszczyźnie poziomej, wysokość SKU zawsze pionowo). Capacity analysis sprawdza **6 orientacji** (wszystkie permutacje L/W/H → X/Y/Z). Od 2026-05-19 Container Order również testuje 6 orientacji, respektując ograniczenie z masterdata:
+
+| `orientation_constraint` | Dozwolone orientacje | Liczba |
+|---|---|---:|
+| `ANY` (domyślnie) | wszystkie permutacje (L,W,H) → (cell_X, cell_Y, cell_Z) | 6 |
+| `UPRIGHT_ONLY` | tylko te z H na osi Z (cell_height) — "ta strona do góry" | 2 |
+| `FLAT_ONLY` | tylko te z L lub W na osi Z — SKU musi leżeć płasko | 4 |
+
+Pole `orientation_constraint` żyje w `MasterdataRow` (`src/core/types.py:81-84`) i jest forwardowane przez `capacity_result.rows` do planner'a. Starsze runy bez tego pola domyślnie używają `ANY` (= 6 orientacji), co jest najszerszym i najbezpieczniejszym domyślnym zachowaniem.
+
+Praktyczna konsekwencja: SKU typu "kabel/profil/blacha" (long-and-thin), które wcześniej stawały się orphan-ami, teraz znajdują wariant przez lay-flat orientation. Sztywne "ta strona do góry" SKU (zaznaczone w masterdata) nadal respektują swoje ograniczenie.
+
+Wybrana orientacja używana jest **wewnętrznie** do decyzji o dopasowaniu — nie pojawia się w SKU table ani exportach (decyzja użytkownika 2026-05-19).
+
+## Filtrowanie SKU vs. capacity NOT_FIT (2026-05-19)
+
+Wcześniejsza wersja `_filter_skus` cicho odrzucała SKU oznaczone w analizie Capacity jako `NOT_FIT`. Capacity testuje wymiary przeciwko **jednemu** zestawowi `inner_*_mm` carriera MiB z `carriers.yml`, a VBM Box ma sześć tierów wysokości — SKU "nie pasujące" do standardowego tieru mogłyby pasować do wyższego. Od 2026-05-19:
+
+- `_filter_skus` przepuszcza wszystkie wiersze (FIT, BORDERLINE, NOT_FIT) do `_compute_fits`.
+- Decyzję o "fitness" podejmuje per-wariant check (`_sku_fits_variant` + `_locations_needed`) wobec rzeczywistych wymiarów komór wariantów.
+- SKU, które nie pasują do żadnego wariantu w katalogu, lądują jako transparent orphans z `orphan_reason="no_fitting_variant"`.
+- Toggle `include_borderline` zachowuje swoje znaczenie (FIT vs BORDERLINE), nie dotyczy NOT_FIT.
 
 ## Decyzje projektowe (z dyskusji z użytkownikiem)
 

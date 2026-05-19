@@ -108,10 +108,13 @@ class VariantSummaryRow(BaseModel):
     total_frames_required: int = 0
     # Total divider cells to order = bins_required × locations_per_bin.
     dividers_required: int = 0
-    # Σ stocked weight assigned to this variant (kg) — for bin-weight transparency.
-    # By construction (per-cell weight cap enforced in _locations_needed), this
-    # divided by bins_required is ≤ 35 kg.
+    # Σ stocked weight assigned to this variant (kg) — *stock only*, no tare.
+    # By construction (per-cell net-weight cap), this divided by bins_required
+    # plus the 2.35-kg empty-bin tare is ≤ 35 kg.
     total_weight_kg: float = 0.0
+    # Avg total bin weight = stock weight per bin + empty-bin tare (~2.35 kg).
+    # Surfaces the 35-kg gross cap in exports so the warehouse can verify.
+    bin_gross_weight_kg: float = 0.0
 
 
 class ContainerPlanResponse(BaseModel):

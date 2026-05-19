@@ -313,16 +313,28 @@
               coverage {{ store.plan.coverage_pct.toFixed(1) }}% ({{ store.plan.total_sku_covered }} / {{ store.plan.total_sku_planned }} SKUs)
             </p>
             <!-- Transparency: show exactly which params the backend acted on.
-                 Helps the user spot inert toggles (e.g. ABC filter when the
-                 source run has no Performance results). -->
+                 Split into Active vs Stored-but-unused so the user can tell
+                 which keys drove the current calculation. -->
             <details class="params-echo">
               <summary>Parameters actually used by the planner</summary>
+              <p class="echo-subhead">Active in this calculation</p>
               <div class="params-echo-grid">
-                <template v-for="(value, key) in paramsEchoDisplay" :key="key">
+                <template v-for="(value, key) in echoActive" :key="`a-${key}`">
                   <span class="echo-key">{{ key }}</span>
                   <span class="echo-val">{{ value }}</span>
                 </template>
               </div>
+              <template v-if="Object.keys(echoUnused).length > 0">
+                <p class="echo-subhead echo-subhead-muted">
+                  Stored from a previous mode — not used in this calculation
+                </p>
+                <div class="params-echo-grid params-echo-grid-muted">
+                  <template v-for="(value, key) in echoUnused" :key="`u-${key}`">
+                    <span class="echo-key">{{ key }}</span>
+                    <span class="echo-val">{{ value }}</span>
+                  </template>
+                </div>
+              </template>
             </details>
           </div>
 
@@ -687,15 +699,45 @@ const filterIsInert = computed(() =>
 )
 
 // Tidy params_echo for display — primitives kept as-is, arrays joined,
-// empty arrays shown as "—", objects JSON-stringified compactly.
-const paramsEchoDisplay = computed<Record<string, string>>(() => {
+// empty arrays shown as "—", objects JSON-stringified compactly. Mode-
+// specific keys are routed into the "unused in this calculation" bucket
+// when the current mode doesn't consult them, so the user isn't misled
+// into thinking e.g. their old manual_variant_codes drove an Auto run.
+function _formatEchoValue(v: unknown): string {
+  if (v === null || v === undefined) return '—'
+  if (Array.isArray(v)) return v.length ? v.join(', ') : '—'
+  if (typeof v === 'object') return JSON.stringify(v)
+  return String(v)
+}
+
+function _isActiveInMode(key: string, mode: string): boolean {
+  if (key === 'auto_max_variants') return mode === 'auto'
+  if (key === 'guided_preset') return mode === 'guided'
+  if (key === 'manual_variant_codes') return mode === 'manual'
+  // Everything else (abc_classes, only_machine, include_borderline,
+  // impute_missing_dimensions, stock_multiplier, location_fill_rate,
+  // min_locations_per_sku, max_locations_per_sku, auto_goal, mode) is
+  // consulted in every mode — auto_goal also drives per-SKU best-variant
+  // pick inside _plan_from_selection, so it's always active.
+  return true
+}
+
+const echoActive = computed<Record<string, string>>(() => {
   const echo = (store.plan?.params_echo ?? {}) as Record<string, unknown>
+  const mode = String(echo.mode ?? store.params.mode)
   const out: Record<string, string> = {}
   for (const [k, v] of Object.entries(echo)) {
-    if (v === null || v === undefined) { out[k] = '—'; continue }
-    if (Array.isArray(v)) { out[k] = v.length ? v.join(', ') : '—'; continue }
-    if (typeof v === 'object') { out[k] = JSON.stringify(v); continue }
-    out[k] = String(v)
+    if (_isActiveInMode(k, mode)) out[k] = _formatEchoValue(v)
+  }
+  return out
+})
+
+const echoUnused = computed<Record<string, string>>(() => {
+  const echo = (store.plan?.params_echo ?? {}) as Record<string, unknown>
+  const mode = String(echo.mode ?? store.params.mode)
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(echo)) {
+    if (!_isActiveInMode(k, mode)) out[k] = _formatEchoValue(v)
   }
   return out
 })
@@ -1038,6 +1080,26 @@ watch(step, (next) => {
 }
 .params-echo-grid .echo-key { color: var(--app-text-sec); }
 .params-echo-grid .echo-val { color: var(--app-text); word-break: break-word; }
+
+.echo-subhead {
+  margin: 8px 0 4px 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--app-text-sec);
+}
+.echo-subhead-muted { color: #b45309; }
+:global(html.dark) .echo-subhead-muted { color: #fcd34d; }
+
+/* Muted variant — the "stored but unused" group greys out so it's clear
+   those values weren't consulted by the current calculation. */
+.params-echo-grid-muted {
+  opacity: 0.6;
+  border-left: 2px solid #b45309;
+  padding-left: 8px;
+}
+:global(html.dark) .params-echo-grid-muted { border-left-color: #fcd34d; }
 
 /* ─── History tab ─── */
 .empty-history {

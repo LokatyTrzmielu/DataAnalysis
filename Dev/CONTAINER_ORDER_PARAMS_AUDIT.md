@@ -17,7 +17,9 @@
 | `manual_variant_codes` | ✅ | `plan_containers:703–704` | directly drives selection | empty list falls through to auto (by design) |
 | `abc_classes` | ⚠ | `_filter_skus:323` — only when `performance_result` exists | drops SKUs outside selected classes | run has **no Performance results** → filter silently skipped |
 | `only_machine` | ⚠ | `_filter_skus:326` — only when `performance_result` exists | drops SKUs flagged Non-machine | run has **no Performance results** → filter silently skipped |
-| `include_borderline` | ⚠ | `_filter_skus:315` | adds BORDERLINE-status SKUs to the plan | **had no UI control** (frontend always sent `true`) — now exposed |
+| `include_borderline` | ✅ | `_filter_skus` (BORDERLINE row drop) | OFF excludes BORDERLINE-classified rows; ON includes them alongside FIT and NOT_FIT | now exposed in UI (was missing before 2026-05-18) |
+| ~~fit_status NOT_FIT gate~~ | ❌ | **removed 2026-05-19** | (used to silently drop NOT_FIT rows in `_filter_skus`) | replaced by per-variant check in `_compute_fits` — NOT_FIT rows now reach the variant catalog and either get planned or become transparent orphans |
+| Geometric fit check (orientations) | ✅ | `_sku_fits_variant` (`container_planner.py`) — rewritten 2026-05-19 to test all 6 (L,W,H) → (X,Y,Z) permutations, gated by per-SKU `orientation_constraint` forwarded from `capacity_result.rows` (default `ANY` → 6 orientations) | long-and-thin SKUs (cables/profiles/sheets) now fit cells they couldn't reach under the old 2-orientation horizontal-only check | the chosen orientation is internal-only — not surfaced in SKU table / exports (user decision 2026-05-19) |
 | `impute_missing_dimensions` | ✅ | `_compute_fits:421` | OFF: SKUs with missing dims become orphans. ON: median imputation | never |
 | `stock_multiplier` | ✅ | `_compute_fits:446` → `_locations_needed:263` | scales stock volume before location math | `min_locations_per_sku` floor can mask the effect for tiny stock |
 | `location_fill_rate` | ✅ | `_locations_needed:263` | denominator in `ceil(stock_vol / (cell_vol × fill_rate))` | never |

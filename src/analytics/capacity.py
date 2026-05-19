@@ -382,6 +382,10 @@ class CapacityAnalyzer:
                     "width_mm": round(float(width), 2),
                     "height_mm": round(float(height), 2),
                     "weight_kg": round(float(weight), 4),
+                    # Forward the per-SKU orientation constraint so downstream
+                    # tools (Container Order) can honour it without re-reading
+                    # masterdata. Older rows without this field default to ANY.
+                    "orientation_constraint": constraint.value,
                 }
 
                 if best_fit_mode:
@@ -425,6 +429,7 @@ class CapacityAnalyzer:
                     "width_mm": round(float(width), 2),
                     "height_mm": round(float(height), 2),
                     "weight_kg": round(float(weight), 4),
+                    "orientation_constraint": constraint.value,
                 })
 
         # Create DataFrame with explicit schema for columns with None
@@ -447,6 +452,7 @@ class CapacityAnalyzer:
                 "width_mm": pl.Float64,
                 "height_mm": pl.Float64,
                 "weight_kg": pl.Float64,
+                "orientation_constraint": pl.Utf8,
             }
         )
 

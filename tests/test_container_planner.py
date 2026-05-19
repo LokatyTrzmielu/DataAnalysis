@@ -14,18 +14,20 @@ from src.analytics import container_planner as cp
 # ---------------------------------------------------------------------------
 
 
-def test_catalog_full_has_48_variants():
-    assert len(cp.CATALOG_FULL) == 48
+def test_catalog_full_has_72_variants():
+    # 12 footprints × 6 height tiers (138, 188, 238, 288, 338, 388).
+    assert len(cp.CATALOG_FULL) == 72
 
 
-def test_catalog_auto_has_28_variants():
-    assert len(cp.CATALOG_AUTO) == 28
+def test_catalog_auto_has_42_variants():
+    # 7 auto-flagged footprints × 6 height tiers.
+    assert len(cp.CATALOG_AUTO) == 42
     assert all(v.in_auto_catalog for v in cp.CATALOG_AUTO)
 
 
 def test_height_tiers_match_pdf():
     tiers = sorted({v.bin_height_mm for v in cp.CATALOG_FULL})
-    assert tiers == [138, 188, 238, 288]
+    assert tiers == [138, 188, 238, 288, 338, 388]
 
 
 def test_footprints_present():
@@ -35,17 +37,19 @@ def test_footprints_present():
     assert keys == expected
 
 
-def test_full_bin_weight_cap_equals_kardex_spec():
+def test_full_bin_weight_cap_equals_kardex_net_spec():
+    """1/1 occupies the entire usable area → its per-cell cap equals the
+    bin's *net* (usable-stock) cap = 35 kg gross − 2.35 kg empty bin tare."""
     full = next(v for v in cp.CATALOG_FULL if v.footprint_key == "1/1")
-    # 1/1 occupies the entire usable area → full 35 kg cap.
-    assert math.isclose(full.max_weight_kg_per_cell, 35.0, rel_tol=0.02)
+    assert math.isclose(full.max_weight_kg_per_cell, cp.BIN_NET_MAX_KG, rel_tol=0.01)
+    assert math.isclose(cp.BIN_NET_MAX_KG, 32.65, abs_tol=0.001)
 
 
 def test_variant_frames_per_bin_derived_from_height():
     """EasyClick formula: frames_per_bin = (bin_height_mm - 138) // 50."""
     by_height = {v.bin_height_mm: v.frames_per_bin
                  for v in cp.CATALOG_FULL if v.footprint_key == "1/1"}
-    assert by_height == {138: 0, 188: 1, 238: 2, 288: 3}
+    assert by_height == {138: 0, 188: 1, 238: 2, 288: 3, 338: 4, 388: 5}
 
 
 def test_variant_summary_carries_frames_per_bin_and_total():
@@ -92,8 +96,8 @@ def test_container_plan_aggregates_total_frames_across_variants():
 
 def test_sixth_footprint_has_proportional_weight():
     sixth = next(v for v in cp.CATALOG_FULL if v.footprint_key == "1/6_3x2" and v.bin_height_mm == 138)
-    # 206×204 / (617×408) ≈ 0.1669 → ~5.84 kg per cell.
-    assert 5.5 < sixth.max_weight_kg_per_cell < 6.0
+    # 203×205 / (611×411) ≈ 0.1657 → 32.65 kg net × 0.1657 ≈ 5.41 kg per cell.
+    assert 5.2 < sixth.max_weight_kg_per_cell < 5.6
 
 
 # ---------------------------------------------------------------------------

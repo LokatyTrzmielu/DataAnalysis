@@ -84,7 +84,8 @@ export interface VariantSummaryRow {
   frames_per_bin: number
   total_frames_required: number
   dividers_required: number     // bins × locations_per_bin
-  total_weight_kg: number       // Σ stocked weight assigned to this variant
+  total_weight_kg: number       // Σ stocked weight assigned to this variant (stock only)
+  bin_gross_weight_kg: number   // avg full bin weight = stock per bin + empty-bin tare
 }
 
 export interface ContainerPlan {

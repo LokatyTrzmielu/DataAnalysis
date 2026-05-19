@@ -5,8 +5,19 @@ Data sources (read-only):
 - capacity_result.rows  — per-SKU × carrier fit data (uses MiB 640x440 carrier "2")
 - performance_result.sku_pareto  — per-SKU ABC class + Machine/Non-machine recommendation
 
-Catalog source: Kardex VBM Box flyer (Dev/Calculators/Flyer_PL_Kardex-VBM-Box.pdf).
-Base bin 640x440x138 mm, usable interior ~617x408 mm, dividers up to 288 mm height.
+Catalog source: Kardex VBM Box flyer (Dev/Calculators/Flyer_PL_Kardex-VBM-Box.pdf)
+plus user clarifications captured 2026-05-19.
+
+Bin geometry:
+- External 640 × 440 × 138 mm (base) → interior 611 × 411 × 110 mm.
+- Bin floor takes 28 mm from external height (= bin_height − interior_height).
+- Each EasyClick frame adds 50 mm of fully-usable interior height.
+- Supported tiers: 138 / 188 / 238 / 288 / 338 / 388 mm (interior 110 → 360 mm).
+
+Weight:
+- Gross bin cap 35 kg. Empty bin tare 2.35 kg (assumed weightless frames pending
+  Kardex data — documented assumption). Usable stock weight per bin = 32.65 kg.
+- Per-cell stock weight cap is proportional: net_max × (cell_area / interior_area).
 """
 
 from __future__ import annotations
@@ -19,32 +30,41 @@ from typing import Literal
 # Carrier ID for MiB 640x440 (the only bin supported by VBM Box) — from carriers.yml.
 MIB_CARRIER_ID = "2"
 
-# Bin base limits (from PDF).
-BIN_MAX_WEIGHT_KG = 35.0
-BIN_INTERIOR_LENGTH_MM = 617
-BIN_INTERIOR_WIDTH_MM = 408
+# Bin interior — Kardex VBM Box spec (user-confirmed 2026-05-19).
+BIN_INTERIOR_LENGTH_MM = 611
+BIN_INTERIOR_WIDTH_MM = 411
 USABLE_AREA_MM2 = BIN_INTERIOR_LENGTH_MM * BIN_INTERIOR_WIDTH_MM
 
-# Height tiers — dividers only work up to 288 mm.
-HEIGHT_TIERS_MM = (138, 188, 238, 288)
-# Subtract ~10 mm for bin floor to get usable interior height per cell.
-HEIGHT_FLOOR_LOSS_MM = 10
+# Weight model — gross cap from flyer, tare clarified by user.
+BIN_GROSS_MAX_KG = 35.0
+BIN_TARE_KG = 2.35   # empty bin (138-mm base) — frames assumed weightless
+BIN_NET_MAX_KG = BIN_GROSS_MAX_KG - BIN_TARE_KG   # 32.65 kg usable for stock
 
-# Footprint definitions: (code, label, length_mm, width_mm, locations_per_bin, in_auto_catalog)
-# Lengths/widths chosen from PDF modularity (103/102 mm units).
+# Back-compat alias — external callers may still import the old name; it now
+# resolves to the *net* (usable-stock) cap, which is what the planner uses.
+BIN_MAX_WEIGHT_KG = BIN_NET_MAX_KG
+
+# Height tiers — dividers extend the full interior up to 388 mm.
+HEIGHT_TIERS_MM = (138, 188, 238, 288, 338, 388)
+# External bin height − bin floor thickness = interior height per cell.
+# Floor takes 28 mm; the rest of the bin height is fully usable.
+HEIGHT_FLOOR_LOSS_MM = 28
+
+# Footprint definitions: (code, label, length_mm, width_mm, locations_per_bin, in_auto_catalog).
+# Cell L/W = integer floor of 611/n and 411/n (Q-d decision 2026-05-19).
 FOOTPRINTS: tuple[tuple[str, str, int, int, int, bool], ...] = (
-    ("1/1",      "1 cell (full bin)",       617, 408,  1, True),
-    ("1/2L",     "2 cells (split length)",  309, 408,  2, True),
-    ("1/2W",     "2 cells (split width)",   617, 204,  2, True),
-    ("1/3W",     "3 cells (3× width)",      617, 136,  3, True),
-    ("1/3L",     "3 cells (3× length)",     206, 408,  3, False),
-    ("1/4",      "4 cells (2×2)",           309, 204,  4, True),
-    ("1/6_3x2",  "6 cells (3L×2W)",         206, 204,  6, True),
-    ("1/6_2x3",  "6 cells (2L×3W)",         309, 136,  6, False),
-    ("1/8",      "8 cells (4L×2W)",         309, 102,  8, False),
-    ("1/12_3x4", "12 cells (3L×4W)",        206, 102, 12, True),
-    ("1/12_6x2", "12 cells (6L×2W)",        103, 204, 12, False),
-    ("1/24",     "24 cells (6L×4W)",        103, 102, 24, False),
+    ("1/1",      "1 cell (full bin)",       611, 411,  1, True),
+    ("1/2L",     "2 cells (split length)",  305, 411,  2, True),
+    ("1/2W",     "2 cells (split width)",   611, 205,  2, True),
+    ("1/3W",     "3 cells (3× width)",      611, 137,  3, True),
+    ("1/3L",     "3 cells (3× length)",     203, 411,  3, False),
+    ("1/4",      "4 cells (2×2)",           305, 205,  4, True),
+    ("1/6_3x2",  "6 cells (3L×2W)",         203, 205,  6, True),
+    ("1/6_2x3",  "6 cells (2L×3W)",         305, 137,  6, False),
+    ("1/8",      "8 cells (4L×2W)",         305, 102,  8, False),
+    ("1/12_3x4", "12 cells (3L×4W)",        203, 102, 12, True),
+    ("1/12_6x2", "12 cells (6L×2W)",        101, 205, 12, False),
+    ("1/24",     "24 cells (6L×4W)",        101, 102, 24, False),
 )
 
 
@@ -83,13 +103,19 @@ FRAME_INCREMENT_MM = 50
 
 
 def _build_catalog() -> list[Variant]:
-    """Generate the full 48-variant catalog from FOOTPRINTS × HEIGHT_TIERS_MM."""
+    """Generate the full catalog from FOOTPRINTS × HEIGHT_TIERS_MM.
+
+    With 12 footprints × 6 tiers, the full catalog is 72 variants; the auto
+    subset (footprints flagged ``in_auto_catalog=True``) is 7 × 6 = 42.
+    """
     variants: list[Variant] = []
     for fp_key, fp_label, fp_len, fp_wid, locs, in_auto in FOOTPRINTS:
         cell_area_mm2 = fp_len * fp_wid
-        # Proportional weight cap: cell occupies (cells_used / 1) of bin area.
-        # Equivalent: per-cell cap = total cap × (cell_area / usable_area).
-        weight_per_cell = BIN_MAX_WEIGHT_KG * (cell_area_mm2 / USABLE_AREA_MM2)
+        # Proportional **net** weight cap per cell — i.e. usable for stock,
+        # bin tare already deducted at the bin level. By induction, if every
+        # cell respects its proportional cap, the bin's total stock weight
+        # respects BIN_NET_MAX_KG and the gross (stock + tare) respects 35 kg.
+        weight_per_cell = BIN_NET_MAX_KG * (cell_area_mm2 / USABLE_AREA_MM2)
         for tier in HEIGHT_TIERS_MM:
             cell_h = tier - HEIGHT_FLOOR_LOSS_MM
             cell_vol_L = (fp_len * fp_wid * cell_h) / 1_000_000.0  # mm³ → L
@@ -204,7 +230,9 @@ class VariantSummary:
     dividers_required: int = 0      # bins_required * locations_per_bin — total
                                     # divider cells to order across all bins
     total_weight_kg: float = 0.0    # Σ (stock_qty × unit_weight) across SKUs in
-                                    # this variant — for bin-weight transparency
+                                    # this variant — *stock only*, no tare
+    bin_gross_weight_kg: float = 0.0  # avg bin total = stock_weight/bins + tare;
+                                       # surfaces the 35-kg gross cap in exports
 
 
 @dataclass
@@ -227,15 +255,47 @@ class ContainerPlan:
 # ---------------------------------------------------------------------------
 
 
-def _sku_fits_variant(length: float, width: float, height: float, weight: float, v: Variant) -> bool:
-    """Geometric + weight check. Try both orientations (rotate 90° in horizontal plane)."""
-    if height > v.cell_height_mm:
-        return False
+# All 6 permutations of (L, W, H) onto cell axes (cell_L, cell_W, cell_H).
+# Mirror of capacity.py's ORIENTATIONS — keep these two tuples in sync.
+ORIENTATIONS: tuple[tuple[str, str, str], ...] = (
+    ("L", "W", "H"), ("L", "H", "W"), ("W", "L", "H"),
+    ("W", "H", "L"), ("H", "L", "W"), ("H", "W", "L"),
+)
+
+
+def _allowed_orientations(constraint: str | None) -> tuple[tuple[str, str, str], ...]:
+    """Filter ORIENTATIONS by a per-SKU constraint (matches src/core/types.py
+    OrientationConstraint enum). Defaults to all 6 for ANY / None."""
+    if constraint == "UPRIGHT_ONLY":
+        # Height stays on the cell's Z axis — 2 orientations.
+        return tuple(o for o in ORIENTATIONS if o[2] == "H")
+    if constraint == "FLAT_ONLY":
+        # SKU must lie down — L or W on the cell's Z axis, never H — 4 orientations.
+        return tuple(o for o in ORIENTATIONS if o[2] != "H")
+    return ORIENTATIONS
+
+
+def _sku_fits_variant(
+    length: float, width: float, height: float, weight: float,
+    v: Variant, constraint: str | None = None,
+) -> bool:
+    """Geometric + weight check across the 6 SKU orientations allowed by
+    ``constraint`` (defaults to all 6 when constraint is ANY or None).
+
+    Mirrors the Capacity analysis logic (capacity.py:_check_fit) so a SKU
+    that Capacity classified as FIT against the MiB carrier will also fit
+    the corresponding cell here — and so SKUs that only fit when laid flat
+    (long-and-thin items, sheet stock) are no longer silently orphaned.
+    """
     if weight > v.max_weight_kg_per_cell:
         return False
-    fits_a = length <= v.cell_length_mm and width <= v.cell_width_mm
-    fits_b = width <= v.cell_length_mm and length <= v.cell_width_mm
-    return fits_a or fits_b
+    dims = {"L": length, "W": width, "H": height}
+    cell = (v.cell_length_mm, v.cell_width_mm, v.cell_height_mm)
+    for o in _allowed_orientations(constraint):
+        sku_xyz = (dims[o[0]], dims[o[1]], dims[o[2]])
+        if all(sku <= c for sku, c in zip(sku_xyz, cell)):
+            return True
+    return False
 
 
 def _locations_needed(
@@ -300,7 +360,7 @@ def _abc_map(performance_result: dict | None) -> dict[str, dict]:
 
 
 def _filter_skus(rows: list[dict], abc: dict[str, dict], params: PlanParams) -> list[dict]:
-    """Apply ABC, recommendation, fit-status filters. Returns surviving rows.
+    """Apply ABC, recommendation, and BORDERLINE filters. Returns surviving rows.
 
     Filter mode depends on whether Performance data exists for the run:
 
@@ -315,13 +375,25 @@ def _filter_skus(rows: list[dict], abc: dict[str, dict], params: PlanParams) -> 
       ``only_machine`` filters are skipped. The user hasn't classified their
       SKUs yet; they should still be able to plan containers using just
       Masterdata + Capacity.
+
+    **fit_status handling** (clarified 2026-05-19): NOT_FIT rows are NOT
+    silently dropped here. The upstream Capacity analysis tests against a
+    single MiB inner-dimension set, but VBM Box has 6 height tiers — a SKU
+    that's NOT_FIT against the standard tier may well fit a taller variant.
+    The per-variant geometric check in ``_compute_fits`` is the authoritative
+    arbiter; SKUs that fit *no* variant become transparent orphans there.
+
+    The ``include_borderline`` toggle still applies to BORDERLINE-classified
+    rows: OFF removes them from planning (cautious mode); ON includes them
+    alongside FIT and NOT_FIT.
     """
-    allowed_fit = {"FIT", "BORDERLINE"} if params.include_borderline else {"FIT"}
     abc_set = set(params.abc_classes) if params.abc_classes else None
     perf_available = bool(abc)
     out: list[dict] = []
     for row in rows:
-        if row.get("fit_status") not in allowed_fit:
+        # The only fit_status we drop here is BORDERLINE when the user opted
+        # out of it. FIT and NOT_FIT both pass through to the variant check.
+        if (not params.include_borderline) and row.get("fit_status") == "BORDERLINE":
             continue
         meta = abc.get(row["sku"])
         if abc_set is not None and perf_available:
@@ -448,6 +520,10 @@ def _compute_fits(rows: list[dict], abc: dict[str, dict], catalog: list[Variant]
             imputed = False
 
         stock_vol_L = float(row.get("stored_volume_L") or 0) * params.stock_multiplier
+        # Per-SKU orientation constraint from masterdata (forwarded through
+        # capacity_result). Older runs without this field default to "ANY"
+        # → full 6-orientation check, which is the right default.
+        constraint = row.get("orientation_constraint") or "ANY"
 
         candidates: dict[str, tuple[int, float]] = {}
         # If even after imputation we still have a zero dimension, the SKU cannot
@@ -455,7 +531,7 @@ def _compute_fits(rows: list[dict], abc: dict[str, dict], catalog: list[Variant]
         if length > 0 and width > 0 and height > 0:
             unit_vol_L = (length * width * height) / 1_000_000.0
             for v in catalog:
-                if not _sku_fits_variant(length, width, height, weight, v):
+                if not _sku_fits_variant(length, width, height, weight, v, constraint):
                     continue
                 locs = _locations_needed(
                     stock_vol_L, v, params.location_fill_rate,
@@ -647,6 +723,10 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
         avg_fill = (fill_sum_per_variant[code] / sku_n) if sku_n else 0.0
         fill_acc += fill_sum_per_variant[code]
         fill_n += sku_n
+        stock_weight = weight_sum_per_variant[code]
+        # Avg gross bin weight = avg stock weight per bin + empty-bin tare.
+        # Stays ≤ BIN_GROSS_MAX_KG by induction on the per-cell weight cap.
+        avg_gross_per_bin = (stock_weight / bins if bins else 0.0) + BIN_TARE_KG
         summaries.append(VariantSummary(
             code=code,
             footprint_key=v.footprint_key,
@@ -663,7 +743,8 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
             frames_per_bin=v.frames_per_bin,
             total_frames_required=frames_for_variant,
             dividers_required=bins * v.locations_per_bin,
-            total_weight_kg=round(weight_sum_per_variant[code], 2),
+            total_weight_kg=round(stock_weight, 2),
+            bin_gross_weight_kg=round(avg_gross_per_bin, 2),
         ))
     # Sort summaries: most bins first.
     summaries.sort(key=lambda s: (-s.bins_required, s.code))
