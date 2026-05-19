@@ -23,7 +23,7 @@
         title="New Analysis"
         aria-label="New Analysis"
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
         </svg>
       </button>
@@ -104,9 +104,6 @@
         @click="emit('select', run.id)"
         @dblclick="onOpenRun(run)"
         :class="['sidebar-avatar', { 'is-selected': selectedId === run.id }]"
-        :style="selectedId === run.id
-          ? 'background:#0071e3;color:#fff'
-          : `background:${hashColor(run.client_name)};color:#fff`"
         :title="`${run.client_name} · ${formatDate(run.created_at)}`"
         :aria-label="run.client_name"
       >
@@ -195,13 +192,6 @@ function initial(name: string): string {
   const trimmed = name.trim()
   return trimmed.length ? trimmed[0]!.toUpperCase() : '?'
 }
-
-const AVATAR_PALETTE = ['#34c759', '#ff9500', '#5856d6', '#0071e3', '#ff2d55']
-function hashColor(name: string): string {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0
-  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]!
-}
 </script>
 
 <style scoped>
@@ -265,9 +255,9 @@ function hashColor(name: string): string {
 }
 
 .sidebar-new-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   margin: 0 auto;
   background: #0071e3;
   color: #fff;
@@ -282,8 +272,6 @@ function hashColor(name: string): string {
 }
 .is-collapsed .sidebar-collapse-btn {
   margin: 0 auto;
-  width: 32px;
-  height: 32px;
 }
 
 .sidebar-empty {
@@ -313,34 +301,41 @@ function hashColor(name: string): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
-  padding: 4px 0;
+  padding: 6px 0;
 }
 
 .sidebar-avatar {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.2px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  background: var(--app-border);
+  color: var(--app-text);
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .sidebar-avatar:hover {
-  transform: scale(1.06);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  background: var(--app-text-sec);
+  color: var(--app-surface);
 }
 .sidebar-avatar.is-selected {
-  box-shadow: 0 0 0 2px var(--app-surface), 0 0 0 4px #0071e3;
+  background: #0071e3;
+  color: #fff;
+}
+.sidebar-avatar.is-selected:hover {
+  background: #0077ed;
+  color: #fff;
 }
 </style>
