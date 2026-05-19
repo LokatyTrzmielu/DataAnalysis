@@ -14,6 +14,7 @@ const router = createRouter({
       path: '/',
       name: 'dashboard',
       component: () => import('@/views/DashboardView.vue'),
+      meta: { hasSidebar: true },
     },
     {
       path: '/runs',

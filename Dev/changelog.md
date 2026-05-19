@@ -11,6 +11,77 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-19] - Feature (feature/dashboard-sidebar) — Sidebar przypięty do lewej krawędzi viewportu
+
+Iteracja na poprzednim commitie: Sidebar przeniesiony z pozycji `sticky` wewnątrz kontenera `max-w-[1400px]` na `position: fixed` przy lewej krawędzi okna. Pełna wysokość ekranu pod nawigacją (top: 48 px → bottom: 100vh).
+
+**`frontend/src/components/layout/DashboardSidebar.vue`:**
+- `position: sticky; top: 12px` → `position: fixed; left: 0; top: 48px; height: calc(100vh - 48px); z-index: 50`.
+- Usunięte: `border-radius: 12px`, `box-shadow` (sidebar dotyka krawędzi viewportu). Dodane: `border-right: 1px solid var(--app-border)` jako delikatny separator + subtelny cień 1 px po prawej (`box-shadow: rgba(0,0,0,0.04) 1px 0 3px`).
+- Sidebar eksponuje swoją bieżącą szerokość przez CSS variable `--app-sidebar-w` na `document.documentElement` (264 px / 56 px). Wartość aktualizuje się przy zmianie `collapsed`, zapisuje przy `onMounted` i czyści w `onBeforeUnmount` (gdy użytkownik nawiguje poza Dashboard).
+- Lista (`.sidebar-list`) bez zmian — flex `flex:1; overflow-y:auto; min-height:0` naturalnie wypełnia pełną wysokość.
+
+**`frontend/src/router/index.ts`:**
+- Dashboard route (`/`) dostaje `meta: { hasSidebar: true }`, dzięki czemu App.vue wie, kiedy zarezerwować lewy padding na sidebar.
+
+**`frontend/src/App.vue`:**
+- `<main>` używa `computed` `mainClass` / `mainStyle` zamiast inline class.
+- Dla `route.meta.hasSidebar`: klasa `pr-6 py-8` (bez `mx-auto max-w-[1400px]`), inline style `padding-left: calc(var(--app-sidebar-w, 264px) + 24px)` z `transition: padding-left 0.25s ease`. Padding podąża za szerokością sidebaru w czasie animacji collapse/expand.
+- Dla pozostałych route'ów: zachowane stare zachowanie (`mx-auto max-w-[1400px] px-6 py-8`).
+
+**`frontend/src/views/DashboardView.vue`:**
+- Usunięty zewnętrzny wrapper `display:flex; gap:24px` (sidebar jest teraz poza document flow). DashboardView renderuje tylko `<DashboardSidebar>` + zawartość bez dodatkowej kolumny.
+
+**Skutek wizualny:**
+- Sidebar pełnej wysokości (od dolnej krawędzi `AppTopNav` do dołu viewportu).
+- Dashboard zyskuje przestrzeń: brak ograniczenia `max-w-[1400px]` — siatki KPI rozciągają się na pełną dostępną szerokość (minus sidebar i prawy margines).
+- Z‑index: AppTopNav (100) > Sidebar (50), brak nakładania (sidebar startuje pod nawigacją).
+- Smooth transition `padding-left` w głównej kolumnie + `width` w sidebarze, oba 0.25s.
+
+**Weryfikacja:**
+- `npx vue-tsc --noEmit` → exit 0.
+- `npm run build` → ✓ built in 21 s, bez nowych ostrzeżeń.
+
+---
+
+### [2026-05-19] - Feature (feature/dashboard-sidebar) — Dashboard: zwijany Sidebar z listą analiz
+
+Reorganizacja głównego ekranu Dashboard tak, by wybór analizy i przycisk „New Analysis" znalazły się w jednym, stałym miejscu po lewej stronie, a kolumna KPI odzyskała szerokość.
+
+**Nowy plik `frontend/src/components/layout/DashboardSidebar.vue`:**
+- Sticky, samodzielny aside; szerokość 264 px (rozwinięty) / 56 px (zwinięty), `transition: width 0.25s ease`.
+- Header: pełnoszerokościowy przycisk „+ New Analysis" (rozwinięty) / okrągły niebieski guzik z ikoną „+" (zwinięty), pod nim chevron collapse/expand.
+- Lista rozwinięta: identyczne wiersze jak dawna prawa kolumna (`client_name`, `StatusBadge`, data, ikonka Notes z rozwijanym `<textarea>` + debounced `runStore.patchRun`). Klik → emit `select`. Double‑click → emit `open(id, tab)`.
+- Lista zwinięta: kolorowe awatary 32 px (1. litera client_name, kolor z hashu nazwy → paleta Apple), zaznaczenie przez 2 px ring `#0071e3`, tooltip `client_name · data`. Notes ukryte.
+- Persistencja stanu collapsed w `localStorage['dashboard.sidebar.collapsed']`.
+
+**`frontend/src/views/DashboardView.vue`:**
+- **Usunięto** 3 kafle Quick actions u góry (New Analysis / History / Carriers) — Historia i Carriers są w `AppTopNav`, „New Analysis" przeniesione do sidebaru.
+- **Usunięto** prawą kolumnę „Recent analyses" (310 px) wraz z lokalną obsługą `showModal`, `openNotesId`, `dashboardNotesTimer`, `toggleNotes`, `onDashboardNotesInput`, `selectRun`, `formatDate`, `tabFromStatus` — wszystko przeniesione do sidebaru.
+- Layout: nadrzędny `display:flex; gap:24px; align-items:flex-start`; sidebar po lewej, główna kolumna `flex:1; min-width:0`.
+- `latestRun` z lokalnego `ref` → `computed(() => runStore.currentRun)` (single source of truth). `selectedId` to `runStore.currentRun?.id`.
+- Selekcja w sidebarze → emit `select` → `runStore.fetchRun(id)` → KPI grids reagują automatycznie.
+- Modal „New Analysis" otwiera się z sidebaru; emit `created(id)` → `router.push('/runs/' + id)`.
+
+**Poszerzone siatki KPI** (odzyskana szerokość po usunięciu prawej kolumny):
+- Capacity: `grid-cols-2 sm:grid-cols-3` → `grid-cols-2 sm:grid-cols-3 lg:grid-cols-6` (6 kafli w 1 wierszu przy `lg`+).
+- Orders: `grid-cols-2 sm:grid-cols-4` → `grid-cols-2 sm:grid-cols-4 lg:grid-cols-6`.
+- Masterdata (2 kafle) i SKU Cross‑validation — bez zmian.
+
+**Decyzje projektowe** (potwierdzone z użytkownikiem przed wdrożeniem):
+- Zakres: tylko Dashboard (sidebar nie wchodzi do `App.vue` / globalnej nawigacji).
+- Tryb zwinięty: wąski pasek ikon (~56 px), nie pełne ukrycie.
+- Szerokość strony: globalny `max-w-[1400px]` w `App.vue` zostaje bez zmian.
+
+**Weryfikacja:**
+- `npx vue-tsc --noEmit` → exit 0.
+- `npm run build` → ✓ built in 22.7 s, brak nowych ostrzeżeń (pre-existujące chunk-size dla `RunView` / `ContainerOrderView` bez zmian).
+
+**Out of scope:**
+- Globalny sidebar na wszystkich widokach, mobile drawer, drag-to-resize, pinowanie/reordering analiz.
+
+---
+
 ### [2026-05-19] - Fix (main) — Container Order: 6-orientation SKU fit check (matches Capacity)
 
 User asked whether the planner tests all 6 SKU orientations. It didn't — `_sku_fits_variant` only checked 2 (horizontal rotation, height pinned to vertical). Long-and-thin SKUs (cables, profiles, sheets) that would fit when laid flat were silently orphaned.
