@@ -1,7 +1,7 @@
 <template>
   <aside
     :class="['dashboard-sidebar', { 'is-collapsed': collapsed }]"
-    :style="{ width: collapsed ? '56px' : '264px' }"
+    :style="{ width: collapsed ? '72px' : '264px' }"
   >
     <!-- Header: New Analysis + collapse toggle -->
     <div class="sidebar-header">
@@ -23,7 +23,7 @@
         title="New Analysis"
         aria-label="New Analysis"
       >
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
         </svg>
       </button>
@@ -135,7 +135,7 @@ const emit = defineEmits<{
 const runStore = useRunStore()
 const STORAGE_KEY = 'dashboard.sidebar.collapsed'
 const SIDEBAR_W_EXPANDED = '264px'
-const SIDEBAR_W_COLLAPSED = '56px'
+const SIDEBAR_W_COLLAPSED = '72px'
 const collapsed = ref<boolean>(typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY) === 'true')
 
 function syncWidthVar() {
@@ -249,8 +249,8 @@ function hashColor(name: string): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   background: none;
   border: none;
   cursor: pointer;
@@ -265,8 +265,9 @@ function hashColor(name: string): string {
 }
 
 .sidebar-new-icon {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   margin: 0 auto;
   background: #0071e3;
   color: #fff;
@@ -281,6 +282,8 @@ function hashColor(name: string): string {
 }
 .is-collapsed .sidebar-collapse-btn {
   margin: 0 auto;
+  width: 32px;
+  height: 32px;
 }
 
 .sidebar-empty {
@@ -292,6 +295,7 @@ function hashColor(name: string): string {
 .sidebar-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
 
@@ -309,20 +313,21 @@ function hashColor(name: string): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
-  padding-top: 4px;
+  padding: 4px 0;
 }
 
 .sidebar-avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.2px;
   display: flex;
