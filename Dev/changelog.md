@@ -11,6 +11,43 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-19] - UX (fix/mapping-stock-bug) — Performance: etykiety wartości, hover dnia tygodnia, więcej kubełków LpO
+
+**`frontend/src/components/analysis/PerformanceTab.vue`:**
+- Wszystkie wykresy słupkowe (Daily Activity, Hourly Throughput, Weekly Trend, Day-of-Week Profile, Lines per Order Distribution) mają teraz stałe etykiety wartości nad słupkami (`textposition: 'outside'`, `cliponaxis: false`, drobny `textfont`). Górny margines podniesiony do 24 px, żeby etykiety się mieściły.
+- Daily Activity: hover zmieniony z `data + lines` na `dzień tygodnia + lines` (`hovertemplate` z `customdata`). Data nadal widoczna na osi X, więc duplikacja w tooltipie była zbędna.
+
+**`api/routers/runs.py`:**
+- `lines_per_order_dist`: ostatni kubełek `21+` zastąpiony serią `21–30`, `31–40`, `41–50`, `51–60`, `61+`. Wykres i karty KPI używają tego samego źródła, więc liczba słupków = liczbie kart (12 zamiast 8).
+
+---
+
+### [2026-05-19] - Fix (fix/mapping-stock-bug) — Kolumna `stock` nie była mapowana na pole `stock`
+
+**Root cause:** w `MASTERDATA_SCHEMA["sku"]["aliases"]` był alias `"stock_code"`. Algorytm `_find_best_match` (`src/ingest/mapping.py:297`) przetwarzał pola po kolei i dla pola `sku` partial-matchem łapał kolumnę `stock` (`"stock"` zawiera się w `"stock_code"` → score 0.5 ≥ 0.4 próg). Kolumna `stock` była konsumowana przez `sku`, więc pole `stock` zostawało w `missing_required`.
+
+**Fix algorytmu — `src/ingest/mapping.py`:**
+- Nowa metoda `_find_exact_match()` — szuka kolumny której znormalizowana nazwa równa się dokładnie aliasowi.
+- `auto_map()` rozbity na trzy kroki: history → exact-match pass przez wszystkie pola → partial-match pass dla nieprzypisanych. Exact match dla `stock` → `stock` ląduje przed partial matchem dla `sku`.
+- Usunięto alias `"stock_code"` z pola sku (defense in depth — pozostałe code-aliasy `item_code`, `product_code`, `part_code` pokrywają realne przypadki).
+
+**Rozszerzenie słowników PL/EN w `MASTERDATA_SCHEMA` i `ORDERS_SCHEMA`:**
+- **sku (masterdata + orders):** + `nazwa`, `nazwa_produktu`, `nazwa_towaru`, `indeks_handlowy`, `indeks_materialu`, `indeks_wewnetrzny`, `kod_wewnetrzny`, `kod_kreskowy`, `model`, `model_no`, `model_number`, `wariant`, `vendor_code`, `supplier_code`, `sap_code`, `iso_code`, `asin`, `manufacturer_code`, `materialnumber`, `articleno`, `artno`, `matnr`, `gtin`, `upc`, …
+- **length/width/height:** + literówki (`lenght`), warianty osi (`bok_a`/`bok_b`/`bok_c`, `wymiar_a`/`b`/`c`), prefiksy (`outer_`, `pack_`, `box_`, `carton_`, `case_`), `karton_dlugosc`, `karton_szerokosc`, `karton_wysokosc`, `dlugosc_opakowania`, jednostki imperial (`length_inch`, `width_in`), `thickness`, `grubosc`, …
+- **weight:** + `unit_weight_kg`, `unit_mass`, `wagajedn`, `waga_jedn`, `ciezar_jednostkowy`, `peso`, `pack_weight`, `box_weight`, `carton_weight`, `weight_lbs`, `weight_oz`, …
+- **stock:** + `stan_mag`, `stany`, `stany_magazynowe`, `stan_aktualny`, `dostepnosc`, `do_wydania`, `wolne`, `wolny_stan`, `liczba_szt`, `liczba_sztuk`, `ilosc_w_mag`, `ilosc_w_magazynie`, `qty_on_hand`, `oh_qty`, `quantity_on_hand`, `quantity_in_stock`, `in_stock`, `current_stock`, `actual_stock`, `wms_stock`, `warehouse_stock`, `free_stock`, …
+- **order_id:** + `numer_dokumentu`, `nr_dokumentu`, `dokumenty`, `pickorder`, `pick_id`, `wave`, `wave_id`, `wz`, `wz_nr`, `nr_wz`, `delivery`, `delivery_no`, `shipment`, `shipment_id`, `ship_no`, `release_id`, `zlecenie`, `nr_zlecenia`, `wydanie`, `wydanie_zewnetrzne`, `transakcja`, …
+- **quantity:** + `ilosc_zamowiona`, `ilosc_skompletowana`, `ilosc_wydana`, `ilosc_dostarczona`, `qty_ordered`, `qty_shipped`, `picked_qty`, `delivered_qty`, `liczba_sztuk`, `wydane`, `skompletowane`, `each`, …
+- **date:** + `data_utworzenia`, `data_zlozenia`, `data_zalozenia`, `data_dokumentu`, `data_kompletacji`, `data_wydania`, `data_transakcji`, `data_pickingu`, `data_zlecenia`, `dzien`, `creation_date`, `order_dt`, `dt`, `due_date`, `business_date`, …
+- **time:** + `czas_zamowienia`, `godzina_zamowienia`, `godz`, `czas_realizacji`, `pick_time`, `creation_time`, `transaction_time`, …
+
+**Testy regresyjne — `tests/test_ingest.py`:**
+- `test_stock_column_not_stolen_by_sku_alias` — column `stock` ze schematem bez exact sku alias musi trafić na pole stock.
+- `test_exact_match_wins_over_partial` — `stock`/`length`/`weight` zachowują dokładne dopasowanie nawet gdy sku nie ma exact matcha.
+- Wszystkie 58 testów `test_ingest.py` przechodzi. 4 pre-existing fails na main (`test_analytics.py`, `test_api.py`) nie są związane z mapowaniem.
+
+---
+
 ### [2026-05-19] - Feature (feature/dashboard-sidebar) — Sidebar przypięty do lewej krawędzi viewportu
 
 Iteracja na poprzednim commitie: Sidebar przeniesiony z pozycji `sticky` wewnątrz kontenera `max-w-[1400px]` na `position: fixed` przy lewej krawędzi okna. Pełna wysokość ekranu pod nawigacją (top: 48 px → bottom: 100vh).

@@ -612,38 +612,97 @@ function renderCharts(data: PerformanceResult) {
   }
   const ax = { gridcolor: gridColor, zerolinecolor: zeroColor }
 
+  const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const weekdayOf = (s: string) => {
+    const [y, m, d] = s.split('-').map(Number)
+    return WEEKDAY_NAMES[new Date(y, m - 1, d).getDay()]
+  }
+  const labelFont = { size: 10, color: fontColor }
+
   if (dailyChartEl.value && data.daily_metrics.length > 0) {
-    const dailyTraces = [{ x: data.daily_metrics.map(d => d.date), y: data.daily_metrics.map(d => d.lines), type: 'bar' as const, marker: { color: '#0071e3' }, name: 'Lines' }]
-    const dailyLayout = { ...base, margin: { t: 10, b: 40, l: 50, r: 10 }, xaxis: { ...ax, title: 'Date' }, yaxis: { ...ax, title: 'Lines' } }
+    const dailyTraces = [{
+      x: data.daily_metrics.map(d => d.date),
+      y: data.daily_metrics.map(d => d.lines),
+      customdata: data.daily_metrics.map(d => weekdayOf(d.date)),
+      hovertemplate: '<b>%{customdata}</b><br>Lines: %{y:,}<extra></extra>',
+      text: data.daily_metrics.map(d => d.lines.toLocaleString()),
+      textposition: 'outside' as const,
+      textfont: labelFont,
+      cliponaxis: false,
+      type: 'bar' as const,
+      marker: { color: '#0071e3' },
+      name: 'Lines',
+    }]
+    const dailyLayout = { ...base, margin: { t: 24, b: 40, l: 50, r: 10 }, xaxis: { ...ax, title: 'Date' }, yaxis: { ...ax, title: 'Lines' } }
     Plotly.newPlot(dailyChartEl.value, dailyTraces, dailyLayout, { responsive: true, displayModeBar: false })
     chartStore.daily = { traces: dailyTraces, layout: dailyLayout }
   }
 
   if (hourlyThroughputEl.value && data.has_hourly_data && data.hourly_metrics?.length > 0) {
     const sorted = [...data.hourly_metrics].sort((a, b) => a.hour - b.hour)
-    const hourlyTraces = [{ x: sorted.map(h => `${String(h.hour).padStart(2, '0')}:00`), y: sorted.map(h => h.lines), type: 'bar' as const, marker: { color: '#0071e3' }, name: 'Lines' }]
-    const hourlyLayout = { ...base, margin: { t: 10, b: 40, l: 50, r: 10 }, xaxis: { ...ax, title: 'Hour of Day' }, yaxis: { ...ax, title: 'Lines' } }
+    const hourlyTraces = [{
+      x: sorted.map(h => `${String(h.hour).padStart(2, '0')}:00`),
+      y: sorted.map(h => h.lines),
+      text: sorted.map(h => h.lines.toLocaleString()),
+      textposition: 'outside' as const,
+      textfont: labelFont,
+      cliponaxis: false,
+      type: 'bar' as const,
+      marker: { color: '#0071e3' },
+      name: 'Lines',
+    }]
+    const hourlyLayout = { ...base, margin: { t: 24, b: 40, l: 50, r: 10 }, xaxis: { ...ax, title: 'Hour of Day' }, yaxis: { ...ax, title: 'Lines' } }
     Plotly.newPlot(hourlyThroughputEl.value, hourlyTraces, hourlyLayout, { responsive: true, displayModeBar: false })
     chartStore.hourly = { traces: hourlyTraces, layout: hourlyLayout }
   }
 
   if (weeklyTrendEl.value && data.weekly_trends?.length > 1) {
-    const weeklyTraces = [{ x: data.weekly_trends.map(w => `W${String(w.week).padStart(2, '0')} ${w.year}`), y: data.weekly_trends.map(w => w.lines), type: 'bar' as const, marker: { color: '#0071e3' }, name: 'Lines' }]
-    const weeklyLayout = { ...base, margin: { t: 10, b: 60, l: 50, r: 10 }, xaxis: { ...ax, title: 'Week', tickangle: -45 }, yaxis: { ...ax, title: 'Lines' } }
+    const weeklyTraces = [{
+      x: data.weekly_trends.map(w => `W${String(w.week).padStart(2, '0')} ${w.year}`),
+      y: data.weekly_trends.map(w => w.lines),
+      text: data.weekly_trends.map(w => w.lines.toLocaleString()),
+      textposition: 'outside' as const,
+      textfont: labelFont,
+      cliponaxis: false,
+      type: 'bar' as const,
+      marker: { color: '#0071e3' },
+      name: 'Lines',
+    }]
+    const weeklyLayout = { ...base, margin: { t: 24, b: 60, l: 50, r: 10 }, xaxis: { ...ax, title: 'Week', tickangle: -45 }, yaxis: { ...ax, title: 'Lines' } }
     Plotly.newPlot(weeklyTrendEl.value, weeklyTraces, weeklyLayout, { responsive: true, displayModeBar: false })
     chartStore.weekly = { traces: weeklyTraces, layout: weeklyLayout }
   }
 
   if (dowProfileEl.value && data.weekday_profile?.length > 0) {
-    const dowTraces = [{ x: data.weekday_profile.map(d => d.day), y: data.weekday_profile.map(d => d.avg_lines), type: 'bar' as const, marker: { color: '#0071e3' }, name: 'Avg Lines' }]
-    const dowLayout = { ...base, margin: { t: 10, b: 40, l: 50, r: 10 }, xaxis: { ...ax, title: 'Day of Week' }, yaxis: { ...ax, title: 'Avg Lines/Day' } }
+    const dowTraces = [{
+      x: data.weekday_profile.map(d => d.day),
+      y: data.weekday_profile.map(d => d.avg_lines),
+      text: data.weekday_profile.map(d => d.avg_lines.toLocaleString(undefined, { maximumFractionDigits: 1 })),
+      textposition: 'outside' as const,
+      textfont: labelFont,
+      cliponaxis: false,
+      type: 'bar' as const,
+      marker: { color: '#0071e3' },
+      name: 'Avg Lines',
+    }]
+    const dowLayout = { ...base, margin: { t: 24, b: 40, l: 50, r: 10 }, xaxis: { ...ax, title: 'Day of Week' }, yaxis: { ...ax, title: 'Avg Lines/Day' } }
     Plotly.newPlot(dowProfileEl.value, dowTraces, dowLayout, { responsive: true, displayModeBar: false })
     chartStore.dow = { traces: dowTraces, layout: dowLayout }
   }
 
   if (linesPerOrderEl.value && data.lines_per_order_dist?.length > 0) {
-    const lpoTraces = [{ x: data.lines_per_order_dist.map(b => b.bin), y: data.lines_per_order_dist.map(b => b.count), type: 'bar' as const, marker: { color: '#0071e3' }, name: 'Orders' }]
-    const lpoLayout = { ...base, margin: { t: 10, b: 40, l: 50, r: 10 }, xaxis: { ...ax, title: 'Lines per Order' }, yaxis: { ...ax, title: 'Number of Orders' } }
+    const lpoTraces = [{
+      x: data.lines_per_order_dist.map(b => b.bin),
+      y: data.lines_per_order_dist.map(b => b.count),
+      text: data.lines_per_order_dist.map(b => b.count.toLocaleString()),
+      textposition: 'outside' as const,
+      textfont: labelFont,
+      cliponaxis: false,
+      type: 'bar' as const,
+      marker: { color: '#0071e3' },
+      name: 'Orders',
+    }]
+    const lpoLayout = { ...base, margin: { t: 24, b: 40, l: 50, r: 10 }, xaxis: { ...ax, title: 'Lines per Order' }, yaxis: { ...ax, title: 'Number of Orders' } }
     Plotly.newPlot(linesPerOrderEl.value, lpoTraces, lpoLayout, { responsive: true, displayModeBar: false })
     chartStore.linesPerOrder = { traces: lpoTraces, layout: lpoLayout }
   }
