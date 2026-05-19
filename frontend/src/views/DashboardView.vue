@@ -1,5 +1,17 @@
 ﻿<template>
-  <div>
+  <!-- Two-column layout: sidebar left, content right -->
+  <div style="display:flex;gap:24px;align-items:flex-start">
+
+    <DashboardSidebar
+      :selected-id="selectedId"
+      @select="onSelect"
+      @created="onCreated"
+      @open="onOpen"
+    />
+
+    <!-- Main content -->
+    <div style="flex:1;min-width:0">
+
     <div class="mb-6">
       <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:var(--app-text);line-height:1.14;letter-spacing:-0.28px">
         Welcome, {{ auth.user?.name }}
@@ -9,39 +21,6 @@
       </p>
     </div>
 
-    <!-- Quick actions -->
-    <div class="grid grid-cols-1 sm:grid-cols-3" style="gap:20px;margin-bottom:40px">
-      <button
-        @click="newAnalysis"
-        class="btn-apple-primary text-left"
-        style="border-radius:8px;height:auto;flex-direction:column;align-items:flex-start;gap:4px;padding:20px;width:100%"
-      >
-        <div style="font-size:14px;font-weight:600">New Analysis</div>
-        <div style="font-size:12px;opacity:0.8">Start capacity / quality run</div>
-      </button>
-      <RouterLink
-        to="/runs"
-        class="card-apple block"
-        style="text-decoration:none"
-      >
-        <div style="font-size:14px;font-weight:600;color:var(--app-text)">History</div>
-        <div class="mt-1" style="font-size:12px;color:var(--app-text-sec)">Browse past analyses</div>
-      </RouterLink>
-      <RouterLink
-        to="/carriers"
-        class="card-apple block"
-        style="text-decoration:none"
-      >
-        <div style="font-size:14px;font-weight:600;color:var(--app-text)">Carriers</div>
-        <div class="mt-1" style="font-size:12px;color:var(--app-text-sec)">Manage carrier configs</div>
-      </RouterLink>
-    </div>
-
-    <!-- Two-column layout: KPIs left, list right -->
-    <div style="display:flex;gap:28px;align-items:flex-start">
-
-    <!-- Left: selected analysis details -->
-    <div style="flex:1;min-width:0">
     <div v-if="latestRun">
       <div class="flex items-center gap-3 mb-3">
         <RouterLink :to="openLink" class="btn-apple-primary" style="font-size:13px;padding:5px 14px;line-height:1">
@@ -96,7 +75,7 @@
         <!-- Capacity -->
         <div>
           <p style="font-size:11px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">Capacity</p>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <div class="card-apple">
               <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Fit %</p>
               <p v-if="capacity" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ capacity.fit_percentage?.toFixed(1) ?? '—' }}%</p>
@@ -196,7 +175,7 @@
         <!-- Orders -->
         <div>
           <p style="font-size:11px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">Orders</p>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             <div class="card-apple">
               <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total rows</p>
               <p v-if="ovr" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ ovr.total_rows?.toLocaleString() ?? '—' }}</p>
@@ -258,69 +237,20 @@
       </div>
     </div>
     <div v-else style="font-size:14px;color:var(--app-text-sec);padding-top:8px">
-      Select an analysis from the list.
+      Select an analysis from the sidebar.
     </div>
-    </div><!-- /left col -->
 
-    <!-- Right: Recent analyses list -->
-    <div style="width:310px;flex-shrink:0;position:sticky;top:20px">
-      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Recent analyses</h3>
-      <div v-if="runStore.loading" style="font-size:14px;color:var(--app-text-sec)">Loading…</div>
-      <div v-else-if="runStore.runs.length === 0" style="font-size:14px;color:var(--app-text-sec)">
-        No analyses yet. Create one above.
-      </div>
-      <div v-else class="card-apple-list" style="max-height:calc(100vh - 180px);overflow-y:auto">
-        <div v-for="run in runStore.runs.slice(0, 20)" :key="run.id">
-          <div
-            :class="['flex items-center justify-between px-4 py-3 transition-colors cursor-pointer', selectedRunId === run.id ? 'bg-[rgba(0,113,227,0.06)]' : 'hover:bg-black/[.02]']"
-            @click="selectRun(run.id)"
-            @dblclick="router.push({ path: `/runs/${run.id}`, query: { tab: tabFromStatus(run.status) } })"
-          >
-            <div class="flex-1 min-w-0 text-left">
-              <div style="font-size:14px;color:var(--app-text);letter-spacing:-0.224px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ run.client_name }}</div>
-              <div class="flex items-center gap-2 mt-0.5">
-                <StatusBadge :status="run.status" />
-                <span style="font-size:11px;color:var(--app-text-sec)">{{ formatDate(run.created_at) }}</span>
-              </div>
-            </div>
-            <button
-              @click.stop="toggleNotes(run.id)"
-              :class="['p-1.5 rounded transition-colors ml-2 flex-shrink-0']"
-              :style="openNotesId === run.id || run.notes ? 'color:#0071e3' : 'color:var(--app-placeholder)'"
-              title="Notes"
-            >
-              <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
-              </svg>
-            </button>
-          </div>
-          <div v-if="openNotesId === run.id" class="px-4 pb-3">
-            <textarea
-              :value="run.notes ?? ''"
-              @input="onDashboardNotesInput(run.id, ($event.target as HTMLTextAreaElement).value)"
-              placeholder="Add notes about this analysis…"
-              rows="2"
-              class="input-apple-sm resize-none"
-              style="font-size:14px"
-            />
-          </div>
-        </div>
-      </div>
-    </div><!-- /right col -->
-
-    </div><!-- /two-column layout -->
-
-    <!-- New run modal -->
-    <NewRunModal v-if="showModal" @close="showModal = false" @created="onCreated" />
-  </div>
+    </div><!-- /main content -->
+  </div><!-- /two-column layout -->
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRunStore } from '@/stores/run'
 import type { RunDetail } from '@/api/runs'
+import DashboardSidebar from '@/components/layout/DashboardSidebar.vue'
 
 function tabFromDetail(run: RunDetail): string {
   if (run.performance_result) return 'performance'
@@ -329,54 +259,34 @@ function tabFromDetail(run: RunDetail): string {
   return 'import'
 }
 
-function tabFromStatus(status: string): string {
-  if (status === 'performance_done' || status === 'orders_ingested') return 'performance'
-  if (status === 'capacity_done') return 'capacity'
-  if (status === 'quality_done') return 'quality'
-  return 'import'
-}
-import StatusBadge from '@/components/shared/StatusBadge.vue'
-import NewRunModal from '@/components/analysis/NewRunModal.vue'
-
 const auth = useAuthStore()
 const runStore = useRunStore()
 const router = useRouter()
-const showModal = ref(false)
-const latestRun = ref<RunDetail | null>(null)
-const selectedRunId = ref<string | null>(null)
-const openNotesId = ref<string | null>(null)
-let dashboardNotesTimer: ReturnType<typeof setTimeout> | null = null
+
+const latestRun = computed<RunDetail | null>(() => runStore.currentRun)
+const selectedId = computed<string | null>(() => runStore.currentRun?.id ?? null)
 
 const openLink = computed(() => {
   if (!latestRun.value) return '/'
   return { path: `/runs/${latestRun.value.id}`, query: { tab: tabFromDetail(latestRun.value) } }
 })
 
-function toggleNotes(id: string) {
-  openNotesId.value = openNotesId.value === id ? null : id
+async function onSelect(id: string) {
+  try { await runStore.fetchRun(id) } catch { /* ignore */ }
 }
 
-function onDashboardNotesInput(id: string, value: string) {
-  if (dashboardNotesTimer) clearTimeout(dashboardNotesTimer)
-  dashboardNotesTimer = setTimeout(async () => {
-    await runStore.patchRun(id, { notes: value })
-  }, 500)
+function onCreated(id: string) {
+  router.push(`/runs/${id}`)
 }
 
-async function selectRun(id: string) {
-  selectedRunId.value = id
-  try {
-    await runStore.fetchRun(id)
-    latestRun.value = runStore.currentRun
-  } catch {
-    // ignore
-  }
+function onOpen(id: string, tab: string) {
+  router.push({ path: `/runs/${id}`, query: { tab } })
 }
 
 onMounted(async () => {
   await runStore.fetchRuns()
   if (runStore.runs.length > 0) {
-    await selectRun(runStore.runs[0]!.id)
+    await onSelect(runStore.runs[0]!.id)
   }
 })
 
@@ -434,16 +344,4 @@ const pipelineSteps = computed(() => {
   ]
 })
 
-function newAnalysis() {
-  showModal.value = true
-}
-
-function onCreated(id: string) {
-  showModal.value = false
-  router.push(`/runs/${id}`)
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 </script>

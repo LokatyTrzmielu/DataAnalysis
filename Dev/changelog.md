@@ -11,6 +11,44 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-19] - Feature (feature/dashboard-sidebar) — Dashboard: zwijany Sidebar z listą analiz
+
+Reorganizacja głównego ekranu Dashboard tak, by wybór analizy i przycisk „New Analysis" znalazły się w jednym, stałym miejscu po lewej stronie, a kolumna KPI odzyskała szerokość.
+
+**Nowy plik `frontend/src/components/layout/DashboardSidebar.vue`:**
+- Sticky, samodzielny aside; szerokość 264 px (rozwinięty) / 56 px (zwinięty), `transition: width 0.25s ease`.
+- Header: pełnoszerokościowy przycisk „+ New Analysis" (rozwinięty) / okrągły niebieski guzik z ikoną „+" (zwinięty), pod nim chevron collapse/expand.
+- Lista rozwinięta: identyczne wiersze jak dawna prawa kolumna (`client_name`, `StatusBadge`, data, ikonka Notes z rozwijanym `<textarea>` + debounced `runStore.patchRun`). Klik → emit `select`. Double‑click → emit `open(id, tab)`.
+- Lista zwinięta: kolorowe awatary 32 px (1. litera client_name, kolor z hashu nazwy → paleta Apple), zaznaczenie przez 2 px ring `#0071e3`, tooltip `client_name · data`. Notes ukryte.
+- Persistencja stanu collapsed w `localStorage['dashboard.sidebar.collapsed']`.
+
+**`frontend/src/views/DashboardView.vue`:**
+- **Usunięto** 3 kafle Quick actions u góry (New Analysis / History / Carriers) — Historia i Carriers są w `AppTopNav`, „New Analysis" przeniesione do sidebaru.
+- **Usunięto** prawą kolumnę „Recent analyses" (310 px) wraz z lokalną obsługą `showModal`, `openNotesId`, `dashboardNotesTimer`, `toggleNotes`, `onDashboardNotesInput`, `selectRun`, `formatDate`, `tabFromStatus` — wszystko przeniesione do sidebaru.
+- Layout: nadrzędny `display:flex; gap:24px; align-items:flex-start`; sidebar po lewej, główna kolumna `flex:1; min-width:0`.
+- `latestRun` z lokalnego `ref` → `computed(() => runStore.currentRun)` (single source of truth). `selectedId` to `runStore.currentRun?.id`.
+- Selekcja w sidebarze → emit `select` → `runStore.fetchRun(id)` → KPI grids reagują automatycznie.
+- Modal „New Analysis" otwiera się z sidebaru; emit `created(id)` → `router.push('/runs/' + id)`.
+
+**Poszerzone siatki KPI** (odzyskana szerokość po usunięciu prawej kolumny):
+- Capacity: `grid-cols-2 sm:grid-cols-3` → `grid-cols-2 sm:grid-cols-3 lg:grid-cols-6` (6 kafli w 1 wierszu przy `lg`+).
+- Orders: `grid-cols-2 sm:grid-cols-4` → `grid-cols-2 sm:grid-cols-4 lg:grid-cols-6`.
+- Masterdata (2 kafle) i SKU Cross‑validation — bez zmian.
+
+**Decyzje projektowe** (potwierdzone z użytkownikiem przed wdrożeniem):
+- Zakres: tylko Dashboard (sidebar nie wchodzi do `App.vue` / globalnej nawigacji).
+- Tryb zwinięty: wąski pasek ikon (~56 px), nie pełne ukrycie.
+- Szerokość strony: globalny `max-w-[1400px]` w `App.vue` zostaje bez zmian.
+
+**Weryfikacja:**
+- `npx vue-tsc --noEmit` → exit 0.
+- `npm run build` → ✓ built in 22.7 s, brak nowych ostrzeżeń (pre-existujące chunk-size dla `RunView` / `ContainerOrderView` bez zmian).
+
+**Out of scope:**
+- Globalny sidebar na wszystkich widokach, mobile drawer, drag-to-resize, pinowanie/reordering analiz.
+
+---
+
 ### [2026-05-19] - Fix (main) — Container Order: 6-orientation SKU fit check (matches Capacity)
 
 User asked whether the planner tests all 6 SKU orientations. It didn't — `_sku_fits_variant` only checked 2 (horizontal rotation, height pinned to vertical). Long-and-thin SKUs (cables, profiles, sheets) that would fit when laid flat were silently orphaned.
