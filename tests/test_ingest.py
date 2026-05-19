@@ -198,6 +198,32 @@ class TestMappingWizard:
         assert suggestions[0][0] == "length"  # Najlepsza sugestia
         assert suggestions[0][1] == 1.0  # Pewnosc 100%
 
+    def test_stock_column_not_stolen_by_sku_alias(self):
+        """Regresja: kolumna 'stock' musi trafiac do pola stock, nie do sku.
+
+        Wczesniej alias 'stock_code' w polu sku przejmowal czesciowym
+        dopasowaniem kolumne 'stock'. Po fixie (exact-match pass przed
+        partial-match pass) kolumna z dokladna nazwa pola jest chroniona.
+        """
+        wizard = create_masterdata_wizard()
+        # SKU bez exact alias matchu wymusza partial-match w pass 2.
+        columns = ["my_sku_number", "length", "width", "height", "weight", "stock"]
+        result = wizard.auto_map(columns)
+
+        assert result.get_source_column("stock") == "stock"
+        assert "stock" not in result.missing_required
+
+    def test_exact_match_wins_over_partial(self):
+        """Exact match dla jednego pola nie moze byc skradziony przez partial
+        match innego pola, niezaleznie od kolejnosci w schemie."""
+        wizard = create_masterdata_wizard()
+        columns = ["product_xyz", "length", "width", "height", "weight", "stock"]
+        result = wizard.auto_map(columns)
+
+        assert result.get_source_column("stock") == "stock"
+        assert result.get_source_column("length") == "length"
+        assert result.get_source_column("weight") == "weight"
+
     def test_apply_mapping(self):
         """Test aplikowania mapowania do DataFrame."""
         wizard = create_masterdata_wizard()

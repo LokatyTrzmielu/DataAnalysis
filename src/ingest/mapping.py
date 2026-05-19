@@ -19,15 +19,30 @@ MASTERDATA_SCHEMA = {
     "sku": {
         "aliases": [
             # English
-            "sku", "item", "article", "product_id", "item_id", "code", "item_code",
-            "product_code", "material", "material_id", "part", "part_number",
-            "part_no", "pn", "upc", "ean", "barcode", "gtin", "catalog_number",
-            "item_number", "item_no", "reference", "ref", "stock_code",
+            "sku", "item", "article", "product", "product_id", "product_no",
+            "product_number", "prod_id", "prodno", "prod_no", "item_id",
+            "item_code", "item_number", "item_no", "itemno", "itemnr",
+            "article_id", "article_code", "article_no", "article_number",
+            "articleno", "artno", "code", "product_code", "material",
+            "material_id", "material_no", "material_number", "materialno",
+            "materialnumber", "matnr", "mat_no", "part", "part_number",
+            "part_no", "partno", "pn", "upc", "ean", "ean13", "ean_code",
+            "barcode", "barcode_ean", "gtin", "catalog_number", "catalog_no",
+            "catalogue_number", "reference", "ref", "ref_no", "model",
+            "model_no", "model_number", "variant", "variant_id", "vendor_code",
+            "supplier_code", "supplier_id", "sap_code", "iso_code", "asin",
+            "manufacturer_code", "manufacturer_id",
             # Polish
-            "artykul", "indeks", "kod", "nr", "numer", "numer_artykulu",
-            "kod_produktu", "kod_towaru", "indeks_materialowy", "indeks_towarowy",
-            "nazwa_indeksu", "numer_indeksu", "indeks_towaru", "nazwa_artykulu",
-            "symbol", "symbol_towaru", "towar", "produkt", "id_produktu", "id_towaru",
+            "artykul", "art", "art_nr", "nr_artykulu", "numer_artykulu",
+            "nazwa_artykulu", "indeks", "indeks_handlowy", "indeks_materialowy",
+            "indeks_materialu", "indeks_towarowy", "indeks_towaru",
+            "indeks_wewnetrzny", "nazwa_indeks", "nazwa_indeksu",
+            "numer_indeksu", "id_indeksu", "kod", "kod_produktu",
+            "kod_towaru", "kod_wewnetrzny", "kod_kreskowy", "nr", "nr_kat",
+            "numer", "numer_katalogowy", "symbol", "symbol_towaru",
+            "symbol_produktu", "towar", "produkt", "id_produktu",
+            "id_towaru", "nazwa", "nazwa_produktu", "nazwa_towaru",
+            "model_produktu", "wariant", "asortyment", "asortyment_id",
         ],
         "required": True,
         "description": "Unique SKU identifier",
@@ -35,10 +50,17 @@ MASTERDATA_SCHEMA = {
     "length": {
         "aliases": [
             # English
-            "length", "l", "len", "dim_l", "length_mm", "length_cm", "length_m",
-            "dimension_l", "lng", "long", "depth", "d", "dim_d",
+            "length", "l", "len", "lenght", "lng", "long", "depth", "d",
+            "dim_l", "dim_d", "dimension_l", "dimension_d",
+            "length_mm", "length_cm", "length_m", "length_inch", "length_in",
+            "outer_length", "pack_length", "box_length", "carton_length",
+            "case_length", "unit_length",
             # Polish
-            "dlugosc", "dl", "dlug", "wymiar_l", "wymiar_dlugosc", "glebokosc",
+            "dlugosc", "dl", "dlug", "dlugosc_mm", "dlugosc_cm",
+            "dl_mm", "dl_cm", "wymiar_l", "wymiar_d", "wymiar_dlugosc",
+            "glebokosc", "gleb", "karton_dlugosc", "karton_dl",
+            "dlugosc_opakowania", "dlugosc_kartonu",
+            "bok_a", "wymiar_a",
         ],
         "required": True,
         "description": "Length (mm or cm - will be converted)",
@@ -46,10 +68,16 @@ MASTERDATA_SCHEMA = {
     "width": {
         "aliases": [
             # English
-            "width", "w", "wid", "dim_w", "width_mm", "width_cm", "width_m",
-            "dimension_w", "breadth", "broad", "wdt",
+            "width", "w", "wid", "wdt", "breadth", "broad",
+            "dim_w", "dimension_w",
+            "width_mm", "width_cm", "width_m", "width_inch", "width_in",
+            "outer_width", "pack_width", "box_width", "carton_width",
+            "case_width", "unit_width",
             # Polish
-            "szerokosc", "szer", "szerok", "wymiar_w", "wymiar_szerokosc",
+            "szerokosc", "szer", "szerok", "szerokosc_mm", "szerokosc_cm",
+            "szer_mm", "szer_cm", "wymiar_w", "wymiar_s", "wymiar_szerokosc",
+            "karton_szerokosc", "karton_szer", "szerokosc_opakowania",
+            "szerokosc_kartonu", "bok_b", "wymiar_b",
         ],
         "required": True,
         "description": "Width (mm or cm)",
@@ -57,10 +85,16 @@ MASTERDATA_SCHEMA = {
     "height": {
         "aliases": [
             # English
-            "height", "h", "hgt", "dim_h", "height_mm", "height_cm", "height_m",
-            "dimension_h", "ht", "tall", "z", "dim_z",
+            "height", "h", "hgt", "ht", "tall", "z",
+            "dim_h", "dim_z", "dimension_h", "dimension_z",
+            "height_mm", "height_cm", "height_m", "height_inch", "height_in",
+            "outer_height", "pack_height", "box_height", "carton_height",
+            "case_height", "unit_height", "thickness",
             # Polish
-            "wysokosc", "wys", "wysok", "wymiar_h", "wymiar_wysokosc",
+            "wysokosc", "wys", "wysok", "wysokosc_mm", "wysokosc_cm",
+            "wys_mm", "wys_cm", "wymiar_h", "wymiar_z", "wymiar_wysokosc",
+            "karton_wysokosc", "karton_wys", "wysokosc_opakowania",
+            "wysokosc_kartonu", "bok_c", "wymiar_c", "grubosc",
         ],
         "required": True,
         "description": "Height (mm or cm)",
@@ -68,12 +102,17 @@ MASTERDATA_SCHEMA = {
     "weight": {
         "aliases": [
             # English
-            "weight", "wgt", "mass", "kg", "weight_kg", "weight_g", "grams", "gram",
-            "g", "weight_grams", "net_weight", "gross_weight", "unit_weight",
-            "item_weight", "product_weight", "wt",
+            "weight", "wgt", "wt", "mass", "kg", "g", "grams", "gram",
+            "weight_kg", "weight_g", "weight_grams", "weight_lbs", "weight_oz",
+            "net_weight", "gross_weight", "unit_weight", "unit_weight_kg",
+            "unit_mass", "item_weight", "product_weight", "pack_weight",
+            "box_weight", "carton_weight", "case_weight",
+            "peso",
             # Polish
-            "waga", "masa", "ciezar", "waga_kg", "waga_g", "waga_jednostkowa",
-            "masa_netto", "masa_brutto",
+            "waga", "wagajedn", "waga_jednostkowa", "waga_jedn",
+            "waga_kg", "waga_g", "waga_netto", "waga_brutto",
+            "masa", "masa_kg", "masa_g", "masa_netto", "masa_brutto",
+            "ciezar", "ciezar_jednostkowy", "ciezar_kg",
         ],
         "required": True,
         "description": "Weight (g or kg - will be auto-detected)",
@@ -81,12 +120,22 @@ MASTERDATA_SCHEMA = {
     "stock": {
         "aliases": [
             # English
-            "stock", "qty", "quantity", "stock_qty", "on_hand", "inventory",
-            "available", "available_qty", "balance", "units", "pieces", "pcs",
-            "count", "stock_level", "stock_quantity", "inventory_qty",
+            "stock", "qty", "quantity", "stock_qty", "stock_quantity",
+            "stock_level", "stock_on_hand", "stock_count", "current_stock",
+            "actual_stock", "wms_stock", "warehouse_stock",
+            "on_hand", "on_hand_qty", "oh_qty", "qty_on_hand",
+            "quantity_on_hand", "quantity_in_stock", "in_stock",
+            "inventory", "inventory_qty", "inventory_count", "inventory_level",
+            "available", "available_qty", "available_quantity",
+            "balance", "units", "pieces", "pcs", "count", "free_stock",
             # Polish
-            "ilosc", "zapas", "stan", "szt", "sztuk", "stan_magazynowy",
-            "dostepne", "ilosc_dostepna", "magazyn",
+            "ilosc", "ilosc_w_mag", "ilosc_dostepna", "ilosc_w_magazynie",
+            "liczba", "liczba_szt", "liczba_sztuk",
+            "zapas", "zapasy", "stan", "stany", "stan_mag",
+            "stany_magazynowe", "stan_magazynowy", "stan_magazynu",
+            "stan_aktualny", "magazyn", "mag",
+            "dostepne", "dostepnosc", "do_wydania", "wolne", "wolny_stan",
+            "szt", "sztuk", "sztuki",
         ],
         "required": True,
         "description": "Stock quantity (EA)",
@@ -97,12 +146,26 @@ ORDERS_SCHEMA = {
     "order_id": {
         "aliases": [
             # English
-            "order_id", "order", "order_no", "order_number", "ordernr", "order_ref",
-            "order_reference", "sales_order", "so", "so_number", "document_id",
-            "doc_id", "transaction_id", "invoice", "invoice_no",
+            "order_id", "order", "orderid", "orderno", "ordernr",
+            "order_no", "order_number", "order_nr", "order_ref",
+            "order_reference", "sales_order", "sales_order_no",
+            "sales_order_number", "so", "so_no", "so_number",
+            "document_id", "document_no", "document_number", "doc_id",
+            "doc_no", "doc_number", "transaction_id", "transaction_no",
+            "invoice", "invoice_id", "invoice_no", "invoice_number",
+            "pick_id", "pickorder", "pick_order", "pick_no", "pick_number",
+            "wave", "wave_id", "wave_no", "wz", "wz_id", "wz_no", "nr_wz",
+            "wz_nr", "delivery", "delivery_id", "delivery_no",
+            "delivery_number", "shipment", "shipment_id", "shipment_no",
+            "ship_no", "ship_id", "release", "release_id",
             # Polish
-            "zamowienie", "nr_zamowienia", "numer_zamowienia", "id_zamowienia",
-            "faktura", "nr_faktury", "dokument",
+            "zamowienie", "zamowienia", "nr_zamowienia", "numer_zamowienia",
+            "id_zamowienia", "zam", "zam_nr", "nr_zam",
+            "faktura", "fv", "nr_faktury", "numer_faktury",
+            "dokument", "dokumenty", "nr_dokumentu", "numer_dokumentu",
+            "id_dokumentu", "wydanie", "wydanie_zewnetrzne",
+            "zlecenie", "zlecenia", "nr_zlecenia", "numer_zlecenia",
+            "id_zlecenia", "wysylka", "nr_wysylki", "transakcja",
         ],
         "required": True,
         "description": "Order identifier",
@@ -110,11 +173,23 @@ ORDERS_SCHEMA = {
     "sku": {
         "aliases": [
             # English
-            "sku", "item", "article", "product_id", "item_id", "code", "item_code",
-            "product_code", "material", "part", "part_number",
+            "sku", "item", "item_id", "item_code", "item_no", "item_number",
+            "itemno", "article", "article_id", "article_code", "article_no",
+            "article_number", "product", "product_id", "product_code",
+            "product_no", "product_number", "code", "material",
+            "material_id", "material_no", "material_number", "matnr",
+            "part", "part_no", "part_number", "partno", "pn",
+            "model", "model_no", "model_number", "barcode", "ean",
+            "ean13", "gtin", "upc", "reference", "ref", "ref_no",
+            "asin", "vendor_code", "supplier_code", "sap_code",
             # Polish
-            "artykul", "indeks", "kod", "kod_produktu", "kod_towaru",
-            "symbol", "towar", "produkt",
+            "artykul", "art", "art_nr", "nr_artykulu", "indeks",
+            "indeks_handlowy", "indeks_towaru", "indeks_materialu",
+            "kod", "kod_produktu", "kod_towaru", "kod_kreskowy",
+            "kod_wewnetrzny", "symbol", "symbol_towaru", "symbol_produktu",
+            "towar", "produkt", "id_produktu", "id_towaru", "nazwa",
+            "nazwa_produktu", "nazwa_towaru", "numer_indeksu",
+            "id_indeksu", "model_produktu", "wariant",
         ],
         "required": True,
         "description": "Product SKU",
@@ -123,9 +198,17 @@ ORDERS_SCHEMA = {
         "aliases": [
             # English
             "quantity", "qty", "amount", "units", "pieces", "pcs", "count",
-            "ordered_qty", "shipped_qty", "line_qty", "unit_count", "ea",
+            "ea", "each", "unit_count", "line_qty", "line_quantity",
+            "ordered_qty", "ordered_quantity", "order_qty", "order_quantity",
+            "qty_ordered", "quantity_ordered", "shipped_qty",
+            "shipped_quantity", "qty_shipped", "picked", "picked_qty",
+            "picked_quantity", "qty_picked", "delivered_qty",
+            "delivered_quantity", "requested_qty",
             # Polish
-            "ilosc", "szt", "sztuk", "zamowiona_ilosc", "liczba",
+            "ilosc", "ilosc_zamowiona", "zamowiona_ilosc",
+            "ilosc_skompletowana", "ilosc_wydana", "ilosc_dostarczona",
+            "szt", "sztuk", "sztuki", "liczba", "liczba_sztuk",
+            "liczba_szt", "zamowiona", "wydane", "skompletowane",
         ],
         "required": True,
         "description": "Line quantity (EA)",
@@ -133,12 +216,20 @@ ORDERS_SCHEMA = {
     "date": {
         "aliases": [
             # English
-            "datetime", "timestamp", "date", "created", "shipped",
-            "order_date", "ship_date", "delivery_date", "fulfillment_date",
-            "transaction_date", "created_at", "updated_at", "processed_date",
+            "datetime", "timestamp", "time_stamp", "date", "dt",
+            "created", "created_at", "creation_date", "create_date",
+            "shipped", "shipped_at", "ship_date", "shipment_date",
+            "order_date", "order_dt", "orderdate", "order_created",
+            "delivery_date", "deliverydate", "fulfillment_date",
+            "transaction_date", "updated_at", "processed_date",
+            "process_date", "pick_date", "release_date", "request_date",
+            "due_date", "day", "business_date",
             # Polish
-            "data", "data_zamowienia", "data_wysylki", "data_dostawy",
-            "data_realizacji",
+            "data", "data_zamowienia", "data_zam", "data_zlozenia",
+            "data_utworzenia", "data_zalozenia", "data_dokumentu",
+            "data_wysylki", "data_dostawy", "data_realizacji",
+            "data_kompletacji", "data_wydania", "dzien",
+            "data_transakcji", "data_pickingu", "data_zlecenia",
         ],
         "required": True,
         "description": "Date or datetime column",
@@ -147,8 +238,12 @@ ORDERS_SCHEMA = {
         "aliases": [
             # English
             "time", "hour", "time_of_day", "order_time", "ship_time",
+            "pick_time", "creation_time", "create_time", "transaction_time",
+            "process_time",
             # Polish
-            "czas", "godzina",
+            "czas", "czas_zamowienia", "godzina", "godzina_zamowienia",
+            "godz", "godz_zamowienia", "czas_realizacji",
+            "czas_utworzenia", "czas_wydania",
         ],
         "required": False,
         "description": "Time column (when date and time are separate)",
@@ -268,7 +363,26 @@ class MappingWizard:
                         used_columns.add(column)
                         break
 
-        # Step 2: Fall back to alias matching for unmapped fields
+        # Step 2: Exact-alias pass across all fields BEFORE any partial matching.
+        # Prevents a partial alias of one field (e.g. "stock_code" in sku) from
+        # stealing a column that exactly matches another field (e.g. "stock" → stock).
+        for field_name, field_config in self.schema.items():
+            if field_name in result.mappings:
+                continue
+
+            exact = self._find_exact_match(
+                columns, field_config["aliases"], used_columns
+            )
+            if exact:
+                result.mappings[field_name] = ColumnMapping(
+                    target_field=field_name,
+                    source_column=exact,
+                    confidence=1.0,
+                    is_auto=True,
+                )
+                used_columns.add(exact)
+
+        # Step 3: Partial-match pass for fields still unmapped.
         for field_name, field_config in self.schema.items():
             if field_name in result.mappings:
                 continue
@@ -293,6 +407,21 @@ class MappingWizard:
         result.unmapped_columns = [c for c in columns if c not in used_columns]
 
         return result
+
+    def _find_exact_match(
+        self,
+        columns: list[str],
+        aliases: list[str],
+        used: set[str],
+    ) -> Optional[str]:
+        """Find first column whose normalized name equals any alias exactly."""
+        alias_set = {a.lower() for a in aliases}
+        for column in columns:
+            if column in used:
+                continue
+            if self._normalize_column_name(column) in alias_set:
+                return column
+        return None
 
     def _find_best_match(
         self,
