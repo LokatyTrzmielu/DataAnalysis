@@ -11,6 +11,39 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-19] - Feature (feature/dashboard-sidebar) — Sidebar przypięty do lewej krawędzi viewportu
+
+Iteracja na poprzednim commitie: Sidebar przeniesiony z pozycji `sticky` wewnątrz kontenera `max-w-[1400px]` na `position: fixed` przy lewej krawędzi okna. Pełna wysokość ekranu pod nawigacją (top: 48 px → bottom: 100vh).
+
+**`frontend/src/components/layout/DashboardSidebar.vue`:**
+- `position: sticky; top: 12px` → `position: fixed; left: 0; top: 48px; height: calc(100vh - 48px); z-index: 50`.
+- Usunięte: `border-radius: 12px`, `box-shadow` (sidebar dotyka krawędzi viewportu). Dodane: `border-right: 1px solid var(--app-border)` jako delikatny separator + subtelny cień 1 px po prawej (`box-shadow: rgba(0,0,0,0.04) 1px 0 3px`).
+- Sidebar eksponuje swoją bieżącą szerokość przez CSS variable `--app-sidebar-w` na `document.documentElement` (264 px / 56 px). Wartość aktualizuje się przy zmianie `collapsed`, zapisuje przy `onMounted` i czyści w `onBeforeUnmount` (gdy użytkownik nawiguje poza Dashboard).
+- Lista (`.sidebar-list`) bez zmian — flex `flex:1; overflow-y:auto; min-height:0` naturalnie wypełnia pełną wysokość.
+
+**`frontend/src/router/index.ts`:**
+- Dashboard route (`/`) dostaje `meta: { hasSidebar: true }`, dzięki czemu App.vue wie, kiedy zarezerwować lewy padding na sidebar.
+
+**`frontend/src/App.vue`:**
+- `<main>` używa `computed` `mainClass` / `mainStyle` zamiast inline class.
+- Dla `route.meta.hasSidebar`: klasa `pr-6 py-8` (bez `mx-auto max-w-[1400px]`), inline style `padding-left: calc(var(--app-sidebar-w, 264px) + 24px)` z `transition: padding-left 0.25s ease`. Padding podąża za szerokością sidebaru w czasie animacji collapse/expand.
+- Dla pozostałych route'ów: zachowane stare zachowanie (`mx-auto max-w-[1400px] px-6 py-8`).
+
+**`frontend/src/views/DashboardView.vue`:**
+- Usunięty zewnętrzny wrapper `display:flex; gap:24px` (sidebar jest teraz poza document flow). DashboardView renderuje tylko `<DashboardSidebar>` + zawartość bez dodatkowej kolumny.
+
+**Skutek wizualny:**
+- Sidebar pełnej wysokości (od dolnej krawędzi `AppTopNav` do dołu viewportu).
+- Dashboard zyskuje przestrzeń: brak ograniczenia `max-w-[1400px]` — siatki KPI rozciągają się na pełną dostępną szerokość (minus sidebar i prawy margines).
+- Z‑index: AppTopNav (100) > Sidebar (50), brak nakładania (sidebar startuje pod nawigacją).
+- Smooth transition `padding-left` w głównej kolumnie + `width` w sidebarze, oba 0.25s.
+
+**Weryfikacja:**
+- `npx vue-tsc --noEmit` → exit 0.
+- `npm run build` → ✓ built in 21 s, bez nowych ostrzeżeń.
+
+---
+
 ### [2026-05-19] - Feature (feature/dashboard-sidebar) — Dashboard: zwijany Sidebar z listą analiz
 
 Reorganizacja głównego ekranu Dashboard tak, by wybór analizy i przycisk „New Analysis" znalazły się w jednym, stałym miejscu po lewej stronie, a kolumna KPI odzyskała szerokość.

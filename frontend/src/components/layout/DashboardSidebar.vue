@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRunStore } from '@/stores/run'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import NewRunModal from '@/components/analysis/NewRunModal.vue'
@@ -134,8 +134,27 @@ const emit = defineEmits<{
 
 const runStore = useRunStore()
 const STORAGE_KEY = 'dashboard.sidebar.collapsed'
+const SIDEBAR_W_EXPANDED = '264px'
+const SIDEBAR_W_COLLAPSED = '56px'
 const collapsed = ref<boolean>(typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY) === 'true')
-watch(collapsed, v => { try { localStorage.setItem(STORAGE_KEY, String(v)) } catch { /* ignore */ } })
+
+function syncWidthVar() {
+  if (typeof document === 'undefined') return
+  document.documentElement.style.setProperty(
+    '--app-sidebar-w',
+    collapsed.value ? SIDEBAR_W_COLLAPSED : SIDEBAR_W_EXPANDED,
+  )
+}
+watch(collapsed, v => {
+  try { localStorage.setItem(STORAGE_KEY, String(v)) } catch { /* ignore */ }
+  syncWidthVar()
+})
+onMounted(syncWidthVar)
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.style.removeProperty('--app-sidebar-w')
+  }
+})
 
 const showModal = ref(false)
 const openNotesId = ref<string | null>(null)
@@ -187,17 +206,18 @@ function hashColor(name: string): string {
 
 <style scoped>
 .dashboard-sidebar {
-  position: sticky;
-  top: 12px;
-  flex-shrink: 0;
+  position: fixed;
+  left: 0;
+  top: 48px;
+  height: calc(100vh - 48px);
+  z-index: 50;
   background: var(--app-surface);
-  border-radius: 12px;
-  box-shadow: rgba(0, 0, 0, 0.06) 0px 1px 3px;
-  padding: 14px 12px;
+  border-right: 1px solid var(--app-border);
+  box-shadow: rgba(0, 0, 0, 0.04) 1px 0 3px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: calc(100vh - 80px);
   overflow: hidden;
   transition: width 0.25s ease;
 }

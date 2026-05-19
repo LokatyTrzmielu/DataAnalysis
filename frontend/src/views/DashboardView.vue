@@ -1,16 +1,11 @@
 ﻿<template>
-  <!-- Two-column layout: sidebar left, content right -->
-  <div style="display:flex;gap:24px;align-items:flex-start">
-
+  <div>
     <DashboardSidebar
       :selected-id="selectedId"
       @select="onSelect"
       @created="onCreated"
       @open="onOpen"
     />
-
-    <!-- Main content -->
-    <div style="flex:1;min-width:0">
 
     <div class="mb-6">
       <h2 style="font-family:'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;font-weight:600;color:var(--app-text);line-height:1.14;letter-spacing:-0.28px">
@@ -239,9 +234,7 @@
     <div v-else style="font-size:14px;color:var(--app-text-sec);padding-top:8px">
       Select an analysis from the sidebar.
     </div>
-
-    </div><!-- /main content -->
-  </div><!-- /two-column layout -->
+  </div>
 </template>
 
 <script setup lang="ts">
