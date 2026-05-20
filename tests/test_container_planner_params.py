@@ -355,18 +355,23 @@ def test_interior_dimensions_match_kardex_spec():
     assert one_one_138.cell_height_mm == 110
 
 
-def test_height_tiers_include_338_and_388():
-    """User clarified divider support extends through 388 mm. Each frame adds
-    50 mm of fully-usable interior height (bin_height − 28)."""
-    assert cp.HEIGHT_TIERS_MM == (138, 188, 238, 288, 338, 388)
-    one_one_388 = next(v for v in cp.CATALOG_FULL
-                        if v.footprint_key == "1/1" and v.bin_height_mm == 388)
-    assert one_one_388.cell_height_mm == 360  # 388 − 28
+def test_height_tiers_exclude_above_288():
+    """Dividers and EasyClick frames physically exist only up to 288 mm
+    (Kardex spec confirmed 2026-05-20). The previous 338/388 entries were a
+    documentation error and must not appear anywhere in the catalog."""
+    assert cp.HEIGHT_TIERS_MM == (138, 188, 238, 288)
+    assert 338 not in cp.HEIGHT_TIERS_MM
+    assert 388 not in cp.HEIGHT_TIERS_MM
+    heights_in_catalog = {v.bin_height_mm for v in cp.CATALOG_FULL}
+    assert heights_in_catalog == {138, 188, 238, 288}
+    one_one_288 = next(v for v in cp.CATALOG_FULL
+                        if v.footprint_key == "1/1" and v.bin_height_mm == 288)
+    assert one_one_288.cell_height_mm == 260  # 288 − 28
 
 
 def test_volume_matches_user_spec_table():
     """Spot-check tier volumes against the user-supplied table."""
-    expected = {138: 27.6, 188: 40.3, 238: 53.0, 288: 65.6, 338: 78.3, 388: 90.9}
+    expected = {138: 27.6, 188: 40.3, 238: 53.0, 288: 65.6}
     for tier, want in expected.items():
         v = next(x for x in cp.CATALOG_FULL
                   if x.footprint_key == "1/1" and x.bin_height_mm == tier)
@@ -453,7 +458,7 @@ def _tall_thin_row(sku: str = "PROFILE", fit_status: str = "FIT") -> dict:
     Fits cell 1/2L-138 (305×411×110) only when laid down (height → cell Y axis),
     i.e. in 2 of the 6 orientations, both of which have o[2] ∈ {L, W}. Under
     UPRIGHT_ONLY no orientation fits because 400 mm > every cell_height (max
-    360 mm at the 388 tier). Used by every test in this block.
+    260 mm at the 288 tier). Used by every test in this block.
     """
     return {
         "sku": sku,
@@ -465,7 +470,7 @@ def _tall_thin_row(sku: str = "PROFILE", fit_status: str = "FIT") -> dict:
 
 
 def test_long_thin_sku_fits_via_lay_flat_orientation():
-    """SKU is taller than every cell (h=400 mm > 360 mm at the tallest tier),
+    """SKU is taller than every cell (h=400 mm > 260 mm at the tallest tier),
     but laying it down maps its height onto the cell's wide Y axis. With the
     default ANY constraint, the 6-orientation check finds the fit and the SKU
     gets a variant. Manual mode with a single small variant proves the fit
@@ -482,7 +487,7 @@ def test_long_thin_sku_fits_via_lay_flat_orientation():
 
 def test_upright_only_constraint_blocks_lay_flat():
     """Same SKU + `orientation_constraint="UPRIGHT_ONLY"` → upright orientations
-    have height on the cell's Z axis, but h=400 > 360 (tallest cell). The SKU
+    have height on the cell's Z axis, but h=400 > 260 (tallest cell). The SKU
     becomes an orphan with no_fitting_variant — exactly as it should when the
     masterdata says "this side up"."""
     row = _tall_thin_row()
@@ -542,7 +547,7 @@ def test_height_no_longer_hard_pre_filter():
     the SKU over minimising waste (a single 3-L SKU in a 14-L cell looks wasteful
     to `min_waste`, which is the goal's correct preference — orthogonal to whether
     the SKU geometrically fits)."""
-    # SKU 100×100×400 — taller than every cell_height in the catalog (max 360).
+    # SKU 100×100×400 — taller than every cell_height in the catalog (max 260).
     cap = _make_capacity_result([_tall_thin_row()])
     plan = cp.plan_containers(cap, None,
                                cp.PlanParams(abc_classes=(), only_machine=False,

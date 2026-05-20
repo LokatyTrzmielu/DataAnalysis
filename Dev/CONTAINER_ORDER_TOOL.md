@@ -26,13 +26,13 @@ Plik PDF `Dev/Calculators/Flyer_PL_Kardex-VBM-Box.pdf` (Kardex VBM Box flyer) + 
   (Założenie: ramki EasyClick traktujemy jako 0 kg do czasu uzyskania danych z Kardex.)
 - Dno bina pochłania **28 mm** wysokości (`bin_height − interior_height`).
 - System EasyClick: każda ramka dodaje **+50 mm** w pełni użytecznej wysokości wnętrza.
-- Wysokości: 138 / 188 / 238 / 288 / 338 / 388 mm → wnętrze 110 / 160 / 210 / 260 / 310 / 360 mm.
-- Dividery działają na całej wysokości każdego tieru (poprzednia uwaga "tylko do 288 mm" była zbyt zachowawcza).
+- Wysokości: 138 / 188 / 238 / 288 mm → wnętrze 110 / 160 / 210 / 260 mm.
+- Dividery i ramki EasyClick istnieją tylko do 288 mm — wyższych konfiguracji Kardex nie oferuje (potwierdzone 2026-05-20). Wcześniejszy zapis o tierach 338 / 388 był błędem dokumentacji.
 
 ## Katalog wariantów
 
-12 footprintów × 6 wysokości = **72 warianty (pełny katalog, tryb Manual)**.
-7 footprintów oznaczonych jako "auto" → **42 warianty (tryby Auto i Guided)**.
+12 footprintów × 4 wysokości = **48 wariantów (pełny katalog, tryb Manual)**.
+7 footprintów oznaczonych jako "auto" → **28 wariantów (tryby Auto i Guided)**.
 
 Wymiary komór (długość × szerokość, integer floor z `611/n` i `411/n`):
 
@@ -57,7 +57,7 @@ Po obliczeniu planu `VariantSummary.bin_gross_weight_kg` raportuje średnie **br
 
 Wewnętrzna wysokość komory = `bin_height_mm − 28` (utracone na dno).
 
-Kody wariantów: `{footprint}-{bin_height_mm}` — np. `1/4-188`, `1/24-388`.
+Kody wariantów: `{footprint}-{bin_height_mm}` — np. `1/4-188`, `1/24-288`.
 
 ## Test 6 orientacji SKU (2026-05-19)
 
