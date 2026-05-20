@@ -56,7 +56,7 @@
         <button
           v-for="rep in masterdataReports"
           :key="rep.name"
-          @click="downloadCsv(rep.name)"
+          @click="downloadReport(rep.name)"
           :disabled="!run.quality_result || downloading === rep.name"
           class="btn-apple-pill text-left"
           style="justify-content:flex-start"
@@ -77,7 +77,7 @@
         <button
           v-for="rep in ordersReports"
           :key="rep.name"
-          @click="downloadCsv(rep.name)"
+          @click="downloadReport(rep.name)"
           :disabled="!ovr || downloading === rep.name"
           class="btn-apple-pill text-left"
           style="justify-content:flex-start"
@@ -91,12 +91,12 @@
       </p>
     </div>
 
-    <!-- Capacity & Performance CSV -->
+    <!-- Capacity & Performance Excel reports -->
     <div class="card-apple">
-      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Analysis CSV reports</h3>
+      <h3 class="mb-3" style="font-size:14px;font-weight:600;color:var(--app-text);letter-spacing:-0.224px">Analysis reports</h3>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <button
-          @click="downloadCsv('Capacity_Results')"
+          @click="downloadReport('Capacity_Results')"
           :disabled="!run.capacity_result || downloading === 'Capacity_Results'"
           class="btn-apple-pill text-left"
           style="justify-content:flex-start"
@@ -105,7 +105,7 @@
           {{ downloading === 'Capacity_Results' ? 'Preparing…' : 'Capacity Results' }}
         </button>
         <button
-          @click="downloadCsv('SKU_Pareto')"
+          @click="downloadReport('SKU_Pareto')"
           :disabled="!run.performance_result || downloading === 'SKU_Pareto'"
           class="btn-apple-pill text-left"
           style="justify-content:flex-start"
@@ -114,7 +114,7 @@
           {{ downloading === 'SKU_Pareto' ? 'Preparing…' : 'SKU Pareto' }}
         </button>
         <button
-          @click="downloadCsv('Pareto_Bands')"
+          @click="downloadReport('Pareto_Bands')"
           :disabled="!run.performance_result || downloading === 'Pareto_Bands'"
           class="btn-apple-pill text-left"
           style="justify-content:flex-start"
@@ -136,7 +136,7 @@
       </p>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <button
-          @click="downloadCsv('SolDimTool_DashboardInput')"
+          @click="downloadReport('SolDimTool_DashboardInput')"
           :disabled="!run.performance_result || downloading === 'SolDimTool_DashboardInput'"
           class="btn-apple-pill text-left"
           style="justify-content:flex-start"
@@ -253,13 +253,13 @@ async function downloadXlsx() {
   }
 }
 
-async function downloadCsv(reportName: string) {
+async function downloadReport(reportName: string) {
   downloading.value = reportName
   error.value = ''
   analysis.start()
   try {
-    const { data } = await runsApi.downloadCsvReport(props.run.id, reportName)
-    triggerDownload(data as Blob, `${props.run.client_name}_${reportName}.csv`)
+    const { data } = await runsApi.downloadReport(props.run.id, reportName)
+    triggerDownload(data as Blob, `${props.run.client_name}_${reportName}.xlsx`)
   } catch (e) {
     error.value = `Failed to download ${reportName}: ` + await blobErrorMessage(e)
   } finally {

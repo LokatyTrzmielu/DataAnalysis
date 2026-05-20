@@ -11,6 +11,24 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-20] - Fix (main) — Reports: CSV → XLSX (waga jako liczba, nie data)
+
+**Problem:** Pobrane CSV-y otwierane w Excelu (polska lokalizacja) interpretowały dziesiętne wartości typu `10.5` w kolumnie `weight_kg` jako daty (`10 maja`). Dotyczyło to także `length_mm`, `width_mm`, `height_mm`, `volume_m3` itp. Polars zapisywał `;` jako separator i `.` jako separator dziesiętny — Excel po otwarciu CSV podstawiał formaty dat z systemu.
+
+**Co się zmienia:**
+- **Nowy moduł `api/xlsx_report_generator.py`** — `generate_report_xlsx(report_name, rows, columns)` zwraca bytes jednoarkuszowego workbooka. Wartości numeryczne (`int`/`float`) trafiają do komórek natywnie, więc Excel nie ma okazji ich reinterpretować. Słownik `NUMERIC_FORMATS` przypisuje format `"0.00"` (lub `"0.0000"` dla `volume_m3`) kolumnom: `weight_kg`, `length_mm`, `width_mm`, `height_mm`, `volume_m3`, `stock_volume_m3`, `stored_volume_L`, `carrier_volume_L`, `filling_rate`, `margin_mm`, `overall_score`, `*_coverage_pct`, `cumulative_pct`, `pareto_bands.*_pct`.
+- **Endpoint przeniesiony**: `GET /api/v1/runs/{run_id}/reports/csv/{report_name}` → `GET /api/v1/runs/{run_id}/reports/xlsx/{report_name}` (`api/routers/reports.py`). `CSV_REPORTS` → `REPORT_NAMES`. Response zwraca media type `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, filename `{client}_{report}.xlsx`. Zmienna `XLSX_MEDIA_TYPE` na górze modułu.
+- **ZIP bundle**: w `/reports/zip` każda składowa (`Capacity_Results`, `DQ_*`, `SKU_Pareto`, `Pareto_Bands`, `SolDimTool_DashboardInput`) jest teraz `.xlsx` zamiast `.csv`. Filename ZIP się nie zmienia. Liczba plików: 1 (capacity) + 6 (DQ) + 3 (performance) = do 10 plików xlsx.
+- **SKU_Pareto fix**: usunięta konwersja `cumulative_pct` do stringa `"12.50%"` — wartość zostaje float, format komórki `"0.00"`. Pozwala sortować / filtrować po tej kolumnie w Excelu.
+- **Frontend**: `runs.ts` — `downloadCsvReport` → `downloadReport` (ścieżka `/reports/xlsx/...`). `ReportsTab.vue` — handler `downloadCsv` → `downloadReport`, rozszerzenie `.csv` → `.xlsx`, nagłówek sekcji „Analysis CSV reports" → „Analysis reports". Etykiety przycisków pozostają niezmienione (Capacity Results, SKU Pareto, Pareto Bands, Missing Critical itd.).
+- **Testy**: `tests/test_api.py::TestReports` — ścieżki `/reports/csv/*` zmienione na `/reports/xlsx/*`, asercje `text/csv` → `spreadsheetml`. Dodano `tests/test_reporting.py::TestXlsxReportGenerator` z 3 testami (m.in. **`test_weight_kg_written_as_number`** weryfikujący, że waga ląduje w komórce jako `int|float` z formatem `"0.00"` — bezpośredni guard dla regresji).
+
+**Weryfikacja:** `pytest tests/test_api.py::TestReports tests/test_reporting.py::TestXlsxReportGenerator` → 19/19 passed. Pełna suita: 353 passed, 3 pre-istniejące failures niepowiązane z tą zmianą (`test_calculate_kpi`, `test_kpi_percentiles_from_datehour`, `test_capacity_analysis` — fixture nie seeduje carriers/orders date columns).
+
+**Branch:** `main` (zmiana minor zgodnie z CLAUDE.md — kosmetyczna zmiana formatu eksportu).
+
+---
+
 ### [2026-05-20] - Feature (feature/help-extended-sections) — Help: grupowana nawigacja + przykłady obliczeń + 4 nowe sekcje
 
 **Problem:** `HelpView.vue` miał ograniczoną szerokość (`max-width: 880px`), płaski 8-pozycyjny sidebar i opisywał tylko proces analizy. Brakowało: dokumentacji Datasets, Carriers, Tools › Data Preparation i Tools › Container Order; konkretnych liczb przy formułach (P90, Filling Rate, ABC, fit test); hierarchii w bocznym pasku porządkującej rosnącą listę sekcji.

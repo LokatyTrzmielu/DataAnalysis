@@ -1,11 +1,14 @@
 """Testy jednostkowe dla modulu reporting."""
 
+import io
 import tempfile
 from pathlib import Path
 
 import polars as pl
 import pytest
+from openpyxl import load_workbook
 
+from api.xlsx_report_generator import generate_report_xlsx
 from src.reporting.csv_writer import CSVWriter, write_csv
 from src.reporting.dq_reports import DQReportGenerator
 from src.quality.dq_metrics import DataQualityMetrics, FieldCoverage
@@ -13,6 +16,43 @@ from src.quality.dq_lists import DQLists, DQListItem
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+
+# ============================================================================
+# Tests for XLSX report generator (replaced CSV exports)
+# ============================================================================
+
+
+class TestXlsxReportGenerator:
+    def test_weight_kg_written_as_number(self):
+        """Capacity weight column must be numeric — was misread as a date in CSV."""
+        rows = [
+            {"sku": "A", "weight_kg": 10.5, "length_mm": 100.0},
+            {"sku": "B", "weight_kg": 1.5, "length_mm": 50.0},
+        ]
+        data = generate_report_xlsx("Capacity_Results", rows)
+        wb = load_workbook(io.BytesIO(data))
+        ws = wb.active
+        headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+        col = headers.index("weight_kg") + 1
+        cells = [ws.cell(row=r, column=col) for r in (2, 3)]
+        for c in cells:
+            assert isinstance(c.value, (int, float))
+            assert c.number_format == "0.00"
+
+    def test_empty_rows_with_columns_writes_header_only(self):
+        data = generate_report_xlsx("DQ_MissingCritical", [], ["sku", "field", "value", "details"])
+        wb = load_workbook(io.BytesIO(data))
+        ws = wb.active
+        assert [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))] == [
+            "sku", "field", "value", "details",
+        ]
+        assert ws.max_row == 1
+
+    def test_returns_zip_bytes(self):
+        data = generate_report_xlsx("X", [{"a": 1}])
+        # xlsx files are zip archives — magic "PK"
+        assert data[:2] == b"PK"
 
 
 # ============================================================================

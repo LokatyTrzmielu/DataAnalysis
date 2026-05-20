@@ -470,7 +470,7 @@ class TestReports:
         "DQ_Duplicates",
         "DQ_Conflicts",
     ])
-    async def test_dq_csv_reports(
+    async def test_dq_xlsx_reports(
         self,
         client: AsyncClient,
         auth_headers: dict,
@@ -478,41 +478,52 @@ class TestReports:
         report_name: str,
     ):
         resp = await client.get(
-            f"/api/v1/runs/{run_with_full_pipeline}/reports/csv/{report_name}",
+            f"/api/v1/runs/{run_with_full_pipeline}/reports/xlsx/{report_name}",
             headers=auth_headers,
         )
         assert resp.status_code == 200
-        assert "text/csv" in resp.headers["content-type"]
+        assert "spreadsheetml" in resp.headers["content-type"]
+        # xlsx files are zip archives starting with "PK"
+        assert resp.content[:2] == b"PK"
 
-    async def test_capacity_results_csv(
+    async def test_capacity_results_xlsx(
         self, client: AsyncClient, auth_headers: dict, run_with_full_pipeline: str
     ):
+        import io
+        from openpyxl import load_workbook
+
         resp = await client.get(
-            f"/api/v1/runs/{run_with_full_pipeline}/reports/csv/Capacity_Results",
+            f"/api/v1/runs/{run_with_full_pipeline}/reports/xlsx/Capacity_Results",
             headers=auth_headers,
         )
         assert resp.status_code == 200
-        assert "text/csv" in resp.headers["content-type"]
-        content = resp.content.decode("utf-8-sig")
-        assert "sku" in content.lower()
+        assert "spreadsheetml" in resp.headers["content-type"]
+        # Primary regression guard: response is a valid xlsx workbook.
+        wb = load_workbook(io.BytesIO(resp.content))
+        assert "Capacity_Results" in wb.sheetnames
 
-    async def test_sku_pareto_csv(
+    async def test_sku_pareto_xlsx(
         self, client: AsyncClient, auth_headers: dict, run_with_full_pipeline: str
     ):
+        import io
+        from openpyxl import load_workbook
+
         resp = await client.get(
-            f"/api/v1/runs/{run_with_full_pipeline}/reports/csv/SKU_Pareto",
+            f"/api/v1/runs/{run_with_full_pipeline}/reports/xlsx/SKU_Pareto",
             headers=auth_headers,
         )
         assert resp.status_code == 200
-        assert "text/csv" in resp.headers["content-type"]
-        content = resp.content.decode("utf-8-sig")
-        assert "abc_class" in content.lower()
+        assert "spreadsheetml" in resp.headers["content-type"]
+        wb = load_workbook(io.BytesIO(resp.content))
+        ws = wb.active
+        headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+        assert "abc_class" in headers
 
-    async def test_unknown_csv_report_returns_404(
+    async def test_unknown_xlsx_report_returns_404(
         self, client: AsyncClient, auth_headers: dict, run_with_full_pipeline: str
     ):
         resp = await client.get(
-            f"/api/v1/runs/{run_with_full_pipeline}/reports/csv/NonExistentReport",
+            f"/api/v1/runs/{run_with_full_pipeline}/reports/xlsx/NonExistentReport",
             headers=auth_headers,
         )
         assert resp.status_code == 404
@@ -555,7 +566,7 @@ class TestReports:
         resp = await client.get(f"/api/v1/runs/{run_id}/reports/pdf", headers=auth_headers)
         assert resp.status_code == 422
 
-    async def test_csv_without_quality_returns_422(
+    async def test_xlsx_without_quality_returns_422(
         self, client: AsyncClient, auth_headers: dict
     ):
         cr = await client.post(
@@ -563,11 +574,11 @@ class TestReports:
         )
         run_id = cr.json()["id"]
         resp = await client.get(
-            f"/api/v1/runs/{run_id}/reports/csv/DQ_Summary", headers=auth_headers
+            f"/api/v1/runs/{run_id}/reports/xlsx/DQ_Summary", headers=auth_headers
         )
         assert resp.status_code == 422
 
-    async def test_capacity_csv_without_capacity_returns_422(
+    async def test_capacity_xlsx_without_capacity_returns_422(
         self, client: AsyncClient, auth_headers: dict
     ):
         cr = await client.post(
@@ -575,7 +586,7 @@ class TestReports:
         )
         run_id = cr.json()["id"]
         resp = await client.get(
-            f"/api/v1/runs/{run_id}/reports/csv/Capacity_Results", headers=auth_headers
+            f"/api/v1/runs/{run_id}/reports/xlsx/Capacity_Results", headers=auth_headers
         )
         assert resp.status_code == 422
 
@@ -587,7 +598,7 @@ class TestReports:
         )
         run_id = cr.json()["id"]
         resp = await client.get(
-            f"/api/v1/runs/{run_id}/reports/csv/SKU_Pareto", headers=auth_headers
+            f"/api/v1/runs/{run_id}/reports/xlsx/SKU_Pareto", headers=auth_headers
         )
         assert resp.status_code == 422
 
@@ -605,7 +616,7 @@ class TestReports:
         headers_o = {"Authorization": f"Bearer {resp_o.json()['access_token']}"}
 
         resp = await client.get(
-            f"/api/v1/runs/{run_with_full_pipeline}/reports/csv/DQ_Summary",
+            f"/api/v1/runs/{run_with_full_pipeline}/reports/xlsx/DQ_Summary",
             headers=headers_o,
         )
         assert resp.status_code == 403

@@ -5,7 +5,6 @@ import math
 import zipfile
 from datetime import datetime
 
-import polars as pl
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,11 +13,14 @@ from api.dependencies import get_current_user, get_db
 from api.models.analysis_run import AnalysisRun
 from api.models.user import User
 from api.services.time_saving import record_event as record_time_saving_event
+from api.xlsx_report_generator import generate_report_xlsx
 from sqlalchemy import select
 
 router = APIRouter(prefix="/api/v1/runs", tags=["reports"])
 
-CSV_REPORTS = {
+XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+REPORT_NAMES = {
     "DQ_Summary",
     "DQ_MissingCritical",
     "DQ_SuspectOutliers",
@@ -39,7 +41,7 @@ CSV_REPORTS = {
 _DQ_COLUMNS = ["sku", "field", "value", "details"]
 _QTY_ROW_COLUMNS = ["order_id", "sku", "order_date", "order_hour", "quantity"]
 
-# Known column headers per report type (used to write empty CSVs with headers)
+# Known column headers per report type (used to write header-only xlsx when empty).
 REPORT_COLUMNS: dict[str, list[str]] = {
     "DQ_Summary": [
         "total_records", "overall_score", "dimensions_coverage_pct",
@@ -394,31 +396,30 @@ def _capacity_rows_with_carrier_name(cr: dict) -> list[dict]:
     return enriched
 
 
-def _rows_to_csv_bytes(rows: list[dict], columns: list[str] | None = None) -> bytes:
-    """Convert a list of dicts to UTF-8 BOM CSV bytes (separator ';').
-
-    Always writes column headers. If rows is empty and columns is provided,
-    returns a header-only CSV.
-    """
-    if rows:
-        df = pl.DataFrame(rows, infer_schema_length=None)
-    elif columns:
-        df = pl.DataFrame({c: [] for c in columns})
-    else:
-        return b"\xef\xbb\xbf"
-    return b"\xef\xbb\xbf" + df.write_csv(separator=";").encode("utf-8")
+def _rows_to_xlsx_bytes(
+    report_name: str,
+    rows: list[dict],
+    columns: list[str] | None = None,
+) -> bytes:
+    """Build a single-sheet xlsx for a report. Always emits headers."""
+    return generate_report_xlsx(report_name, rows, columns)
 
 
-@router.get("/{run_id}/reports/csv/{report_name}")
-async def download_csv_report(
+@router.get("/{run_id}/reports/xlsx/{report_name}")
+async def download_xlsx_report(
     run_id: str,
     report_name: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    """Download an individual CSV report for a run."""
-    if report_name not in CSV_REPORTS:
-        raise HTTPException(status_code=404, detail=f"Unknown report: {report_name}. Available: {sorted(CSV_REPORTS)}")
+    """Download an individual report for a run as an .xlsx file.
+
+    Replaces the previous CSV endpoint — see ``api/xlsx_report_generator`` for
+    the rationale (CSV decimals were being misread as dates by Excel under
+    Polish locale).
+    """
+    if report_name not in REPORT_NAMES:
+        raise HTTPException(status_code=404, detail=f"Unknown report: {report_name}. Available: {sorted(REPORT_NAMES)}")
 
     result = await db.execute(select(AnalysisRun).where(AnalysisRun.id == run_id))
     run = result.scalar_one_or_none()
@@ -499,10 +500,10 @@ async def download_csv_report(
     elif report_name == "SKU_Pareto":
         if not pr:
             raise HTTPException(status_code=422, detail="No performance results available.")
-        rows = [
-            {**r, "cumulative_pct": f"{r['cumulative_pct']:.2f}%"}
-            for r in pr.get("sku_pareto", [])
-        ]
+        # Keep cumulative_pct as a float so Excel treats it as a number — the
+        # xlsx writer applies a "0.00" format. Old code stringified it as
+        # "12.50%", which broke filtering/sorting in Excel.
+        rows = pr.get("sku_pareto", [])
     elif report_name == "Pareto_Bands":
         if not pr:
             raise HTTPException(status_code=422, detail="No performance results available.")
@@ -512,12 +513,12 @@ async def download_csv_report(
             raise HTTPException(status_code=422, detail="No performance results available.")
         rows = _generate_soldimtool_rows(pr)
 
-    csv_bytes = _rows_to_csv_bytes(rows, REPORT_COLUMNS.get(report_name))
+    xlsx_bytes = _rows_to_xlsx_bytes(report_name, rows, REPORT_COLUMNS.get(report_name))
 
-    filename = f"{run.client_name or run_id}_{report_name}.csv"
+    filename = f"{run.client_name or run_id}_{report_name}.xlsx"
     return Response(
-        content=csv_bytes,
-        media_type="text/csv",
+        content=xlsx_bytes,
+        media_type=XLSX_MEDIA_TYPE,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
@@ -541,13 +542,13 @@ async def download_zip(
     pr = run.performance_result or {}
     client = run.client_name or run.id
 
-    csv_count = 0
+    report_count = 0
     if cr:
-        csv_count += 1  # Capacity_Results
+        report_count += 1  # Capacity_Results
     if qr:
-        csv_count += 6  # Summary + 5 DQ lists
+        report_count += 6  # Summary + 5 DQ lists
     if pr:
-        csv_count += 3  # SKU_Pareto + Pareto_Bands + SolDimTool
+        report_count += 3  # SKU_Pareto + Pareto_Bands + SolDimTool
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -556,8 +557,8 @@ async def download_zip(
         if cr:
             rows = _capacity_rows_with_carrier_name(cr)
             zf.writestr(
-                f"{client}_Capacity_Results.csv",
-                _rows_to_csv_bytes(rows, REPORT_COLUMNS.get("Capacity_Results")),
+                f"{client}_Capacity_Results.xlsx",
+                _rows_to_xlsx_bytes("Capacity_Results", rows, REPORT_COLUMNS.get("Capacity_Results")),
             )
 
         # --- DQ reports ---
@@ -585,33 +586,37 @@ async def download_zip(
             }
             for name, rows in dq_map.items():
                 zf.writestr(
-                    f"{client}_{name}.csv",
-                    _rows_to_csv_bytes(rows, REPORT_COLUMNS.get(name)),
+                    f"{client}_{name}.xlsx",
+                    _rows_to_xlsx_bytes(name, rows, REPORT_COLUMNS.get(name)),
                 )
 
         # --- SKU Pareto ---
         if pr:
-            pareto_rows = [
-                {**r, "cumulative_pct": f"{r['cumulative_pct']:.2f}%"}
-                for r in pr.get("sku_pareto", [])
-            ]
             zf.writestr(
-                f"{client}_SKU_Pareto.csv",
-                _rows_to_csv_bytes(pareto_rows, REPORT_COLUMNS.get("SKU_Pareto")),
+                f"{client}_SKU_Pareto.xlsx",
+                _rows_to_xlsx_bytes(
+                    "SKU_Pareto",
+                    pr.get("sku_pareto", []),
+                    REPORT_COLUMNS.get("SKU_Pareto"),
+                ),
             )
 
         # --- Pareto Bands ---
         if pr:
             zf.writestr(
-                f"{client}_Pareto_Bands.csv",
-                _rows_to_csv_bytes(pr.get("pareto_bands", []), REPORT_COLUMNS.get("Pareto_Bands")),
+                f"{client}_Pareto_Bands.xlsx",
+                _rows_to_xlsx_bytes("Pareto_Bands", pr.get("pareto_bands", []), REPORT_COLUMNS.get("Pareto_Bands")),
             )
 
         # --- SolDimTool Dashboard Input ---
         if pr:
             zf.writestr(
-                f"{client}_SolDimTool_DashboardInput.csv",
-                _rows_to_csv_bytes(_generate_soldimtool_rows(pr), REPORT_COLUMNS.get("SolDimTool_DashboardInput")),
+                f"{client}_SolDimTool_DashboardInput.xlsx",
+                _rows_to_xlsx_bytes(
+                    "SolDimTool_DashboardInput",
+                    _generate_soldimtool_rows(pr),
+                    REPORT_COLUMNS.get("SolDimTool_DashboardInput"),
+                ),
             )
 
     await record_time_saving_event(
@@ -619,7 +624,7 @@ async def download_zip(
         current_user.id,
         "report_exported_zip",
         run_id=run.id,
-        csv_count=csv_count,
+        csv_count=report_count,
     )
 
     return Response(
