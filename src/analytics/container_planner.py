@@ -155,7 +155,14 @@ GuidedPreset = Literal["simple", "standard", "full_coverage"]
 
 @dataclass
 class PlanParams:
-    """User-controlled parameters for a planning run."""
+    """User-controlled parameters for a planning run.
+
+    Defaults realise the user's stated priorities (max Fill % → 100% coverage
+    → fewest variants): mode="guided" + guided_preset="full_coverage" routes
+    to `_greedy_until_coverage` on `CATALOG_AUTO`, which greedily adds the
+    minimum number of variants needed to reach ≥99% coverage while max-fill
+    tiebreaks per-SKU variant assignment.
+    """
 
     # SKU filters (post-load)
     abc_classes: tuple[str, ...] = ("A", "B")  # subset of ("A","B","C"); empty = all
@@ -174,10 +181,10 @@ class PlanParams:
     max_locations_per_sku: int = 50000
 
     # Mode-specific
-    mode: Mode = "auto"
+    mode: Mode = "guided"
     auto_max_variants: int = 6
     auto_goal: Goal = "min_waste"
-    guided_preset: GuidedPreset = "standard"
+    guided_preset: GuidedPreset = "full_coverage"
     manual_variant_codes: tuple[str, ...] = ()  # codes from CATALOG_FULL
 
     def __post_init__(self) -> None:

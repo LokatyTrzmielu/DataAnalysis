@@ -5,6 +5,25 @@ dla SKU z ukończonej analizy, wykorzystując nośnik MiB 640×440.
 
 Plan implementacyjny: `C:\Users\roszc\.claude\plans\zapoznaj-si-z-cryptic-blanket.md`.
 
+## Domyślny przepływ (2026-05-20)
+
+Calculation tab pokazuje jeden przycisk **„Calculate optimal plan"**. Bez żadnych
+ustawień kliknięcie uruchamia `_greedy_until_coverage` na `CATALOG_AUTO` (28
+wariantów: 7 footprintów × 4 wysokości), które:
+- dodaje warianty greedy aż do osiągnięcia ≥ 99% coverage,
+- per-SKU wybiera wariant z największym Fill % (tiebreaker),
+- nigdy nie przekracza 28 wariantów (sufit auto-katalogu),
+- jedyne SKU bez przypisania to fizyczne orphany (`orphan_reason="no_fitting_variant"` — SKU większe niż największa komora).
+
+To realizuje priorytety operacyjne: **max Fill % → ~100% coverage → najmniej
+wariantów** (najniższy koszt zamówienia). Dla power-userów dostępny jest
+fold-out **„▸ Advanced"** ze wszystkimi pierwotnymi knobami (Mode/Goal/Preset,
+ABC/Machine/Borderline/Impute, stock buffer, fill rate, min/max locations,
+manual variant picker 48-cell).
+
+Wartości defaultowe w `PlanParams` / `PlanParamsRequest`: `mode="guided"`,
+`guided_preset="full_coverage"`, reszta bez zmian.
+
 ## Co robi narzędzie
 
 Bierze:

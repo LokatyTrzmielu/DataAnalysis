@@ -200,10 +200,10 @@ export function defaultParams(): PlanParams {
     location_fill_rate: 0.9,
     min_locations_per_sku: 1,
     max_locations_per_sku: 50000,
-    mode: 'auto',
+    mode: 'guided',
     auto_max_variants: 6,
     auto_goal: 'min_waste',
-    guided_preset: 'standard',
+    guided_preset: 'full_coverage',
     manual_variant_codes: [],
   }
 }
