@@ -191,11 +191,39 @@ class PerformanceAnalysisResult:
     monthly_trends: list[MonthlyTrend] = field(default_factory=list)
     weekday_profile: dict[int, float] = field(default_factory=dict)
     shifts_per_day: int = 2
+    detected_shifts_per_day: int = 2
+    shifts_source: str = "auto"  # "auto" | "manual" | "schedule"
     sku_pareto: list[SKUFrequency] = field(default_factory=list)
     pareto_bands: list[ParetoBandRow] = field(default_factory=list)
     has_hourly_data: bool = False
     excluded_nonworking_rows: int = 0
     filtered_df: object = None  # pl.DataFrame after non-working day filter
+
+
+def _detect_shifts_per_day(datehour: list["DateHourMetrics"]) -> int:
+    """Detect shifts/day from hourly activity profile.
+
+    Active hour = hour whose summed lines (across all dates) reach >= 10% of
+    the busiest hour. Result = ceil(active_hours / 8), clamped to [1, 3].
+    Robust to shift overlap and lunch dips; falls back to 2 on empty input.
+    """
+    if not datehour:
+        return 2
+    from collections import defaultdict
+    import math
+    hour_totals: dict[int, int] = defaultdict(int)
+    for dh in datehour:
+        hour_totals[dh.hour] += dh.lines
+    if not hour_totals:
+        return 2
+    max_lines = max(hour_totals.values())
+    if max_lines <= 0:
+        return 2
+    threshold = max_lines * 0.10
+    active_hours = sum(1 for v in hour_totals.values() if v >= threshold)
+    if active_hours <= 0:
+        return 2
+    return max(1, min(3, math.ceil(active_hours / 8)))
 
 
 class PerformanceAnalyzer:
@@ -205,15 +233,19 @@ class PerformanceAnalyzer:
         self,
         shift_schedule: Optional[ShiftSchedule] = None,
         productive_hours_per_shift: float = 7.0,
+        shifts_per_day_override: Optional[int] = None,
     ) -> None:
         """Initialize the analyzer.
 
         Args:
             shift_schedule: Shift schedule (optional)
             productive_hours_per_shift: Productive hours per shift
+            shifts_per_day_override: Forces shifts_per_day to this value when set.
+                Wins over both shift_schedule and autodetection.
         """
         self.shift_schedule = shift_schedule
         self.productive_hours_per_shift = productive_hours_per_shift
+        self.shifts_per_day_override = shifts_per_day_override
 
     def analyze(self, df: pl.DataFrame) -> PerformanceAnalysisResult:
         """Perform performance analysis.
@@ -300,23 +332,27 @@ class PerformanceAnalyzer:
             | (pl.col("timestamp").dt.minute() != 0)
         ).height > 0
 
-        # 1. Determine shifts per day from schedule (needed for KPI calc)
-        if self.shift_schedule:
+        # 1. Calculate hourly / daily / date+hour metrics (datehour is needed
+        #    for shift autodetection, so we compute these before resolving
+        #    shifts_per_day).
+        hourly = self._calculate_hourly_metrics(df)
+        daily = self._calculate_daily_metrics(df)
+        datehour = self._calculate_datehour_metrics(df)
+
+        # 2. Determine shifts/day — override > schedule > autodetected from data
+        detected_shifts = _detect_shifts_per_day(datehour)
+        if self.shifts_per_day_override is not None:
+            shifts_per_day = self.shifts_per_day_override
+            shifts_source = "manual"
+        elif self.shift_schedule:
             weekly = self.shift_schedule.weekly_schedule
             all_days = [weekly.mon, weekly.tue, weekly.wed, weekly.thu, weekly.fri, weekly.sat, weekly.sun]
             working_days = [d for d in all_days if d]
             shifts_per_day = max((len(d) for d in working_days), default=2)
+            shifts_source = "schedule"
         else:
-            shifts_per_day = 2
-
-        # 2. Calculate hourly metrics (aggregated profile)
-        hourly = self._calculate_hourly_metrics(df)
-
-        # 3. Calculate daily metrics
-        daily = self._calculate_daily_metrics(df)
-
-        # 4. Calculate date+hour metrics (real throughput data points)
-        datehour = self._calculate_datehour_metrics(df)
+            shifts_per_day = detected_shifts
+            shifts_source = "auto"
 
         # 5. Calculate KPI (uses datehour for percentiles)
         kpi = self._calculate_kpi(df, datehour, shifts_per_day)
@@ -353,6 +389,8 @@ class PerformanceAnalyzer:
             pareto_bands=pareto_bands,
             has_hourly_data=has_hourly_data,
             shifts_per_day=shifts_per_day,
+            detected_shifts_per_day=detected_shifts,
+            shifts_source=shifts_source,
             excluded_nonworking_rows=excluded_nonworking_rows,
             filtered_df=df,
         )

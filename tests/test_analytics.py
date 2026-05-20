@@ -20,6 +20,8 @@ from src.analytics.performance import (
     PerformanceAnalyzer,
     analyze_performance,
     PerformanceKPI,
+    DateHourMetrics,
+    _detect_shifts_per_day,
 )
 from src.core.types import (
     CarrierConfig,
@@ -657,3 +659,94 @@ class TestPerformanceNewFeatures:
         result = analyzer.analyze(df)
 
         assert result.has_hourly_data is False
+
+
+class TestShiftsAutodetection:
+    """Testy heurystyki _detect_shifts_per_day + override w PerformanceAnalyzer."""
+
+    @staticmethod
+    def _datehour(hours_lines: dict[int, int], d: date = date(2024, 10, 14)) -> list[DateHourMetrics]:
+        """Build a DateHourMetrics list for one day from {hour: lines} dict."""
+        return [
+            DateHourMetrics(date=d, hour=h, lines=v, orders=v, units=v)
+            for h, v in hours_lines.items()
+        ]
+
+    def test_detect_two_shift_profile(self):
+        """Aktywność 06-21 (16h) → 2 zmiany. Hour 5 i 22 z 8 liniami (<10% max=100) odpadają."""
+        hours = {5: 8, 22: 8}
+        for h in range(6, 22):
+            hours[h] = 100
+        result = _detect_shifts_per_day(self._datehour(hours))
+        assert result == 2
+
+    def test_detect_three_shift_24_7(self):
+        """24h równa aktywność → 3 zmiany."""
+        hours = {h: 100 for h in range(24)}
+        assert _detect_shifts_per_day(self._datehour(hours)) == 3
+
+    def test_detect_single_shift(self):
+        """Aktywność 8-15 (8h) → 1 zmiana."""
+        hours = {h: 100 for h in range(8, 16)}
+        assert _detect_shifts_per_day(self._datehour(hours)) == 1
+
+    def test_empty_input_fallback(self):
+        """Pusta lista → fallback do 2."""
+        assert _detect_shifts_per_day([]) == 2
+
+    def test_zero_lines_fallback(self):
+        """Same zera w liniach → fallback do 2."""
+        hours = {h: 0 for h in range(24)}
+        assert _detect_shifts_per_day(self._datehour(hours)) == 2
+
+    def test_overlap_does_not_inflate(self):
+        """Overlap o 14:00 (peak handoff) nie psuje detekcji 2-zmianowej."""
+        hours = {h: 100 for h in range(6, 22)}
+        hours[14] = 250  # peak overlap między zmianami
+        result = _detect_shifts_per_day(self._datehour(hours))
+        # 16h aktywnych >> próg 10% nawet z 250 max → 2 zmiany
+        assert result == 2
+
+    def test_clamp_upper_bound(self):
+        """Wynik clampowany do max 3 (heurystyka nie przewiduje >3 zmian)."""
+        hours = {h: 100 for h in range(24)}
+        assert _detect_shifts_per_day(self._datehour(hours)) == 3
+
+    def test_threshold_excludes_noise_hours(self):
+        """Godziny z <10% max powinny zostać odrzucone."""
+        # 8 godzin "głównych" (200 linii) + 8 godzin "szumu" (5 linii = 2.5% max)
+        hours = {h: 200 for h in range(8, 16)}
+        for h in list(range(0, 8)) + list(range(16, 24)):
+            hours[h] = 5  # poniżej progu 10%×200 = 20
+        result = _detect_shifts_per_day(self._datehour(hours))
+        assert result == 1  # tylko 8 aktywnych godzin
+
+    def test_override_wins_over_autodetection(self):
+        """shifts_per_day_override w analyzerze nadpisuje wynik heurystyki."""
+        # Plik 8-godzinny (heurystyka da 1), ale override = 3
+        df = pl.DataFrame({
+            "order_id": [f"O{i}" for i in range(8)],
+            "sku":      [f"S{i}" for i in range(8)],
+            "quantity": [1] * 8,
+            "timestamp": [datetime(2024, 10, 14, 8 + i, 0) for i in range(8)],
+        })
+        analyzer = PerformanceAnalyzer(shifts_per_day_override=3)
+        result = analyzer.analyze(df)
+        assert result.shifts_per_day == 3
+        assert result.shifts_source == "manual"
+        # detected_shifts_per_day pokazuje, co heurystyka by powiedziała
+        assert result.detected_shifts_per_day == 1
+
+    def test_auto_source_when_no_override_and_no_schedule(self):
+        """Bez override i bez harmonogramu → shifts_source=auto, wartość z heurystyki."""
+        df = pl.DataFrame({
+            "order_id": [f"O{i}" for i in range(16)],
+            "sku":      [f"S{i}" for i in range(16)],
+            "quantity": [1] * 16,
+            "timestamp": [datetime(2024, 10, 14, 6 + i, 0) for i in range(16)],
+        })
+        analyzer = PerformanceAnalyzer()
+        result = analyzer.analyze(df)
+        assert result.shifts_source == "auto"
+        assert result.shifts_per_day == result.detected_shifts_per_day
+        assert result.shifts_per_day == 2  # 16h → 2 zmiany

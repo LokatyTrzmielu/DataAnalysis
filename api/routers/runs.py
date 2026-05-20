@@ -953,6 +953,7 @@ async def run_performance(
     run_id: str,
     productive_hours: float = Form(default=7.0),
     carrier_filter: str = Form(default=""),
+    shifts_per_day_override: Optional[int] = Form(default=None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResponse:
@@ -960,6 +961,11 @@ async def run_performance(
     run = await _get_run_or_404(run_id, db, current_user)
     if not run.orders_path:
         raise HTTPException(status_code=422, detail="No orders file. Use /orders/inspect first.")
+    if shifts_per_day_override is not None and shifts_per_day_override not in (1, 2, 3):
+        raise HTTPException(
+            status_code=422,
+            detail="shifts_per_day_override must be one of 1, 2, 3 (or omitted for auto-detection).",
+        )
 
     from src.ingest.pipeline import OrdersIngestPipeline
     from src.ingest.mapping import MappingResult, ColumnMapping, ORDERS_SCHEMA
@@ -1035,7 +1041,10 @@ async def run_performance(
                 detail="After filtering to the selected carrier(s), no order lines remain.",
             )
 
-    analyzer = PerformanceAnalyzer(productive_hours_per_shift=productive_hours)
+    analyzer = PerformanceAnalyzer(
+        productive_hours_per_shift=productive_hours,
+        shifts_per_day_override=shifts_per_day_override,
+    )
     try:
         perf = analyzer.analyze(orders_df)
     except Exception as exc:
@@ -1163,11 +1172,17 @@ async def run_performance(
         "date_to": str(perf.date_to),
         "has_hourly_data": perf.has_hourly_data,
         "shifts_per_day": perf.shifts_per_day,
+        "detected_shifts_per_day": perf.detected_shifts_per_day,
+        "shifts_source": perf.shifts_source,
         "productive_hours_per_shift": productive_hours,
         "data_scope": {
             "type": "entire_file" if not _selected_carriers else "carriers",
             "carrier_ids": _selected_carriers,
         },
+    }
+    run.analysis_config = {
+        **(run.analysis_config or {}),
+        "shifts_per_day_override": shifts_per_day_override,
     }
     run.status = "performance_done"
     run.updated_at = datetime.now(timezone.utc)

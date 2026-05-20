@@ -262,6 +262,8 @@ export interface PerformanceResult {
   date_to: string
   has_hourly_data: boolean
   shifts_per_day: number
+  detected_shifts_per_day?: number
+  shifts_source?: 'auto' | 'manual' | 'schedule'
 }
 
 export const runsApi = {
@@ -360,10 +362,16 @@ export const runsApi = {
     })
   },
 
-  runPerformance: (id: string, productiveHours: number, carrierIds: string[] = []) => {
+  runPerformance: (
+    id: string,
+    productiveHours: number,
+    carrierIds: string[] = [],
+    shiftsPerDayOverride: number | null = null,
+  ) => {
     const fd = new FormData()
     fd.append('productive_hours', String(productiveHours))
     if (carrierIds.length > 0) fd.append('carrier_filter', carrierIds.join(','))
+    if (shiftsPerDayOverride !== null) fd.append('shifts_per_day_override', String(shiftsPerDayOverride))
     return client.post<RunDetail>(`/runs/${id}/performance`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })

@@ -11,6 +11,49 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-20] - Feature (main) — Performance: autodetekcja `shifts_per_day` + manualny override w UI
+
+**Problem:** w UI zawsze widniało `(2 shifts/day)`, niezależnie czy dane pokrywały 8/16/24 godzin. KPI per-shift (`Avg/Shift`, `Med/Shift`, `Max/Shift`) były dzielone przez stały dzielnik 2 — przy faktycznych 3 zmianach metryki były zawyżone o ~50%. Powód: `PerformanceAnalyzer` był zawsze tworzony bez `shift_schedule`, więc kod schodził do `else: shifts_per_day = 2`.
+
+**`src/analytics/performance.py`:**
+- Nowy helper `_detect_shifts_per_day(datehour)` — heurystyka: aktywna godzina = ta z sumą lini ≥ 10% max-godziny (sumując po wszystkich dniach); `shifts = ceil(active_hours / 8)`, clamp `[1, 3]`, fallback `2` dla pustego inputu. Odporna na overlap zmian i dipy lunchowe (mierzy realnie aktywne godziny, nie span).
+- `PerformanceAnalyzer.__init__` przyjmuje nowy `shifts_per_day_override: Optional[int] = None`.
+- `analyze()` zmienia kolejność: liczy `hourly/daily/datehour` najpierw, potem wybiera `shifts_per_day` w hierarchii **override → schedule → detected**. Source jest raportowane jako `"manual" | "schedule" | "auto"`.
+- `PerformanceAnalysisResult` ma nowe pola `detected_shifts_per_day: int` i `shifts_source: str`.
+
+**`api/routers/runs.py` → `POST /runs/{id}/performance`:**
+- Nowy parametr formularza `shifts_per_day_override: Optional[int] = Form(default=None)`, walidacja `{1, 2, 3}` z `422`.
+- Wartość trafia do analyzera i jest persystowana per-run w `run.analysis_config["shifts_per_day_override"]` (przeżywa reload, share, ponowne otwarcie).
+- Response (`performance_result`) zawiera nowe pola `detected_shifts_per_day`, `shifts_source`.
+
+**`frontend/src/api/runs.ts`:**
+- `PerformanceResult` ma opcjonalne `detected_shifts_per_day` i `shifts_source: 'auto' | 'manual' | 'schedule'`.
+- `runsApi.runPerformance(..., shiftsPerDayOverride: number | null = null)` — dodaje `shifts_per_day_override` do FormData gdy nie-`null`.
+
+**`frontend/src/components/analysis/PerformanceTab.vue`:**
+- Nowa kontrolka radio "Shifts per day" w "Analysis settings" (Auto / 1 / 2 / 3 shifts). Etykieta pokazuje auto-detected value gdy dostępne (`pr.detected_shifts_per_day`). Wartość początkowa hydrowana z `props.run.analysis_config.shifts_per_day_override` — wybór przeżywa reload.
+- Nagłówek "Throughput per Period" rozszerzony o suffix: `· auto-detected` lub `· manual` zależnie od `pr.shifts_source`.
+- `doRunAnalysis` przekazuje `shiftsPerDayOverride.value` do API.
+
+**`tests/test_analytics.py`:**
+- Nowa klasa `TestShiftsAutodetection` (10 testów): 2-zmianowy profile (06–21), 24/7 → 3, single shift (08–15) → 1, pusta lista / same zera → fallback 2, peak overlap nie psuje wyniku, próg 10% odrzuca szumowe godziny, override wygrywa z heurystyką (`shifts_source == "manual"`, `detected_shifts_per_day` raportuje co heurystyka by sama wybrała), brak override + brak schedule → `shifts_source == "auto"`.
+- Wszystkie 10 testów przechodzi. 2 pre-existing failsy w `_calculate_kpi` (niezwiązane — brakuje `order_date` w fixture) zostają.
+
+**Note dot. semantyki PER HOUR vs override:**
+- Kolumny `Avg/Hr`, `Med/Hr`, `Max/Hr` są liczone z obserwowanych `(date, hour)` bucketów (`_calculate_kpi` → `lines_values = [dh.lines for dh in datehour]`), **nie** z `day / (shifts × productive_hours)`. Zmiana `shifts_per_day` nie zmienia tych liczb — to zachowanie zamierzone (PER HOUR opisuje obserwacje, nie teoretyczny dzielnik).
+- Doprecyzowanie w UI: nagłówki grup w "Throughput per Period" mają teraz `title` tooltips wyjaśniające źródło każdej sekcji. Grupa "Per Hour" ma dodatkowo ikonkę `ⓘ` i `cursor: help` (nowa klasa CSS `.perf-group-th-info`).
+
+---
+
+### [2026-05-19] - UX (main) — Performance: kategoryczna oś LpO + sekcje w Throughput per Period
+
+**`frontend/src/components/analysis/PerformanceTab.vue`:**
+- Lines per Order Distribution Chart: wymuszony `xaxis.type: 'category'` + `categoryorder: 'array'` z `categoryarray` z bin labels. Powód: Plotly auto-parsował pierwsze 5 kubełków (`"1".."5"`) jako liczby i wyrzucał kategoryczne (`"6–10"`, `"11–20"`, …) — w efekcie wykres pokazywał tylko 5 słupków zamiast pełnego zestawu z kart KPI.
+- Throughput per Period: dodany dodatkowy wiersz nagłówkowy "Per Day / Per Shift / Per Hour" (`colspan=3`) oraz pionowe separatory (`border-right` na ostatniej kolumnie każdej sekcji) zarówno w nagłówku, jak i w każdym wierszu (Orders/Lines/Pieces). Separator po Max/Shift renderuje się tylko gdy `has_hourly_data` (żeby nie wisiał na krawędzi tabeli). Kolumny `Avg/Day` … `Max/Hr` wyśrodkowane (`text-center`); kolumna `Metric` zostaje wyrównana do lewej.
+- Dodane klasy CSS: `.perf-section-end` (pionowy separator) i `.perf-group-th` (drobny nagłówek grupy, uppercase, letter-spacing).
+
+---
+
 ### [2026-05-19] - UX (fix/mapping-stock-bug) — Performance: etykiety wartości, hover dnia tygodnia, więcej kubełków LpO
 
 **`frontend/src/components/analysis/PerformanceTab.vue`:**
