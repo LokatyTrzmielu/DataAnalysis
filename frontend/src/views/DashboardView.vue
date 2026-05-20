@@ -172,6 +172,22 @@
           <p style="font-size:11px;font-weight:600;color:var(--app-text-sec);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">Orders</p>
           <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Shifts / day</p>
+              <template v-if="perf">
+                <p style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ perf.shifts_per_day ?? '—' }}</p>
+                <p v-if="shiftsSourceLabel" style="font-size:11px;color:var(--app-text-sec);margin-top:2px">{{ shiftsSourceLabel }}</p>
+              </template>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+            <div class="card-apple">
+              <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Performance (lines/h)</p>
+              <template v-if="perf">
+                <p style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ perf.kpi?.avg_lines_per_hour?.toFixed(1) ?? '—' }}</p>
+                <p v-if="performanceScopeLabel" :title="performanceScopeLabel" style="font-size:11px;color:var(--app-text-sec);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ performanceScopeLabel }}</p>
+              </template>
+              <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Performance not run</p>
+            </div>
+            <div class="card-apple">
               <p style="font-size:12px;color:var(--app-text-sec);letter-spacing:-0.12px;margin-bottom:4px">Total rows</p>
               <p v-if="ovr" style="font-size:21px;font-weight:600;color:var(--app-text);line-height:1.19">{{ ovr.total_rows?.toLocaleString() ?? '—' }}</p>
               <p v-else style="font-size:12px;color:var(--app-placeholder);margin-top:4px">Orders not ingested</p>
@@ -305,6 +321,23 @@ const avgPiecesPerLine = computed(() => {
   const k = perf.value?.kpi
   if (!k || !k.total_lines) return null
   return (k.total_units / k.total_lines).toFixed(2)
+})
+
+const shiftsSourceLabel = computed(() => {
+  const src = perf.value?.shifts_source
+  if (src === 'auto') return 'auto-detected'
+  if (src === 'manual') return 'manual'
+  if (src === 'schedule') return 'from schedule'
+  return null
+})
+
+const performanceScopeLabel = computed(() => {
+  const scope = perf.value?.data_scope
+  if (!scope || scope.type === 'entire_file') return 'Entire file'
+  const stats = capacity.value?.carrier_stats as Record<string, { carrier_name?: string }> | undefined
+  const names = scope.carrier_ids.map(id => stats?.[id]?.carrier_name ?? id)
+  if (names.length === 0) return 'By carrier'
+  return `Carriers: ${names.join(', ')}`
 })
 
 const xvalOrdersPct = computed(() => {
