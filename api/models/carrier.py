@@ -25,6 +25,7 @@ class Carrier(Base):
     max_weight_kg: Mapped[float] = mapped_column(Float, nullable=False)
     is_predefined: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    utilization: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
     priority: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

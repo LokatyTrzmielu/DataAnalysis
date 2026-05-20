@@ -12,6 +12,7 @@ class CarrierCreate(BaseModel):
     inner_width_mm: float = Field(..., gt=0)
     inner_height_mm: float = Field(..., gt=0)
     max_weight_kg: float = Field(..., gt=0)
+    utilization: float = Field(default=1.0, gt=0, le=1)
     is_active: bool = True
     priority: Optional[int] = Field(default=None, ge=1)
 
@@ -23,6 +24,7 @@ class CarrierUpdate(BaseModel):
     inner_width_mm: Optional[float] = Field(default=None, gt=0)
     inner_height_mm: Optional[float] = Field(default=None, gt=0)
     max_weight_kg: Optional[float] = Field(default=None, gt=0)
+    utilization: Optional[float] = Field(default=None, gt=0, le=1)
     is_active: Optional[bool] = None
     priority: Optional[int] = Field(default=None, ge=1)
 
@@ -35,6 +37,7 @@ class CarrierResponse(BaseModel):
     inner_width_mm: float
     inner_height_mm: float
     max_weight_kg: float
+    utilization: float
     is_predefined: bool
     is_active: bool
     priority: Optional[int]

@@ -85,6 +85,7 @@ class CarrierService:
                 "inner_width_mm": c.inner_width_mm,
                 "inner_height_mm": c.inner_height_mm,
                 "max_weight_kg": c.max_weight_kg,
+                "utilization": c.utilization,
                 "is_active": c.is_active,
                 "priority": c.priority,
             }

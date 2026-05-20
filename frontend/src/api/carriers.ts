@@ -8,6 +8,7 @@ export interface Carrier {
   inner_width_mm: number
   inner_height_mm: number
   max_weight_kg: number
+  utilization: number
   is_predefined: boolean
   is_active: boolean
   priority: number | null
@@ -20,6 +21,7 @@ export interface CarrierCreate {
   inner_width_mm: number
   inner_height_mm: number
   max_weight_kg: number
+  utilization?: number
   is_active?: boolean
   priority?: number | null
 }

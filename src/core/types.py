@@ -194,6 +194,9 @@ class CarrierConfig(BaseModel):
     # Weight limit
     max_weight_kg: float = Field(..., gt=0)
 
+    # Utilization coefficient (0-1): reduces effective capacity after dimensional fit
+    utilization: float = Field(default=1.0, gt=0, le=1)
+
     # Whether active
     is_active: bool = Field(default=True)
 
@@ -210,6 +213,11 @@ class CarrierConfig(BaseModel):
         return (
             self.inner_length_mm * self.inner_width_mm * self.inner_height_mm
         ) / 1_000_000_000
+
+    @property
+    def effective_inner_volume_m3(self) -> float:
+        """Effective internal volume in m3 (inner_volume × utilization)."""
+        return self.inner_volume_m3 * self.utilization
 
 
 class CarrierFitResult(BaseModel):

@@ -8,6 +8,7 @@ carriers:
     inner_width_mm: 370
     inner_height_mm: 200
     max_weight_kg: 30
+    utilization: 1.0
     is_active: true
     priority: 1
 
@@ -17,6 +18,7 @@ carriers:
     inner_width_mm: 410
     inner_height_mm: 210
     max_weight_kg: 35
+    utilization: 1.0
     is_active: true
     priority: 2
 
@@ -26,6 +28,7 @@ carriers:
     inner_width_mm: 864
     inner_height_mm: 200
     max_weight_kg: 440
+    utilization: 1.0
     is_active: true
     priority: 3
 

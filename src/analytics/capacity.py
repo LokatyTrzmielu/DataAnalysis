@@ -63,18 +63,15 @@ class CapacityAnalyzer:
         self,
         carriers: list[CarrierConfig],
         borderline_threshold_mm: float = BORDERLINE_THRESHOLD_MM,
-        default_utilization: float = 0.75,
     ) -> None:
         """Initialize the analyzer.
 
         Args:
             carriers: List of carriers to analyze
             borderline_threshold_mm: Threshold for BORDERLINE
-            default_utilization: Default utilization coefficient
         """
         self.carriers = carriers
         self.borderline_threshold_mm = borderline_threshold_mm
-        self.default_utilization = default_utilization
 
     def analyze_sku(
         self,
@@ -181,6 +178,9 @@ class CapacityAnalyzer:
             weight_kg,
             carrier,
         )
+        # Second level: utilization scales down effective capacity
+        if units_per_carrier > 0:
+            units_per_carrier = max(1, math.floor(units_per_carrier * carrier.utilization))
 
         return CarrierFitResult(
             sku=sku,
