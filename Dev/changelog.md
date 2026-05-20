@@ -11,6 +11,41 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-20] - Fix (main) — Container Order: poprawna liczba Dividers + tiery 338/388 dla full-bin
+
+**Problem:** W tabeli „Variant order → Summary" kolumna **Dividers** liczyła
+`bins × locations_per_bin`, czyli liczbę *komór*, a nie liczbę fizycznych
+*ścianek działowych*. Dla `1/1-288` raportowało 1 zamiast 0; `1/4-288` → 4
+zamiast 2; `1/6_3x2-288` → 6 zamiast 3. Dodatkowo katalog kończył się na
+tierze 288 mm — Kardex oferuje wyższe tiery (338 / 388) z 4/5 ramkami
+EasyClick, ale bez dividerów.
+
+**Co się zmienia:**
+- `src/analytics/container_planner.py`:
+  - `HEIGHT_TIERS_MM = (138, 188, 238, 288, 338, 388)` (powrót pełnego zakresu).
+  - Nowa stała `MAX_DIVIDER_TIER_MM = 288` — powyżej dostępny tylko footprint `1/1`.
+  - `FOOTPRINTS` rozszerzone o `(n_L, n_W)` — siatkę komór.
+  - Nowe pole `Variant.dividers_per_bin = (n_L − 1) + (n_W − 1)`.
+  - `_build_catalog()` pomija multi-cell footprinty dla tierów > 288.
+  - `VariantSummary.dividers_required = bins × v.dividers_per_bin`.
+  - `_greedy_until_coverage(max_k=None)` — auto-dopasowanie do `len(catalog)`.
+  - `PlanParams.auto_max_variants` cap z `48` → `len(CATALOG_FULL)` (= 50).
+- Katalog: `CATALOG_FULL` 48 → **50** wariantów; `CATALOG_AUTO` 28 → **30**.
+- `tests/test_container_planner.py` + `tests/test_container_planner_params.py`:
+  zaktualizowane testy katalogu, dodane: `test_variant_dividers_per_bin_matches_grid_walls`,
+  `test_tiers_above_288_are_full_bin_only_no_dividers`, inwersja
+  `test_height_tiers_*` na pełen zakres 138-388 mm. **74/74 pass**.
+- Frontend (`ContainerOrderView.vue`): tooltipy nagłówków Frames / Dividers
+  uaktualnione (0..5 frames, formuła `(n_L−1)+(n_W−1)`).
+- API: `excel_generator.py` i `schemas/container_order.py` — komentarze
+  procurement breakdown.
+- Doc: `Dev/CONTAINER_ORDER_TOOL.md` — pełna tabela tierów + sekcja
+  „Procurement breakdown" z przykładami z user storki.
+
+**Branch:** `main` (Minor — mały fix obliczeniowy, brak migracji DB).
+
+---
+
 ### [2026-05-20] - Fix (main) — TechMag CP1250 + Capacity quality pipeline
 
 **Problem 1 (632 Missing Critical):** Pliki Excel z polskim kodowaniem CP1250 (np. TechMag SA) powodowały garbling nazw kolumn (`Długość [mm]` → surrogates). Auto-mapper nie rozpoznawał kolumn `length` i `stock` → użytkownik mapował ręcznie → często błędny mapping → fałszywy wynik 632 missing_critical.

@@ -464,9 +464,12 @@
           </p>
         </div>
 
-        <!-- Variant order table — Bins, Bases and Frames give the procurement breakdown.
-             Bases always equals Bins (1 base per physical bin); Frames depends on tier
-             via (bin_height_mm - 138) / 50. -->
+        <!-- Variant order table — Bins, Bases, Frames and Dividers give the
+             procurement breakdown. Bases always equals Bins (1 base per
+             physical bin); Frames depends on tier via (bin_height_mm − 138) / 50
+             (0..5 across all six tiers); Dividers = bins × ((n_L−1)+(n_W−1))
+             — 0 for full-bin and 0 unconditionally for tiers > 288 mm
+             (Kardex does not offer dividers above 288 mm). -->
         <div class="overflow-x-auto mb-4" style="border:1px solid var(--app-border);border-radius:10px">
           <table class="w-full" style="font-size:12.5px;border-collapse:collapse;table-layout:fixed">
             <colgroup>
@@ -490,8 +493,8 @@
                 <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500">Locations</th>
                 <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500">Bins</th>
                 <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500" title="Base containers (1 per bin)">Bases</th>
-                <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500" title="EasyClick frames per variant (bins × frames_per_bin)">Frames</th>
-                <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500" title="Divider cells to order (bins × locations_per_bin)">Dividers</th>
+                <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500" title="EasyClick frames per variant (bins × frames_per_bin); 0..5 frames per bin across tiers 138-388 mm">Frames</th>
+                <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500" title="Divider walls to order (bins × dividers_per_bin = bins × ((n_L−1)+(n_W−1))); 0 for full-bin and for tiers > 288 mm">Dividers</th>
                 <th class="px-3 py-2 text-right" style="color:var(--app-text-sec);font-weight:500">Fill</th>
               </tr>
             </thead>

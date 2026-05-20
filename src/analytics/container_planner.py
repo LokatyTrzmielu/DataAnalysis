@@ -12,9 +12,10 @@ Bin geometry:
 - External 640 × 440 × 138 mm (base) → interior 611 × 411 × 110 mm.
 - Bin floor takes 28 mm from external height (= bin_height − interior_height).
 - Each EasyClick frame adds 50 mm of fully-usable interior height.
-- Supported tiers: 138 / 188 / 238 / 288 mm (interior 110 → 260 mm).
-  Dividers and EasyClick frames physically exist only up to 288 mm
-  (confirmed 2026-05-20).
+- Supported tiers: 138 / 188 / 238 / 288 / 338 / 388 mm (interior 110 → 360 mm).
+  EasyClick frames are available across all tiers (0..5 frames per bin).
+  Dividers exist only up to 288 mm — tiers 338 / 388 are full-bin (``1/1``)
+  only (confirmed 2026-05-20).
 
 Weight:
 - Gross bin cap 35 kg. Empty bin tare 2.35 kg (assumed weightless frames pending
@@ -46,28 +47,34 @@ BIN_NET_MAX_KG = BIN_GROSS_MAX_KG - BIN_TARE_KG   # 32.65 kg usable for stock
 # resolves to the *net* (usable-stock) cap, which is what the planner uses.
 BIN_MAX_WEIGHT_KG = BIN_NET_MAX_KG
 
-# Height tiers — dividers/EasyClick frames exist only up to 288 mm (Kardex spec
-# confirmed 2026-05-20; the previous 388-mm cap was a documentation error).
-HEIGHT_TIERS_MM = (138, 188, 238, 288)
+# Height tiers — full Kardex VBM Box range. EasyClick frames cover all six
+# tiers; the catalog filters multi-cell footprints out above 288 mm because
+# dividers are not offered there (confirmed 2026-05-20).
+HEIGHT_TIERS_MM = (138, 188, 238, 288, 338, 388)
+# Tiers above this value are full-bin (``1/1``) only — no dividers available.
+MAX_DIVIDER_TIER_MM = 288
 # External bin height − bin floor thickness = interior height per cell.
 # Floor takes 28 mm; the rest of the bin height is fully usable.
 HEIGHT_FLOOR_LOSS_MM = 28
 
-# Footprint definitions: (code, label, length_mm, width_mm, locations_per_bin, in_auto_catalog).
+# Footprint definitions:
+#   (code, label, length_mm, width_mm, locations_per_bin, in_auto_catalog, n_L, n_W)
+# n_L / n_W = grid layout (cells along length / width). Used to count physical
+# divider walls per bin = (n_L − 1) + (n_W − 1).
 # Cell L/W = integer floor of 611/n and 411/n (Q-d decision 2026-05-19).
-FOOTPRINTS: tuple[tuple[str, str, int, int, int, bool], ...] = (
-    ("1/1",      "1 cell (full bin)",       611, 411,  1, True),
-    ("1/2L",     "2 cells (split length)",  305, 411,  2, True),
-    ("1/2W",     "2 cells (split width)",   611, 205,  2, True),
-    ("1/3W",     "3 cells (3× width)",      611, 137,  3, True),
-    ("1/3L",     "3 cells (3× length)",     203, 411,  3, False),
-    ("1/4",      "4 cells (2×2)",           305, 205,  4, True),
-    ("1/6_3x2",  "6 cells (3L×2W)",         203, 205,  6, True),
-    ("1/6_2x3",  "6 cells (2L×3W)",         305, 137,  6, False),
-    ("1/8",      "8 cells (4L×2W)",         305, 102,  8, False),
-    ("1/12_3x4", "12 cells (3L×4W)",        203, 102, 12, True),
-    ("1/12_6x2", "12 cells (6L×2W)",        101, 205, 12, False),
-    ("1/24",     "24 cells (6L×4W)",        101, 102, 24, False),
+FOOTPRINTS: tuple[tuple[str, str, int, int, int, bool, int, int], ...] = (
+    ("1/1",      "1 cell (full bin)",       611, 411,  1, True,  1, 1),
+    ("1/2L",     "2 cells (split length)",  305, 411,  2, True,  2, 1),
+    ("1/2W",     "2 cells (split width)",   611, 205,  2, True,  1, 2),
+    ("1/3W",     "3 cells (3× width)",      611, 137,  3, True,  1, 3),
+    ("1/3L",     "3 cells (3× length)",     203, 411,  3, False, 3, 1),
+    ("1/4",      "4 cells (2×2)",           305, 205,  4, True,  2, 2),
+    ("1/6_3x2",  "6 cells (3L×2W)",         203, 205,  6, True,  3, 2),
+    ("1/6_2x3",  "6 cells (2L×3W)",         305, 137,  6, False, 2, 3),
+    ("1/8",      "8 cells (4L×2W)",         305, 102,  8, False, 4, 2),
+    ("1/12_3x4", "12 cells (3L×4W)",        203, 102, 12, True,  3, 4),
+    ("1/12_6x2", "12 cells (6L×2W)",        101, 205, 12, False, 6, 2),
+    ("1/24",     "24 cells (6L×4W)",        101, 102, 24, False, 6, 4),
 )
 
 
@@ -95,6 +102,9 @@ class Variant:
     in_auto_catalog: bool
     frames_per_bin: int = 0  # default for backwards compatibility — computed in
                               # _build_catalog() from bin_height_mm
+    dividers_per_bin: int = 0  # (n_L − 1) + (n_W − 1) — physical divider walls;
+                                # 0 for full-bin and unconditionally 0 for tiers
+                                # above MAX_DIVIDER_TIER_MM.
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -108,21 +118,33 @@ FRAME_INCREMENT_MM = 50
 def _build_catalog() -> list[Variant]:
     """Generate the full catalog from FOOTPRINTS × HEIGHT_TIERS_MM.
 
-    With 12 footprints × 4 tiers, the full catalog is 48 variants; the auto
-    subset (footprints flagged ``in_auto_catalog=True``) is 7 × 4 = 28.
+    Multi-cell footprints (everything but ``1/1``) only exist up to
+    ``MAX_DIVIDER_TIER_MM`` (288 mm) — Kardex does not offer dividers above
+    that height, so 338/388 are full-bin only. With 12 footprints × 4 tiers
+    + 1 footprint (``1/1``) × 2 extra tiers, the full catalog is 50 variants;
+    the auto subset (footprints flagged ``in_auto_catalog=True``) is
+    7 × 4 + 1 × 2 = 30.
     """
     variants: list[Variant] = []
-    for fp_key, fp_label, fp_len, fp_wid, locs, in_auto in FOOTPRINTS:
+    for fp_key, fp_label, fp_len, fp_wid, locs, in_auto, n_L, n_W in FOOTPRINTS:
         cell_area_mm2 = fp_len * fp_wid
         # Proportional **net** weight cap per cell — i.e. usable for stock,
         # bin tare already deducted at the bin level. By induction, if every
         # cell respects its proportional cap, the bin's total stock weight
         # respects BIN_NET_MAX_KG and the gross (stock + tare) respects 35 kg.
         weight_per_cell = BIN_NET_MAX_KG * (cell_area_mm2 / USABLE_AREA_MM2)
+        divider_walls = (n_L - 1) + (n_W - 1)
         for tier in HEIGHT_TIERS_MM:
+            # Multi-cell footprints do not exist above MAX_DIVIDER_TIER_MM
+            # because dividers are not orderable for those tiers.
+            if tier > MAX_DIVIDER_TIER_MM and fp_key != "1/1":
+                continue
             cell_h = tier - HEIGHT_FLOOR_LOSS_MM
             cell_vol_L = (fp_len * fp_wid * cell_h) / 1_000_000.0  # mm³ → L
             frames_per_bin = (tier - BASE_BIN_HEIGHT_MM) // FRAME_INCREMENT_MM
+            # ``1/1`` already has 0 walls; the guard below is mostly belt-and-
+            # braces in case a future footprint slips through with tier > cap.
+            dividers_per_bin = divider_walls if tier <= MAX_DIVIDER_TIER_MM else 0
             variants.append(Variant(
                 code=f"{fp_key}-{tier}",
                 footprint_key=fp_key,
@@ -136,6 +158,7 @@ def _build_catalog() -> list[Variant]:
                 cell_volume_L=round(cell_vol_L, 3),
                 in_auto_catalog=in_auto,
                 frames_per_bin=frames_per_bin,
+                dividers_per_bin=dividers_per_bin,
             ))
     return variants
 
@@ -192,7 +215,7 @@ class PlanParams:
         self.location_fill_rate = max(0.05, min(1.0, float(self.location_fill_rate)))
         self.min_locations_per_sku = max(1, int(self.min_locations_per_sku))
         self.max_locations_per_sku = max(self.min_locations_per_sku, int(self.max_locations_per_sku))
-        self.auto_max_variants = max(1, min(48, int(self.auto_max_variants)))
+        self.auto_max_variants = max(1, min(len(CATALOG_FULL), int(self.auto_max_variants)))
 
 
 @dataclass
@@ -235,10 +258,12 @@ class VariantSummary:
     total_locations: int
     bins_required: int          # physical bins == bases (one base per bin)
     avg_fill_pct: float
-    frames_per_bin: int = 0      # EasyClick frames per bin (0/1/2/3)
+    frames_per_bin: int = 0      # EasyClick frames per bin (0..5)
     total_frames_required: int = 0  # bins_required * frames_per_bin
-    dividers_required: int = 0      # bins_required * locations_per_bin — total
-                                    # divider cells to order across all bins
+    dividers_required: int = 0      # bins_required * dividers_per_bin — total
+                                    # divider walls to order; dividers_per_bin =
+                                    # (n_L − 1) + (n_W − 1). 0 for full-bin and
+                                    # 0 unconditionally above MAX_DIVIDER_TIER_MM.
     total_weight_kg: float = 0.0    # Σ (stock_qty × unit_weight) across SKUs in
                                     # this variant — *stock only*, no tare
     bin_gross_weight_kg: float = 0.0  # avg bin total = stock_weight/bins + tare;
@@ -752,7 +777,7 @@ def _plan_from_selection(selection: set[str], fits: list[_SkuFit],
             avg_fill_pct=round(avg_fill, 2),
             frames_per_bin=v.frames_per_bin,
             total_frames_required=frames_for_variant,
-            dividers_required=bins * v.locations_per_bin,
+            dividers_required=bins * v.dividers_per_bin,
             total_weight_kg=round(stock_weight, 2),
             bin_gross_weight_kg=round(avg_gross_per_bin, 2),
         ))
@@ -806,8 +831,16 @@ def plan_containers(
 
 
 def _greedy_until_coverage(fits: list[_SkuFit], catalog: list[Variant],
-                            target_pct: float, max_k: int = 28) -> set[str]:
-    """Keep adding variants until coverage ≥ target_pct or we hit max_k."""
+                            target_pct: float, max_k: int | None = None) -> set[str]:
+    """Keep adding variants until coverage ≥ target_pct or we hit max_k.
+
+    ``max_k`` defaults to the size of the supplied catalog so the loop is
+    bounded by the catalog itself rather than a hard-coded number — this
+    keeps the planner correct when the catalog grows (e.g. CATALOG_AUTO
+    expanded from 28 to 30 variants when 338/388 tiers were re-introduced).
+    """
+    if max_k is None:
+        max_k = len(catalog)
     by_variant = {v.code: v for v in catalog}
     chosen: set[str] = set()
     total = max(1, len(fits))

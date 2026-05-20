@@ -45,13 +45,14 @@ Plik PDF `Dev/Calculators/Flyer_PL_Kardex-VBM-Box.pdf` (Kardex VBM Box flyer) + 
   (Założenie: ramki EasyClick traktujemy jako 0 kg do czasu uzyskania danych z Kardex.)
 - Dno bina pochłania **28 mm** wysokości (`bin_height − interior_height`).
 - System EasyClick: każda ramka dodaje **+50 mm** w pełni użytecznej wysokości wnętrza.
-- Wysokości: 138 / 188 / 238 / 288 mm → wnętrze 110 / 160 / 210 / 260 mm.
-- Dividery i ramki EasyClick istnieją tylko do 288 mm — wyższych konfiguracji Kardex nie oferuje (potwierdzone 2026-05-20). Wcześniejszy zapis o tierach 338 / 388 był błędem dokumentacji.
+- Wysokości: 138 / 188 / 238 / 288 / 338 / 388 mm → wnętrze 110 / 160 / 210 / 260 / 310 / 360 mm.
+- **Ramki EasyClick** dostępne we wszystkich tierach (0..5 sztuk na bin).
+- **Dividery** dostępne wyłącznie do **288 mm** — Kardex nie oferuje ścianek działowych dla 338 / 388 mm, dlatego dla tych dwóch tierów katalog zawiera wyłącznie footprint `1/1` (full bin) (potwierdzone 2026-05-20).
 
 ## Katalog wariantów
 
-12 footprintów × 4 wysokości = **48 wariantów (pełny katalog, tryb Manual)**.
-7 footprintów oznaczonych jako "auto" → **28 wariantów (tryby Auto i Guided)**.
+12 footprintów × 4 wysokości (≤ 288 mm) + footprint `1/1` × 2 wysokości (338, 388) = **50 wariantów (pełny katalog, tryb Manual)**.
+7 footprintów oznaczonych jako "auto" (wliczając `1/1`) × 4 wysokości + `1/1` × 2 wysokości = **30 wariantów (tryby Auto i Guided)**.
 
 Wymiary komór (długość × szerokość, integer floor z `611/n` i `411/n`):
 
@@ -76,7 +77,30 @@ Po obliczeniu planu `VariantSummary.bin_gross_weight_kg` raportuje średnie **br
 
 Wewnętrzna wysokość komory = `bin_height_mm − 28` (utracone na dno).
 
-Kody wariantów: `{footprint}-{bin_height_mm}` — np. `1/4-188`, `1/24-288`.
+Kody wariantów: `{footprint}-{bin_height_mm}` — np. `1/4-188`, `1/24-288`, `1/1-388`.
+
+## Procurement breakdown — Bases / Frames / Dividers (2026-05-20)
+
+Sekcja **Summary** w UI oraz w eksportach (Excel / PDF / CSV) liczy fizyczne
+sztuki do zamówienia per wariant. Pola w `VariantSummary`:
+
+| Pole | Formuła | Komentarz |
+|---|---|---|
+| **Bases** | `bins_required` | 1 baza 138 mm na każdy fizyczny bin. |
+| **Frames** | `bins_required × ((bin_height_mm − 138) // 50)` | EasyClick frames 50 mm. Zakres 0..5 (tier 138 → 0, 388 → 5). |
+| **Dividers** | `bins_required × ((n_L − 1) + (n_W − 1))` | Liczba *ścianek* działowych — nie komór. Pusty bin = 0, tiery > 288 mm = 0 zawsze. |
+
+Przykłady (1 bin każdego wariantu):
+
+| Wariant | Base | Frames | Dividers |
+|---|---:|---:|---:|
+| `1/1-288` | 1 | 3 | 0 |
+| `1/4-288` | 1 | 3 | 2 |
+| `1/6_3x2-288` | 1 | 3 | 3 |
+| `1/1-388` | 1 | 5 | 0 |
+
+Wcześniejsza wersja (pre-2026-05-20) liczyła Dividers jako `bins × locations_per_bin`,
+co nadmiarowo raportowało liczbę komór zamiast liczby fizycznych ścianek.
 
 ## Test 6 orientacji SKU (2026-05-19)
 

@@ -14,20 +14,22 @@ from src.analytics import container_planner as cp
 # ---------------------------------------------------------------------------
 
 
-def test_catalog_full_has_48_variants():
-    # 12 footprints × 4 height tiers (138, 188, 238, 288).
-    assert len(cp.CATALOG_FULL) == 48
+def test_catalog_full_has_50_variants():
+    # 12 footprints × 4 height tiers (138/188/238/288) plus the ``1/1``
+    # footprint at the two divider-less tiers (338, 388) = 48 + 2 = 50.
+    assert len(cp.CATALOG_FULL) == 50
 
 
-def test_catalog_auto_has_28_variants():
-    # 7 auto-flagged footprints × 4 height tiers.
-    assert len(cp.CATALOG_AUTO) == 28
+def test_catalog_auto_has_30_variants():
+    # 7 auto-flagged footprints × 4 height tiers plus ``1/1`` at 338/388
+    # = 28 + 2 = 30.
+    assert len(cp.CATALOG_AUTO) == 30
     assert all(v.in_auto_catalog for v in cp.CATALOG_AUTO)
 
 
 def test_height_tiers_match_pdf():
     tiers = sorted({v.bin_height_mm for v in cp.CATALOG_FULL})
-    assert tiers == [138, 188, 238, 288]
+    assert tiers == [138, 188, 238, 288, 338, 388]
 
 
 def test_footprints_present():
@@ -46,10 +48,11 @@ def test_full_bin_weight_cap_equals_kardex_net_spec():
 
 
 def test_variant_frames_per_bin_derived_from_height():
-    """EasyClick formula: frames_per_bin = (bin_height_mm - 138) // 50."""
+    """EasyClick formula: frames_per_bin = (bin_height_mm - 138) // 50,
+    across the full 0..5 range (tiers 138/188/238/288/338/388)."""
     by_height = {v.bin_height_mm: v.frames_per_bin
                  for v in cp.CATALOG_FULL if v.footprint_key == "1/1"}
-    assert by_height == {138: 0, 188: 1, 238: 2, 288: 3}
+    assert by_height == {138: 0, 188: 1, 238: 2, 288: 3, 338: 4, 388: 5}
 
 
 def test_variant_summary_carries_frames_per_bin_and_total():
@@ -416,9 +419,11 @@ def test_plan_bin_total_weight_stays_under_cap():
 # ---------------------------------------------------------------------------
 
 
-def test_variant_summary_dividers_required_equals_bins_times_locations():
+def test_variant_summary_dividers_required_equals_bins_times_dividers_per_bin():
     """dividers_required is the procurement value the user orders — must equal
-    bins × locations_per_bin for every variant in the plan."""
+    bins × dividers_per_bin for every variant in the plan. dividers_per_bin
+    is the count of physical divider walls = (n_L − 1) + (n_W − 1), not the
+    number of cells per bin."""
     rows = [_row(f"s{i}", 100, 80, 80, 0.3, stock_vol_L=3) for i in range(12)]
     cap = {"rows": rows, "carriers_analyzed": [cp.MIB_CARRIER_ID]}
     plan = cp.plan_containers(
@@ -426,8 +431,37 @@ def test_variant_summary_dividers_required_equals_bins_times_locations():
         cp.PlanParams(abc_classes=(), only_machine=False),
     )
     assert plan.summaries, "plan must produce at least one variant"
+    by_code = {v.code: v for v in cp.CATALOG_FULL}
     for s in plan.summaries:
-        assert s.dividers_required == s.bins_required * s.locations_per_bin
+        v = by_code[s.code]
+        assert s.dividers_required == s.bins_required * v.dividers_per_bin
+
+
+def test_variant_dividers_per_bin_matches_grid_walls():
+    """``dividers_per_bin`` counts physical wall pieces between cells.
+    For an n_L × n_W grid that is (n_L − 1) + (n_W − 1):
+    - 1/1   (1×1) → 0
+    - 1/4   (2×2) → 2
+    - 1/6_3x2 (3×2) → 3
+    - 1/24  (6×4) → 8
+    """
+    by_code = {v.code: v for v in cp.CATALOG_FULL}
+    assert by_code["1/1-288"].dividers_per_bin == 0
+    assert by_code["1/4-288"].dividers_per_bin == 2
+    assert by_code["1/6_3x2-288"].dividers_per_bin == 3
+    assert by_code["1/24-288"].dividers_per_bin == 8
+
+
+def test_tiers_above_288_are_full_bin_only_no_dividers():
+    """Kardex does not offer dividers above 288 mm, so 338/388 are full-bin
+    (``1/1``) only. ``1/1-388`` still gets 5 EasyClick frames per bin."""
+    above_288 = [v for v in cp.CATALOG_FULL if v.bin_height_mm > 288]
+    assert {v.footprint_key for v in above_288} == {"1/1"}
+    assert all(v.dividers_per_bin == 0 for v in above_288)
+    by_code = {v.code: v for v in cp.CATALOG_FULL}
+    assert by_code["1/1-338"].frames_per_bin == 4
+    assert by_code["1/1-388"].frames_per_bin == 5
+    assert by_code["1/1-388"].dividers_per_bin == 0
 
 
 # ---------------------------------------------------------------------------

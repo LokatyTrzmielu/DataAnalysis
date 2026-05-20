@@ -90,7 +90,7 @@ def test_default_plan_params_route_to_full_coverage_greedy():
     variants — are encoded in the dataclass defaults: mode="guided" +
     guided_preset="full_coverage". A bare `PlanParams()` (no arguments)
     must therefore drive `_greedy_until_coverage`, which stops adding
-    variants as soon as coverage ≥ 99% and uses the auto catalog (28
+    variants as soon as coverage ≥ 99% and uses the auto catalog (30
     variants max). The only SKUs that can stay uncovered are physical
     orphans (`no_fitting_variant`).
     """
@@ -115,9 +115,9 @@ def test_default_plan_params_route_to_full_coverage_greedy():
     covered_or_geom_orphan = plan.total_sku_covered + len(geometric_orphans)
     assert covered_or_geom_orphan == plan.total_sku_planned
 
-    # Greedy-until-coverage stops early — never breaches the 28-variant
-    # auto-catalog ceiling, and typically uses far fewer.
-    assert len(plan.selected_variant_codes) <= 28
+    # Greedy-until-coverage stops early — never breaches the auto-catalog
+    # size, and typically uses far fewer.
+    assert len(plan.selected_variant_codes) <= len(cp.CATALOG_AUTO)
 
 
 def test_auto_max_variants_changes_selection_in_auto_mode():
@@ -390,23 +390,30 @@ def test_interior_dimensions_match_kardex_spec():
     assert one_one_138.cell_height_mm == 110
 
 
-def test_height_tiers_exclude_above_288():
-    """Dividers and EasyClick frames physically exist only up to 288 mm
-    (Kardex spec confirmed 2026-05-20). The previous 338/388 entries were a
-    documentation error and must not appear anywhere in the catalog."""
-    assert cp.HEIGHT_TIERS_MM == (138, 188, 238, 288)
-    assert 338 not in cp.HEIGHT_TIERS_MM
-    assert 388 not in cp.HEIGHT_TIERS_MM
+def test_height_tiers_full_range_with_full_bin_only_above_288():
+    """Kardex VBM Box offers six tiers 138-388 mm. EasyClick frames are
+    available across all six (0..5 frames per bin), but dividers exist only
+    up to 288 mm — so 338 and 388 are restricted to the ``1/1`` (full-bin)
+    footprint only (confirmed 2026-05-20)."""
+    assert cp.HEIGHT_TIERS_MM == (138, 188, 238, 288, 338, 388)
     heights_in_catalog = {v.bin_height_mm for v in cp.CATALOG_FULL}
-    assert heights_in_catalog == {138, 188, 238, 288}
-    one_one_288 = next(v for v in cp.CATALOG_FULL
-                        if v.footprint_key == "1/1" and v.bin_height_mm == 288)
-    assert one_one_288.cell_height_mm == 260  # 288 − 28
+    assert heights_in_catalog == {138, 188, 238, 288, 338, 388}
+    # 1/1 spans every tier; everything else stops at 288.
+    above_288 = [v for v in cp.CATALOG_FULL if v.bin_height_mm > 288]
+    assert {v.footprint_key for v in above_288} == {"1/1"}
+    one_one_388 = next(v for v in cp.CATALOG_FULL
+                        if v.footprint_key == "1/1" and v.bin_height_mm == 388)
+    assert one_one_388.cell_height_mm == 360  # 388 − 28
+    assert one_one_388.frames_per_bin == 5
+    assert one_one_388.dividers_per_bin == 0
 
 
 def test_volume_matches_user_spec_table():
-    """Spot-check tier volumes against the user-supplied table."""
-    expected = {138: 27.6, 188: 40.3, 238: 53.0, 288: 65.6}
+    """Spot-check tier volumes against the user-supplied table.
+
+    Values for 338/388 are derived from the same 611×411×(tier−28) math used
+    elsewhere — listed here so a regression in the formula is caught."""
+    expected = {138: 27.6, 188: 40.3, 238: 53.0, 288: 65.6, 338: 77.8, 388: 90.4}
     for tier, want in expected.items():
         v = next(x for x in cp.CATALOG_FULL
                   if x.footprint_key == "1/1" and x.bin_height_mm == tier)

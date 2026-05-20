@@ -106,7 +106,9 @@ class VariantSummaryRow(BaseModel):
     # this variant. Each bin = 1 base (138 mm) + frames_per_bin frames (50 mm each).
     frames_per_bin: int = 0
     total_frames_required: int = 0
-    # Total divider cells to order = bins_required × locations_per_bin.
+    # Total divider walls to order = bins_required × dividers_per_bin,
+    # where dividers_per_bin = (n_L − 1) + (n_W − 1). 0 for full-bin and 0
+    # unconditionally for tiers above 288 mm (no dividers sold for 338/388).
     dividers_required: int = 0
     # Σ stocked weight assigned to this variant (kg) — *stock only*, no tare.
     # By construction (per-cell net-weight cap), this divided by bins_required

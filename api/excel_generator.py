@@ -47,7 +47,8 @@ def _sheet_order_summary(wb: Workbook, plan: Any) -> None:
     ws = wb.create_sheet("Order Summary", 0)
     # "Bases", "Frames" and "Dividers" make the procurement breakdown explicit.
     # Each physical bin needs 1 base (138 mm) + N frames (50 mm each) +
-    # locations_per_bin divider cells.
+    # ((n_L − 1) + (n_W − 1)) divider walls. Dividers are 0 for full-bin and 0
+    # unconditionally for tiers above 288 mm (Kardex does not sell dividers there).
     headers = ["Variant", "Footprint", "Bin height (mm)", "Cell L×W×H (mm)",
                "Locations / bin", "SKU count", "Locations total", "Bins to order",
                "Bases", "Frames", "Dividers", "Total weight (kg)",
@@ -67,7 +68,7 @@ def _sheet_order_summary(wb: Workbook, plan: Any) -> None:
             s.bins_required,
             s.bins_required,            # Bases — 1 base per bin
             s.total_frames_required,    # Frames — bins × frames_per_bin
-            s.dividers_required,        # Dividers — bins × locations_per_bin
+            s.dividers_required,        # Dividers — bins × dividers_per_bin
             round(s.total_weight_kg, 2),
             s.avg_fill_pct,
         ])
