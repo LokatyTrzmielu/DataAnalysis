@@ -11,6 +11,21 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-20] - Feature (feature/dashboard-shifts-performance-kpi) — Dashboard: karty Shifts/day i Performance (lines/h)
+
+**Problem:** Po dodaniu autodetekcji `shifts_per_day` + manual override (commit 5b4cec2) ta informacja była widoczna tylko w PerformanceTab, ale nie na głównym Dashboardzie. Nie było też szybkiego podglądu czy analiza performance była puszczona na całym pliku, czy na wybranych nośnikach (`data_scope`).
+
+**Co się zmienia:**
+- `frontend/src/views/DashboardView.vue`: w sekcji Orders dodane dwie nowe karty KPI **na pierwszej pozycji**:
+  - **Shifts / day** — wartość z `perf.shifts_per_day` + podpis ze źródłem (`auto-detected` / `manual` / `from schedule`) z `perf.shifts_source`.
+  - **Performance (lines/h)** — `perf.kpi.avg_lines_per_hour.toFixed(1)` + podpis ze zakresem analizy (`Entire file` lub `Carriers: <nazwy>`) na podstawie `perf.data_scope` i mapowania `capacity_result.carrier_stats[id].carrier_name`.
+  - Dwa nowe computed-y: `shiftsSourceLabel`, `performanceScopeLabel`. Oba degradują się czysto dla starszych runów (brak `shifts_source` lub brak `data_scope` → fallback do `null` / `"Entire file"`).
+- `frontend/src/api/runs.ts`: do interfejsu `PerformanceResult` dodane opcjonalne pola `productive_hours_per_shift?: number` oraz `data_scope?: { type: 'entire_file' | 'carriers'; carrier_ids: string[] }` — backend już je zapisywał (`api/routers/runs.py:1177-1181`), tylko typ TS się o tym nie wiedział.
+
+**Brak zmian w:** backendzie (pola już istniały w `performance_result`), `PerformanceTab.vue`, schemach Pydantic, modelu `AnalysisRun`, żadnym innym widoku.
+
+---
+
 ### [2026-05-20] - Refactor (refactor/container-order-simplify-ux) — Container Order: jeden przycisk + Advanced fold-out
 
 **Problem:** Calculation tab miał 14 widocznych kontrolek (Mode/Goal/Preset dropdowny, 7 sliderów/togglów, manualny picker 48 wariantów). Trzyklasowa hierarchia `mode × goal × preset` była myląca; mało kto wiedział, kiedy „Auto + min_waste" działa inaczej niż „Guided + full_coverage". Tymczasem priorytety operacyjne są jasne i bezkonfliktowe: max Fill % → ~100% coverage → najmniej wariantów (niższy koszt zamówienia).

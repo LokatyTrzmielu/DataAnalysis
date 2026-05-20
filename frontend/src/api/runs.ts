@@ -264,6 +264,11 @@ export interface PerformanceResult {
   shifts_per_day: number
   detected_shifts_per_day?: number
   shifts_source?: 'auto' | 'manual' | 'schedule'
+  productive_hours_per_shift?: number
+  data_scope?: {
+    type: 'entire_file' | 'carriers'
+    carrier_ids: string[]
+  }
 }
 
 export const runsApi = {
