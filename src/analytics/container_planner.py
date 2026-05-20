@@ -12,7 +12,9 @@ Bin geometry:
 - External 640 × 440 × 138 mm (base) → interior 611 × 411 × 110 mm.
 - Bin floor takes 28 mm from external height (= bin_height − interior_height).
 - Each EasyClick frame adds 50 mm of fully-usable interior height.
-- Supported tiers: 138 / 188 / 238 / 288 / 338 / 388 mm (interior 110 → 360 mm).
+- Supported tiers: 138 / 188 / 238 / 288 mm (interior 110 → 260 mm).
+  Dividers and EasyClick frames physically exist only up to 288 mm
+  (confirmed 2026-05-20).
 
 Weight:
 - Gross bin cap 35 kg. Empty bin tare 2.35 kg (assumed weightless frames pending
@@ -44,8 +46,9 @@ BIN_NET_MAX_KG = BIN_GROSS_MAX_KG - BIN_TARE_KG   # 32.65 kg usable for stock
 # resolves to the *net* (usable-stock) cap, which is what the planner uses.
 BIN_MAX_WEIGHT_KG = BIN_NET_MAX_KG
 
-# Height tiers — dividers extend the full interior up to 388 mm.
-HEIGHT_TIERS_MM = (138, 188, 238, 288, 338, 388)
+# Height tiers — dividers/EasyClick frames exist only up to 288 mm (Kardex spec
+# confirmed 2026-05-20; the previous 388-mm cap was a documentation error).
+HEIGHT_TIERS_MM = (138, 188, 238, 288)
 # External bin height − bin floor thickness = interior height per cell.
 # Floor takes 28 mm; the rest of the bin height is fully usable.
 HEIGHT_FLOOR_LOSS_MM = 28
@@ -105,8 +108,8 @@ FRAME_INCREMENT_MM = 50
 def _build_catalog() -> list[Variant]:
     """Generate the full catalog from FOOTPRINTS × HEIGHT_TIERS_MM.
 
-    With 12 footprints × 6 tiers, the full catalog is 72 variants; the auto
-    subset (footprints flagged ``in_auto_catalog=True``) is 7 × 6 = 42.
+    With 12 footprints × 4 tiers, the full catalog is 48 variants; the auto
+    subset (footprints flagged ``in_auto_catalog=True``) is 7 × 4 = 28.
     """
     variants: list[Variant] = []
     for fp_key, fp_label, fp_len, fp_wid, locs, in_auto in FOOTPRINTS:

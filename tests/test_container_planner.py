@@ -14,20 +14,20 @@ from src.analytics import container_planner as cp
 # ---------------------------------------------------------------------------
 
 
-def test_catalog_full_has_72_variants():
-    # 12 footprints × 6 height tiers (138, 188, 238, 288, 338, 388).
-    assert len(cp.CATALOG_FULL) == 72
+def test_catalog_full_has_48_variants():
+    # 12 footprints × 4 height tiers (138, 188, 238, 288).
+    assert len(cp.CATALOG_FULL) == 48
 
 
-def test_catalog_auto_has_42_variants():
-    # 7 auto-flagged footprints × 6 height tiers.
-    assert len(cp.CATALOG_AUTO) == 42
+def test_catalog_auto_has_28_variants():
+    # 7 auto-flagged footprints × 4 height tiers.
+    assert len(cp.CATALOG_AUTO) == 28
     assert all(v.in_auto_catalog for v in cp.CATALOG_AUTO)
 
 
 def test_height_tiers_match_pdf():
     tiers = sorted({v.bin_height_mm for v in cp.CATALOG_FULL})
-    assert tiers == [138, 188, 238, 288, 338, 388]
+    assert tiers == [138, 188, 238, 288]
 
 
 def test_footprints_present():
@@ -49,7 +49,7 @@ def test_variant_frames_per_bin_derived_from_height():
     """EasyClick formula: frames_per_bin = (bin_height_mm - 138) // 50."""
     by_height = {v.bin_height_mm: v.frames_per_bin
                  for v in cp.CATALOG_FULL if v.footprint_key == "1/1"}
-    assert by_height == {138: 0, 188: 1, 238: 2, 288: 3, 338: 4, 388: 5}
+    assert by_height == {138: 0, 188: 1, 238: 2, 288: 3}
 
 
 def test_variant_summary_carries_frames_per_bin_and_total():

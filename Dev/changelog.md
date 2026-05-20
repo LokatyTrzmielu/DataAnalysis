@@ -11,6 +11,19 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-20] - Fix (fix/kardex-dividers-288mm-limit) — Container Order: limit Dividers/Frames do 288 mm
+
+**Problem:** Katalog Kardex VBM Box generował 6 tierów wysokości (138/188/238/288/**338**/**388** mm), ale Kardex fizycznie nie oferuje Dividerów ani ramek EasyClick powyżej 288 mm. Tiery 338 i 388 były błędem dokumentacji wprowadzonym 2026-05-19 (vide wpis przy commicie z 72 wariantami) i należało je usunąć z całego narzędzia.
+
+**Co się zmienia:**
+- `src/analytics/container_planner.py`: `HEIGHT_TIERS_MM = (138, 188, 238, 288)` (z `(138, 188, 238, 288, 338, 388)`). Katalog: **72 → 48 wariantów** (12 footprintów × 4 tiery); auto-katalog: **42 → 28** (7 × 4). Maks. wnętrze komory: 360 → 260 mm. Maks. `frames_per_bin`: 5 → 3.
+- Testy w `tests/test_container_planner.py` i `tests/test_container_planner_params.py` zaktualizowane (asercje liczby wariantów, lista tierów, mapa frames, mapa wolumenu, docstringi). Stary `test_height_tiers_include_338_and_388` zastąpiony przez `test_height_tiers_exclude_above_288`.
+- `Dev/CONTAINER_ORDER_TOOL.md` zaktualizowany (sekcja "Wysokości", liczby wariantów, przykład kodu wariantu).
+
+**Brak zmian w:** frontendzie (data-driven — czyta `bin_height_mm` z odpowiedzi API), eksportach (Excel/PDF/CSV — agregują po wariantach), schematach Pydantic, logice dopasowania SKU. SKU które wymagały tierów 338/388 staną się transparentnymi orphanami z `orphan_reason='no_fitting_variant'`.
+
+---
+
 ### [2026-05-20] - Feature (main) — Performance: autodetekcja `shifts_per_day` + manualny override w UI
 
 **Problem:** w UI zawsze widniało `(2 shifts/day)`, niezależnie czy dane pokrywały 8/16/24 godzin. KPI per-shift (`Avg/Shift`, `Med/Shift`, `Max/Shift`) były dzielone przez stały dzielnik 2 — przy faktycznych 3 zmianach metryki były zawyżone o ~50%. Powód: `PerformanceAnalyzer` był zawsze tworzony bez `shift_schedule`, więc kod schodził do `else: shifts_per_day = 2`.
