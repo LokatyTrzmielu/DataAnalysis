@@ -11,6 +11,27 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-20] - Feature (feature/help-extended-sections) — Help: grupowana nawigacja + przykłady obliczeń + 4 nowe sekcje
+
+**Problem:** `HelpView.vue` miał ograniczoną szerokość (`max-width: 880px`), płaski 8-pozycyjny sidebar i opisywał tylko proces analizy. Brakowało: dokumentacji Datasets, Carriers, Tools › Data Preparation i Tools › Container Order; konkretnych liczb przy formułach (P90, Filling Rate, ABC, fit test); hierarchii w bocznym pasku porządkującej rosnącą listę sekcji.
+
+**Co się zmienia (zmiana ogranicza się do jednego pliku — `frontend/src/views/HelpView.vue`):**
+- **Sidebar — zwijane grupy z podsekcjami:** drzewo `navTree` (typ `NavNode { id, label, icon?, isGroup?, children? }`) zamiast płaskiej tablicy `sections`. Trzy grupy: Process (Import / Quality / Performance + 3 podsekcje / Capacity + 3 podsekcje / Reports), Data & Carriers (Datasets / Carriers), Tools (Data Preparation / Container Order). Overview, Sharing, Dashboard pozostają pojedynczymi pozycjami. Toggle przez kliknięcie nagłówka grupy; watcher na `activeSection` auto-rozszerza grupę zawierającą aktualną sekcję.
+- **IntersectionObserver rozszerzony** o wszystkie podsekcje (id-y: `performance-kpi`, `performance-abc`, `performance-pareto`, `capacity-fit`, `capacity-loc`, `capacity-modes`). Rekurencyjny `collectAnchorIds` zbiera id-y do obserwacji.
+- **Szerokość:** usunięty `max-width: 880px` z `.help-page` — strona korzysta z `max-w-[1400px]` z `App.vue`. Sidebar: 220 px, gap: 40 px. Sticky sidebar z `max-height: calc(100vh - 88px)` i własnym scrollem dla długich nawigacji.
+- **Nowe komponenty stylistyczne:**
+  - `.help-example-card` — zielona karta „EXAMPLE" z monospace pre-formatted body dla prostych wzorów (Coverage %, Filling Rate, P90).
+  - `.help-steps-table` — siatka CSS-grid z zebra rows + wariantami `abc-grid` (5 kol.), `pareto-grid` (4 kol.), `fit-grid` (6 kol.), `prep-grid` (3 kol.) dla procesów wieloetapowych.
+- **Przykładowe obliczenia z liczbami** dodane do Quality (Coverage 85.6 %, outlier 1200 mm > 840 mm, imputacja prefixu BOLT-M8), Performance (4.17 lines/order, P90 = 142 lines/h, ABC cuts at rank 142/418, top-10 = 31 %), Capacity (fit test 6 orientacji SKU 80×60×40 vs 100×70×50, Filling Rate 96.0 %, three-mode example).
+- **Cztery nowe sekcje:** `#datasets` (workflow upload → inspect → map → save → use; kiedy używać vs Import bezpośredni), `#carriers` (pola, inner vs outer, przykład borderline_threshold), `#tool-data-prep` (merge N plików z różnymi nazwami kolumn; przykład 3 pliki × 5 000 wierszy → 14 982 unique SKU), `#tool-container-ord` (5-krokowa tabela: Best Fit → grupowanie → locations → konwersja → plan; tip o limicie 288 mm Kardex divider).
+- **Inne:** Overview `flowSteps` rozszerzony z 5 do 7 (dodane Datasets + Carriers jako kroki 1–2). Access table w Sharing przeniesiona z inline-style do klasy `.help-access-table` (data-driven `v-for` po `accessRows`).
+
+**Weryfikacja:** `npm run type-check` — clean dla `HelpView.vue` (dwa pre-existing TS errors w `PerformanceTab.vue` bez związku ze zmianą). Smoke test w przeglądarce na 1440 px, light + dark mode: layout 1400, auto-expand grupy po scrollu, manual toggle, aktywna podsekcja podświetlona, IntersectionObserver poprawnie śledzi `performance-pareto`, `capacity-fit`, `datasets` itp.
+
+**Branch:** `feature/help-extended-sections`.
+
+---
+
 ### [2026-05-20] - Feature (feature/dashboard-shifts-performance-kpi) — Dashboard: karty Shifts/day i Performance (lines/h)
 
 **Problem:** Po dodaniu autodetekcji `shifts_per_day` + manual override (commit 5b4cec2) ta informacja była widoczna tylko w PerformanceTab, ale nie na głównym Dashboardzie. Nie było też szybkiego podglądu czy analiza performance była puszczona na całym pliku, czy na wybranych nośnikach (`data_scope`).
