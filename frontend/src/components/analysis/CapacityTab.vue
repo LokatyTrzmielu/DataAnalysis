@@ -149,6 +149,7 @@
           <thead class="cap-thead">
             <tr>
               <th class="px-4 py-2 text-left text-xs font-medium" style="color:var(--app-text-sec)">Carrier</th>
+              <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">Utilization</th>
               <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">Fit %</th>
               <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">FIT</th>
               <th class="px-4 py-2 text-right text-xs font-medium" style="color:var(--app-text-sec)">BORDERLINE</th>
@@ -162,6 +163,7 @@
           <tbody>
             <tr v-for="(stats, cid) in cr.carrier_stats" :key="cid" class="cap-row">
               <td class="px-4 py-2 font-medium" style="color:var(--app-text)">{{ stats.carrier_name }}</td>
+              <td class="px-4 py-2 text-right" style="color:var(--app-text-sec)">{{ carrierUtilizationLabel(cid) }}</td>
               <td class="px-4 py-2 text-right" style="color:var(--app-text-sec)">{{ stats.fit_percentage.toFixed(1) }}%</td>
               <td class="px-4 py-2 text-right badge-fit-text">{{ stats.fit_count }}</td>
               <td class="px-4 py-2 text-right badge-bl-text">{{ stats.borderline_count }}</td>
@@ -485,7 +487,13 @@ function carrierLabel(id: string) {
 function carrierDims(id: string) {
   const c = availableCarriers.value.find(x => x.carrier_id === id)
   if (!c) return ''
-  return `${c.inner_length_mm}×${c.inner_width_mm}×${c.inner_height_mm} mm · max ${c.max_weight_kg} kg`
+  const util = c.utilization < 1 ? ` · util ${Math.round(c.utilization * 100)}%` : ''
+  return `${c.inner_length_mm}×${c.inner_width_mm}×${c.inner_height_mm} mm · max ${c.max_weight_kg} kg${util}`
+}
+function carrierUtilizationLabel(cid: string): string {
+  const c = availableCarriers.value.find(x => x.carrier_id === cid)
+  if (!c) return '—'
+  return `${Math.round(c.utilization * 100)}%`
 }
 
 onMounted(async () => {
