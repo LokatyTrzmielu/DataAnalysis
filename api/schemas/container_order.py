@@ -45,10 +45,10 @@ class PlanParamsRequest(BaseModel):
     min_locations_per_sku: int = 1
     max_locations_per_sku: int = 50000
 
-    mode: Literal["auto", "guided", "manual"] = "auto"
+    mode: Literal["auto", "guided", "manual"] = "guided"
     auto_max_variants: int = 6
     auto_goal: Literal["min_waste", "min_bins", "max_coverage"] = "min_waste"
-    guided_preset: Literal["simple", "standard", "full_coverage"] = "standard"
+    guided_preset: Literal["simple", "standard", "full_coverage"] = "full_coverage"
     manual_variant_codes: list[str] = []
 
 

@@ -11,6 +11,22 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-20] - Refactor (refactor/container-order-simplify-ux) — Container Order: jeden przycisk + Advanced fold-out
+
+**Problem:** Calculation tab miał 14 widocznych kontrolek (Mode/Goal/Preset dropdowny, 7 sliderów/togglów, manualny picker 48 wariantów). Trzyklasowa hierarchia `mode × goal × preset` była myląca; mało kto wiedział, kiedy „Auto + min_waste" działa inaczej niż „Guided + full_coverage". Tymczasem priorytety operacyjne są jasne i bezkonfliktowe: max Fill % → ~100% coverage → najmniej wariantów (niższy koszt zamówienia).
+
+**Co się zmienia:**
+- `src/analytics/container_planner.py`: `PlanParams.mode` defaultem `"guided"` (z `"auto"`), `PlanParams.guided_preset` defaultem `"full_coverage"` (z `"standard"`). Te wartości routują do istniejącego `_greedy_until_coverage`, który dokładnie realizuje priorytety usera.
+- `api/schemas/container_order.py`: defaulty `PlanParamsRequest` zsynchronizowane z backendem.
+- `frontend/src/api/containerOrder.ts`: `defaultParams()` zwraca `mode='guided'`, `guided_preset='full_coverage'`.
+- `frontend/src/views/tools/ContainerOrderView.vue`: Calculation tab przebudowany — na górze widoczny tylko duży CTA „Calculate optimal plan →" + toggle „▸ Advanced". Wszystkie obecne kontrolki schowane w sekcji Advanced (collapsed by default) — bez utraty funkcjonalności.
+- Nowy test `test_default_plan_params_route_to_full_coverage_greedy` w `tests/test_container_planner_params.py` — pinuje że `PlanParams()` bez argumentów produkuje plan z coverage ≥99% (lub orphany wyłącznie geometryczne) i ≤28 wariantów.
+- `Dev/CONTAINER_ORDER_TOOL.md`: nowa sekcja „Domyślny przepływ" opisująca jeden-przycisk UX.
+
+**Brak zmian w:** algorytmach planera (`_greedy_until_coverage`, `_greedy_set_cover`, `_best_variant_for_sku`, `_evaluate_selection`, `_compute_fits`, `_locations_needed`), schemacie odpowiedzi (`ContainerPlanResponse`), pozostałych tabach (Summary/Export/History), eksportach (Excel/PDF/CSV), wizualizacjach (VariantCard/Bin3DPreview). Tryb Manual nadal istnieje — dostępny w Advanced przez przełącznik Mode.
+
+---
+
 ### [2026-05-20] - Fix (fix/kardex-dividers-288mm-limit) — Container Order: limit Dividers/Frames do 288 mm
 
 **Problem:** Katalog Kardex VBM Box generował 6 tierów wysokości (138/188/238/288/**338**/**388** mm), ale Kardex fizycznie nie oferuje Dividerów ani ramek EasyClick powyżej 288 mm. Tiery 338 i 388 były błędem dokumentacji wprowadzonym 2026-05-19 (vide wpis przy commicie z 72 wariantami) i należało je usunąć z całego narzędzia.

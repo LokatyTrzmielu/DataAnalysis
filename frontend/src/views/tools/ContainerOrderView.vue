@@ -127,8 +127,54 @@
           </p>
         </div>
 
-        <!-- ─── Compact parameters block ─── -->
-        <div class="params-compact mb-5">
+        <!-- ─── Primary CTA: one-button optimal plan ───
+             Defaults route to _greedy_until_coverage (mode=guided +
+             preset=full_coverage): max Fill %, ~100% coverage, fewest
+             variants. Power users can override via Advanced below. -->
+        <div class="cta-block mb-4" v-if="!store.sourceMissing">
+          <p class="cta-hint">
+            Find the optimal set of bin variants for your SKUs — max fill, ~100% coverage, fewest variants.
+          </p>
+          <div class="cta-row">
+            <button
+              class="btn-apple-primary cta-btn"
+              :disabled="store.loading"
+              @click="doCalculate"
+            >
+              <svg
+                v-if="store.loading"
+                class="calc-spinner"
+                viewBox="0 0 16 16"
+                width="14"
+                height="14"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="8" cy="8" r="6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-dasharray="28"
+                  stroke-dashoffset="14"
+                />
+              </svg>
+              {{ store.loading ? 'Calculating…' : 'Calculate optimal plan →' }}
+            </button>
+            <button
+              type="button"
+              class="btn-apple-pill cta-toggle"
+              :aria-expanded="showAdvanced"
+              @click="showAdvanced = !showAdvanced"
+            >
+              {{ showAdvanced ? '▾ Hide advanced' : '▸ Advanced (filters, knobs, manual picker)' }}
+            </button>
+          </div>
+          <p v-if="store.error && !showAdvanced" class="cta-error">{{ store.error }}</p>
+        </div>
+
+        <!-- ─── Compact parameters block (Advanced, collapsed by default) ─── -->
+        <div v-show="showAdvanced" class="params-compact mb-5">
           <!-- Row 1: ABC checkboxes + 3 toggles -->
           <div class="params-row">
             <div class="param-cell">
@@ -642,6 +688,11 @@ const step = ref<Step>('select-run')
 const selectedVariantCode = ref<string | null>(null)
 const exporting = ref<'' | 'xlsx' | 'pdf' | 'csv'>('')
 
+// Calculation tab: the planner defaults realise the user's stated priorities
+// (max Fill, ~100% coverage, fewest variants) without any tuning. The advanced
+// form stays available for power users via this collapsible.
+const showAdvanced = ref(false)
+
 // History — page size matches API default; "Load more" appends.
 const historyPageSize = 20
 const historyPage = ref(1)
@@ -974,7 +1025,48 @@ watch(step, (next) => {
   cursor: not-allowed;
 }
 
-/* ─── Compact parameters block (lives on top of the Calculation tab) ───
+/* ─── Primary CTA block — replaces the always-visible params form as the
+   first thing users see on the Calculation tab. One-button optimal plan
+   with an Advanced collapsible underneath for power users. */
+.cta-block {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.cta-hint {
+  font-size: 13px;
+  color: var(--app-text-sec);
+  line-height: 1.45;
+  margin: 0 0 12px 0;
+}
+.cta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cta-btn {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.cta-toggle {
+  font-size: 12px;
+  padding: 6px 12px;
+  color: var(--app-text-sec);
+}
+.cta-error {
+  margin: 10px 0 0 0;
+  color: #ff3b30;
+  font-size: 13px;
+}
+
+/* ─── Advanced parameters block (collapsed by default, shown via
+   showAdvanced toggle on the CTA block above) ───
    All controls stay visible while the user reviews the computed plan below,
    so they can tweak and re-run without leaving the tab. Three horizontal
    rows: (1) filters + toggles, (2) sliders, (3) mode + dropdown + numerics

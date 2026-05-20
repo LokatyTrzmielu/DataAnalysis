@@ -85,6 +85,41 @@ def test_mode_changes_selection():
     assert sel_auto != sel_manual
 
 
+def test_default_plan_params_route_to_full_coverage_greedy():
+    """The user's stated priorities — max Fill %, ~100% coverage, fewest
+    variants — are encoded in the dataclass defaults: mode="guided" +
+    guided_preset="full_coverage". A bare `PlanParams()` (no arguments)
+    must therefore drive `_greedy_until_coverage`, which stops adding
+    variants as soon as coverage ≥ 99% and uses the auto catalog (28
+    variants max). The only SKUs that can stay uncovered are physical
+    orphans (`no_fitting_variant`).
+    """
+    defaults = cp.PlanParams()
+    assert defaults.mode == "guided"
+    assert defaults.guided_preset == "full_coverage"
+
+    # A mix of fitting SKUs + one geometric orphan. Disable ABC/machine
+    # filtering so the fixture's lack of Performance metadata doesn't drop
+    # rows before the planner sees them.
+    cap = _make_capacity_result(_diverse_skus())
+    plan = cp.plan_containers(
+        cap, None,
+        cp.PlanParams(abc_classes=(), only_machine=False),
+    )
+
+    # Coverage either ≥99% or every uncovered SKU is a genuine geometric
+    # orphan (too big for any variant).
+    geometric_orphans = [
+        a for a in plan.orphans if a.orphan_reason == "no_fitting_variant"
+    ]
+    covered_or_geom_orphan = plan.total_sku_covered + len(geometric_orphans)
+    assert covered_or_geom_orphan == plan.total_sku_planned
+
+    # Greedy-until-coverage stops early — never breaches the 28-variant
+    # auto-catalog ceiling, and typically uses far fewer.
+    assert len(plan.selected_variant_codes) <= 28
+
+
 def test_auto_max_variants_changes_selection_in_auto_mode():
     """In auto mode, raising the cap should let the greedy pick more variants
     (or at minimum it must reach a different selection at very different K)."""
