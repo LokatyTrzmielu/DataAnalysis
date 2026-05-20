@@ -11,6 +11,7 @@ from src.core.config import (
     TREAT_ZERO_AS_MISSING_WEIGHT,
     TREAT_ZERO_AS_MISSING_QUANTITIES,
     TREAT_NEGATIVE_AS_MISSING,
+    OUTLIER_THRESHOLDS,
 )
 
 
@@ -236,21 +237,23 @@ class MasterdataValidator:
         """Mark problematic values as NULL."""
         result = df.clone()
 
-        # Dimensions - replace 0 and negative with NULL
+        # Dimensions - replace 0, negative, and sentinel values > max threshold with NULL
         if self.treat_zero_as_missing_dimensions:
             for field in ["length_mm", "width_mm", "height_mm"]:
                 if field in result.columns:
+                    _max = OUTLIER_THRESHOLDS.get(field, {}).get("max", float("inf"))
                     result = result.with_columns([
-                        pl.when(pl.col(field) <= 0)
+                        pl.when((pl.col(field) <= 0) | (pl.col(field) > _max))
                         .then(None)
                         .otherwise(pl.col(field))
                         .alias(field)
                     ])
 
-        # Weight
+        # Weight - replace 0, negative, and sentinel values > max threshold with NULL
         if self.treat_zero_as_missing_weight and "weight_kg" in result.columns:
+            _w_max = OUTLIER_THRESHOLDS.get("weight_kg", {}).get("max", float("inf"))
             result = result.with_columns([
-                pl.when(pl.col("weight_kg") <= 0)
+                pl.when((pl.col("weight_kg") <= 0) | (pl.col("weight_kg") > _w_max))
                 .then(None)
                 .otherwise(pl.col("weight_kg"))
                 .alias("weight_kg")
