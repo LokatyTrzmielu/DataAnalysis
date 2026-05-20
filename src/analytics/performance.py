@@ -469,6 +469,8 @@ class PerformanceAnalyzer:
     ) -> PerformanceKPI:
         """Calculate KPI using real date+hour data points for percentiles."""
         total_lines = len(df)
+        if "order_date" not in df.columns:
+            df = df.with_columns(pl.col("timestamp").dt.date().alias("order_date"))
         total_orders = df.unique(subset=["order_id", "order_date"]).height
         total_units = int(df["quantity"].sum() or 0)
         unique_sku = df["sku"].n_unique()

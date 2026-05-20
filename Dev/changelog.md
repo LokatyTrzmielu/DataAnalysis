@@ -11,6 +11,29 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-20] - Fix (main) — TechMag CP1250 + Capacity quality pipeline
+
+**Problem 1 (632 Missing Critical):** Pliki Excel z polskim kodowaniem CP1250 (np. TechMag SA) powodowały garbling nazw kolumn (`Długość [mm]` → surrogates). Auto-mapper nie rozpoznawał kolumn `length` i `stock` → użytkownik mapował ręcznie → często błędny mapping → fałszywy wynik 632 missing_critical.
+
+**Problem 2 (ujemne wagi w Capacity):** Endpoint `/capacity` używał surowego `ingest_result.df` bez przepuszczenia przez quality pipeline → wartości ujemne/zerowe/sentinele (np. 9999) z Excela trafiały bezpośrednio do CapacityAnalyzer.
+
+**Fix 1 — `src/ingest/readers.py`:**
+- Dodano `_decode_column_name()`: wykrywa surrogates CP1250 (zakres ord 0xDC80-0xDCFF), dekoduje jako CP1250, transliteruje polskie litery (ł→l, ó→o, ś→s, ć→c itp.) do ASCII. Efekt: `dlugosc_mm`, `szerokosc_mm`, `wysokosc_mm`, `ilosc_na_stanie` — wszystkie rozpoznane przez wizard.
+- `_normalize_columns()` wywołuje `_decode_column_name()` zamiast surowej normalizacji.
+
+**Fix 2 — `src/ingest/mapping.py`:**
+- Dodano alias `ilosc_na_stanie` do stocku (był `ilosc`, ale `len('ilosc')/len('ilosc_na_stanie') = 0.33 < 0.4 threshold`).
+
+**Fix 3 — `api/routers/runs.py` endpoint `/capacity`:**
+- Po `MasterdataIngestPipeline().run()` dodano `QualityPipeline().run(ingest_result.df).df` → capacity analyzer dostaje dane imputed (mediana zamiast NULL/negatywnych/zerowych wag).
+
+**Fix 4 — `src/analytics/performance.py`:**
+- Guard w `_calculate_kpi()`: jeśli `order_date` nieobecne w df (bezpośrednie wywołanie metody w testach), kolumna jest derywowana z `timestamp`.
+
+**Wynik po fixie:** TechMag SA auto-mapuje poprawnie 6/6 pól (conf=1.00), missing_critical = 11 (6 SKU), 139/139 testów ✓
+
+---
+
 ### [2026-05-20] - Fix (main) — Reports: CSV → XLSX (waga jako liczba, nie data)
 
 **Problem:** Pobrane CSV-y otwierane w Excelu (polska lokalizacja) interpretowały dziesiętne wartości typu `10.5` w kolumnie `weight_kg` jako daty (`10 maja`). Dotyczyło to także `length_mm`, `width_mm`, `height_mm`, `volume_m3` itp. Polars zapisywał `;` jako separator i `.` jako separator dziesiętny — Excel po otwarciu CSV podstawiał formaty dat z systemu.

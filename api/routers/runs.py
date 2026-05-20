@@ -479,7 +479,8 @@ async def run_capacity(
                 missing = ", ".join(ingest_result.mapping_result.missing_required)
                 raise HTTPException(status_code=422, detail=f"Missing columns: {missing}")
 
-            df = ingest_result.df
+            from src.quality.pipeline import QualityPipeline
+            df = QualityPipeline().run(ingest_result.df).df
 
         ordered_ids = [cid.strip() for cid in carrier_ids.split(",") if cid.strip()]
 

@@ -1,10 +1,35 @@
 """Reading XLSX, CSV, TXT files using Polars."""
 
 import logging
+import unicodedata
 from pathlib import Path
 from typing import Literal
 
 import polars as pl
+
+# Polish characters that don't decompose via NFD — must be transliterated manually.
+_POLISH_TRANSLIT = str.maketrans(
+    "ąćęłńóśźżĄĆĘŁŃÓŚŹŻ",
+    "acelnoszzACELNOSZZ",
+)
+
+
+def _decode_column_name(name: str) -> str:
+    """Recover Polish letters from CP1250 bytes stored as UTF-8 surrogate escapes.
+
+    When Polars reads an XLSX whose strings were encoded in CP1250 (older Polish
+    Excel files), it stores the raw CP1250 bytes as surrogate-escape characters
+    in the range U+DC80..U+DCFF.  This function detects that pattern, decodes
+    the bytes back as CP1250, then transliterates to ASCII so the mapping wizard
+    can recognise the column (e.g. 'Dlugosc [mm]' from the garbled form).
+    """
+    if any(0xDC80 <= ord(c) <= 0xDCFF for c in name):
+        try:
+            name = name.encode("utf-8", "surrogatepass").decode("cp1250", "replace")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    name = name.translate(_POLISH_TRANSLIT)
+    return unicodedata.normalize("NFD", name).encode("ascii", "ignore").decode("ascii")
 
 logger = logging.getLogger(__name__)
 
@@ -184,15 +209,13 @@ class FileReader:
         return self._normalize_columns(df)
 
     def _normalize_columns(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Normalize column names."""
-        # Remove whitespace, convert to lowercase
+        """Normalize column names to lowercase ASCII with underscores."""
         new_names = {}
         for col in df.columns:
-            normalized = col.strip().lower().replace(" ", "_")
-            # Remove special characters
+            decoded = _decode_column_name(col)
+            normalized = decoded.strip().lower().replace(" ", "_")
             normalized = "".join(c for c in normalized if c.isalnum() or c == "_")
             new_names[col] = normalized
-
         return df.rename(new_names)
 
     def get_preview(self, n_rows: int = 10) -> pl.DataFrame:

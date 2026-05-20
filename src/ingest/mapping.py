@@ -129,7 +129,7 @@ MASTERDATA_SCHEMA = {
             "available", "available_qty", "available_quantity",
             "balance", "units", "pieces", "pcs", "count", "free_stock",
             # Polish
-            "ilosc", "ilosc_w_mag", "ilosc_dostepna", "ilosc_w_magazynie",
+            "ilosc", "ilosc_na_stanie", "ilosc_w_mag", "ilosc_dostepna", "ilosc_w_magazynie",
             "liczba", "liczba_szt", "liczba_sztuk",
             "zapas", "zapasy", "stan", "stany", "stan_mag",
             "stany_magazynowe", "stan_magazynowy", "stan_magazynu",
