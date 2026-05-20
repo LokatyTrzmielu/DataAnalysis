@@ -34,7 +34,8 @@ Daje:
 - listę wariantów pojemników (footprint × wysokość) i liczbę sztuk każdego,
 - przypisanie SKU → wariant,
 - listę SKU bez przypisania ("orphans"),
-- eksport Excel (4 arkusze) / PDF (2 strony) / CSV.
+- eksport Excel (5 arkuszy) / PDF (3 strony) / CSV,
+- tabelę zamówieniową Kardex VBM Box z numerami artykułów i ilościami.
 
 ## Źródło prawdy dla katalogu
 
@@ -140,6 +141,22 @@ Wcześniejsza wersja `_filter_skus` cicho odrzucała SKU oznaczone w analizie Ca
    Dla porównania scenariuszy avg/max → osobna analiza.
 
 4. **3D z dzielnikami** (three.js, parametryczne) — bez kostek SKU w środku.
+
+## Tabela zamówieniowa Kardex VBM Box (2026-05-20)
+
+Funkcja `compute_kardex_order_table(plan)` w `container_planner.py` wylicza 13 pozycji katalogu Kardex (Base, Frame, 8 rodzajów Divider, Drainage, 2 Labelholder). Ilości wyliczane z `ContainerPlan`:
+
+| ID | Art. Number | Opis | Ilość |
+|----|-------------|------|-------|
+| 1  | 7220866 | Base NS PP | = total_bins |
+| 2  | 7220874 | Base Drainage (nieużywane) | 0 |
+| 3  | 7220882 | Frame H=50 MM | = total_frames |
+| 4–11 | 7220890–7220981 | Divider X440/X640 × 4 wysokości | obliczone |
+| 12–13 | 7051311/7051329 | Labelholder (nieużywane) | 0 |
+
+Logika dividerów na bin: `cells_along_L = round(611/cell_length_mm)`, `cells_along_W = round(411/cell_width_mm)`. X440 per bin = `cells_along_L − 1`, X640 per bin = `cells_along_W − 1`. Numer artykułu divider'a zależy od `bin_height_mm`: `{138→(7220890,7220908), 188→(7220916,7220924), 238→(7220932,7220965), 288→(7220973,7220981)}`.
+
+Eksport: arkusz "Kardex Order" w XLSX + osobna strona w PDF (przed "Parameters used").
 
 5. **Trzy tryby**: Auto (domyślny) / Guided / Manual.
 

@@ -10,6 +10,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+from src.analytics.container_planner import compute_kardex_order_table
+
 HEADER_FILL = PatternFill(start_color="374151", end_color="374151", fill_type="solid")
 HEADER_FONT = Font(color="FFFFFF", bold=True, size=11)
 TOTAL_FILL = PatternFill(start_color="E5E7EB", end_color="E5E7EB", fill_type="solid")
@@ -185,6 +187,22 @@ def _sheet_orphans(wb: Workbook, plan: Any) -> None:
     _autosize(ws)
 
 
+def _sheet_kardex_order(wb: Workbook, plan: Any) -> None:
+    ws = wb.create_sheet("Kardex Order")
+    headers = ["ID", "Quantity", "Packing size", "Article Number", "Description"]
+    ws.append(headers)
+    _style_header(ws, 1, len(headers))
+
+    for row in compute_kardex_order_table(plan):
+        ws.append([row.id, row.quantity, row.packing_size, row.article_number, row.description])
+
+    for row_idx in range(2, ws.max_row + 1):
+        for col_idx in (1, 2, 3):
+            ws.cell(row=row_idx, column=col_idx).alignment = RIGHT
+
+    _autosize(ws)
+
+
 def generate_order_xlsx(plan: Any, params: Any, run: Any, user: Any = None) -> bytes:
     """Build the 4-sheet workbook.
 
@@ -205,6 +223,7 @@ def generate_order_xlsx(plan: Any, params: Any, run: Any, user: Any = None) -> b
     _sheet_sku_assignment(wb, plan)
     _sheet_parameters(wb, params, run, plan, user)
     _sheet_orphans(wb, plan)
+    _sheet_kardex_order(wb, plan)
 
     buf = io.BytesIO()
     wb.save(buf)

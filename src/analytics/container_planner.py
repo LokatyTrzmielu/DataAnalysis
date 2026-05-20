@@ -114,6 +114,36 @@ class Variant:
 BASE_BIN_HEIGHT_MM = 138
 FRAME_INCREMENT_MM = 50
 
+# ---------------------------------------------------------------------------
+# Kardex supplier article catalog (VBM Box component order)
+# ---------------------------------------------------------------------------
+
+# Maps bin height tier → (X440 article number, X640 article number).
+# X440 dividers span the 440 mm wall; X640 span the 640 mm wall.
+_DIVIDER_ARTICLES_BY_HEIGHT: dict[int, tuple[str, str]] = {
+    138: ("7220890", "7220908"),
+    188: ("7220916", "7220924"),
+    238: ("7220932", "7220965"),
+    288: ("7220973", "7220981"),
+}
+
+# (id, packing_size, article_number, description)
+KARDEX_VBM_ARTICLES: tuple[tuple[int, int, str, str], ...] = (
+    (1,   1, "7220866", "Kardex VBM Box Base NS PP"),
+    (2,   1, "7220874", "Kardex VBM Box Base Drainage holes WS PP"),
+    (3,   1, "7220882", "Kardex VBM Box Frame 638X438 M M H=50 MM"),
+    (4,   1, "7220890", "Kardex VBM Box Divider 110X440 MM H=138 MM"),
+    (5,   1, "7220908", "Kardex VBM Box Divider 110X640 MM H=138 MM"),
+    (6,   1, "7220916", "Kardex VBM Box Divider 160X440 MM H=188 MM"),
+    (7,   1, "7220924", "Kardex VBM Box Divider 160X640 MM H=188 MM"),
+    (8,   1, "7220932", "Kardex VBM Box Divider 210X440 MM H=238 MM"),
+    (9,   1, "7220965", "Kardex VBM Box Divider 210X640 MM H=238 MM"),
+    (10,  1, "7220973", "Kardex VBM Box Divider 260X440 MM H=288 MM"),
+    (11,  1, "7220981", "Kardex VBM Box Divider 260X640 MM H=288 MM"),
+    (12, 100, "7051311", "Kardex VLM/VBM Box Labelholder Single"),
+    (13, 100, "7051329", "Kardex VLM/VBM Box Labelholder double"),
+)
+
 
 def _build_catalog() -> list[Variant]:
     """Generate the full catalog from FOOTPRINTS × HEIGHT_TIERS_MM.
@@ -283,6 +313,17 @@ class ContainerPlan:
     selected_variant_codes: list[str]
     total_frames: int = 0      # sum of frames across all variants
     params_echo: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class KardexOrderRow:
+    """One row in the Kardex VBM Box supplier order table."""
+
+    id: int
+    quantity: int
+    packing_size: int
+    article_number: str
+    description: str
 
 
 # ---------------------------------------------------------------------------
@@ -862,3 +903,61 @@ def _greedy_until_coverage(fits: list[_SkuFit], catalog: list[Variant],
         if (dbg["covered"] / total * 100) >= target_pct:
             break
     return chosen
+
+
+# ---------------------------------------------------------------------------
+# Kardex supplier order table
+# ---------------------------------------------------------------------------
+
+
+def compute_kardex_order_table(plan: ContainerPlan) -> list[KardexOrderRow]:
+    """Derive per-article quantities for a Kardex VBM Box supplier order.
+
+    For each VariantSummary the number of X440/X640 dividers per bin is
+    derived from the cell dimensions:
+      cells_along_L = round(BIN_INTERIOR_LENGTH_MM / cell_length_mm)
+      cells_along_W = round(BIN_INTERIOR_WIDTH_MM  / cell_width_mm)
+      x440_per_bin  = cells_along_L - 1   (dividers parallel to 440 mm wall)
+      x640_per_bin  = cells_along_W - 1   (dividers parallel to 640 mm wall)
+    The correct article number is selected by bin_height_mm via
+    _DIVIDER_ARTICLES_BY_HEIGHT.  Items 2 / 12 / 13 are not yet in use and
+    always return quantity 0.
+    """
+    total_bases = 0
+    total_frames = 0
+    divider_qty: dict[str, int] = {}
+
+    for s in plan.summaries:
+        total_bases += s.bins_required
+        total_frames += s.total_frames_required
+
+        cells_L = round(BIN_INTERIOR_LENGTH_MM / s.cell_length_mm)
+        cells_W = round(BIN_INTERIOR_WIDTH_MM / s.cell_width_mm)
+        art_440, art_640 = _DIVIDER_ARTICLES_BY_HEIGHT[s.bin_height_mm]
+        divider_qty[art_440] = divider_qty.get(art_440, 0) + s.bins_required * (cells_L - 1)
+        divider_qty[art_640] = divider_qty.get(art_640, 0) + s.bins_required * (cells_W - 1)
+
+    qty_by_article: dict[str, int] = {
+        "7220866": total_bases,
+        "7220874": 0,      # Drainage — not used yet
+        "7220882": total_frames,
+        **{art: divider_qty.get(art, 0) for art in (
+            "7220890", "7220908",
+            "7220916", "7220924",
+            "7220932", "7220965",
+            "7220973", "7220981",
+        )},
+        "7051311": 0,      # Labelholder Single — not used yet
+        "7051329": 0,      # Labelholder double — not used yet
+    }
+
+    return [
+        KardexOrderRow(
+            id=row_id,
+            quantity=qty_by_article[art],
+            packing_size=pack,
+            article_number=art,
+            description=desc,
+        )
+        for row_id, pack, art, desc in KARDEX_VBM_ARTICLES
+    ]

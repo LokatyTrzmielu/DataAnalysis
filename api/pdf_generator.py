@@ -4,6 +4,8 @@ import io
 from datetime import datetime
 from typing import Any
 
+from src.analytics.container_planner import compute_kardex_order_table
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -800,6 +802,28 @@ def generate_container_order_pdf(plan, params, run, user=None) -> bytes:
         Paragraph('Procurement breakdown', heading_style),
         t2,
     ]))
+    story.append(Spacer(1, 0.6 * cm))
+
+    # ── Kardex VBM Box — Component Order ──────────────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph('Kardex VBM Box — Component Order', heading_style))
+    kardex_rows = compute_kardex_order_table(plan)
+    korder_data = [['ID', 'Quantity', 'Packing size', 'Article Number', 'Description']]
+    for r in kardex_rows:
+        korder_data.append([str(r.id), str(r.quantity), str(r.packing_size),
+                            r.article_number, r.description])
+    t_korder = Table(korder_data, colWidths=[1.0 * cm, 2.0 * cm, 2.4 * cm, 3.2 * cm, 8.0 * cm])
+    t_korder.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#374151')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#d1d5db')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+        ('ALIGN', (0, 0), (2, -1), 'RIGHT'),
+        ('PADDING', (0, 0), (-1, -1), 5),
+    ]))
+    story.append(t_korder)
     story.append(Spacer(1, 0.6 * cm))
 
     # Parameters echo
