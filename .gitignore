@@ -26,6 +26,8 @@ data/datasets/
 
 # Embedded repos / skills
 ui-ux-pro-max-skill/
+.agents/
+.claude/skills/
 
 # Large generated test data files
 tests_alan/*_large.csv
