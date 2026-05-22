@@ -1,0 +1,163 @@
+{
+  "name": "TechnologySelectionTree",
+  "version": "1.0",
+  "description": "Decision tree for warehouse automation technology selection based on Velocity, Replenishment Ratio and Cube",
+
+  "levels": [
+
+    {
+      "level": 1,
+      "name": "AutomationEligibility",
+      "description": "Check if SKU should enter automation",
+      "rules": [
+        {
+          "condition": "ratio > 1.2",
+          "result": "OUTSIDE_CRITICAL"
+        },
+        {
+          "condition": "ratio > 0.8",
+          "result": "OUTSIDE"
+        },
+        {
+          "condition": "velocity == LOW AND segment != FAST",
+          "result": "OUTSIDE"
+        }
+      ],
+      "default": "GO_TO_NEXT_LEVEL"
+    },
+
+    {
+      "level": 2,
+      "name": "PerformanceClass",
+      "description": "Determine required system performance",
+      "rules": [
+        {
+          "condition": "velocity >= VERY_HIGH",
+          "result": "HIGH_PERFORMANCE"
+        },
+        {
+          "condition": "velocity >= HIGH",
+          "result": "MEDIUM_HIGH_PERFORMANCE"
+        },
+        {
+          "condition": "velocity >= MEDIUM",
+          "result": "STANDARD_PERFORMANCE"
+        },
+        {
+          "condition": "velocity < MEDIUM",
+          "result": "LOW_PERFORMANCE"
+        }
+      ]
+    },
+
+    {
+      "level": 3,
+      "name": "ReplenishmentImpact",
+      "description": "Evaluate replenishment impact on system",
+      "rules": [
+        {
+          "condition": "ratio < 0.15",
+          "result": "LOW_LOAD"
+        },
+        {
+          "condition": "ratio < 0.4",
+          "result": "MODERATE_LOAD"
+        },
+        {
+          "condition": "ratio < 0.8",
+          "result": "HIGH_LOAD"
+        },
+        {
+          "condition": "ratio >= 0.8",
+          "result": "VERY_HIGH_LOAD"
+        }
+      ]
+    },
+
+    {
+      "level": 4,
+      "name": "TechnologySelection",
+      "description": "Main decision logic",
+
+      "rules": [
+
+        {
+          "condition": "performance == HIGH_PERFORMANCE AND load IN [LOW_LOAD, MODERATE_LOAD]",
+          "result": ["MiB", "AutoStore", "Hai"]
+        },
+
+        {
+          "condition": "performance == MEDIUM_HIGH_PERFORMANCE AND load IN [LOW_LOAD, MODERATE_LOAD]",
+          "result": ["VBM", "VLM", "AutoStore"]
+        },
+
+        {
+          "condition": "performance == STANDARD_PERFORMANCE AND load IN [LOW_LOAD, MODERATE_LOAD]",
+          "result": ["VLM"]
+        },
+
+        {
+          "condition": "performance == HIGH_PERFORMANCE AND load == HIGH_LOAD",
+          "result": ["CHECK_CAPACITY", "SPLIT_SKU", "HYBRID_SYSTEM"]
+        },
+
+        {
+          "condition": "load == VERY_HIGH_LOAD",
+          "result": ["OUTSIDE", "REDESIGN"]
+        }
+      ]
+    },
+
+    {
+      "level": 5,
+      "name": "PhysicalAdjustment",
+      "description": "Adjust based on cube constraints",
+
+      "rules": [
+        {
+          "condition": "cube == HIGH",
+          "adjustment": ["PREFER_VLM", "CONSIDER_AUTOSTORE_LARGE_BIN", "CHECK_OUTSIDE"]
+        },
+        {
+          "condition": "cube == LOW",
+          "adjustment": ["PREFER_MiB", "PREFER_AUTOSTORE", "PREFER_HAI"]
+        }
+      ]
+    }
+
+  ],
+
+  "outputs": [
+    "MiB",
+    "AutoStore",
+    "Hai",
+    "VBM",
+    "VLM",
+    "STATIC",
+    "OUTSIDE",
+    "OUTSIDE_CRITICAL",
+    "CHECK_CAPACITY",
+    "HYBRID_SYSTEM",
+    "REDESIGN"
+  ],
+
+  "definitions": {
+    "velocity": {
+      "VERY_HIGH": ">= P90",
+      "HIGH": "P80-P90",
+      "MEDIUM": "P50-P80",
+      "LOW": "< P50"
+    },
+    "ratio": {
+      "FAST": "< 0.15",
+      "OK": "0.15-0.4",
+      "RISK": "0.4-0.8",
+      "BAD": "0.8-1.2",
+      "CRITICAL": "> 1.2"
+    },
+    "cube": {
+      "LOW": "small item volume",
+      "HIGH": "large item volume"
+    }
+  }
+}

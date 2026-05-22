@@ -1,0 +1,214 @@
+{
+  "name": "TechnologyScoringModel",
+  "version": "1.0",
+  "description": "Weighted scoring model for warehouse automation technology selection",
+
+  "input_parameters": [
+    "velocity",
+    "ratio",
+    "cube"
+  ],
+
+  "weights": {
+    "velocity": 0.4,
+    "ratio": 0.4,
+    "cube": 0.2
+  },
+
+  "technologies": [
+
+    {
+      "name": "MiB",
+      "type": "ASRS",
+      "scoring": {
+        "velocity": {
+          "VERY_HIGH": 100,
+          "HIGH": 90,
+          "MEDIUM": 60,
+          "LOW": 20
+        },
+        "ratio": {
+          "LOW": 100,
+          "MODERATE": 80,
+          "HIGH": 30,
+          "VERY_HIGH": 0
+        },
+        "cube": {
+          "LOW": 100,
+          "HIGH": 30
+        }
+      }
+    },
+
+    {
+      "name": "AutoStore",
+      "type": "Cube ASRS",
+      "scoring": {
+        "velocity": {
+          "VERY_HIGH": 90,
+          "HIGH": 90,
+          "MEDIUM": 70,
+          "LOW": 30
+        },
+        "ratio": {
+          "LOW": 100,
+          "MODERATE": 70,
+          "HIGH": 40,
+          "VERY_HIGH": 10
+        },
+        "cube": {
+          "LOW": 90,
+          "HIGH": 60
+        }
+      }
+    },
+
+    {
+      "name": "Hai Robotics",
+      "type": "ACR",
+      "scoring": {
+        "velocity": {
+          "VERY_HIGH": 85,
+          "HIGH": 85,
+          "MEDIUM": 75,
+          "LOW": 40
+        },
+        "ratio": {
+          "LOW": 100,
+          "MODERATE": 80,
+          "HIGH": 50,
+          "VERY_HIGH": 20
+        },
+        "cube": {
+          "LOW": 90,
+          "HIGH": 50
+        }
+      }
+    },
+
+    {
+      "name": "VBM",
+      "type": "Buffer System",
+      "scoring": {
+        "velocity": {
+          "VERY_HIGH": 70,
+          "HIGH": 75,
+          "MEDIUM": 80,
+          "LOW": 40
+        },
+        "ratio": {
+          "LOW": 80,
+          "MODERATE": 90,
+          "HIGH": 70,
+          "VERY_HIGH": 30
+        },
+        "cube": {
+          "LOW": 80,
+          "HIGH": 70
+        }
+      }
+    },
+
+    {
+      "name": "VLM",
+      "type": "Vertical Lift",
+      "scoring": {
+        "velocity": {
+          "VERY_HIGH": 60,
+          "HIGH": 70,
+          "MEDIUM": 90,
+          "LOW": 60
+        },
+        "ratio": {
+          "LOW": 80,
+          "MODERATE": 90,
+          "HIGH": 80,
+          "VERY_HIGH": 40
+        },
+        "cube": {
+          "LOW": 70,
+          "HIGH": 90
+        }
+      }
+    },
+
+    {
+      "name": "Carousel",
+      "type": "VCM/HCM",
+      "scoring": {
+        "velocity": {
+          "VERY_HIGH": 20,
+          "HIGH": 40,
+          "MEDIUM": 60,
+          "LOW": 80
+        },
+        "ratio": {
+          "LOW": 60,
+          "MODERATE": 70,
+          "HIGH": 50,
+          "VERY_HIGH": 20
+        },
+        "cube": {
+          "LOW": 60,
+          "HIGH": 60
+        }
+      }
+    },
+
+    {
+      "name": "Manual",
+      "type": "Static Storage",
+      "scoring": {
+        "velocity": {
+          "VERY_HIGH": 0,
+          "HIGH": 20,
+          "MEDIUM": 50,
+          "LOW": 100
+        },
+        "ratio": {
+          "LOW": 40,
+          "MODERATE": 50,
+          "HIGH": 80,
+          "VERY_HIGH": 100
+        },
+        "cube": {
+          "LOW": 50,
+          "HIGH": 80
+        }
+      }
+    }
+
+  ],
+
+  "normalization": {
+    "scale": "0-100",
+    "method": "weighted_average"
+  },
+
+  "post_rules": [
+    {
+      "condition": "ratio == VERY_HIGH",
+      "force": "OUTSIDE"
+    },
+    {
+      "condition": "velocity == VERY_HIGH AND ratio == HIGH",
+      "penalty": {
+        "value": -30,
+        "applies_to": ["MiB", "AutoStore", "Hai"]
+      }
+    },
+    {
+      "condition": "cube == HIGH",
+      "boost": {
+        "VLM": 15,
+        "AutoStore": 10
+      }
+    },
+    {
+      "condition": "velocity == LOW",
+      "boost": {
+        "Manual": 20
+      }
+    }
+  ]
+}

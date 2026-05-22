@@ -1,0 +1,819 @@
+
+import React, { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { motion } from "framer-motion";
+import { Flame, Info, Upload, Wand2, SlidersHorizontal } from "lucide-react";
+
+// -----------------------------
+// Helpers
+// -----------------------------
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+function parseCsv(text) {
+  // Expected headers (any order, case-insensitive):
+  // sku, velocity_pctl (0-1 or 0-100), ratio, cube (LOW/HIGH), lines_p95(optional), cube_p95(optional)
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  if (lines.length < 2) return { rows: [], error: "CSV musi mieć nagłówek i co najmniej 1 wiersz danych." };
+
+  const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
+  const idx = (name) => header.findIndex((h) => h === name);
+
+  const iSku = idx("sku");
+  const iVel = idx("velocity_pctl");
+  const iRatio = idx("ratio");
+  const iCube = idx("cube");
+  const iLinesP95 = idx("lines_p95");
+  const iCubeP95 = idx("cube_p95");
+
+  if (iSku === -1 || iVel === -1 || iRatio === -1 || iCube === -1) {
+    return {
+      rows: [],
+      error:
+        "Brakuje wymaganych kolumn. Wymagane: sku, velocity_pctl, ratio, cube. Opcjonalne: lines_p95, cube_p95.",
+    };
+  }
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(",").map((p) => p.trim());
+    const sku = parts[iSku] ?? "";
+    if (!sku) continue;
+
+    let vp = Number(parts[iVel]);
+    if (Number.isNaN(vp)) vp = 0;
+    // allow 0-100 as input
+    if (vp > 1) vp = vp / 100;
+    vp = clamp(vp, 0, 1);
+
+    const ratio = clamp(Number(parts[iRatio] ?? 0), 0, 999);
+    const cubeRaw = (parts[iCube] ?? "LOW").toUpperCase();
+    const cube = cubeRaw === "HIGH" ? "HIGH" : "LOW";
+
+    const linesP95 = iLinesP95 !== -1 ? Number(parts[iLinesP95] ?? "") : undefined;
+    const cubeP95 = iCubeP95 !== -1 ? Number(parts[iCubeP95] ?? "") : undefined;
+
+    rows.push({ sku, velocity_pctl: vp, ratio, cube, lines_p95: linesP95, cube_p95: cubeP95 });
+  }
+
+  return { rows, error: "" };
+}
+
+function bandLabelVelocity(v, th) {
+  if (v >= th.veryHigh) return "VERY_HIGH";
+  if (v >= th.high) return "HIGH";
+  if (v >= th.medium) return "MEDIUM";
+  return "LOW";
+}
+
+function bandLabelRatio(r, th) {
+  if (r > th.critical) return "CRITICAL";
+  if (r > th.bad) return "BAD";
+  if (r > th.risk) return "RISK";
+  if (r >= th.ok) return "OK";
+  return "FAST";
+}
+
+function loadClassFromRatio(r, th) {
+  if (r < th.fast) return "LOW_LOAD";
+  if (r < th.okUpper) return "MODERATE_LOAD";
+  if (r < th.riskUpper) return "HIGH_LOAD";
+  return "VERY_HIGH_LOAD";
+}
+
+function scoreTech({ velocityBand, loadBand, cube }, model) {
+  const w = model.weights;
+  const vScore = model.technologiesVelocity[velocityBand] ?? 0;
+  const rScore = model.technologiesRatio[loadBand] ?? 0;
+  const cScore = model.technologiesCube[cube] ?? 0;
+  const base = vScore * w.velocity + rScore * w.ratio + cScore * w.cube;
+  return clamp(base, 0, 100);
+}
+
+function computeAllScores(row, cfg) {
+  const velocityBand = bandLabelVelocity(row.velocity_pctl, cfg.velocityThresholds);
+  const segment = bandLabelRatio(row.ratio, cfg.ratioThresholds);
+
+  // derive load band for scoring (LOW/MOD/HIGH/VERY_HIGH)
+  const loadBand = loadClassFromRatio(row.ratio, {
+    fast: cfg.ratioThresholds.fastUpper,
+    okUpper: cfg.ratioThresholds.okUpper,
+    riskUpper: cfg.ratioThresholds.riskUpper,
+  });
+
+  const baseScores = cfg.technologyModels.map((t) => {
+    let s = scoreTech({ velocityBand, loadBand, cube: row.cube }, t.scoring);
+
+    // post rules (simple & explainable)
+    if (segment === "CRITICAL") {
+      if (t.name !== "Manual" && t.name !== "Outside") s = 0;
+    }
+    if (segment === "BAD") {
+      if (["MiB", "AutoStore", "Hai"].includes(t.name)) s = Math.max(0, s - 30);
+    }
+    if (row.cube === "HIGH") {
+      if (t.name === "VLM") s = clamp(s + 10, 0, 100);
+      if (t.name === "AutoStore") s = clamp(s + 5, 0, 100);
+    }
+    if (velocityBand === "LOW") {
+      if (t.name === "Manual") s = clamp(s + 10, 0, 100);
+    }
+
+    return { technology: t.name, score: Math.round(s) };
+  });
+
+  baseScores.sort((a, b) => b.score - a.score);
+
+  // Decision hint
+  let decision = "CHECK";
+  if (segment === "CRITICAL") decision = "OUTSIDE_CRITICAL";
+  else if (segment === "BAD") decision = "OUTSIDE";
+  else if (velocityBand === "LOW" && segment !== "FAST") decision = "OUTSIDE";
+  else decision = baseScores[0]?.technology ?? "CHECK";
+
+  return { velocityBand, segment, loadBand, decision, ranking: baseScores };
+}
+
+function heatColor(score) {
+  // 0..100 → red..green (soft)
+  const s = clamp(score, 0, 100) / 100;
+  const r = Math.round(245 - 120 * s);
+  const g = Math.round(110 + 120 * s);
+  const b = Math.round(120 - 60 * s);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function segBadge(seg) {
+  const map = {
+    FAST: "bg-emerald-600",
+    OK: "bg-emerald-500",
+    RISK: "bg-amber-500",
+    BAD: "bg-red-500",
+    CRITICAL: "bg-red-700",
+  };
+  return map[seg] ?? "bg-slate-500";
+}
+
+function velBadge(v) {
+  const map = {
+    VERY_HIGH: "bg-fuchsia-600",
+    HIGH: "bg-indigo-600",
+    MEDIUM: "bg-sky-600",
+    LOW: "bg-slate-600",
+  };
+  return map[v] ?? "bg-slate-600";
+}
+
+// -----------------------------
+// Default configuration
+// -----------------------------
+const defaultCsv = `sku,velocity_pctl,ratio,cube,lines_p95,cube_p95
+SKU_001,0.95,0.08,LOW,220,1.2
+SKU_002,0.88,0.22,LOW,160,1.0
+SKU_003,0.82,0.55,HIGH,140,3.9
+SKU_004,0.60,0.35,HIGH,80,2.1
+SKU_005,0.30,0.90,HIGH,25,1.8
+SKU_006,0.12,0.18,LOW,10,0.2
+SKU_007,0.91,1.40,HIGH,210,5.1
+SKU_008,0.72,0.12,LOW,95,0.6
+SKU_009,0.52,0.75,HIGH,70,2.8
+SKU_010,0.40,0.05,LOW,35,0.1`;
+
+const defaultConfig = {
+  ratioThresholds: {
+    // Kardex-tuned bands
+    fastUpper: 0.15,
+    okUpper: 0.4,
+    riskUpper: 0.8,
+    bad: 0.8,
+    critical: 1.2,
+    ok: 0.15,
+    risk: 0.4,
+  },
+  velocityThresholds: {
+    veryHigh: 0.9,
+    high: 0.8,
+    medium: 0.5,
+  },
+  technologyModels: [
+    {
+      name: "MiB",
+      scoring: {
+        weights: { velocity: 0.4, ratio: 0.4, cube: 0.2 },
+        technologiesVelocity: { VERY_HIGH: 100, HIGH: 90, MEDIUM: 60, LOW: 20 },
+        technologiesRatio: { LOW_LOAD: 100, MODERATE_LOAD: 80, HIGH_LOAD: 30, VERY_HIGH_LOAD: 0 },
+        technologiesCube: { LOW: 100, HIGH: 30 },
+      },
+    },
+    {
+      name: "AutoStore",
+      scoring: {
+        weights: { velocity: 0.4, ratio: 0.4, cube: 0.2 },
+        technologiesVelocity: { VERY_HIGH: 90, HIGH: 90, MEDIUM: 70, LOW: 30 },
+        technologiesRatio: { LOW_LOAD: 100, MODERATE_LOAD: 70, HIGH_LOAD: 40, VERY_HIGH_LOAD: 10 },
+        technologiesCube: { LOW: 90, HIGH: 60 },
+      },
+    },
+    {
+      name: "Hai",
+      scoring: {
+        weights: { velocity: 0.4, ratio: 0.4, cube: 0.2 },
+        technologiesVelocity: { VERY_HIGH: 85, HIGH: 85, MEDIUM: 75, LOW: 40 },
+        technologiesRatio: { LOW_LOAD: 100, MODERATE_LOAD: 80, HIGH_LOAD: 50, VERY_HIGH_LOAD: 20 },
+        technologiesCube: { LOW: 90, HIGH: 50 },
+      },
+    },
+    {
+      name: "VBM",
+      scoring: {
+        weights: { velocity: 0.4, ratio: 0.4, cube: 0.2 },
+        technologiesVelocity: { VERY_HIGH: 70, HIGH: 75, MEDIUM: 80, LOW: 40 },
+        technologiesRatio: { LOW_LOAD: 80, MODERATE_LOAD: 90, HIGH_LOAD: 70, VERY_HIGH_LOAD: 30 },
+        technologiesCube: { LOW: 80, HIGH: 70 },
+      },
+    },
+    {
+      name: "VLM",
+      scoring: {
+        weights: { velocity: 0.4, ratio: 0.4, cube: 0.2 },
+        technologiesVelocity: { VERY_HIGH: 60, HIGH: 70, MEDIUM: 90, LOW: 60 },
+        technologiesRatio: { LOW_LOAD: 80, MODERATE_LOAD: 90, HIGH_LOAD: 80, VERY_HIGH_LOAD: 40 },
+        technologiesCube: { LOW: 70, HIGH: 90 },
+      },
+    },
+    {
+      name: "Carousel",
+      scoring: {
+        weights: { velocity: 0.4, ratio: 0.4, cube: 0.2 },
+        technologiesVelocity: { VERY_HIGH: 20, HIGH: 40, MEDIUM: 60, LOW: 80 },
+        technologiesRatio: { LOW_LOAD: 60, MODERATE_LOAD: 70, HIGH_LOAD: 50, VERY_HIGH_LOAD: 20 },
+        technologiesCube: { LOW: 60, HIGH: 60 },
+      },
+    },
+    {
+      name: "Manual",
+      scoring: {
+        weights: { velocity: 0.4, ratio: 0.4, cube: 0.2 },
+        technologiesVelocity: { VERY_HIGH: 0, HIGH: 20, MEDIUM: 50, LOW: 100 },
+        technologiesRatio: { LOW_LOAD: 40, MODERATE_LOAD: 50, HIGH_LOAD: 80, VERY_HIGH_LOAD: 100 },
+        technologiesCube: { LOW: 50, HIGH: 80 },
+      },
+    },
+    {
+      name: "Outside",
+      scoring: {
+        weights: { velocity: 0.4, ratio: 0.4, cube: 0.2 },
+        technologiesVelocity: { VERY_HIGH: 40, HIGH: 40, MEDIUM: 40, LOW: 40 },
+        technologiesRatio: { LOW_LOAD: 20, MODERATE_LOAD: 20, HIGH_LOAD: 20, VERY_HIGH_LOAD: 20 },
+        technologiesCube: { LOW: 20, HIGH: 20 },
+      },
+    },
+  ],
+};
+
+// -----------------------------
+// Main Component
+// -----------------------------
+export default function DashboardSkuTech() {
+  const [csvText, setCsvText] = useState(defaultCsv);
+  const [cfg, setCfg] = useState(defaultConfig);
+  const [activeSku, setActiveSku] = useState("SKU_001");
+
+  const parsed = useMemo(() => parseCsv(csvText), [csvText]);
+
+  const enriched = useMemo(() => {
+    if (parsed.error) return [];
+    return parsed.rows.map((r) => {
+      const x = computeAllScores(r, cfg);
+      return { ...r, ...x };
+    });
+  }, [parsed, cfg]);
+
+  const skuList = useMemo(() => enriched.map((e) => e.sku), [enriched]);
+
+  const selected = useMemo(() => enriched.find((e) => e.sku === activeSku) ?? enriched[0], [enriched, activeSku]);
+
+  const overallRanking = useMemo(() => {
+    // average score per technology across SKUs (only eligible ones)
+    const techs = cfg.technologyModels.map((t) => t.name);
+    const buckets = Object.fromEntries(techs.map((t) => [t, { sum: 0, n: 0 }]));
+    enriched.forEach((e) => {
+      // ignore critical/bad from averaging (they typically go outside)
+      if (["CRITICAL"].includes(e.segment)) return;
+      e.ranking.forEach((r) => {
+        if (!buckets[r.technology]) return;
+        buckets[r.technology].sum += r.score;
+        buckets[r.technology].n += 1;
+      });
+    });
+    const out = techs
+      .map((t) => ({ technology: t, score: buckets[t].n ? Math.round(buckets[t].sum / buckets[t].n) : 0 }))
+      .sort((a, b) => b.score - a.score);
+    return out;
+  }, [enriched, cfg.technologyModels]);
+
+  const heatmap = useMemo(() => {
+    // Heatmap: Velocity bands (rows) x Ratio segments (cols)
+    const vBands = ["VERY_HIGH", "HIGH", "MEDIUM", "LOW"];
+    const rSegs = ["FAST", "OK", "RISK", "BAD", "CRITICAL"];
+
+    const cell = {};
+    vBands.forEach((vb) => {
+      rSegs.forEach((rs) => {
+        cell[`${vb}|${rs}`] = { vb, rs, count: 0, topTech: "-", topScoreAvg: 0 };
+      });
+    });
+
+    // for each SKU, contribute to its cell based on its top recommendation score
+    enriched.forEach((e) => {
+      const key = `${e.velocityBand}|${e.segment}`;
+      const best = e.ranking?.[0];
+      if (!cell[key] || !best) return;
+      cell[key].count += 1;
+      // accumulate best score to average
+      cell[key].topScoreAvg += best.score;
+      // keep most frequent best technology (simple)
+      cell[key].topTech = best.technology;
+    });
+
+    const grid = vBands.map((vb) =>
+      rSegs.map((rs) => {
+        const c = cell[`${vb}|${rs}`];
+        const avg = c.count ? Math.round(c.topScoreAvg / c.count) : 0;
+        return { ...c, topScoreAvg: avg };
+      })
+    );
+
+    return { vBands, rSegs, grid };
+  }, [enriched]);
+
+  const techBarData = useMemo(() => {
+    // For selected SKU: show top 6 tech scores
+    if (!selected?.ranking) return [];
+    return selected.ranking.slice(0, 6).map((d) => ({ name: d.technology, score: d.score }));
+  }, [selected]);
+
+  const segmentSummary = useMemo(() => {
+    const counts = { FAST: 0, OK: 0, RISK: 0, BAD: 0, CRITICAL: 0 };
+    enriched.forEach((e) => {
+      counts[e.segment] = (counts[e.segment] ?? 0) + 1;
+    });
+    return Object.entries(counts).map(([k, v]) => ({ segment: k, count: v }));
+  }, [enriched]);
+
+  const helperText = (
+    <Alert className="bg-slate-50">
+      <Info className="h-4 w-4" />
+      <AlertTitle>Jak używać</AlertTitle>
+      <AlertDescription className="text-sm leading-relaxed">
+        Wklej CSV (nagłówki: <span className="font-mono">sku,velocity_pctl,ratio,cube</span>). Następnie zobacz:
+        <ul className="list-disc pl-5 mt-2">
+          <li><b>Heatmap</b>: rozkład SKU po Velocity vs Segment (ratio) i średni „best score”.</li>
+          <li><b>Ranking</b>: top technologie dla wybranego SKU + ranking globalny (średnia po SKU).</li>
+          <li><b>Settings</b>: progi Kardex oraz wagi scoringu.</li>
+        </ul>
+      </AlertDescription>
+    </Alert>
+  );
+
+  return (
+    <div className="p-6 space-y-6">
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">SKU Technology Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Heatmap (Velocity × Ratio Segment) + ranking technologii (scoring 0–100). Prototyp do Twojej aplikacji.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setCsvText(defaultCsv)}>
+              <Wand2 className="h-4 w-4 mr-2" /> Załaduj przykładowe dane
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+
+      {helperText}
+
+      {parsed.error ? (
+        <Alert variant="destructive">
+          <AlertTitle>Błąd CSV</AlertTitle>
+          <AlertDescription>{parsed.error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="flex flex-wrap">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
+          <TabsTrigger value="ranking">Ranking</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="data">Data</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Podsumowanie segmentów</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {segmentSummary.map((s) => (
+                    <Badge key={s.segment} className={`${segBadge(s.segment)} text-white`}>
+                      {s.segment}: {s.count}
+                    </Badge>
+                  ))}
+                </div>
+                <Separator className="my-4" />
+                <div className="text-sm text-muted-foreground leading-relaxed">
+                  <p>
+                    <b>FAST/OK</b> oznacza, że replenishment ratio jest w granicach akceptowalnych dla automatyki.
+                    <b> RISK/BAD/CRITICAL</b> to strefa problemowa (częste zasilenia, korki, spadek throughput).
+                  </p>
+                  <p className="mt-2">
+                    <b>Velocity</b> jest liczona percentylami (np. P90+ = VERY_HIGH). W praktyce decyzja jest obronna,
+                    gdy opiera się na peakach (P95) oraz ratio.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Wybrany SKU</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <div className="text-xs text-muted-foreground">SKU</div>
+                  <div className="flex gap-2 items-center flex-wrap">
+                    <select
+                      className="border rounded-md px-2 py-1 text-sm"
+                      value={selected?.sku ?? ""}
+                      onChange={(e) => setActiveSku(e.target.value)}
+                    >
+                      {skuList.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                    {selected?.segment ? (
+                      <Badge className={`${segBadge(selected.segment)} text-white`}>{selected.segment}</Badge>
+                    ) : null}
+                    {selected?.velocityBand ? (
+                      <Badge className={`${velBadge(selected.velocityBand)} text-white`}>{selected.velocityBand}</Badge>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="p-3 rounded-xl bg-slate-50">
+                    <div className="text-xs text-muted-foreground">Velocity pctl</div>
+                    <div className="font-semibold">{selected ? selected.velocity_pctl.toFixed(2) : "-"}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50">
+                    <div className="text-xs text-muted-foreground">Ratio</div>
+                    <div className="font-semibold">{selected ? selected.ratio.toFixed(2) : "-"}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50">
+                    <div className="text-xs text-muted-foreground">Cube</div>
+                    <div className="font-semibold">{selected ? selected.cube : "-"}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50">
+                    <div className="text-xs text-muted-foreground">Decision</div>
+                    <div className="font-semibold flex items-center gap-2">
+                      {selected?.decision === "OUTSIDE_CRITICAL" ? <Flame className="h-4 w-4 text-red-600" /> : null}
+                      {selected ? selected.decision : "-"}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="text-xs text-muted-foreground leading-relaxed">
+                  <b>Decision</b> to skrót: jeśli segment jest BAD/CRITICAL → Outside; w przeciwnym razie wybór top z rankingu.
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="heatmap" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Heatmap: Velocity × Ratio Segment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground mb-4">
+                Każda komórka pokazuje liczbę SKU w danym koszyku oraz średni score najlepszej technologii (kolor).
+              </div>
+
+              <div className="overflow-auto">
+                <div className="min-w-[860px]">
+                  <div className="grid" style={{ gridTemplateColumns: `180px repeat(${heatmap.rSegs.length}, 1fr)` }}>
+                    <div className="p-3 text-sm font-medium">Velocity \\ Segment</div>
+                    {heatmap.rSegs.map((rs) => (
+                      <div key={rs} className="p-3 text-sm font-medium text-center">
+                        {rs}
+                      </div>
+                    ))}
+
+                    {heatmap.vBands.map((vb, rowIdx) => (
+                      <React.Fragment key={vb}>
+                        <div className="p-3 text-sm font-medium flex items-center gap-2">
+                          <span className={`inline-flex w-2.5 h-2.5 rounded-full ${velBadge(vb)}`} />
+                          {vb}
+                        </div>
+                        {heatmap.rSegs.map((rs, colIdx) => {
+                          const cell = heatmap.grid[rowIdx][colIdx];
+                          const bg = heatColor(cell.topScoreAvg);
+                          return (
+                            <div
+                              key={`${vb}-${rs}`}
+                              className="p-3 rounded-xl border m-1"
+                              style={{ background: cell.count ? bg : "#fafafa" }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs font-semibold">{cell.count} SKU</div>
+                                <Badge variant="secondary" className="text-[10px]">
+                                  avg {cell.topScoreAvg}
+                                </Badge>
+                              </div>
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                best: <span className="font-medium">{cell.count ? cell.topTech : "-"}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="my-5" />
+
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                <b>Wskazówka:</b> Jeżeli widzisz dużo SKU w obszarze <b>VERY_HIGH × BAD/CRITICAL</b>, to jest to „killer zone” —
+                wymaga redesignu slottingu lub wyprowadzenia części asortymentu poza automat.
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ranking" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ranking technologii dla wybranego SKU</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={techBarData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" domain={[0, 100]} />
+                      <YAxis type="category" dataKey="name" width={100} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="score" name="Score" fill="#2563eb" radius={[8, 8, 8, 8]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-2 text-sm">
+                  {selected?.ranking?.slice(0, 5).map((r) => (
+                    <div key={r.technology} className="flex items-center justify-between">
+                      <div className="font-medium">{r.technology}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-28 h-2 rounded-full bg-slate-200 overflow-hidden">
+                          <div className="h-full" style={{ width: `${r.score}%`, background: "#2563eb" }} />
+                        </div>
+                        <div className="w-10 text-right tabular-nums">{r.score}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Ranking globalny (średnia po SKU)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground mb-2">
+                  Uśredniony score dla każdej technologii na podstawie danych w tabeli.
+                </div>
+                <div className="space-y-2">
+                  {overallRanking.slice(0, 8).map((r, idx) => (
+                    <div key={r.technology} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">#{idx + 1}</Badge>
+                        <div className="font-medium">{r.technology}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-28 h-2 rounded-full bg-slate-200 overflow-hidden">
+                          <div className="h-full" style={{ width: `${r.score}%`, background: "#0f766e" }} />
+                        </div>
+                        <div className="w-10 text-right tabular-nums">{r.score}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator className="my-4" />
+
+                <Alert>
+                  <Flame className="h-4 w-4" />
+                  <AlertTitle>Pro tip</AlertTitle>
+                  <AlertDescription className="text-sm">
+                    Jeśli <b>velocity jest VERY_HIGH/HIGH</b> i jednocześnie segment to <b>BAD/CRITICAL</b>, ranking może wskazywać
+                    automat, ale decyzja powinna zostać nadpisana na <b>OUTSIDE/REDESIGN</b> (wąskie gardło).
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4" /> Settings (progi i logika)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="text-sm font-medium">Progi ratio (Kardex-tuned)</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-xs text-muted-foreground">FAST upper</div>
+                      <Input
+                        value={cfg.ratioThresholds.fastUpper}
+                        onChange={(e) =>
+                          setCfg((p) => ({
+                            ...p,
+                            ratioThresholds: { ...p.ratioThresholds, fastUpper: Number(e.target.value) || 0 },
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">OK upper</div>
+                      <Input
+                        value={cfg.ratioThresholds.okUpper}
+                        onChange={(e) =>
+                          setCfg((p) => ({
+                            ...p,
+                            ratioThresholds: { ...p.ratioThresholds, okUpper: Number(e.target.value) || 0 },
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">RISK upper</div>
+                      <Input
+                        value={cfg.ratioThresholds.riskUpper}
+                        onChange={(e) =>
+                          setCfg((p) => ({
+                            ...p,
+                            ratioThresholds: { ...p.ratioThresholds, riskUpper: Number(e.target.value) || 0 },
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">CRITICAL</div>
+                      <Input
+                        value={cfg.ratioThresholds.critical}
+                        onChange={(e) =>
+                          setCfg((p) => ({
+                            ...p,
+                            ratioThresholds: { ...p.ratioThresholds, critical: Number(e.target.value) || 0 },
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <div className="text-sm font-medium">Progi velocity (percentyle)</div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <div className="text-xs text-muted-foreground">VERY_HIGH</div>
+                      <Input
+                        value={cfg.velocityThresholds.veryHigh}
+                        onChange={(e) =>
+                          setCfg((p) => ({
+                            ...p,
+                            velocityThresholds: { ...p.velocityThresholds, veryHigh: Number(e.target.value) || 0 },
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">HIGH</div>
+                      <Input
+                        value={cfg.velocityThresholds.high}
+                        onChange={(e) =>
+                          setCfg((p) => ({
+                            ...p,
+                            velocityThresholds: { ...p.velocityThresholds, high: Number(e.target.value) || 0 },
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">MEDIUM</div>
+                      <Input
+                        value={cfg.velocityThresholds.medium}
+                        onChange={(e) =>
+                          setCfg((p) => ({
+                            ...p,
+                            velocityThresholds: { ...p.velocityThresholds, medium: Number(e.target.value) || 0 },
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 text-xs text-muted-foreground leading-relaxed">
+                    Progi są ustawione domyślnie zgodnie z wersją „Kardex tuned”: FAST&lt;0.15, OK&lt;0.4, RISK&lt;0.8, BAD&lt;=1.2,
+                    CRITICAL&gt;1.2 oraz velocity: P90/P80/P50.
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="text-sm font-medium">Technologie w modelu</div>
+                  <div className="flex flex-wrap gap-2">
+                    {cfg.technologyModels.map((t) => (
+                      <Badge key={t.name} variant="secondary">
+                        {t.name}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  <Separator className="my-4" />
+
+                  <Alert>
+                    <Upload className="h-4 w-4" />
+                    <AlertTitle>Integracja z aplikacją</AlertTitle>
+                    <AlertDescription className="text-sm leading-relaxed">
+                      Ten prototyp pokazuje strukturę UI: heatmap + ranking + explainable decyzja. W Twojej aplikacji
+                      (local-first) możesz generować CSV z analizy i wkleić tutaj jako szybki smoke-test dashboardu.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="text-xs text-muted-foreground leading-relaxed">
+                    W razie potrzeby można dodać dodatkowe wymiary scoringu (np. compliance, fire class, SKU type).
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="data" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dane wejściowe (CSV)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                Wklej swoje dane. Minimalny zestaw kolumn: <span className="font-mono">sku, velocity_pctl, ratio, cube</span>.
+                velocity_pctl: 0–1 lub 0–100. cube: LOW/HIGH.
+              </div>
+              <Textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} className="min-h-[220px] font-mono text-xs" />
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="text-xs text-muted-foreground">Wierszy: {parsed.rows.length}</div>
+                <Button variant="outline" onClick={() => setActiveSku(parsed.rows[0]?.sku ?? "")}>Ustaw 1. SKU jako aktywny</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <div className="text-xs text-muted-foreground">
+        Prototype UI: heatmap + ranking. Możesz przenieść strukturę do Streamlit lub web UI zgodnie z architekturą local-first.
+      </div>
+    </div>
+  );
+}
