@@ -11,6 +11,23 @@ Rejestr zmian w projekcie Datavisor.
 
 ---
 
+### [2026-05-25] - Feature (feature/per-run-carrier-utilization) — Per-run carrier utilization override
+
+**Problem:** Współczynnik `utilization` nośnika był globalnie zapisywany w DB i edytowany w sekcji **Carriers**. Aby przetestować różne wartości w jednej sesji, użytkownik musiał modyfikować globalny rekord. Brak izolacji per-run uniemożliwiał porównanie analiz dla różnych `utilization` bez ingerencji w konfigurację nośników.
+
+**Co się zmienia:**
+- `api/routers/runs.py` (`run_capacity`): nowy Form param `carrier_utilizations: Optional[str]` (JSON z mapą `{carrier_id: util}`), walidacja `0 < val <= 1`, nadpisanie pola `CarrierConfig.utilization` przy budowie obiektów. Wartości faktycznie użyte w runie są zapisywane w `run.capacity_result.carrier_settings[cid].utilization` (frontend czyta stamtąd przy ponownym otwarciu runa).
+- `frontend/src/api/runs.ts`: nowy interfejs `CarrierSettings`, `CapacityResult.carrier_settings`, `runCapacity` przyjmuje `carrier_utilizations: Record<string, number>`.
+- `frontend/src/components/analysis/CapacityTab.vue`: state `carrierUtilizations`, prefill z `defaultUtilFor()` (z poprzedniego runa, potem z DB, fallback `1.0`), watch synchronizujący mapę z `selectedCarrierIds`, nowa tabela pod `CarrierMultiSelect` z inputami `0.01–1.0` per nośnik, payload w `runCapacity()`, etykiety utilization w tabeli wyników i w drag-drop priority czytane z aktualnego stanu/wyniku.
+- `frontend/src/views/CarriersView.vue`: całkowite usunięcie pola `utilization` (input z formularza, "Util: X%" z listy, klucz w reaktywnych obiektach formularza).
+- DB: bez migracji. Kolumna `carriers.utilization` zostaje z domyślną wartością `1.0` jako fallback gdy override nie zostanie przesłany.
+
+**Backend analytics:** `src/analytics/capacity.py` używa `carrier.utilization` w `units_per_carrier *= utilization` (linia 183) — bez zmian, override propaguje się przez `CarrierConfig`.
+
+**Branch:** `feature/per-run-carrier-utilization`
+
+---
+
 ### [2026-05-20] - Fix (main) — Container Order: poprawna liczba Dividers + tiery 338/388 dla full-bin
 
 **Problem:** W tabeli „Variant order → Summary" kolumna **Dividers** liczyła

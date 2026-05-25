@@ -38,6 +38,26 @@
             v-model:modelValue="selectedCarrierIds"
             :showError="ranOnce && selectedCarrierIds.size === 0"
           />
+          <!-- Per-carrier utilization -->
+          <div v-if="selectedCarrierIds.size > 0" class="mt-3">
+            <label class="block text-xs mb-1" style="color:var(--app-text-sec)">
+              Utilization per carrier (0.01 – 1.0)
+            </label>
+            <div class="util-list">
+              <div
+                v-for="cid in selectedCarrierList"
+                :key="cid"
+                class="util-row"
+              >
+                <span class="util-name">{{ carrierLabel(cid) }}</span>
+                <input
+                  v-model.number="carrierUtilizations[cid]"
+                  type="number" step="0.01" min="0.01" max="1"
+                  class="input-apple-sm util-input"
+                />
+              </div>
+            </div>
+          </div>
           <!-- Priority drag & drop — only in Prioritized mode -->
           <div v-if="analysisMode === 'prioritized' && prioritizedOrder.length" class="mt-2">
             <label class="block text-xs mb-1" style="color:var(--app-text-sec)">Priority order — drag to reorder</label>
@@ -323,6 +343,7 @@ const analysisMode = ref<'independent' | 'prioritized' | 'bestfit'>('independent
 const borderlineThreshold = ref(2.0)
 const availableCarriers = ref<Carrier[]>([])
 const selectedCarrierIds = ref(new Set<string>())
+const carrierUtilizations = ref<Record<string, number>>({})
 const prioritizedOrder = ref<string[]>([])
 const dragIndex = ref<number | null>(null)
 const statusFilter = ref<'ALL' | 'FIT' | 'BORDERLINE' | 'NOT_FIT'>('ALL')
@@ -454,11 +475,30 @@ watch(() => theme.dark, () => {
   if (cr.value) nextTick(() => renderCharts(cr.value!))
 })
 
+function defaultUtilFor(cid: string): number {
+  const fromResult = cr.value?.carrier_settings?.[cid]?.utilization
+  if (typeof fromResult === 'number') return fromResult
+  const c = availableCarriers.value.find(x => x.carrier_id === cid)
+  return c?.utilization ?? 1.0
+}
+
+const selectedCarrierList = computed(() =>
+  availableCarriers.value
+    .map(c => c.carrier_id)
+    .filter(id => selectedCarrierIds.value.has(id))
+)
+
 watch(selectedCarrierIds, (newSet) => {
   for (const id of newSet) {
     if (!prioritizedOrder.value.includes(id)) prioritizedOrder.value.push(id)
   }
   prioritizedOrder.value = prioritizedOrder.value.filter(id => newSet.has(id))
+
+  const next: Record<string, number> = {}
+  for (const id of newSet) {
+    next[id] = carrierUtilizations.value[id] ?? defaultUtilFor(id)
+  }
+  carrierUtilizations.value = next
 }, { deep: true })
 
 watch(analysisMode, (mode) => {
@@ -487,13 +527,16 @@ function carrierLabel(id: string) {
 function carrierDims(id: string) {
   const c = availableCarriers.value.find(x => x.carrier_id === id)
   if (!c) return ''
-  const util = c.utilization < 1 ? ` · util ${Math.round(c.utilization * 100)}%` : ''
+  const u = carrierUtilizations.value[id]
+  const util = typeof u === 'number' && u < 1 ? ` · util ${Math.round(u * 100)}%` : ''
   return `${c.inner_length_mm}×${c.inner_width_mm}×${c.inner_height_mm} mm · max ${c.max_weight_kg} kg${util}`
 }
 function carrierUtilizationLabel(cid: string): string {
-  const c = availableCarriers.value.find(x => x.carrier_id === cid)
-  if (!c) return '—'
-  return `${Math.round(c.utilization * 100)}%`
+  const fromResult = cr.value?.carrier_settings?.[cid]?.utilization
+  const val = typeof fromResult === 'number'
+    ? fromResult
+    : availableCarriers.value.find(x => x.carrier_id === cid)?.utilization
+  return typeof val === 'number' ? `${Math.round(val * 100)}%` : '—'
 }
 
 onMounted(async () => {
@@ -505,6 +548,9 @@ onMounted(async () => {
   } else {
     selectedCarrierIds.value = new Set(availableCarriers.value.map(c => c.carrier_id))
   }
+  const initUtils: Record<string, number> = {}
+  for (const id of selectedCarrierIds.value) initUtils[id] = defaultUtilFor(id)
+  carrierUtilizations.value = initUtils
 })
 
 const canRun = computed(() => !!props.run.masterdata_path && selectedCarrierIds.value.size > 0)
@@ -575,6 +621,11 @@ async function runCapacity() {
   analysis.start()
   error.value = ''
   try {
+    const utilPayload: Record<string, number> = {}
+    for (const id of selectedCarrierIds.value) {
+      const v = carrierUtilizations.value[id]
+      if (typeof v === 'number' && v > 0 && v <= 1) utilPayload[id] = v
+    }
     await runsApi.runCapacity(props.run.id, null, {
       prioritization_mode: analysisMode.value === 'prioritized',
       best_fit_mode: analysisMode.value === 'bestfit',
@@ -582,6 +633,7 @@ async function runCapacity() {
       carrier_ids: analysisMode.value === 'prioritized'
         ? [...prioritizedOrder.value]
         : [...selectedCarrierIds.value],
+      carrier_utilizations: utilPayload,
     })
     emit('refreshed')
     notify.push({ type: 'success', title: 'Analysis complete' })
@@ -668,6 +720,27 @@ function exportCsv() {
 .drag-handle { color: var(--app-placeholder); font-size: 14px; flex-shrink: 0; }
 .priority-name { font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .priority-dims { color: var(--app-placeholder); font-size: 10px; flex-shrink: 0; }
+
+/* Per-carrier utilization list */
+.util-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.util-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--app-input-bg);
+  border: 1px solid var(--table-divider);
+  font-size: 12px;
+  color: var(--app-text);
+}
+.util-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.util-input { width: 84px; text-align: right; }
 
 /* Expand chart button */
 .chart-zoom-btn {

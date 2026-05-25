@@ -407,6 +407,7 @@ async def run_capacity(
     best_fit_mode: bool = Form(default=False),
     borderline_threshold: float = Form(default=2.0),
     carrier_ids: str = Form(default=""),
+    carrier_utilizations: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RunResponse:
@@ -484,6 +485,20 @@ async def run_capacity(
 
         ordered_ids = [cid.strip() for cid in carrier_ids.split(",") if cid.strip()]
 
+        util_overrides: dict[str, float] = {}
+        if carrier_utilizations:
+            try:
+                raw = json.loads(carrier_utilizations)
+                if not isinstance(raw, dict):
+                    raise ValueError("carrier_utilizations must be a JSON object")
+                for k, v in raw.items():
+                    val = float(v)
+                    if not (0 < val <= 1.0):
+                        raise ValueError(f"utilization for '{k}' must be in (0, 1], got {val}")
+                    util_overrides[str(k)] = val
+            except (ValueError, TypeError, json.JSONDecodeError) as e:
+                raise HTTPException(status_code=422, detail=f"Invalid carrier_utilizations: {e}")
+
         carrier_query = select(CarrierModel).where(CarrierModel.is_active == True)
         if ordered_ids:
             carrier_query = carrier_query.where(CarrierModel.carrier_id.in_(ordered_ids))
@@ -502,6 +517,7 @@ async def run_capacity(
                         inner_width_mm=c.inner_width_mm,
                         inner_height_mm=c.inner_height_mm,
                         max_weight_kg=c.max_weight_kg,
+                        utilization=util_overrides.get(c.carrier_id, c.utilization),
                         is_active=c.is_active,
                         is_predefined=c.is_predefined,
                         priority=idx + 1,
@@ -515,6 +531,7 @@ async def run_capacity(
                     inner_width_mm=c.inner_width_mm,
                     inner_height_mm=c.inner_height_mm,
                     max_weight_kg=c.max_weight_kg,
+                    utilization=util_overrides.get(c.carrier_id, c.utilization),
                     is_active=c.is_active,
                     is_predefined=c.is_predefined,
                     priority=c.priority,
@@ -548,6 +565,7 @@ async def run_capacity(
                     "inner_width_mm": c.inner_width_mm,
                     "inner_height_mm": c.inner_height_mm,
                     "max_weight_kg": c.max_weight_kg,
+                    "utilization": c.utilization,
                 }
                 for c in carriers
             },

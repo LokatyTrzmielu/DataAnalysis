@@ -84,6 +84,15 @@ export interface RunDetail extends RunListItem {
   orders_validation_result: OrdersValidationResult | null
 }
 
+export interface CarrierSettings {
+  name: string
+  inner_length_mm: number
+  inner_width_mm: number
+  inner_height_mm: number
+  max_weight_kg: number
+  utilization: number
+}
+
 export interface CapacityResult {
   total_sku: number
   fit_count: number
@@ -96,6 +105,7 @@ export interface CapacityResult {
   avg_weight_kg: number
   carriers_analyzed: string[]
   carrier_stats: Record<string, CarrierStats>
+  carrier_settings?: Record<string, CarrierSettings>
   rows: CapacityRow[]
 }
 
@@ -298,13 +308,16 @@ export const runsApi = {
   removeShare: (id: string, userId: string) =>
     client.delete<void>(`/runs/${id}/shares/${userId}`),
 
-  runCapacity: (id: string, file: File | null, opts?: { prioritization_mode?: boolean; best_fit_mode?: boolean; borderline_threshold?: number; carrier_ids?: string[] }) => {
+  runCapacity: (id: string, file: File | null, opts?: { prioritization_mode?: boolean; best_fit_mode?: boolean; borderline_threshold?: number; carrier_ids?: string[]; carrier_utilizations?: Record<string, number> }) => {
     const fd = new FormData()
     if (file) fd.append('file', file)
     if (opts?.prioritization_mode) fd.append('prioritization_mode', 'true')
     if (opts?.best_fit_mode) fd.append('best_fit_mode', 'true')
     if (opts?.borderline_threshold != null) fd.append('borderline_threshold', String(opts.borderline_threshold))
     if (opts?.carrier_ids?.length) fd.append('carrier_ids', opts.carrier_ids.join(','))
+    if (opts?.carrier_utilizations && Object.keys(opts.carrier_utilizations).length > 0) {
+      fd.append('carrier_utilizations', JSON.stringify(opts.carrier_utilizations))
+    }
     return client.post<RunDetail>(`/runs/${id}/capacity`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
