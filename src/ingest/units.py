@@ -207,16 +207,36 @@ class UnitDetector:
                 return LengthUnit.INCH
 
         elif unit_type == "weight":
-            if "_kg" in name_lower or "(kg)" in name_lower or name_lower.endswith("kg"):
+            if "_kg" in name_lower or "(kg)" in name_lower or "[kg]" in name_lower or name_lower.endswith("kg"):
                 return WeightUnit.KG
-            # Check for grams - including "grams", "_g", "(g)"
+            # Check for grams - including "grams", "_g", "(g)", "[g]"
             if "grams" in name_lower or "gram" in name_lower:
                 return WeightUnit.G
-            if "_g" in name_lower or "(g)" in name_lower or name_lower.endswith("g"):
+            if "_g" in name_lower or "(g)" in name_lower or "[g]" in name_lower or name_lower.endswith("g"):
                 return WeightUnit.G
             if "lb" in name_lower or "pound" in name_lower:
                 return WeightUnit.LB
 
+        return None
+
+    def detect_weight_unit_from_suffix(
+        self,
+        raw_values: list[str],
+    ) -> Optional[WeightUnit]:
+        """Return WeightUnit if ≥20% of non-null values carry a unit suffix, else None."""
+        non_null = [v for v in raw_values if v]
+        if not non_null:
+            return None
+        total = len(non_null)
+        kg = sum(1 for v in non_null if v.lower().rstrip().endswith("kg"))
+        g = sum(
+            1 for v in non_null
+            if v.lower().rstrip().endswith("g") and not v.lower().rstrip().endswith("kg")
+        )
+        if kg / total >= 0.2:
+            return WeightUnit.KG
+        if g / total >= 0.2:
+            return WeightUnit.G
         return None
 
 
@@ -282,6 +302,13 @@ class UnitConverter:
         Returns:
             DataFrame with weight in kg
         """
+        if source_unit is None and auto_detect:
+            raw_sample = (
+                df.select(pl.col(weight_col).cast(pl.Utf8).str.strip_chars())
+                .to_series().drop_nulls().to_list()[:100]
+            )
+            source_unit = self.detector.detect_weight_unit_from_suffix(raw_sample)
+
         if source_unit is None and auto_detect:
             sample = df.select(clean_numeric_column(pl.col(weight_col))).to_series().drop_nulls().to_list()[:100]
             detection = self.detector.detect_weight_unit(sample, weight_col)

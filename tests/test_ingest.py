@@ -494,6 +494,44 @@ class TestCleanNumericColumn:
         """Zwykła liczba zmiennoprzecinkowa → poprawna wartość."""
         assert self._clean(["3.14"]) == [3.14]
 
+    def test_european_decimal_with_kg_suffix(self):
+        """Wartość europejska z sufiksem kg → poprawna liczba bez sufiksu."""
+        assert self._clean(["15,2kg"]) == [15.2]
+
+    def test_integer_with_kg_suffix(self):
+        """Liczba całkowita z sufiksem kg → poprawna wartość."""
+        assert self._clean(["100kg"]) == [100.0]
+
+    def test_integer_with_g_suffix(self):
+        """Liczba całkowita z sufiksem g → poprawna wartość."""
+        assert self._clean(["15200g"]) == [15200.0]
+
+    def test_european_decimal_with_spaced_kg_suffix(self):
+        """Wartość z spacją przed sufiksem kg → poprawna liczba."""
+        assert self._clean(["15,2 kg"]) == [15.2]
+
+
+class TestWeightUnitFromSuffix:
+    """Testy dla detect_weight_unit_from_suffix."""
+
+    def setup_method(self):
+        self.detector = UnitDetector()
+
+    def test_kg_suffixed_values(self):
+        values = ["15,2kg", "0,5kg", "3,1kg", "12,0kg"]
+        assert self.detector.detect_weight_unit_from_suffix(values) == WeightUnit.KG
+
+    def test_g_suffixed_values(self):
+        values = ["15200g", "500g", "3100g", "12000g"]
+        assert self.detector.detect_weight_unit_from_suffix(values) == WeightUnit.G
+
+    def test_no_suffix_returns_none(self):
+        values = ["15200", "500", "3100", "12000"]
+        assert self.detector.detect_weight_unit_from_suffix(values) is None
+
+    def test_empty_list_returns_none(self):
+        assert self.detector.detect_weight_unit_from_suffix([]) is None
+
 
 # ============================================================================
 # Testy integracyjne

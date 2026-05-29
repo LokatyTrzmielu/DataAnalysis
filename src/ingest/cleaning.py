@@ -13,6 +13,7 @@ def clean_numeric_column(col: pl.Expr) -> pl.Expr:
     separatory tysięcy (usuwane), a przecinek jako separator dziesiętny (→ kropka).
     """
     cleaned = col.cast(pl.Utf8).str.strip_chars()
+    cleaned = cleaned.str.replace(r"\s*[a-zA-Z]+\s*$", "")
 
     has_comma = cleaned.str.contains(",")
 
