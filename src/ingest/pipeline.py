@@ -110,11 +110,13 @@ class MasterdataIngestPipeline:
             })
 
         if "weight" in df.columns:
+            weight_orig_col = mapping.get_source_column("weight") or "weight"
             df = self.unit_converter.convert_weight_to_kg(
                 df,
                 weight_col="weight",
                 auto_detect=self.auto_detect_units,
                 source_unit=self.weight_unit,
+                original_col_name=weight_orig_col,
             )
             df = df.rename({"weight": "weight_kg"})
 

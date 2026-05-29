@@ -170,10 +170,10 @@ class UnitDetector:
 
         # Heuristics:
         # Default: grams (customer data is typically in grams)
-        # Detect kg only if values are very small (typical product weight range 0.01-50 kg)
+        # Detect kg if values fit a typical kg range (0.01-50 kg → median < 50, max < 500).
+        # Values like 500+ are almost certainly grams (e.g. 500g, 15200g).
 
-        if median < 10 and max_val < 100:
-            # Probably kilograms - very small values
+        if median < 50 and max_val < 500:
             detected = WeightUnit.KG
             confidence = 0.7
         else:
@@ -290,6 +290,7 @@ class UnitConverter:
         weight_col: str,
         auto_detect: bool = True,
         source_unit: Optional[WeightUnit] = None,
+        original_col_name: Optional[str] = None,
     ) -> pl.DataFrame:
         """Convert weight to kg.
 
@@ -298,6 +299,7 @@ class UnitConverter:
             weight_col: Weight column name
             auto_detect: Whether to auto-detect unit
             source_unit: Source unit (if known)
+            original_col_name: Original column name before mapping (used for unit hint)
 
         Returns:
             DataFrame with weight in kg
@@ -310,8 +312,9 @@ class UnitConverter:
             source_unit = self.detector.detect_weight_unit_from_suffix(raw_sample)
 
         if source_unit is None and auto_detect:
+            col_hint = original_col_name or weight_col
             sample = df.select(clean_numeric_column(pl.col(weight_col))).to_series().drop_nulls().to_list()[:100]
-            detection = self.detector.detect_weight_unit(sample, weight_col)
+            detection = self.detector.detect_weight_unit(sample, col_hint)
             if isinstance(detection.detected_unit, WeightUnit):
                 source_unit = detection.detected_unit
 
