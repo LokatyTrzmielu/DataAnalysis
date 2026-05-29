@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { carriersApi, type Carrier, type CarrierCreate } from '@/api/carriers'
+import { extractApiError } from '@/api/client'
 
 export const useCarriersStore = defineStore('carriers', () => {
   const carriers = ref<Carrier[]>([])
@@ -14,7 +15,7 @@ export const useCarriersStore = defineStore('carriers', () => {
       const { data } = await carriersApi.list()
       carriers.value = data
     } catch (e: unknown) {
-      error.value = (e as Error).message
+      error.value = extractApiError(e)
     } finally {
       loading.value = false
     }

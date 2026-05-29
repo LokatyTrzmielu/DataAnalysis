@@ -321,6 +321,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import type { RunDetail, CapacityResult } from '@/api/runs'
 import { runsApi } from '@/api/runs'
 import { carriersApi, type Carrier } from '@/api/carriers'
+import { extractApiError } from '@/api/client'
 import KpiCard from '@/components/shared/KpiCard.vue'
 import ChartZoomModal from '@/components/shared/ChartZoomModal.vue'
 import CarrierMultiSelect from '@/components/shared/CarrierMultiSelect.vue'
@@ -638,7 +639,7 @@ async function runCapacity() {
     emit('refreshed')
     notify.push({ type: 'success', title: 'Analysis complete' })
   } catch (e: unknown) {
-    error.value = (e as Error).message || 'Analysis failed.'
+    error.value = extractApiError(e) || 'Analysis failed.'
   } finally {
     running.value = false
     analysis.stop()

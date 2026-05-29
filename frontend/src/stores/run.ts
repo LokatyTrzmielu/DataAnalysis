@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { runsApi, type RunDetail, type RunListItem, type RunPatch } from '@/api/runs'
+import { extractApiError } from '@/api/client'
 
 export const useRunStore = defineStore('run', () => {
   const runs = ref<RunListItem[]>([])
@@ -18,7 +19,7 @@ export const useRunStore = defineStore('run', () => {
       runs.value = data.items
       total.value = data.total
     } catch (e: unknown) {
-      error.value = (e as Error).message
+      error.value = extractApiError(e)
     } finally {
       loading.value = false
     }
@@ -36,7 +37,7 @@ export const useRunStore = defineStore('run', () => {
       currentRun.value = data
       runCache.value.set(id, data)
     } catch (e: unknown) {
-      error.value = (e as Error).message
+      error.value = extractApiError(e)
     } finally {
       loading.value = false
     }

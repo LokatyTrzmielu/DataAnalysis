@@ -447,6 +447,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import type { RunDetail, PerformanceResult, OrdersValidationResult, PerformanceParetoBand } from '@/api/runs'
 import { runsApi } from '@/api/runs'
+import { extractApiError } from '@/api/client'
 import KpiCard from '@/components/shared/KpiCard.vue'
 import ChartZoomModal from '@/components/shared/ChartZoomModal.vue'
 import Plotly from 'plotly.js-dist-min'
@@ -625,7 +626,7 @@ async function doRunAnalysis() {
     emit('refreshed')
     notify.push({ type: 'success', title: 'Analysis complete' })
   } catch (e: unknown) {
-    analysisError.value = (e as Error).message || 'Analysis failed.'
+    analysisError.value = extractApiError(e) || 'Analysis failed.'
   } finally {
     analyzing.value = false
     analysis.stop()

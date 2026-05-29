@@ -29,4 +29,18 @@ client.interceptors.response.use(
   },
 )
 
+export function extractApiError(e: unknown): string {
+  if (e && typeof e === 'object' && 'response' in e) {
+    const detail = (e as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail))
+      return detail
+        .map((d: unknown) =>
+          d && typeof d === 'object' && 'msg' in d ? (d as { msg: string }).msg : String(d)
+        )
+        .join('; ')
+  }
+  return (e as Error).message || String(e)
+}
+
 export default client

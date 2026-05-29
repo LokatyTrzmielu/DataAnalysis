@@ -366,6 +366,7 @@ import type { RunDetail, MappingInspectResponse } from '@/api/runs'
 import { runsApi } from '@/api/runs'
 import type { Dataset } from '@/api/datasets'
 import { datasetsApi } from '@/api/datasets'
+import { extractApiError } from '@/api/client'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useAnalysisStore } from '@/stores/analysis'
 
@@ -468,7 +469,7 @@ async function doMdInspect() {
     mdUserMapping.value = mapping
     mdStep.value = 'mapping'
   } catch (e: unknown) {
-    mdError.value = (e as Error).message || 'Failed to read file.'
+    mdError.value = extractApiError(e) || 'Failed to read file.'
   } finally {
     mdInspecting.value = false
     analysis.stop()
@@ -498,7 +499,7 @@ async function doMdFromDataset() {
       showProceedModal.value = true
     }
   } catch (e: unknown) {
-    const msg = (e as Error).message || 'Import failed.'
+    const msg = extractApiError(e) || 'Import failed.'
     mdError.value = msg
     notify.push({ type: 'error', title: 'Import failed', message: msg })
   } finally {
@@ -527,7 +528,7 @@ async function doMdQuality() {
       showProceedModal.value = true
     }
   } catch (e: unknown) {
-    const msg = (e as Error).message || 'Quality check failed.'
+    const msg = extractApiError(e) || 'Quality check failed.'
     mdError.value = msg
     notify.push({ type: 'error', title: 'Quality check failed', message: msg })
   } finally {
@@ -607,7 +608,7 @@ async function doOrdersInspect() {
     ordersStep.value = 'mapping'
     emit('refreshed')
   } catch (e: unknown) {
-    ordersUploadError.value = (e as Error).message || 'Failed to read file.'
+    ordersUploadError.value = extractApiError(e) || 'Failed to read file.'
   } finally {
     ordersInspecting.value = false
     analysis.stop()
@@ -637,7 +638,7 @@ async function doOrdersFromDataset() {
       showProceedModal.value = true
     }
   } catch (e: unknown) {
-    const msg = (e as Error).message || 'Import failed.'
+    const msg = extractApiError(e) || 'Import failed.'
     ordersUploadError.value = msg
     notify.push({ type: 'error', title: 'Import failed', message: msg })
   } finally {
@@ -666,7 +667,7 @@ async function doOrdersIngest() {
       showProceedModal.value = true
     }
   } catch (e: unknown) {
-    const msg = (e as Error).message || 'Ingestion failed.'
+    const msg = extractApiError(e) || 'Ingestion failed.'
     ordersUploadError.value = msg
     notify.push({ type: 'error', title: 'Import failed', message: msg })
   } finally {

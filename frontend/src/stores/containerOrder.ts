@@ -9,6 +9,7 @@ import {
   type SavedPlanResponse,
   type VariantInfo,
 } from '@/api/containerOrder'
+import { extractApiError } from '@/api/client'
 
 export const useContainerOrderStore = defineStore('containerOrder', () => {
   const eligible = ref<EligibleAnalysis[]>([])
@@ -45,7 +46,7 @@ export const useContainerOrderStore = defineStore('containerOrder', () => {
       const { data } = await containerOrderApi.listEligibleAnalyses()
       eligible.value = data
     } catch (e) {
-      error.value = (e as Error).message || 'Failed to load analyses.'
+      error.value = extractApiError(e) || 'Failed to load analyses.'
     } finally {
       loading.value = false
     }
@@ -84,7 +85,7 @@ export const useContainerOrderStore = defineStore('containerOrder', () => {
       currentSavedId.value = null
       return data
     } catch (e) {
-      error.value = (e as Error).message || 'Calculation failed.'
+      error.value = extractApiError(e) || 'Calculation failed.'
       plan.value = null
       return null
     } finally {
@@ -119,7 +120,7 @@ export const useContainerOrderStore = defineStore('containerOrder', () => {
       savedPlans.value = data.items
       savedPlansTotal.value = data.total
     } catch (e) {
-      savedPlansError.value = (e as Error).message || 'Failed to load saved plans.'
+      savedPlansError.value = extractApiError(e) || 'Failed to load saved plans.'
     } finally {
       savedPlansLoading.value = false
     }
@@ -169,7 +170,7 @@ export const useContainerOrderStore = defineStore('containerOrder', () => {
       }
       return true
     } catch (e) {
-      error.value = (e as Error).message || 'Failed to load saved plan.'
+      error.value = extractApiError(e) || 'Failed to load saved plan.'
       return false
     } finally {
       loading.value = false

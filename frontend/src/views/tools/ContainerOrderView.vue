@@ -681,6 +681,7 @@ import VariantCard from '@/components/VariantCard.vue'
 import Bin3DPreview from '@/components/Bin3DPreview.vue'
 import SkuAssignmentTable from '@/components/SkuAssignmentTable.vue'
 import type { VariantInfo } from '@/api/containerOrder'
+import { extractApiError } from '@/api/client'
 
 const store = useContainerOrderStore()
 const notify = useNotificationsStore()
@@ -880,7 +881,7 @@ async function doExport(format: 'xlsx' | 'pdf' | 'csv') {
   } catch (e) {
     notify.push({
       type: 'error', title: 'Export failed',
-      message: (e as Error).message || 'Please try again.',
+      message: extractApiError(e) || 'Please try again.',
     })
   } finally {
     exporting.value = ''
@@ -936,7 +937,7 @@ async function renamePrompt(p: { id: string; label: string }) {
     await store.renameSavedPlan(p.id, trimmed)
     notify.push({ type: 'success', title: 'Renamed', message: trimmed })
   } catch (e) {
-    notify.push({ type: 'error', title: 'Rename failed', message: (e as Error).message || 'Try again.' })
+    notify.push({ type: 'error', title: 'Rename failed', message: extractApiError(e) || 'Try again.' })
   }
 }
 
@@ -946,7 +947,7 @@ async function deletePrompt(p: { id: string; label: string }) {
     await store.deleteSavedPlan(p.id)
     notify.push({ type: 'success', title: 'Deleted', message: p.label })
   } catch (e) {
-    notify.push({ type: 'error', title: 'Delete failed', message: (e as Error).message || 'Try again.' })
+    notify.push({ type: 'error', title: 'Delete failed', message: extractApiError(e) || 'Try again.' })
   }
 }
 
@@ -982,7 +983,7 @@ async function confirmSave() {
     saveModalOpen.value = false
     notify.push({ type: 'success', title: 'Plan saved to history', message: label })
   } catch (e) {
-    saveError.value = (e as Error).message || 'Save failed. Try again.'
+    saveError.value = extractApiError(e) || 'Save failed. Try again.'
   } finally {
     savingPlan.value = false
   }

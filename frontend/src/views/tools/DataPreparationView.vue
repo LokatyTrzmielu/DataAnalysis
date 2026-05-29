@@ -239,6 +239,7 @@ import { RouterLink } from 'vue-router'
 import type { MappingInspectResponse } from '@/api/runs'
 import type { Dataset } from '@/api/datasets'
 import { toolsApi } from '@/api/tools'
+import { extractApiError } from '@/api/client'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const notify = useNotificationsStore()
@@ -319,7 +320,7 @@ async function doInspect() {
     datasetName.value = `merged_${firstFile.name.replace(/\.[^.]+$/, '')}`
     step.value = 'mapping'
   } catch (e: unknown) {
-    uploadError.value = (e as Error).message || 'Failed to read file.'
+    uploadError.value = extractApiError(e) || 'Failed to read file.'
   } finally {
     inspecting.value = false
   }
@@ -343,7 +344,7 @@ async function doMerge() {
       message: `${data.name} · ${data.row_count.toLocaleString()} rows · ${data.size_mb} MB`,
     })
   } catch (e: unknown) {
-    const msg = (e as Error).message || 'Merge failed.'
+    const msg = extractApiError(e) || 'Merge failed.'
     mergeError.value = msg
     notify.push({ type: 'error', title: 'Merge failed', message: msg })
   } finally {
