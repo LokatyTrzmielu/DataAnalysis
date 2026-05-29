@@ -744,6 +744,11 @@ async def run_quality(
 
         return _run_to_response(run)
 
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Quality pipeline failed for run %s", run_id)
+        raise HTTPException(status_code=422, detail=f"Quality check failed: {exc}") from exc
     finally:
         if tmp_path:
             tmp_path.unlink(missing_ok=True)
@@ -918,8 +923,12 @@ async def ingest_orders(
         parsed_mapping = mr
         run.orders_mapping = raw
 
-    pipeline = OrdersIngestPipeline()
-    result = pipeline.run(Path(run.orders_path), mapping=parsed_mapping)
+    try:
+        pipeline = OrdersIngestPipeline()
+        result = pipeline.run(Path(run.orders_path), mapping=parsed_mapping)
+    except Exception as exc:
+        logger.exception("Orders ingest pipeline failed for run %s", run_id)
+        raise HTTPException(status_code=422, detail=f"Orders ingestion failed: {exc}") from exc
 
     date_from = None
     date_to = None
